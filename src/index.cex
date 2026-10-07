@@ -1,0 +1,106 @@
+// 2-TEK Factory: Package Entrypoint & Live Demonstration (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./types.cex";
+import "./models/platform_model.cex";
+import "./models/version_model.cex";
+import "./models/artifact_model.cex";
+import "./builder/dist_builder.cex";
+import "./cxvm/cxvm_engine.cex";
+import "./app.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("    2-TEK Cex Factory: Cross-Platform Runtime & Version Manager Engine        ");
+    println("                   [Powered by Lighting Fullstack MVC]                         ");
+    println("===============================================================================");
+
+    // 1. Initializing Factory App Kernel
+    println("\n[1. Initializing Factory Application Kernel on Port 3080]");
+    let app: FactoryApp* = new FactoryApp(3080);
+    app->start();
+    print("  Application:     "); println(app->appName);
+    print("  Server Port:     "); println(app->port);
+    print("  Active Routes:   "); println(app->router->getRouteCount());
+    print("  Downloads Store: "); println(app->downloadsDir);
+    app->displayRoutes();
+
+    // 2. Testing Model Layer & Validation
+    println("\n[2. Testing Model Layer & Entity Validation]");
+    let pModel: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "g++-12 / clang++-16", "tar.gz", "Linux x86_64");
+    let pVal: ModelValidationResult* = pModel->validate();
+    print("  Platform Model Validation: "); println(pVal->isValid ? "PASSED [OK]" : "FAILED");
+
+    let vModel: VersionModel* = new VersionModel("1.0.0", "STABLE", "2026-10-07", "C++20", "Standard Toolchain", true);
+    let vVal: ModelValidationResult* = vModel->validate();
+    print("  Version Model Validation:  "); println(vVal->isValid ? "PASSED [OK]" : "FAILED");
+
+    let aModel: ArtifactModel* = new ArtifactModel("cex-v1.0.0-linux-x86_64.tar.gz", "1.0.0", "linux", "x86_64", 2748, "886020858b17f0045dc9e3f5cb795d0b39ff7b73eb7377a7c4c2c4dcf4fd2b60", "/downloads/cex-v1.0.0-linux-x86_64.tar.gz");
+    let aVal: ModelValidationResult* = aModel->validate();
+    print("  Artifact Model Validation: "); println(aVal->isValid ? "PASSED [OK]" : "FAILED");
+
+    // 3. Testing CXVM Version Manager Engine (like nvm)
+    println("\n[3. Testing CXVM Version Manager Engine (like nvm)]");
+    print("  Current Active Version: "); println(app->cxvm->current());
+    println("  " + app->cxvm->list());
+
+    println("  ▶ Simulating: cxvm install 1.1.0");
+    let instRes: CxvmCommandResult* = app->cxvm->install("1.1.0");
+    print("    Result: "); println(instRes->success ? "PASSED [OK]" : "FAILED");
+
+    println("  ▶ Simulating: cxvm use 1.1.0");
+    let useRes: CxvmCommandResult* = app->cxvm->use("1.1.0");
+    print("    Result: "); println(useRes->success ? "PASSED [OK]" : "FAILED");
+    print("    Active Version now: "); println(app->cxvm->current());
+
+    println("\n  ▶ Simulating: cxvm doctor");
+    println(app->cxvm->doctor());
+
+    // 4. Testing Cross-Platform DistBuilder
+    println("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
+    print("  Supported Architectures: "); println((int)app->builder->platforms->length());
+    print("  Built Artifacts in Store: "); println((int)app->builder->artifacts->length());
+    let sampleArt: ArtifactModel* = app->builder->getArtifactByFilename("cex-v1.0.0-linux-x86_64.tar.gz");
+    if (sampleArt !== nullptr) {
+        print("  Sample Target: "); print(sampleArt->filename);
+        print(" | Size: "); print(sampleArt->sizeBytes); println(" bytes [OK]");
+    }
+
+    // 5. Testing Lighting MVC SSR Views & HTTP Endpoints
+    println("\n[5. Testing Lighting MVC SSR Views & REST JSON API Endpoints]");
+    let homeResp: HttpResponse* = app->simulateRequest("GET", "/", "", "text/html");
+    print("  GET / -> Status: "); print(homeResp->statusCode);
+    print(" | Content-Type: "); print(homeResp->contentType);
+    print(" | Size: "); print((int)homeResp->body.length()); println(" bytes");
+
+    let downResp: HttpResponse* = app->simulateRequest("GET", "/downloads", "", "text/html");
+    print("  GET /downloads -> Status: "); print(downResp->statusCode);
+    print(" | Size: "); print((int)downResp->body.length()); println(" bytes");
+
+    let cxvmDocsResp: HttpResponse* = app->simulateRequest("GET", "/cxvm", "", "text/html");
+    print("  GET /cxvm -> Status: "); print(cxvmDocsResp->statusCode);
+    print(" | Size: "); print((int)cxvmDocsResp->body.length()); println(" bytes");
+
+    let shResp: HttpResponse* = app->simulateRequest("GET", "/install.sh", "", "text/x-shellscript");
+    print("  GET /install.sh -> Status: "); print(shResp->statusCode);
+    print(" | Content-Type: "); println(shResp->contentType);
+
+    let statusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
+    print("  GET /api/v1/status -> "); println(statusResp->body);
+
+    let verResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
+    print("  GET /api/v1/versions -> "); println(verResp->body);
+
+    let platResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
+    print("  GET /api/v1/platforms -> "); println(platResp->body);
+
+    let buildResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
+    print("  POST /api/v1/build -> "); println(buildResp->body);
+
+    app->stop();
+    println("\n===============================================================================");
+    println("      ✓ 2-TEK Cex Factory Fullstack Pipeline Executed Successfully!           ");
+    println("===============================================================================");
+
+    return 0;
+}

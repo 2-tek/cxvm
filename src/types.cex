@@ -1,0 +1,100 @@
+// 2-TEK Factory: Cross-Platform Types & Data Structures (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "../../Lighting/src/types.cex";
+
+class PlatformArch {
+    public id: string;
+    public os: string;
+    public arch: string;
+    public targetTriple: string;
+    public compiler: string;
+    public archiveFormat: string;
+    public displayName: string;
+
+    public constructor(id: string, os: string, arch: string, triple: string, compiler: string, fmt: string, name: string) {
+        this.id = id;
+        this.os = os;
+        this.arch = arch;
+        this.targetTriple = triple;
+        this.compiler = compiler;
+        this.archiveFormat = fmt;
+        this.displayName = name;
+    }
+
+    public getArchiveFilename(version: string): string {
+        return "cex-v" + version + "-" + this.id + "." + this.archiveFormat;
+    }
+}
+
+class RuntimeVersion {
+    public version: string;
+    public channel: string;
+    public releaseDate: string;
+    public minCpp: string;
+    public description: string;
+    public isDefault: bool;
+
+    public constructor(ver: string, chan: string, date: string, cpp: string, desc: string, isDef: bool) {
+        this.version = ver;
+        this.channel = chan;
+        this.releaseDate = date;
+        this.minCpp = cpp;
+        this.description = desc;
+        this.isDefault = isDef;
+    }
+}
+
+class DistArtifact {
+    public filename: string;
+    public version: string;
+    public platform: string;
+    public arch: string;
+    public sizeBytes: int;
+    public sha256: string;
+    public downloadUrl: string;
+    public isBuilt: bool;
+
+    public constructor(fname: string, ver: string, plat: string, arch: string, size: int, hash: string, url: string) {
+        this.filename = fname;
+        this.version = ver;
+        this.platform = plat;
+        this.arch = arch;
+        this.sizeBytes = size;
+        this.sha256 = hash;
+        this.downloadUrl = url;
+        this.isBuilt = false;
+    }
+}
+
+class CxvmCommandResult {
+    public action: string;
+    public version: string;
+    public success: bool;
+    public message: string;
+    public output: string;
+
+    public constructor(action: string, ver: string, ok: bool, msg: string, out: string) {
+        this.action = action;
+        this.version = ver;
+        this.success = ok;
+        this.message = msg;
+        this.output = out;
+    }
+}
+
+class FactoryStats {
+    public totalVersions: int;
+    public supportedPlatforms: int;
+    public totalArtifacts: int;
+    public downloadsDirectory: string;
+    public lastBuildTimestamp: string;
+
+    public constructor() {
+        this.totalVersions = 0;
+        this.supportedPlatforms = 0;
+        this.totalArtifacts = 0;
+        this.downloadsDirectory = "packages/Factory/downloads";
+        this.lastBuildTimestamp = "2026-10-07T00:00:00Z";
+    }
+}

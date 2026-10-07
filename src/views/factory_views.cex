@@ -1,0 +1,268 @@
+// 2-TEK Factory: Server-Side Rendered (SSR) Views & HTML Templates (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "../types.cex";
+import "../models/platform_model.cex";
+import "../models/version_model.cex";
+import "../models/artifact_model.cex";
+
+class FactoryViews {
+    public static renderLayout(title: string, content: string, activeRoute: string, port: int): string {
+        let pStr: string = std::to_string(port);
+        let html: string = "<!DOCTYPE html>\n";
+        html += "<html lang=\"en\">\n<head>\n";
+        html += "  <meta charset=\"UTF-8\">\n";
+        html += "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+        html += "  <title>" + title + " — 2-TEK Cex Factory</title>\n";
+        html += "  <style>\n";
+        html += "    :root {\n";
+        html += "      --bg: #070b14; --surface: #0f172a; --surface-card: #1e293b; --border: #334155;\n";
+        html += "      --text: #f8fafc; --muted: #94a3b8; --primary: #0284c7; --primary-hover: #38bdf8;\n";
+        html += "      --cyan: #06b6d4; --emerald: #10b981; --amber: #f59e0b; --purple: #8b5cf6;\n";
+        html += "      --font-sans: system-ui, -apple-system, sans-serif;\n";
+        html += "      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;\n";
+        html += "    }\n";
+        html += "    * { box-sizing: border-box; margin: 0; padding: 0; }\n";
+        html += "    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.6; }\n";
+        html += "    header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }\n";
+        html += "    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #38bdf8; font-size: 18px; font-weight: 800; }\n";
+        html += "    nav { display: flex; gap: 14px; align-items: center; }\n";
+        html += "    nav a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 6px; transition: all 0.15s ease; }\n";
+        html += "    nav a:hover, nav a.active { color: #fff; background: var(--surface-card); }\n";
+        html += "    .container { max-width: 1200px; margin: 36px auto; padding: 0 24px; }\n";
+        html += "    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }\n";
+        html += "    .btn { background: var(--primary); color: #fff; padding: 9px 18px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; border: none; cursor: pointer; transition: 0.15s; }\n";
+        html += "    .btn:hover { background: var(--primary-hover); color: #070b14; }\n";
+        html += "    .btn-secondary { background: #1e293b; color: #f8fafc; border: 1px solid #475569; }\n";
+        html += "    .btn-secondary:hover { background: #334155; color: #fff; }\n";
+        html += "    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }\n";
+        html += "    .badge-stable { background: #065f46; color: #34d399; border: 1px solid #059669; }\n";
+        html += "    .badge-lts { background: #1e3a8a; color: #60a5fa; border: 1px solid #2563eb; }\n";
+        html += "    .badge-canary { background: #78350f; color: #fbbf24; border: 1px solid #d97706; }\n";
+        html += "    .code-box { background: #050811; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 18px; font-family: var(--font-mono); font-size: 13px; color: #38bdf8; display: flex; justify-content: space-between; align-items: center; margin: 10px 0; overflow-x: auto; }\n";
+        html += "    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }\n";
+        html += "    th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--muted); font-size: 12px; text-transform: uppercase; }\n";
+        html += "    td { padding: 12px; border-bottom: 1px solid #1e293b; }\n";
+        html += "    footer { text-align: center; padding: 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; margin-top: 60px; }\n";
+        html += "  </style>\n</head>\n<body>\n";
+        html += "  <header>\n";
+        html += "    <a href=\"/\" class=\"brand\">⚙️ 2-TEK Factory <small style=\"color: var(--amber); font-size: 10px; border: 1px solid var(--amber); padding: 2px 6px; border-radius: 4px;\">CXVM &amp; DIST</small></a>\n";
+        html += "    <nav>\n";
+        html += "      <a href=\"/\" class=\"";
+        html += (activeRoute === "/" ? "active" : "");
+        html += "\">Portal</a>\n";
+        html += "      <a href=\"/downloads\" class=\"";
+        html += (activeRoute === "/downloads" ? "active" : "");
+        html += "\">Downloads</a>\n";
+        html += "      <a href=\"/cxvm\" class=\"";
+        html += (activeRoute === "/cxvm" ? "active" : "");
+        html += "\">cxvm Guide</a>\n";
+        html += "      <a href=\"/api/v1/status\" target=\"_blank\">API Status</a>\n";
+        html += "      <a href=\"http://127.0.0.1:3055/editor\" target=\"_blank\" style=\"color:#38bdf8;\">CodeStorm IDE</a>\n";
+        html += "    </nav>\n";
+        html += "  </header>\n";
+        html += "  <main class=\"container\">\n";
+        html += content;
+        html += "  </main>\n";
+        html += "  <footer>\n";
+        html += "    <p>2-TEK Cex Factory &amp; Cross-Platform Runtime Engine on Port " + pStr + " (Powered by Lighting MVC)</p>\n";
+        html += "    <p style=\"margin-top: 4px;\">Cross-Platform Targets: Linux (x86_64, aarch64) &bull; macOS (Apple Silicon, Intel) &bull; Windows (x64, arm64)</p>\n";
+        html += "  </footer>\n";
+        html += "</body>\n</html>\n";
+        return html;
+    }
+
+    public static renderDashboard(port: int, versions: Array<VersionModel*>*, platforms: Array<PlatformModel*>*, artifacts: Array<ArtifactModel*>*, currentActive: string): string {
+        let pStr: string = std::to_string(port);
+        let content: string = "<div class=\"card\" style=\"text-align: center; padding: 48px 24px; background: radial-gradient(circle at 50% 20%, #1e293b, #0f172a);\">\n";
+        content += "  <h1 style=\"font-size: 34px; margin-bottom: 12px; color: #38bdf8;\">⚙️ Cex Cross-Platform Factory &amp; Runtime Setup</h1>\n";
+        content += "  <p style=\"font-size: 15px; color: #94a3b8; max-width: 720px; margin: 0 auto 24px;\">\n";
+        content += "    Universal cross-platform compiler toolchain distribution and version manager for C-ext (<b>.cex</b>).\n";
+        content += "    Install, switch, and maintain multiple Cex runtimes effortlessly across Linux, macOS, and Windows—just like <code>nvm</code> for Node.\n";
+        content += "  </p>\n";
+        content += "  <div style=\"display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;\">\n";
+        content += "    <a href=\"/downloads\" class=\"btn\">📦 Explore Downloads (" + std::to_string((int)artifacts->length()) + " Bundles)</a>\n";
+        content += "    <a href=\"/cxvm\" class=\"btn btn-secondary\">📖 cxvm CLI Guide</a>\n";
+        content += "    <a href=\"/api/v1/manifest\" target=\"_blank\" class=\"btn btn-secondary\">📄 Manifest JSON</a>\n";
+        content += "  </div>\n";
+        content += "</div>\n";
+
+        // Quick Install Boxes
+        content += "<div class=\"card\">\n";
+        content += "  <h2 style=\"margin-bottom: 12px; display: flex; align-items: center; gap: 10px;\">🚀 Instant One-Line Setup</h2>\n";
+        content += "  <p style=\"color: #94a3b8; font-size: 13px; margin-bottom: 16px;\">Run the one-line installer script in your terminal to bootstrap <code>cxvm</code> and the latest Cex runtime:</p>\n";
+
+        content += "  <div style=\"margin-bottom: 16px;\">\n";
+        content += "    <span style=\"font-size: 12px; font-weight: 700; color: #34d399;\">🐧 Linux &amp; 🍏 macOS (curl | bash):</span>\n";
+        content += "    <div class=\"code-box\">\n";
+        content += "      <code>curl -fsSL http://127.0.0.1:" + pStr + "/install.sh | bash</code>\n";
+        content += "      <span style=\"color: #64748b; font-size: 11px;\">POSIX sh/bash</span>\n";
+        content += "    </div>\n";
+        content += "  </div>\n";
+
+        content += "  <div>\n";
+        content += "    <span style=\"font-size: 12px; font-weight: 700; color: #60a5fa;\">🪟 Windows (PowerShell irm | iex):</span>\n";
+        content += "    <div class=\"code-box\">\n";
+        content += "      <code>irm http://127.0.0.1:" + pStr + "/install.ps1 | iex</code>\n";
+        content += "      <span style=\"color: #64748b; font-size: 11px;\">PowerShell 5.1+</span>\n";
+        content += "    </div>\n";
+        content += "  </div>\n";
+        content += "</div>\n";
+
+        // Platform Support Matrix
+        content += "<div class=\"card\">\n";
+        content += "  <div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;\">\n";
+        content += "    <h2>🌐 Cross-Platform Architecture Support Matrix</h2>\n";
+        content += "    <span class=\"badge badge-stable\">" + std::to_string((int)platforms->length()) + " Architectures Active</span>\n";
+        content += "  </div>\n";
+        content += "  <table>\n";
+        content += "    <thead>\n";
+        content += "      <tr>\n";
+        content += "        <th>Target Architecture</th>\n";
+        content += "        <th>Operating System</th>\n";
+        content += "        <th>Target Triple</th>\n";
+        content += "        <th>Recommended Compiler</th>\n";
+        content += "        <th>Format</th>\n";
+        content += "        <th>Status</th>\n";
+        content += "      </tr>\n";
+        content += "    </thead>\n";
+        content += "    <tbody>\n";
+
+        let pCount: int = (int)platforms->length();
+        for (let i: int = 0; i < pCount; i++) {
+            let p: PlatformModel* = platforms->get(i);
+            content += "      <tr>\n";
+            content += "        <td style=\"font-weight: bold; color: #f8fafc;\">" + p->displayName + "</td>\n";
+            content += "        <td><span style=\"font-family: var(--font-mono); color: #38bdf8;\">" + p->os + "</span></td>\n";
+            content += "        <td><code style=\"color: #94a3b8;\">" + p->targetTriple + "</code></td>\n";
+            content += "        <td>" + p->compiler + "</td>\n";
+            content += "        <td><span class=\"badge badge-lts\">." + p->archiveFormat + "</span></td>\n";
+            content += "        <td><span class=\"badge badge-stable\">READY</span></td>\n";
+            content += "      </tr>\n";
+        }
+
+        content += "    </tbody>\n";
+        content += "  </table>\n";
+        content += "</div>\n";
+
+        // Version Catalog
+        content += "<div class=\"card\">\n";
+        content += "  <div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;\">\n";
+        content += "    <h2>🏷️ Available Cex Runtime Versions</h2>\n";
+        content += "    <span class=\"badge badge-lts\">Current Default: " + currentActive + "</span>\n";
+        content += "  </div>\n";
+        content += "  <table>\n";
+        content += "    <thead>\n";
+        content += "      <tr>\n";
+        content += "        <th>Version</th>\n";
+        content += "        <th>Channel</th>\n";
+        content += "        <th>Release Date</th>\n";
+        content += "        <th>C++ Standard</th>\n";
+        content += "        <th>Description</th>\n";
+        content += "      </tr>\n";
+        content += "    </thead>\n";
+        content += "    <tbody>\n";
+
+        let vCount: int = (int)versions->length();
+        for (let i: int = 0; i < vCount; i++) {
+            let v: VersionModel* = versions->get(i);
+            let chBadge: string = (v->channel === "STABLE" ? "badge-stable" : (v->channel === "LTS" ? "badge-lts" : "badge-canary"));
+            content += "      <tr>\n";
+            content += "        <td style=\"font-weight: bold; font-family: var(--font-mono); color: #38bdf8;\">v" + v->version + "</td>\n";
+            content += "        <td><span class=\"badge " + chBadge + "\">" + v->channel + "</span></td>\n";
+            content += "        <td>" + v->releaseDate + "</td>\n";
+            content += "        <td><code style=\"color: #34d399;\">" + v->minCpp + "</code></td>\n";
+            content += "        <td style=\"color: #94a3b8;\">" + v->description + "</td>\n";
+            content += "      </tr>\n";
+        }
+
+        content += "    </tbody>\n";
+        content += "  </table>\n";
+        content += "</div>\n";
+
+        return FactoryViews::renderLayout("Portal Dashboard", content, "/", port);
+    }
+
+    public static renderDownloads(port: int, artifacts: Array<ArtifactModel*>*): string {
+        let content: string = "<div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;\">\n";
+        content += "  <div>\n";
+        content += "    <h1 style=\"font-size: 26px; color: #38bdf8;\">📦 Cross-Platform Distribution Downloads</h1>\n";
+        content += "    <p style=\"color: #94a3b8; font-size: 14px;\">Pre-built native distribution bundles in <code>Factory/downloads/</code></p>\n";
+        content += "  </div>\n";
+        content += "  <form method=\"POST\" action=\"/api/v1/build\">\n";
+        content += "    <button type=\"submit\" class=\"btn\">🔨 Rebuild Distributions</button>\n";
+        content += "  </form>\n";
+        content += "</div>\n";
+
+        content += "<div class=\"card\">\n";
+        content += "  <table>\n";
+        content += "    <thead>\n";
+        content += "      <tr>\n";
+        content += "        <th>Archive Filename</th>\n";
+        content += "        <th>Target OS</th>\n";
+        content += "        <th>Architecture</th>\n";
+        content += "        <th>Size</th>\n";
+        content += "        <th>SHA256 Checksum</th>\n";
+        content += "        <th>Action</th>\n";
+        content += "      </tr>\n";
+        content += "    </thead>\n";
+        content += "    <tbody>\n";
+
+        let count: int = (int)artifacts->length();
+        for (let i: int = 0; i < count; i++) {
+            let a: ArtifactModel* = artifacts->get(i);
+            content += "      <tr>\n";
+            content += "        <td style=\"font-family: var(--font-mono); font-weight: bold; color: #38bdf8;\">" + a->filename + "</td>\n";
+            content += "        <td><span class=\"badge badge-lts\">" + a->platform + "</span></td>\n";
+            content += "        <td><code style=\"color: #f8fafc;\">" + a->arch + "</code></td>\n";
+            content += "        <td>" + std::to_string(a->sizeBytes) + " bytes</td>\n";
+            content += "        <td><code style=\"font-size: 11px; color: #64748b;\">" + a->sha256.substr(0, 16) + "...</code></td>\n";
+            content += "        <td><a href=\"" + a->downloadUrl + "\" class=\"btn\" style=\"padding: 5px 12px; font-size: 12px;\">Download</a></td>\n";
+            content += "      </tr>\n";
+        }
+
+        content += "    </tbody>\n";
+        content += "  </table>\n";
+        content += "</div>\n";
+
+        return FactoryViews::renderLayout("Downloads", content, "/downloads", port);
+    }
+
+    public static renderCxvmDocs(port: int): string {
+        let content: string = "<div style=\"margin-bottom: 24px;\">\n";
+        content += "  <h1 style=\"font-size: 28px; color: #38bdf8;\">📖 cxvm: Cex Version Manager</h1>\n";
+        content += "  <p style=\"color: #94a3b8; font-size: 15px;\">The cross-platform version manager for Cex runtimes—seamlessly switch compilers &amp; runtimes.</p>\n";
+        content += "</div>\n";
+
+        content += "<div class=\"card\">\n";
+        content += "  <h3 style=\"margin-bottom: 12px;\">💡 What is cxvm?</h3>\n";
+        content += "  <p style=\"color: #94a3b8; font-size: 14px; margin-bottom: 16px;\">\n";
+        content += "    Just like <b>nvm</b> (Node Version Manager) manages Node.js versions, <b>cxvm</b> manages multiple Cex toolchain releases on your computer.\n";
+        content += "    It installs native archives into <code>~/.cxvm/versions/v&lt;version&gt;</code>, creates clean symlinks to <code>~/.cxvm/current</code>, and validates your local C++20 compiler.\n";
+        content += "  </p>\n";
+
+        content += "  <h3 style=\"margin-bottom: 12px;\">⌨️ Command Reference (nvm vs. cxvm)</h3>\n";
+        content += "  <table>\n";
+        content += "    <thead>\n";
+        content += "      <tr>\n";
+        content += "        <th>Action</th>\n";
+        content += "        <th>Node.js (nvm)</th>\n";
+        content += "        <th>Cex (cxvm)</th>\n";
+        content += "        <th>Description</th>\n";
+        content += "      </tr>\n";
+        content += "    </thead>\n";
+        content += "    <tbody>\n";
+        content += "      <tr><td>Install runtime</td><td><code>nvm install 18</code></td><td><code style=\"color: #38bdf8;\">cxvm install 1.0.0</code></td><td>Downloads and extracts platform binary bundle</td></tr>\n";
+        content += "      <tr><td>Switch active</td><td><code>nvm use 18</code></td><td><code style=\"color: #38bdf8;\">cxvm use 1.0.0</code></td><td>Updates current symlink &amp; PATH environment</td></tr>\n";
+        content += "      <tr><td>List installed</td><td><code>nvm ls</code></td><td><code style=\"color: #38bdf8;\">cxvm list</code></td><td>Lists locally installed runtimes and active one</td></tr>\n";
+        content += "      <tr><td>List remote</td><td><code>nvm ls-remote</code></td><td><code style=\"color: #38bdf8;\">cxvm list-remote</code></td><td>Queries Factory catalog for upstream releases</td></tr>\n";
+        content += "      <tr><td>Set default</td><td><code>nvm alias default 18</code></td><td><code style=\"color: #38bdf8;\">cxvm default 1.0.0</code></td><td>Sets default version for all new terminals</td></tr>\n";
+        content += "      <tr><td>Current version</td><td><code>nvm current</code></td><td><code style=\"color: #38bdf8;\">cxvm current</code></td><td>Prints current active version (e.g. v1.0.0)</td></tr>\n";
+        content += "      <tr><td>System doctor</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm doctor</code></td><td>Validates C++20 compiler, paths &amp; diagnostics</td></tr>\n";
+        content += "    </tbody>\n";
+        content += "  </table>\n";
+        content += "</div>\n";
+
+        return FactoryViews::renderLayout("cxvm Guide", content, "/cxvm", port);
+    }
+}

@@ -1,0 +1,55 @@
+// 2-TEK Factory: Platform Target Model (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "../../../Lighting/src/models/model.cex";
+import "../types.cex";
+
+class PlatformModel : public BaseModel {
+    public os: string;
+    public arch: string;
+    public targetTriple: string;
+    public compiler: string;
+    public archiveFormat: string;
+    public displayName: string;
+    public isSupported: bool;
+
+    public constructor(id: string, os: string, arch: string, triple: string, compiler: string, fmt: string, name: string) {
+        super(id);
+        this.os = os;
+        this.arch = arch;
+        this.targetTriple = triple;
+        this.compiler = compiler;
+        this.archiveFormat = fmt;
+        this.displayName = name;
+        this.isSupported = true;
+    }
+
+    public override validate(): ModelValidationResult* {
+        let res: ModelValidationResult* = super.validate();
+        if (this.os.length() === 0) {
+            res->addError("Platform OS must not be empty");
+        }
+        if (this.arch.length() === 0) {
+            res->addError("Platform architecture must not be empty");
+        }
+        if (this.targetTriple.length() === 0) {
+            res->addError("Target triple must not be empty");
+        }
+        return res;
+    }
+
+    public override toJson(): string {
+        let json: string = "{";
+        json += "\"id\":\"" + this.id + "\",";
+        json += "\"os\":\"" + this.os + "\",";
+        json += "\"arch\":\"" + this.arch + "\",";
+        json += "\"targetTriple\":\"" + this.targetTriple + "\",";
+        json += "\"compiler\":\"" + this.compiler + "\",";
+        json += "\"archiveFormat\":\"" + this.archiveFormat + "\",";
+        json += "\"displayName\":\"" + this.displayName + "\",";
+        json += "\"isSupported\":";
+        json += (this.isSupported ? "true" : "false");
+        json += "}";
+        return json;
+    }
+}

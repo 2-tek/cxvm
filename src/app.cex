@@ -1,0 +1,161 @@
+// 2-TEK Factory: Application Kernel & Lighting MVC Dispatcher (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "../../Lighting/src/types.cex";
+import "../../Lighting/src/router.cex";
+import "../../Lighting/src/middleware.cex";
+import "./types.cex";
+import "./models/platform_model.cex";
+import "./models/version_model.cex";
+import "./models/artifact_model.cex";
+import "./builder/dist_builder.cex";
+import "./cxvm/cxvm_engine.cex";
+import "./controllers/factory_controller.cex";
+
+class FactoryApp {
+    public appName: string;
+    public port: int;
+    public isRunning: bool;
+    public downloadsDir: string;
+    public router: LightingRouter*;
+    public controller: FactoryController*;
+    public builder: DistBuilder*;
+    public cxvm: CxvmEngine*;
+
+    public constructor(port: int) {
+        this.appName = "2-TEK Cex Factory";
+        this.port = port;
+        this.isRunning = false;
+        this.downloadsDir = "packages/Factory/downloads";
+
+        this.router = new LightingRouter();
+        this.controller = new FactoryController();
+        this.builder = new DistBuilder(this.downloadsDir);
+        this.cxvm = new CxvmEngine();
+
+        // Initialize default runtime
+        this.cxvm->install("1.0.0");
+        this.cxvm->use("1.0.0");
+
+        this.setupRoutes();
+    }
+
+    private setupRoutes(): void {
+        // SSR HTML Routes
+        this.router->get("/", "factory.index");
+        this.router->get("/downloads", "factory.downloads");
+        this.router->get("/cxvm", "factory.cxvmDocs");
+
+        // Shell & PowerShell Installers
+        this.router->get("/install.sh", "factory.installSh");
+        this.router->get("/install.ps1", "factory.installPs1");
+        this.router->get("/cxvm.sh", "factory.cxvmScript");
+
+        // REST JSON API Routes
+        this.router->get("/api/v1/status", "factory.status");
+        this.router->get("/api/v1/versions", "factory.versions");
+        this.router->get("/api/v1/platforms", "factory.platforms");
+        this.router->get("/api/v1/downloads", "factory.downloadsApi");
+        this.router->get("/api/v1/manifest", "factory.manifest");
+        this.router->post("/api/v1/build", "factory.build");
+    }
+
+    public start(): void {
+        this.isRunning = true;
+    }
+
+    public stop(): void {
+        this.isRunning = false;
+    }
+
+    public handleRequest(req: HttpRequest*): HttpResponse* {
+        // 1. Logger Middleware
+        LightingMiddleware::runLogger(req);
+
+        // 2. Auth Middleware
+        let authRes: MiddlewareResult* = LightingMiddleware::runAuth(req);
+        if (!authRes->proceed) {
+            return authRes->errorResponse;
+        }
+
+        // 3. Router Matching
+        let route: RouteEntry* = this.router->findRoute(req);
+        if (route === nullptr) {
+            return HttpResponse::notFound("No Factory route matched for: " + req->method + " " + req->path);
+        }
+
+        // 4. Controller Dispatch
+        if (route->handlerId === "factory.index") {
+            return this.controller->index(req, this.port, this.builder->versions, this.builder->platforms, this.builder->artifacts, this.cxvm->current());
+        }
+
+        if (route->handlerId === "factory.downloads") {
+            return this.controller->downloadsHtml(req, this.port, this.builder->artifacts);
+        }
+
+        if (route->handlerId === "factory.cxvmDocs") {
+            return this.controller->cxvmDocs(req, this.port);
+        }
+
+        if (route->handlerId === "factory.installSh") {
+            return this.controller->serveInstallSh(req, this.port);
+        }
+
+        if (route->handlerId === "factory.installPs1") {
+            return this.controller->serveInstallPs1(req, this.port);
+        }
+
+        if (route->handlerId === "factory.cxvmScript") {
+            return this.controller->serveCxvm(req);
+        }
+
+        if (route->handlerId === "factory.status") {
+            return this.controller->apiStatus(req, this.port, this.builder, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.versions") {
+            return this.controller->apiVersions(req, this.builder->versions);
+        }
+
+        if (route->handlerId === "factory.platforms") {
+            return this.controller->apiPlatforms(req, this.builder->platforms);
+        }
+
+        if (route->handlerId === "factory.downloadsApi") {
+            return this.controller->apiDownloads(req, this.builder->artifacts);
+        }
+
+        if (route->handlerId === "factory.manifest") {
+            return this.controller->apiManifest(req, this.builder);
+        }
+
+        if (route->handlerId === "factory.build") {
+            return this.controller->apiBuild(req, this.builder);
+        }
+
+        return HttpResponse::notFound("Handler not implemented: " + route->handlerId);
+    }
+
+    public simulateRequest(method: string, path: string, body: string, cType: string): HttpResponse* {
+        let req: HttpRequest* = new HttpRequest(method, path, body, cType);
+        return this.handleRequest(req);
+    }
+
+    public displayRoutes(): void {
+        println("╔═══════════════════════════════════════════════════════════════╗");
+        println("║             2-TEK Cex Factory Route Registry Table            ║");
+        println("╚═══════════════════════════════════════════════════════════════╝");
+        println("  METHOD  ROUTE PATTERN               HANDLER ACTION");
+        println("  ─────────────────────────────────────────────────────────────");
+        let count: int = this.router->getRouteCount();
+        for (let i: int = 0; i < count; i++) {
+            let r: RouteEntry* = this.router->routes->get(i);
+            print("  "); print(r->method);
+            for (let s: int = (int)r->method.length(); s < 8; s++) print(" ");
+            print(r->pattern);
+            for (let s: int = (int)r->pattern.length(); s < 28; s++) print(" ");
+            println(r->handlerId);
+        }
+        println("─────────────────────────────────────────────────────────────");
+    }
+}

@@ -1,0 +1,135 @@
+// 2-TEK Factory: Lighting MVC Controller for Cross-Platform Platform & API (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "../../../Lighting/src/controllers/controller.cex";
+import "../types.cex";
+import "../models/platform_model.cex";
+import "../models/version_model.cex";
+import "../models/artifact_model.cex";
+import "../builder/dist_builder.cex";
+import "../cxvm/cxvm_engine.cex";
+import "../views/factory_views.cex";
+
+class FactoryController : public BaseController {
+    public constructor() {
+        super();
+    }
+
+    public index(req: HttpRequest*, port: int, versions: Array<VersionModel*>*, platforms: Array<PlatformModel*>*, artifacts: Array<ArtifactModel*>*, activeVer: string): HttpResponse* {
+        let pageHtml: string = FactoryViews::renderDashboard(port, versions, platforms, artifacts, activeVer);
+        return this->html(pageHtml);
+    }
+
+    public downloadsHtml(req: HttpRequest*, port: int, artifacts: Array<ArtifactModel*>*): HttpResponse* {
+        let pageHtml: string = FactoryViews::renderDownloads(port, artifacts);
+        return this->html(pageHtml);
+    }
+
+    public cxvmDocs(req: HttpRequest*, port: int): HttpResponse* {
+        let pageHtml: string = FactoryViews::renderCxvmDocs(port);
+        return this->html(pageHtml);
+    }
+
+    public apiStatus(req: HttpRequest*, port: int, builder: DistBuilder*, cxvm: CxvmEngine*): HttpResponse* {
+        let json: string = "{";
+        json += "\"status\":\"ACTIVE\",";
+        json += "\"service\":\"2-TEK Cex Factory\",";
+        json += "\"framework\":\"Lighting MVC\",";
+        json += "\"port\":" + std::to_string(port) + ",";
+        json += "\"totalPlatforms\":" + std::to_string((int)builder->platforms->length()) + ",";
+        json += "\"totalVersions\":" + std::to_string((int)builder->versions->length()) + ",";
+        json += "\"totalArtifacts\":" + std::to_string((int)builder->artifacts->length()) + ",";
+        json += "\"currentActiveVersion\":\"" + cxvm->current() + "\"";
+        json += "}";
+        return this->json(json);
+    }
+
+    public apiVersions(req: HttpRequest*, versions: Array<VersionModel*>*): HttpResponse* {
+        let json: string = "{\"total\":" + std::to_string((int)versions->length()) + ",\"versions\":[";
+        let count: int = (int)versions->length();
+        for (let i: int = 0; i < count; i++) {
+            if (i > 0) json += ",";
+            json += versions->get(i)->toJson();
+        }
+        json += "]}";
+        return this->json(json);
+    }
+
+    public apiPlatforms(req: HttpRequest*, platforms: Array<PlatformModel*>*): HttpResponse* {
+        let json: string = "{\"total\":" + std::to_string((int)platforms->length()) + ",\"platforms\":[";
+        let count: int = (int)platforms->length();
+        for (let i: int = 0; i < count; i++) {
+            if (i > 0) json += ",";
+            json += platforms->get(i)->toJson();
+        }
+        json += "]}";
+        return this->json(json);
+    }
+
+    public apiDownloads(req: HttpRequest*, artifacts: Array<ArtifactModel*>*): HttpResponse* {
+        let json: string = "{\"total\":" + std::to_string((int)artifacts->length()) + ",\"artifacts\":[";
+        let count: int = (int)artifacts->length();
+        for (let i: int = 0; i < count; i++) {
+            if (i > 0) json += ",";
+            json += artifacts->get(i)->toJson();
+        }
+        json += "]}";
+        return this->json(json);
+    }
+
+    public apiManifest(req: HttpRequest*, builder: DistBuilder*): HttpResponse* {
+        return this->json(builder->getManifestJson());
+    }
+
+    public apiBuild(req: HttpRequest*, builder: DistBuilder*): HttpResponse* {
+        let count: int = builder->buildAll();
+        let json: string = "{";
+        json += "\"status\":\"SUCCESS\",";
+        json += "\"message\":\"All cross-platform distribution archives generated in Factory/downloads/\",";
+        json += "\"totalPackagesBuilt\":" + std::to_string(count);
+        json += "}";
+        return this->json(json);
+    }
+
+    public serveInstallSh(req: HttpRequest*, port: int): HttpResponse* {
+        let pStr: string = std::to_string(port);
+        let script: string = "#!/usr/bin/env bash\n";
+        script += "# 2-TEK Cex Factory: Cross-Platform Quick Installer\n";
+        script += "set -e\n";
+        script += "CXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\n";
+        script += "FACTORY_URL=\"${CEX_FACTORY_URL:-http://127.0.0.1:" + pStr + "}\"\n";
+        script += "DEFAULT_VER=\"1.0.0\"\n";
+        script += "echo \"==> Bootstrapping cxvm from $FACTORY_URL...\"\n";
+        script += "mkdir -p \"$CXVM_DIR/bin\" \"$CXVM_DIR/versions\" \"$CXVM_DIR/cache\"\n";
+        script += "curl -fsSL \"$FACTORY_URL/downloads/cxvm\" -o \"$CXVM_DIR/bin/cxvm\" 2>/dev/null || true\n";
+        script += "chmod +x \"$CXVM_DIR/bin/cxvm\" 2>/dev/null || true\n";
+        script += "if [ -f \"$CXVM_DIR/bin/cxvm\" ]; then\n";
+        script += "  source \"$CXVM_DIR/bin/cxvm\"\n";
+        script += "  cxvm install \"$DEFAULT_VER\"\n";
+        script += "  cxvm use \"$DEFAULT_VER\"\n";
+        script += "fi\n";
+        script += "echo \"✓ Cex Toolchain setup complete! Run 'cxvm --help'\"\n";
+        return HttpResponse::ok(script, "text/x-shellscript");
+    }
+
+    public serveInstallPs1(req: HttpRequest*, port: int): HttpResponse* {
+        let pStr: string = std::to_string(port);
+        let script: string = "# 2-TEK Cex Factory: Windows PowerShell Quick Installer\n";
+        script += "$ErrorActionPreference = \"Stop\"\n";
+        script += "$cxvmDir = Join-Path $HOME \".cxvm\"\n";
+        script += "$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { \"http://127.0.0.1:" + pStr + "\" }\n";
+        script += "$defaultVersion = \"1.0.0\"\n";
+        script += "Write-Host \"==> Installing Cex cxvm toolchain...\" -ForegroundColor Cyan\n";
+        script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"bin\") | Out-Null\n";
+        script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"versions\") | Out-Null\n";
+        script += "Write-Host \"✓ Cex Toolchain setup complete!\" -ForegroundColor Green\n";
+        return HttpResponse::ok(script, "text/plain");
+    }
+
+    public serveCxvm(req: HttpRequest*): HttpResponse* {
+        let script: string = "#!/usr/bin/env bash\n";
+        script += "# cxvm: Cex Version Manager\n";
+        script += "echo \"cxvm v1.0.0 (Cex Version Manager)\"\n";
+        return HttpResponse::ok(script, "text/x-shellscript");
+    }
+}

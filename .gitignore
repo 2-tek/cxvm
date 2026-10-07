@@ -1,0 +1,34 @@
+# Cex runtime cache & active states
+.cex_cache/
+.cex_active_runtime
+
+# Binaries and build outputs
+bin
+bin/
+**/bin
+**/bin/
+*.bin
+*.out
+dist/
+**/dist/
+
+# Modular box cache (.cex_boxes & cex_boxes)
+.cex_boxes
+.cex_boxes/
+**/.cex_boxes
+**/.cex_boxes/
+cex_boxes
+cex_boxes/
+**/cex_boxes
+**/cex_boxes/
+
+# Native compiled artifacts
+*.o
+*.obj
+*.so
+*.dylib
+*.a
+
+# OS & Logs
+.DS_Store
+*.log

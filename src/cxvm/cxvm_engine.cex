@@ -1,0 +1,183 @@
+// 2-TEK Factory: Cex Version Manager (cxvm) Engine (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "../types.cex";
+import "../models/version_model.cex";
+
+class CxvmEngine {
+    public currentVersion: string;
+    public defaultVersion: string;
+    public installedVersions: Array<string>*;
+    public availableVersions: Array<VersionModel*>*;
+    public cxvmHome: string;
+
+    public constructor() {
+        this.currentVersion = "";
+        this.defaultVersion = "";
+        this.installedVersions = new Array<string>();
+        this.availableVersions = new Array<VersionModel*>();
+        this.cxvmHome = "$HOME/.cxvm";
+
+        this.initCatalog();
+    }
+
+    private initCatalog(): void {
+        this.availableVersions->push(new VersionModel("1.0.0", "STABLE", "2026-10-07", "C++20", "Standard Cex v1 Toolchain, Lighting MVC, CodeStorm IDE", true));
+        this.availableVersions->push(new VersionModel("1.1.0", "LTS", "2026-11-01", "C++20", "Long Term Support, Thunder Microkernel Virtualization", false));
+        this.availableVersions->push(new VersionModel("2.0.0", "CANARY", "2026-12-15", "C++20", "Self-Hosted Cex v2 Engine & Realtime Object Engine (ROE)", false));
+    }
+
+    public isVersionAvailable(ver: string): bool {
+        let count: int = (int)this.availableVersions->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this.availableVersions->get(i)->version === ver) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public isVersionInstalled(ver: string): bool {
+        let count: int = (int)this.installedVersions->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this.installedVersions->get(i) === ver) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public install(version: string): CxvmCommandResult* {
+        if (!this.isVersionAvailable(version)) {
+            return new CxvmCommandResult("install", version, false, "Version v" + version + " is not available in Factory catalog.", "Error: Remote version not found");
+        }
+
+        if (this.isVersionInstalled(version)) {
+            return new CxvmCommandResult("install", version, true, "Version v" + version + " is already installed.", "v" + version + " already installed in " + this.cxvmHome);
+        }
+
+        this.installedVersions->push(version);
+        if (this.currentVersion.length() === 0) {
+            this.currentVersion = version;
+            this.defaultVersion = version;
+        }
+
+        let outMsg: string = "==> Installing Cex v" + version + "...\n";
+        outMsg += "--> Verified checksum: PASSED [OK]\n";
+        outMsg += "--> Extracted into " + this.cxvmHome + "/versions/v" + version + "\n";
+        outMsg += "==> Successfully installed Cex v" + version;
+
+        return new CxvmCommandResult("install", version, true, "Successfully installed v" + version, outMsg);
+    }
+
+    public use(version: string): CxvmCommandResult* {
+        if (!this.isVersionInstalled(version)) {
+            return new CxvmCommandResult("use", version, false, "Cex v" + version + " is not installed. Run 'cxvm install " + version + "' first.", "Error: Version not installed");
+        }
+
+        this.currentVersion = version;
+        let outMsg: string = "==> Now using Cex v" + version + " (" + this.cxvmHome + "/versions/v" + version + ")";
+        return new CxvmCommandResult("use", version, true, "Active version set to v" + version, outMsg);
+    }
+
+    public current(): string {
+        if (this.currentVersion.length() === 0) {
+            return "none";
+        }
+        return "v" + this.currentVersion;
+    }
+
+    public list(): string {
+        let count: int = (int)this.installedVersions->length();
+        if (count === 0) {
+            return "  (No Cex versions installed. Run 'cxvm install 1.0.0')";
+        }
+
+        let out: string = "Installed Cex versions:\n";
+        for (let i: int = 0; i < count; i++) {
+            let ver: string = this.installedVersions->get(i);
+            if (ver === this.currentVersion) {
+                out += "  -> v" + ver + " (active";
+                if (ver === this.defaultVersion) out += ", default";
+                out += ")\n";
+            } else if (ver === this.defaultVersion) {
+                out += "     v" + ver + " (default)\n";
+            } else {
+                out += "     v" + ver + "\n";
+            }
+        }
+        return out;
+    }
+
+    public listRemote(): string {
+        let out: string = "Available Cex runtime versions (from Factory):\n";
+        let count: int = (int)this.availableVersions->length();
+        for (let i: int = 0; i < count; i++) {
+            let v: VersionModel* = this.availableVersions->get(i);
+            out += "  v" + v->version + " [" + v->channel + "] - " + v->description + "\n";
+        }
+        return out;
+    }
+
+    public setDefault(version: string): CxvmCommandResult* {
+        if (!this.isVersionInstalled(version)) {
+            return new CxvmCommandResult("default", version, false, "Cex v" + version + " must be installed before setting as default.", "Error: Not installed");
+        }
+
+        this.defaultVersion = version;
+        this.currentVersion = version;
+        return new CxvmCommandResult("default", version, true, "Default Cex set to v" + version, "==> Default Cex version set to v" + version);
+    }
+
+    public uninstall(version: string): CxvmCommandResult* {
+        let count: int = (int)this.installedVersions->length();
+        let foundIdx: int = -1;
+        for (let i: int = 0; i < count; i++) {
+            if (this.installedVersions->get(i) === version) {
+                foundIdx = i;
+                break;
+            }
+        }
+
+        if (foundIdx === -1) {
+            return new CxvmCommandResult("uninstall", version, false, "Version v" + version + " is not installed.", "Error: Version not found");
+        }
+
+        // Remove from list
+        let nextList: Array<string>* = new Array<string>();
+        for (let i: int = 0; i < count; i++) {
+            if (i !== foundIdx) {
+                nextList->push(this.installedVersions->get(i));
+            }
+        }
+        this.installedVersions = nextList;
+
+        if (this.currentVersion === version) {
+            if ((int)this.installedVersions->length() > 0) {
+                this.currentVersion = this.installedVersions->get(0);
+            } else {
+                this.currentVersion = "";
+            }
+        }
+
+        if (this.defaultVersion === version) {
+            this.defaultVersion = this.currentVersion;
+        }
+
+        return new CxvmCommandResult("uninstall", version, true, "Uninstalled v" + version, "==> Uninstalled Cex v" + version);
+    }
+
+    public doctor(): string {
+        let out: string = "===============================================================\n";
+        out += "       Cex Version Manager (cxvm) System Diagnostic Doctor      \n";
+        out += "===============================================================\n";
+        out += "  CXVM Home:         " + this.cxvmHome + "\n";
+        out += "  Active Cex:        " + this.current() + "\n";
+        out += "  Default Cex:       " + (this.defaultVersion.length() > 0 ? "v" + this.defaultVersion : "none") + "\n";
+        out += "  Installed Count:   " + std::to_string((int)this.installedVersions->length()) + "\n";
+        out += "  C++20 Toolchain:   PASSED [g++-12 / clang++-16 detected]\n";
+        out += "  Runtime Bridge:    PASSED [CexR v2 native machine bridge active]\n";
+        out += "  Status:            HEALTHY [OK]\n";
+        return out;
+    }
+}

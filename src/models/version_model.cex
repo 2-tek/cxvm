@@ -1,0 +1,49 @@
+// 2-TEK Factory: Runtime Version Model (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "../../../Lighting/src/models/model.cex";
+import "../types.cex";
+
+class VersionModel : public BaseModel {
+    public version: string;
+    public channel: string;
+    public releaseDate: string;
+    public minCpp: string;
+    public description: string;
+    public isDefault: bool;
+
+    public constructor(ver: string, chan: string, date: string, cpp: string, desc: string, isDef: bool) {
+        super("v" + ver);
+        this.version = ver;
+        this.channel = chan;
+        this.releaseDate = date;
+        this.minCpp = cpp;
+        this.description = desc;
+        this.isDefault = isDef;
+    }
+
+    public override validate(): ModelValidationResult* {
+        let res: ModelValidationResult* = super.validate();
+        if (this.version.length() === 0) {
+            res->addError("Version number must not be empty");
+        }
+        if (this.channel !== "STABLE" && this.channel !== "LTS" && this.channel !== "CANARY") {
+            res->addError("Channel must be STABLE, LTS, or CANARY");
+        }
+        return res;
+    }
+
+    public override toJson(): string {
+        let json: string = "{";
+        json += "\"id\":\"" + this.id + "\",";
+        json += "\"version\":\"" + this.version + "\",";
+        json += "\"channel\":\"" + this.channel + "\",";
+        json += "\"releaseDate\":\"" + this.releaseDate + "\",";
+        json += "\"minCpp\":\"" + this.minCpp + "\",";
+        json += "\"description\":\"" + this.description + "\",";
+        json += "\"isDefault\":";
+        json += (this.isDefault ? "true" : "false");
+        json += "}";
+        return json;
+    }
+}

@@ -1,0 +1,127 @@
+{
+  "engine": "2-TEK Cex Factory",
+  "version": "1.0.0",
+  "updatedAt": "2026-10-07T00:00:00Z",
+  "versions": [
+    "1.0.0",
+    "1.1.0"
+  ],
+  "platforms": [
+    "linux-x86_64",
+    "linux-aarch64",
+    "darwin-arm64",
+    "darwin-x86_64",
+    "windows-x64",
+    "windows-arm64"
+  ],
+  "artifacts": [
+    {
+      "filename": "cex-v1.0.0-darwin-arm64.tar.gz",
+      "version": "1.0.0",
+      "platform": "darwin",
+      "arch": "arm64",
+      "sizeBytes": 2809,
+      "sha256": "305a8b7f902a53cd2891a41e49d9a87fafcb284f95391edf8568b6b22fbd01ec",
+      "downloadUrl": "/downloads/cex-v1.0.0-darwin-arm64.tar.gz"
+    },
+    {
+      "filename": "cex-v1.0.0-darwin-x86_64.tar.gz",
+      "version": "1.0.0",
+      "platform": "darwin",
+      "arch": "x86_64",
+      "sizeBytes": 2801,
+      "sha256": "d6ceee655fc9b460d252e5205bad120bd03ebf17e71ffe3658ff2b9b366dd77a",
+      "downloadUrl": "/downloads/cex-v1.0.0-darwin-x86_64.tar.gz"
+    },
+    {
+      "filename": "cex-v1.0.0-linux-aarch64.tar.gz",
+      "version": "1.0.0",
+      "platform": "linux",
+      "arch": "aarch64",
+      "sizeBytes": 2797,
+      "sha256": "234f9fbfed317ad6a823b86dfb7765d573ca6cf3bc50fb8962a33a5069a65078",
+      "downloadUrl": "/downloads/cex-v1.0.0-linux-aarch64.tar.gz"
+    },
+    {
+      "filename": "cex-v1.0.0-linux-x86_64.tar.gz",
+      "version": "1.0.0",
+      "platform": "linux",
+      "arch": "x86_64",
+      "sizeBytes": 2800,
+      "sha256": "a745f4f19a805896d7d6e6a26a7e5affcef3a5a5f0f44da61b932575e34fa595",
+      "downloadUrl": "/downloads/cex-v1.0.0-linux-x86_64.tar.gz"
+    },
+    {
+      "filename": "cex-v1.0.0-windows-arm64.zip",
+      "version": "1.0.0",
+      "platform": "windows",
+      "arch": "arm64",
+      "sizeBytes": 4917,
+      "sha256": "cd5b21f53c98ae9d324354680e4915d76baeb85dc849fdac8e766ba882344252",
+      "downloadUrl": "/downloads/cex-v1.0.0-windows-arm64.zip"
+    },
+    {
+      "filename": "cex-v1.0.0-windows-x64.zip",
+      "version": "1.0.0",
+      "platform": "windows",
+      "arch": "x64",
+      "sizeBytes": 4869,
+      "sha256": "650dd09fdcc5f87278e68b9be8d80f91caf4b04392ed5be38d02ca6de91f2889",
+      "downloadUrl": "/downloads/cex-v1.0.0-windows-x64.zip"
+    },
+    {
+      "filename": "cex-v1.1.0-darwin-arm64.tar.gz",
+      "version": "1.1.0",
+      "platform": "darwin",
+      "arch": "arm64",
+      "sizeBytes": 2814,
+      "sha256": "a310432d4d13fe46060d05e315f676adf05d5330e42e2df80c08645bf4e3089d",
+      "downloadUrl": "/downloads/cex-v1.1.0-darwin-arm64.tar.gz"
+    },
+    {
+      "filename": "cex-v1.1.0-darwin-x86_64.tar.gz",
+      "version": "1.1.0",
+      "platform": "darwin",
+      "arch": "x86_64",
+      "sizeBytes": 2806,
+      "sha256": "be42420911343018bbd6541bf5b94203cc03986568440b7ef114e4edaadd3c19",
+      "downloadUrl": "/downloads/cex-v1.1.0-darwin-x86_64.tar.gz"
+    },
+    {
+      "filename": "cex-v1.1.0-linux-aarch64.tar.gz",
+      "version": "1.1.0",
+      "platform": "linux",
+      "arch": "aarch64",
+      "sizeBytes": 2802,
+      "sha256": "7ad8638044d9a4943794c901091f0e3c32ca5f1352baa439802d17c21a22c408",
+      "downloadUrl": "/downloads/cex-v1.1.0-linux-aarch64.tar.gz"
+    },
+    {
+      "filename": "cex-v1.1.0-linux-x86_64.tar.gz",
+      "version": "1.1.0",
+      "platform": "linux",
+      "arch": "x86_64",
+      "sizeBytes": 2805,
+      "sha256": "d3cea820bf21bcf36a68d06644b8994056aa53473953a5d6e4127b809dab6e61",
+      "downloadUrl": "/downloads/cex-v1.1.0-linux-x86_64.tar.gz"
+    },
+    {
+      "filename": "cex-v1.1.0-windows-arm64.zip",
+      "version": "1.1.0",
+      "platform": "windows",
+      "arch": "arm64",
+      "sizeBytes": 4917,
+      "sha256": "84e8cec2087e6f051cefaccb18c51a7cac876c2e1a160d020efc64993f9a795c",
+      "downloadUrl": "/downloads/cex-v1.1.0-windows-arm64.zip"
+    },
+    {
+      "filename": "cex-v1.1.0-windows-x64.zip",
+      "version": "1.1.0",
+      "platform": "windows",
+      "arch": "x64",
+      "sizeBytes": 4869,
+      "sha256": "d467a309e81418e1042c20721a6933fbbdba5b9e98893b707fef883eaef5cd98",
+      "downloadUrl": "/downloads/cex-v1.1.0-windows-x64.zip"
+    }
+  ]
+}

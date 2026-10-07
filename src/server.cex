@@ -1,0 +1,6 @@
+// 2-TEK Factory: Server Wrapper (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./app.cex";
+
+typedef FactoryApp FactoryServer;

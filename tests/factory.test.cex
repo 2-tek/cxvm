@@ -1,0 +1,188 @@
+// 2-TEK Factory: Comprehensive Verification Test Suite (C-ext)
+// Powered by CexTest (@cex-test/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cex-test/src/assert.cex";
+import "@cex-test/src/runner.cex";
+import fs from "fs";
+import "../src/types.cex";
+import "../src/models/platform_model.cex";
+import "../src/models/version_model.cex";
+import "../src/models/artifact_model.cex";
+import "../src/builder/dist_builder.cex";
+import "../src/cxvm/cxvm_engine.cex";
+import "../src/app.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK Cex Factory & Cross-Platform Runtime Test Suite                   ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("Factory Package Tests");
+
+    // -------------------------------------------------------------
+    // Test 1: Factory Models & Schema Validation
+    // -------------------------------------------------------------
+    println("\n[Test Suite 1: Factory Models & Schema Validation]");
+    let pValid: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "g++-12", "tar.gz", "Linux x86_64");
+    let valRes1: ModelValidationResult* = pValid->validate();
+    Assert::isTrue(valRes1->isValid, "Valid platform passes validation");
+    Assert::equalsInt(0, valRes1->getErrorCount(), "Valid platform has 0 errors");
+
+    let pInvalid: PlatformModel* = new PlatformModel("invalid", "", "", "", "", "", "");
+    let valRes2: ModelValidationResult* = pInvalid->validate();
+    Assert::isFalse(valRes2->isValid, "Invalid platform fails validation");
+    Assert::isTrue(valRes2->getErrorCount() >= 3, "Invalid platform detects missing OS, arch, triple");
+
+    let vValid: VersionModel* = new VersionModel("1.0.0", "STABLE", "2026-10-07", "C++20", "Stable release", true);
+    let vVal: ModelValidationResult* = vValid->validate();
+    Assert::isTrue(vVal->isValid, "Valid version passes validation");
+    Assert::isTrue(vValid->toJson().find("1.0.0") != -1, "Version JSON contains version string");
+
+    let vInvalid: VersionModel* = new VersionModel("1.0.0", "UNKNOWN_CHANNEL", "2026-10-07", "C++20", "Invalid", false);
+    let vValInv: ModelValidationResult* = vInvalid->validate();
+    Assert::isFalse(vValInv->isValid, "Invalid channel fails validation");
+
+    let aValid: ArtifactModel* = new ArtifactModel("cex-v1.0.0-linux-x86_64.tar.gz", "1.0.0", "linux", "x86_64", 2748, "886020858b17f0045dc9e3f5cb795d0b39ff7b73eb7377a7c4c2c4dcf4fd2b60", "/downloads/cex-v1.0.0-linux-x86_64.tar.gz");
+    let aVal: ModelValidationResult* = aValid->validate();
+    Assert::isTrue(aVal->isValid, "Valid artifact passes validation");
+    suite->addResult("test_models_and_validation", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 2: Cross-Platform Build Engine & Factory/downloads Directory
+    // -------------------------------------------------------------
+    println("\n[Test Suite 2: Cross-Platform Build Engine & Factory/downloads/ Invariants]");
+    let builder: DistBuilder* = new DistBuilder("packages/Factory/downloads");
+    Assert::equalsInt(6, (int)builder->platforms->length(), "Factory supports 6 target architectures");
+    Assert::equalsInt(2, (int)builder->versions->length(), "Factory tracks 2 release versions");
+    Assert::equalsInt(12, (int)builder->artifacts->length(), "Factory manages 12 distribution packages (2 versions x 6 platforms)");
+
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-linux-x86_64.tar.gz"), "Linux x86_64 v1.0.0 bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-linux-aarch64.tar.gz"), "Linux aarch64 v1.0.0 bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-darwin-arm64.tar.gz"), "macOS Apple Silicon v1.0.0 bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-darwin-x86_64.tar.gz"), "macOS Intel v1.0.0 bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-windows-x64.zip"), "Windows x64 v1.0.0 zip bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-windows-arm64.zip"), "Windows arm64 v1.0.0 zip bundle exists");
+
+    Assert::isTrue(fs.exists("packages/Factory/downloads/install.sh"), "POSIX install.sh exists in downloads");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/install.ps1"), "Windows install.ps1 exists in downloads");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cxvm"), "cxvm CLI exists in downloads");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/manifest.json"), "manifest.json exists in downloads");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
+    suite->addResult("test_distribution_builder_and_artifacts", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 3: CXVM Runtime Version Manager Operations (like nvm)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 3: CXVM Version Manager Operations (like nvm)]");
+    let cxvm: CxvmEngine* = new CxvmEngine();
+    Assert::equalsString("none", cxvm->current(), "Initial cxvm state has no active version");
+
+    let instRes1: CxvmCommandResult* = cxvm->install("1.0.0");
+    Assert::isTrue(instRes1->success, "cxvm install 1.0.0 succeeds");
+    Assert::equalsString("v1.0.0", cxvm->current(), "First installed version automatically becomes active");
+    Assert::isTrue(cxvm->isVersionInstalled("1.0.0"), "Version 1.0.0 is marked as installed");
+
+    let instRes2: CxvmCommandResult* = cxvm->install("1.1.0");
+    Assert::isTrue(instRes2->success, "cxvm install 1.1.0 succeeds");
+    Assert::equalsInt(2, (int)cxvm->installedVersions->length(), "cxvm has 2 installed versions");
+
+    let useRes: CxvmCommandResult* = cxvm->use("1.1.0");
+    Assert::isTrue(useRes->success, "cxvm use 1.1.0 switches active version");
+    Assert::equalsString("v1.1.0", cxvm->current(), "Active version is now v1.1.0");
+
+    let listOut: string = cxvm->list();
+    Assert::isTrue(listOut.find("-> v1.1.0 (active") != -1, "cxvm list indicates active version with arrow");
+
+    let docOut: string = cxvm->doctor();
+    Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
+
+    let uninstRes: CxvmCommandResult* = cxvm->uninstall("1.1.0");
+    Assert::isTrue(uninstRes->success, "cxvm uninstall 1.1.0 succeeds");
+    Assert::equalsInt(1, (int)cxvm->installedVersions->length(), "cxvm has 1 version remaining after uninstall");
+    Assert::equalsString("v1.0.0", cxvm->current(), "cxvm active version falls back to remaining version");
+    suite->addResult("test_cxvm_version_manager", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 4: Lighting MVC Application Kernel & Endpoints
+    // -------------------------------------------------------------
+    println("\n[Test Suite 4: Lighting MVC Application Kernel & Endpoints]");
+    let app: FactoryApp* = new FactoryApp(3080);
+    app->start();
+    Assert::isTrue(app->isRunning, "Factory app starts running");
+    Assert::isTrue(app->router->getRouteCount() >= 10, "Factory router has at least 10 routes");
+
+    let resHome: HttpResponse* = app->simulateRequest("GET", "/", "", "text/html");
+    Assert::equalsInt(200, resHome->statusCode, "GET / returns 200 OK");
+    Assert::isTrue(resHome->body.find("Cex Cross-Platform Factory") != -1, "Home view contains Factory title");
+    Assert::isTrue(resHome->body.find("cxvm") != -1, "Home view contains cxvm reference");
+
+    let resDown: HttpResponse* = app->simulateRequest("GET", "/downloads", "", "text/html");
+    Assert::equalsInt(200, resDown->statusCode, "GET /downloads returns 200 OK");
+    Assert::isTrue(resDown->body.find("cex-v1.0.0-linux-x86_64.tar.gz") != -1, "Downloads view lists Linux bundle");
+
+    let resDocs: HttpResponse* = app->simulateRequest("GET", "/cxvm", "", "text/html");
+    Assert::equalsInt(200, resDocs->statusCode, "GET /cxvm returns 200 OK");
+    Assert::isTrue(resDocs->body.find("Command Reference") != -1, "cxvm docs contains command table");
+
+    let resSh: HttpResponse* = app->simulateRequest("GET", "/install.sh", "", "text/x-shellscript");
+    Assert::equalsInt(200, resSh->statusCode, "GET /install.sh returns 200 OK");
+    Assert::isTrue(resSh->body.find("CXVM_DIR") != -1, "install.sh contains CXVM_DIR variable");
+
+    let resStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
+    Assert::equalsInt(200, resStatus->statusCode, "GET /api/v1/status returns 200 OK");
+    Assert::isTrue(resStatus->body.find("ACTIVE") != -1, "Status reports ACTIVE");
+
+    let resVers: HttpResponse* = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
+    Assert::equalsInt(200, resVers->statusCode, "GET /api/v1/versions returns 200 OK");
+    Assert::isTrue(resVers->body.find("1.0.0") != -1, "Versions list includes 1.0.0");
+
+    let resPlat: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
+    Assert::equalsInt(200, resPlat->statusCode, "GET /api/v1/platforms returns 200 OK");
+    Assert::isTrue(resPlat->body.find("linux-x86_64") != -1, "Platforms list includes linux-x86_64");
+
+    let resBuild: HttpResponse* = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
+    Assert::equalsInt(200, resBuild->statusCode, "POST /api/v1/build returns 200 OK");
+    Assert::isTrue(resBuild->body.find("SUCCESS") != -1, "Build reports SUCCESS");
+
+    let res404: HttpResponse* = app->simulateRequest("GET", "/nonexistent", "", "application/json");
+    Assert::equalsInt(404, res404->statusCode, "Non-existent route returns 404 Not Found");
+
+    app->stop();
+    Assert::isFalse(app->isRunning, "Factory app kernel stops cleanly");
+    suite->addResult("test_lighting_mvc_endpoints", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 5: Cross-Platform Architecture Matrix Invariants
+    // -------------------------------------------------------------
+    println("\n[Test Suite 5: Cross-Platform Architecture Matrix Invariants]");
+    let pList: Array<PlatformModel*>* = builder->platforms;
+    let foundLinuxX64: bool = false;
+    let foundLinuxArm: bool = false;
+    let foundDarwinArm: bool = false;
+    let foundDarwinX64: bool = false;
+    let foundWinX64: bool = false;
+    let foundWinArm: bool = false;
+
+    for (let i: int = 0; i < (int)pList->length(); i++) {
+        let p: PlatformModel* = pList->get(i);
+        if (p->id === "linux-x86_64" && p->archiveFormat === "tar.gz") foundLinuxX64 = true;
+        if (p->id === "linux-aarch64" && p->archiveFormat === "tar.gz") foundLinuxArm = true;
+        if (p->id === "darwin-arm64" && p->archiveFormat === "tar.gz") foundDarwinArm = true;
+        if (p->id === "darwin-x86_64" && p->archiveFormat === "tar.gz") foundDarwinX64 = true;
+        if (p->id === "windows-x64" && p->archiveFormat === "zip") foundWinX64 = true;
+        if (p->id === "windows-arm64" && p->archiveFormat === "zip") foundWinArm = true;
+    }
+
+    Assert::isTrue(foundLinuxX64, "Linux x86_64 with .tar.gz format verified");
+    Assert::isTrue(foundLinuxArm, "Linux aarch64 with .tar.gz format verified");
+    Assert::isTrue(foundDarwinArm, "macOS Apple Silicon arm64 with .tar.gz format verified");
+    Assert::isTrue(foundDarwinX64, "macOS Intel x86_64 with .tar.gz format verified");
+    Assert::isTrue(foundWinX64, "Windows x64 with .zip format verified");
+    Assert::isTrue(foundWinArm, "Windows arm64 with .zip format verified");
+    suite->addResult("test_platform_matrix_invariants", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

@@ -1,0 +1,55 @@
+// 2-TEK Factory: Distribution Artifact Model (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "../../../Lighting/src/models/model.cex";
+import "../types.cex";
+
+class ArtifactModel : public BaseModel {
+    public filename: string;
+    public version: string;
+    public platform: string;
+    public arch: string;
+    public sizeBytes: int;
+    public sha256: string;
+    public downloadUrl: string;
+    public isBuilt: bool;
+
+    public constructor(fname: string, ver: string, plat: string, arch: string, size: int, hash: string, url: string) {
+        super(fname);
+        this.filename = fname;
+        this.version = ver;
+        this.platform = plat;
+        this.arch = arch;
+        this.sizeBytes = size;
+        this.sha256 = hash;
+        this.downloadUrl = url;
+        this.isBuilt = (size > 0);
+    }
+
+    public override validate(): ModelValidationResult* {
+        let res: ModelValidationResult* = super.validate();
+        if (this.filename.length() === 0) {
+            res->addError("Artifact filename must not be empty");
+        }
+        if (this.sha256.length() === 0) {
+            res->addError("SHA256 checksum must not be empty");
+        }
+        return res;
+    }
+
+    public override toJson(): string {
+        let json: string = "{";
+        json += "\"id\":\"" + this.id + "\",";
+        json += "\"filename\":\"" + this.filename + "\",";
+        json += "\"version\":\"" + this.version + "\",";
+        json += "\"platform\":\"" + this.platform + "\",";
+        json += "\"arch\":\"" + this.arch + "\",";
+        json += "\"sizeBytes\":" + std::to_string(this.sizeBytes) + ",";
+        json += "\"sha256\":\"" + this.sha256 + "\",";
+        json += "\"downloadUrl\":\"" + this.downloadUrl + "\",";
+        json += "\"isBuilt\":";
+        json += (this.isBuilt ? "true" : "false");
+        json += "}";
+        return json;
+    }
+}
