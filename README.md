@@ -99,3 +99,13 @@ The following distribution archives and tools are generated into `Factory/downlo
 # Run Factory Verification Test Suite
 ./bin/cex run packages/Factory/tests/factory.test.cex
 ```
+
+---
+
+## 7. Repository & Upstream Git Origin
+
+- **GitHub Repository**: [`https://github.com/2-tek/cxvm`](https://github.com/2-tek/cxvm)
+- **Clone Repository**:
+  ```bash
+  git clone https://github.com/2-tek/cxvm.git
+  ```

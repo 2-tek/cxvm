@@ -5,6 +5,12 @@
   "main": "src/index.cex",
   "author": "2-TEK Ecosystem",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/2-tek/cxvm.git"
+  },
+  "homepage": "https://github.com/2-tek/cxvm#readme",
+  "bugs": "https://github.com/2-tek/cxvm/issues",
   "dependencies": {
     "@cex": "1.0.0",
     "@cex-test": "1.0.0",
