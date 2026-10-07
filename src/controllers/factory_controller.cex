@@ -1,7 +1,7 @@
 // 2-TEK Factory: Lighting MVC Controller for Cross-Platform Platform & API (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-import "../../../Lighting/src/controllers/controller.cex";
+import "../lighting_mvc.cex";
 import "../types.cex";
 import "../models/platform_model.cex";
 import "../models/version_model.cex";

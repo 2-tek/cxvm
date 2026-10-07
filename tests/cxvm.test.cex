@@ -5,6 +5,7 @@
 import "@cex-test/src/assert.cex";
 import "@cex-test/src/runner.cex";
 import fs from "fs";
+import "../src/lighting_mvc.cex";
 import "../src/types.cex";
 import "../src/models/platform_model.cex";
 import "../src/models/version_model.cex";

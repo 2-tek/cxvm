@@ -1,0 +1,270 @@
+// 2-TEK cxvm: Embedded Lighting MVC Architecture & HTTP Runtime (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+class RouteParam {
+    public key: string;
+    public value: string;
+
+    public constructor(k: string, v: string) {
+        this.key = k;
+        this.value = v;
+    }
+}
+
+class HttpRequest {
+    public method: string;
+    public path: string;
+    public body: string;
+    public contentType: string;
+    public clientIp: string;
+    public pathParams: Array<RouteParam*>*;
+    public queryParams: Array<RouteParam*>*;
+
+    public constructor(method: string, path: string, body: string, cType: string) {
+        this.method = method;
+        this.path = path;
+        this.body = body;
+        this.contentType = cType;
+        this.clientIp = "127.0.0.1";
+        this.pathParams = new Array<RouteParam*>();
+        this.queryParams = new Array<RouteParam*>();
+    }
+
+    public addPathParam(key: string, value: string): void {
+        this.pathParams->push(new RouteParam(key, value));
+    }
+
+    public getParam(key: string): string {
+        let count: int = (int)this.pathParams->length();
+        for (let i: int = 0; i < count; i++) {
+            let p: RouteParam* = this.pathParams->get(i);
+            if (p->key === key) {
+                return p->value;
+            }
+        }
+        return "";
+    }
+}
+
+class HttpResponse {
+    public statusCode: int;
+    public statusText: string;
+    public contentType: string;
+    public body: string;
+    public isRedirect: bool;
+    public redirectUrl: string;
+
+    public constructor(code: int, text: string, cType: string, body: string) {
+        this.statusCode = code;
+        this.statusText = text;
+        this.contentType = cType;
+        this.body = body;
+        this.isRedirect = false;
+        this.redirectUrl = "";
+    }
+
+    public static ok(body: string, cType: string): HttpResponse* {
+        return new HttpResponse(200, "OK", cType, body);
+    }
+
+    public static json(jsonBody: string): HttpResponse* {
+        return new HttpResponse(200, "OK", "application/json", jsonBody);
+    }
+
+    public static html(htmlBody: string): HttpResponse* {
+        return new HttpResponse(200, "OK", "text/html; charset=utf-8", htmlBody);
+    }
+
+    public static notFound(msg: string): HttpResponse* {
+        return new HttpResponse(404, "Not Found", "application/json", "{\"error\":\"" + msg + "\",\"statusCode\":404}");
+    }
+
+    public static badRequest(msg: string): HttpResponse* {
+        return new HttpResponse(400, "Bad Request", "application/json", "{\"error\":\"" + msg + "\",\"statusCode\":400}");
+    }
+
+    public static redirect(url: string): HttpResponse* {
+        let res: HttpResponse* = new HttpResponse(302, "Found", "text/plain", "Redirecting to " + url);
+        res->isRedirect = true;
+        res->redirectUrl = url;
+        return res;
+    }
+}
+
+class ModelValidationResult {
+    public isValid: bool;
+    public errors: Array<string>*;
+
+    public constructor() {
+        this.isValid = true;
+        this.errors = new Array<string>();
+    }
+
+    public addError(err: string): void {
+        this.isValid = false;
+        this.errors->push(err);
+    }
+
+    public getErrorCount(): int {
+        return (int)this.errors->length();
+    }
+}
+
+class BaseModel {
+    public id: string;
+    public createdAt: string;
+    public updatedAt: string;
+
+    public constructor(id: string) {
+        this.id = id;
+        this.createdAt = "2026-10-07T00:00:00Z";
+        this.updatedAt = "2026-10-07T00:00:00Z";
+    }
+
+    public virtual validate(): ModelValidationResult* {
+        let res: ModelValidationResult* = new ModelValidationResult();
+        if (this.id.length() === 0) {
+            res->addError("Model ID must not be empty");
+        }
+        return res;
+    }
+
+    public virtual toJson(): string {
+        return "{\"id\":\"" + this.id + "\"}";
+    }
+}
+
+class RouteEntry {
+    public method: string;
+    public pattern: string;
+    public handlerId: string;
+
+    public constructor(m: string, p: string, h: string) {
+        this.method = m;
+        this.pattern = p;
+        this.handlerId = h;
+    }
+
+    public match(reqMethod: string, reqPath: string, req: HttpRequest*): bool {
+        if (this.method !== reqMethod) {
+            return false;
+        }
+
+        if (this.pattern === reqPath) {
+            return true;
+        }
+
+        if (this.pattern.find("/:id") != -1) {
+            let prefix: string = this.pattern.substr(0, (int)this.pattern.find("/:id"));
+            if (reqPath.find(prefix) == 0 && reqPath.length() > prefix.length() + 1) {
+                let idVal: string = reqPath.substr((int)prefix.length() + 1, (int)reqPath.length() - (int)prefix.length() - 1);
+                if (idVal.find("/") == -1) {
+                    req->addPathParam("id", idVal);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+}
+
+class LightingRouter {
+    public routes: Array<RouteEntry*>*;
+
+    public constructor() {
+        this.routes = new Array<RouteEntry*>();
+    }
+
+    public addRoute(method: string, pattern: string, handlerId: string): void {
+        this.routes->push(new RouteEntry(method, pattern, handlerId));
+    }
+
+    public get(pattern: string, handlerId: string): void {
+        this.addRoute("GET", pattern, handlerId);
+    }
+
+    public post(pattern: string, handlerId: string): void {
+        this.addRoute("POST", pattern, handlerId);
+    }
+
+    public put(pattern: string, handlerId: string): void {
+        this.addRoute("PUT", pattern, handlerId);
+    }
+
+    public del(pattern: string, handlerId: string): void {
+        this.addRoute("DELETE", pattern, handlerId);
+    }
+
+    public findRoute(req: HttpRequest*): RouteEntry* {
+        let count: int = (int)this.routes->length();
+        for (let i: int = 0; i < count; i++) {
+            let r: RouteEntry* = this.routes->get(i);
+            if (r->match(req->method, req->path, req)) {
+                return r;
+            }
+        }
+        return nullptr;
+    }
+
+    public getRouteCount(): int {
+        return (int)this.routes->length();
+    }
+}
+
+class MiddlewareResult {
+    public proceed: bool;
+    public errorResponse: HttpResponse*;
+
+    public constructor(proceed: bool, resp: HttpResponse*) {
+        this.proceed = proceed;
+        this.errorResponse = resp;
+    }
+}
+
+class LightingMiddleware {
+    public static runLogger(req: HttpRequest*): void {
+        print("  [Lighting MVC Logger] ");
+        print(req->method);
+        print(" ");
+        println(req->path);
+    }
+
+    public static runAuth(req: HttpRequest*): MiddlewareResult* {
+        if (req->path.find("/admin") != -1) {
+            let authHeader: string = req->getParam("auth");
+            if (authHeader !== "admin-token") {
+                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", "{\"error\":\"Unauthorized access\",\"statusCode\":401}");
+                return new MiddlewareResult(false, errResp);
+            }
+        }
+        return new MiddlewareResult(true, nullptr);
+    }
+
+    public static applyCors(res: HttpResponse*): void {
+    }
+}
+
+class BaseController {
+    public constructor() {}
+
+    public html(body: string): HttpResponse* {
+        return HttpResponse::html(body);
+    }
+
+    public json(jsonString: string): HttpResponse* {
+        return HttpResponse::json(jsonString);
+    }
+
+    public badRequest(message: string): HttpResponse* {
+        return HttpResponse::badRequest(message);
+    }
+
+    public notFound(message: string): HttpResponse* {
+        return HttpResponse::notFound(message);
+    }
+
+    public redirect(url: string): HttpResponse* {
+        return HttpResponse::redirect(url);
+    }
+}

@@ -1,9 +1,7 @@
 // 2-TEK Factory: Application Kernel & Lighting MVC Dispatcher (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-import "../../Lighting/src/types.cex";
-import "../../Lighting/src/router.cex";
-import "../../Lighting/src/middleware.cex";
+import "./lighting_mvc.cex";
 import "./types.cex";
 import "./models/platform_model.cex";
 import "./models/version_model.cex";
