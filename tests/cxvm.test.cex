@@ -7,9 +7,9 @@ import "@cex-test/src/runner.cex";
 import fs from "fs";
 import "../src/lighting_mvc.cex";
 import "../src/types.cex";
-import "../src/models/platform_model.cex";
-import "../src/models/version_model.cex";
-import "../src/models/artifact_model.cex";
+import "../models/platform_model.cex";
+import "../models/version_model.cex";
+import "../models/artifact_model.cex";
 import "../src/builder/dist_builder.cex";
 import "../src/cxvm/cxvm_engine.cex";
 import "../src/app.cex";
@@ -70,6 +70,9 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/install.sh"), "POSIX install.sh exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/install.ps1"), "Windows install.ps1 exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm"), "cxvm CLI exists in downloads");
+    Assert::isTrue(fs.exists(downDir + "/cxvm.sh"), "cxvm.sh exists in downloads");
+    Assert::isTrue(fs.exists(downDir + "/cxvm.ps1"), "cxvm.ps1 exists in downloads");
+    Assert::isTrue(fs.exists(downDir + "/cxvm.cmd"), "cxvm.cmd exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/manifest.json"), "manifest.json exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
     suite->addResult("test_distribution_builder_and_artifacts", true, "", 1);
@@ -96,6 +99,7 @@ fn main(): int {
     let docOut: string = cxvm->doctor();
     Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
     Assert::isTrue(docOut.find("CexR Runtime:      v8") != -1, "cxvm doctor reports CexR v8 runtime");
+    Assert::isTrue(docOut.find("Cross-Platform") != -1, "cxvm doctor reports cross-platform support");
 
     let uninstRes: CxvmCommandResult* = cxvm->uninstall("2.0.0");
     Assert::isTrue(uninstRes->success, "cxvm uninstall 2.0.0 succeeds");
@@ -144,6 +148,22 @@ fn main(): int {
     let resBuild: HttpResponse* = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
     Assert::equalsInt(200, resBuild->statusCode, "POST /api/v1/build returns 200 OK");
     Assert::isTrue(resBuild->body.find("SUCCESS") != -1, "Build reports SUCCESS");
+
+    // Test cross-platform downloads endpoint
+    let resCxvm: HttpResponse* = app->simulateRequest("GET", "/downloads/cxvm", "", "");
+    Assert::equalsInt(200, resCxvm->statusCode, "GET /downloads/cxvm returns 200 OK");
+    Assert::isTrue(resCxvm->body.find("cxvm()") != -1, "Downloaded cxvm contains CLI logic");
+
+    let resCxvmPs1: HttpResponse* = app->simulateRequest("GET", "/downloads/cxvm.ps1", "", "");
+    Assert::equalsInt(200, resCxvmPs1->statusCode, "GET /downloads/cxvm.ps1 returns 200 OK");
+    Assert::isTrue(resCxvmPs1->body.find("switch ($Command)") != -1, "Downloaded cxvm.ps1 contains command switch");
+
+    let resCxvmCmd: HttpResponse* = app->simulateRequest("GET", "/downloads/cxvm.cmd", "", "");
+    Assert::equalsInt(200, resCxvmCmd->statusCode, "GET /downloads/cxvm.cmd returns 200 OK");
+
+    let resBundle: HttpResponse* = app->simulateRequest("GET", "/downloads/cex-v8.0.0-linux-x86_64.tar.gz", "", "");
+    Assert::equalsInt(200, resBundle->statusCode, "GET /downloads/cex-v8.0.0-linux-x86_64.tar.gz returns 200 OK");
+    Assert::equalsString("application/gzip", resBundle->contentType, "Bundle served with application/gzip");
 
     let res404: HttpResponse* = app->simulateRequest("GET", "/nonexistent", "", "application/json");
     Assert::equalsInt(404, res404->statusCode, "Non-existent route returns 404 Not Found");

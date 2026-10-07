@@ -45,10 +45,13 @@ class FactoryApp {
         this.router->get("/downloads", "factory.downloads");
         this.router->get("/cxvm", "factory.cxvmDocs");
 
-        // Shell & PowerShell Installers
+        // Shell & PowerShell Installers & Cross-Platform Downloads
         this.router->get("/install.sh", "factory.installSh");
         this.router->get("/install.ps1", "factory.installPs1");
         this.router->get("/cxvm.sh", "factory.cxvmScript");
+        this.router->get("/cxvm.ps1", "factory.cxvmPs1");
+        this.router->get("/cxvm.cmd", "factory.cxvmCmd");
+        this.router->get("/downloads/:id", "factory.downloadFile");
 
         // REST JSON API Routes
         this.router->get("/api/v1/status", "factory.status");
@@ -97,15 +100,27 @@ class FactoryApp {
         }
 
         if (route->handlerId === "factory.installSh") {
-            return this.controller->serveInstallSh(req, this.port);
+            return this.controller->serveInstallSh(req, this.port, this.downloadsDir);
         }
 
         if (route->handlerId === "factory.installPs1") {
-            return this.controller->serveInstallPs1(req, this.port);
+            return this.controller->serveInstallPs1(req, this.port, this.downloadsDir);
         }
 
         if (route->handlerId === "factory.cxvmScript") {
-            return this.controller->serveCxvm(req);
+            return this.controller->serveCxvm(req, this.downloadsDir);
+        }
+
+        if (route->handlerId === "factory.cxvmPs1") {
+            return this.controller->serveCxvmPs1(req, this.downloadsDir);
+        }
+
+        if (route->handlerId === "factory.cxvmCmd") {
+            return this.controller->serveCxvmCmd(req, this.downloadsDir);
+        }
+
+        if (route->handlerId === "factory.downloadFile") {
+            return this.controller->downloadFile(req, this.downloadsDir);
         }
 
         if (route->handlerId === "factory.status") {

@@ -26,8 +26,8 @@
       "version": "1.0.0",
       "platform": "darwin",
       "arch": "arm64",
-      "sizeBytes": 2928,
-      "sha256": "4629ec492fd52688670bc9605c5ae62a1d650314ba415db91fad15a6cf7bec19",
+      "sizeBytes": 3904,
+      "sha256": "bcf0bb97b30276f5b7b97d9c8bf259ce5857480720270c8a864728ba55e0e6c5",
       "downloadUrl": "/downloads/cex-v1.0.0-darwin-arm64.tar.gz"
     },
     {
@@ -35,8 +35,8 @@
       "version": "1.0.0",
       "platform": "darwin",
       "arch": "x86_64",
-      "sizeBytes": 2922,
-      "sha256": "51519d29239675d6c0c41539676d3bf41e2b5505c060e83bf716ba3090021260",
+      "sizeBytes": 3894,
+      "sha256": "ddc7259193a299d07d18d89b884ae7f32b47798c1649b4fe536b57a7d6cdf9c8",
       "downloadUrl": "/downloads/cex-v1.0.0-darwin-x86_64.tar.gz"
     },
     {
@@ -44,8 +44,8 @@
       "version": "1.0.0",
       "platform": "linux",
       "arch": "aarch64",
-      "sizeBytes": 2920,
-      "sha256": "71988dc7735b65754b2dea402848f81d1900d24ff7a301f67834531bb4a46c01",
+      "sizeBytes": 3895,
+      "sha256": "2a484a653c4eb2c1b80e6d8de20d793b719605d8b13ebfa111785f492c6ab09d",
       "downloadUrl": "/downloads/cex-v1.0.0-linux-aarch64.tar.gz"
     },
     {
@@ -53,8 +53,8 @@
       "version": "1.0.0",
       "platform": "linux",
       "arch": "x86_64",
-      "sizeBytes": 2921,
-      "sha256": "5acbf109ddb7ef641a9158cfa28f0ab0e8aee1c3b041ecd42963def12070456f",
+      "sizeBytes": 3896,
+      "sha256": "f39929429fdcc1b979fb2f0d30117b2553dc7e0bd33f071a16c093c5a7565d4c",
       "downloadUrl": "/downloads/cex-v1.0.0-linux-x86_64.tar.gz"
     },
     {
@@ -62,8 +62,8 @@
       "version": "1.0.0",
       "platform": "windows",
       "arch": "arm64",
-      "sizeBytes": 5083,
-      "sha256": "95c328a04495b7fdb052892dbe11f4eff6f96d01434ba6dee130bd56a48336a0",
+      "sizeBytes": 10013,
+      "sha256": "f85f5decd80120554a3bced85188af12491dd1d16b7eea843f1ddb05e0bc168a",
       "downloadUrl": "/downloads/cex-v1.0.0-windows-arm64.zip"
     },
     {
@@ -71,8 +71,8 @@
       "version": "1.0.0",
       "platform": "windows",
       "arch": "x64",
-      "sizeBytes": 5036,
-      "sha256": "57b9328e5a4f9fd27d3a45e7b386dc0a18b9f24dfa12d4ea654c8a37e81ac3b8",
+      "sizeBytes": 9943,
+      "sha256": "e58e052832529b1cad0454c87b2c5c325dd08ed2800f263ebb825b6a5089d384",
       "downloadUrl": "/downloads/cex-v1.0.0-windows-x64.zip"
     },
     {
@@ -80,8 +80,8 @@
       "version": "2.0.0",
       "platform": "darwin",
       "arch": "arm64",
-      "sizeBytes": 2926,
-      "sha256": "a0bdcc2e76d8a59f694d1f75e3e768b0a4d163a84de3d478292971f5eb7aa0b7",
+      "sizeBytes": 3903,
+      "sha256": "d2660478ac716a76bf1d4c302644c759c86d6abccb31079eb077106b7198af59",
       "downloadUrl": "/downloads/cex-v2.0.0-darwin-arm64.tar.gz"
     },
     {
@@ -89,8 +89,8 @@
       "version": "2.0.0",
       "platform": "darwin",
       "arch": "x86_64",
-      "sizeBytes": 2922,
-      "sha256": "7f4b9f6f2f515e60da7bf813882cab9ed763d11b52f0b203e6dd6e5406e2ed35",
+      "sizeBytes": 3894,
+      "sha256": "5ae3424257c6676b3fcf665d5b3dce5357a9a5e4625c493a34b9823074c9f285",
       "downloadUrl": "/downloads/cex-v2.0.0-darwin-x86_64.tar.gz"
     },
     {
@@ -98,8 +98,8 @@
       "version": "2.0.0",
       "platform": "linux",
       "arch": "aarch64",
-      "sizeBytes": 2918,
-      "sha256": "3b85e6a7ce20a2ab8a66f00bfceef9ff6d319c259e5f7d8a3e77916aa15228ee",
+      "sizeBytes": 3896,
+      "sha256": "47907f54a172041a10a9a74ae7d3d145ace189320a8050c313fb785dbc96b2eb",
       "downloadUrl": "/downloads/cex-v2.0.0-linux-aarch64.tar.gz"
     },
     {
@@ -107,8 +107,8 @@
       "version": "2.0.0",
       "platform": "linux",
       "arch": "x86_64",
-      "sizeBytes": 2922,
-      "sha256": "f12e24fcddc09cdf1f0558f2204ca94f18c094fbb2687c09f27fc5b27296f7fd",
+      "sizeBytes": 3900,
+      "sha256": "d2bb825ac7b14ec09edca46480f52c165eb1a60d60fb304ac813b3be02ba14af",
       "downloadUrl": "/downloads/cex-v2.0.0-linux-x86_64.tar.gz"
     },
     {
@@ -116,8 +116,8 @@
       "version": "2.0.0",
       "platform": "windows",
       "arch": "arm64",
-      "sizeBytes": 5082,
-      "sha256": "d515ed425f0d1e7a199f135be189b7addeba5203f1c2da10a7b20370307d84f9",
+      "sizeBytes": 10012,
+      "sha256": "0908d8ee34330c65bd7d4a6023cb52d45c8d16c8050f2bf7e0bac6e142eb9d0a",
       "downloadUrl": "/downloads/cex-v2.0.0-windows-arm64.zip"
     },
     {
@@ -125,8 +125,8 @@
       "version": "2.0.0",
       "platform": "windows",
       "arch": "x64",
-      "sizeBytes": 5035,
-      "sha256": "870d2e4d2b3e4c36d54cf176f94e47565b252afc87a8f3af9df49018f47bc718",
+      "sizeBytes": 9944,
+      "sha256": "64174811457305461c338bbb8486e10a7cba7e63a600c65fce68c8a9e4a73ae5",
       "downloadUrl": "/downloads/cex-v2.0.0-windows-x64.zip"
     },
     {
@@ -134,8 +134,8 @@
       "version": "3.0.0",
       "platform": "darwin",
       "arch": "arm64",
-      "sizeBytes": 2926,
-      "sha256": "f3823a7325b1c6b010ef171ab2271c069a85fa1e4c465d44834271fee28ffec4",
+      "sizeBytes": 3904,
+      "sha256": "757221c0fc6df576fe60283c726edaccf49c32132aa86f7b03dfd1a22f36a09e",
       "downloadUrl": "/downloads/cex-v3.0.0-darwin-arm64.tar.gz"
     },
     {
@@ -143,8 +143,8 @@
       "version": "3.0.0",
       "platform": "darwin",
       "arch": "x86_64",
-      "sizeBytes": 2922,
-      "sha256": "375469a92b873b80aaea2bbb1ea592587fcbe3ebb2f9b9d109450aa35fa60244",
+      "sizeBytes": 3895,
+      "sha256": "b5b0843f483f9403fd5010d7a93b79081b5bbdae871ecf90fd2596506ab76c3b",
       "downloadUrl": "/downloads/cex-v3.0.0-darwin-x86_64.tar.gz"
     },
     {
@@ -152,8 +152,8 @@
       "version": "3.0.0",
       "platform": "linux",
       "arch": "aarch64",
-      "sizeBytes": 2919,
-      "sha256": "a26b2d8181e3916a56aaaa23b371458d3c942e539f94f7b9d7809bd87b26f94b",
+      "sizeBytes": 3896,
+      "sha256": "6934e87ea2a9dcbab06a9eac01301b416af53ce3a1bc83d50401f3a2a97f5948",
       "downloadUrl": "/downloads/cex-v3.0.0-linux-aarch64.tar.gz"
     },
     {
@@ -161,8 +161,8 @@
       "version": "3.0.0",
       "platform": "linux",
       "arch": "x86_64",
-      "sizeBytes": 2922,
-      "sha256": "13bb31d6beafb7117be3db7df9f02cfe14dce52b9fd1a0357cfb4d766f31a7cd",
+      "sizeBytes": 3897,
+      "sha256": "071849b27d9a380ab6b4160cdacffb0ac053eb055fc0ffea4bd264fdbc511d9a",
       "downloadUrl": "/downloads/cex-v3.0.0-linux-x86_64.tar.gz"
     },
     {
@@ -170,8 +170,8 @@
       "version": "3.0.0",
       "platform": "windows",
       "arch": "arm64",
-      "sizeBytes": 5083,
-      "sha256": "0c06eef592c6c7cc83f0c3de863f37735536e35514e86425778fbe9f7616303c",
+      "sizeBytes": 10013,
+      "sha256": "4b5118ee575c5e0cc56f0c4b92a6fa4bf16979ae80544bcf0b16f9164e4fb0c0",
       "downloadUrl": "/downloads/cex-v3.0.0-windows-arm64.zip"
     },
     {
@@ -179,8 +179,8 @@
       "version": "3.0.0",
       "platform": "windows",
       "arch": "x64",
-      "sizeBytes": 5036,
-      "sha256": "369ad681dfc315b1c1edc9498b82a6f4fe29d89edd3003a008849316e5f8f2b4",
+      "sizeBytes": 9944,
+      "sha256": "42b399776836622664fab3d0d32e945052686fbad991974f3050e809d8ad3857",
       "downloadUrl": "/downloads/cex-v3.0.0-windows-x64.zip"
     },
     {
@@ -188,8 +188,8 @@
       "version": "5.0.0",
       "platform": "darwin",
       "arch": "arm64",
-      "sizeBytes": 2928,
-      "sha256": "c69941604e7bcf83b5241c6a5847c66787e5892360ed8578f444608b415437b1",
+      "sizeBytes": 3903,
+      "sha256": "71222e94a4f719e0bdbf8cd642a9756ae3102e7dcab1aa782c2dae672eeca543",
       "downloadUrl": "/downloads/cex-v5.0.0-darwin-arm64.tar.gz"
     },
     {
@@ -197,8 +197,8 @@
       "version": "5.0.0",
       "platform": "darwin",
       "arch": "x86_64",
-      "sizeBytes": 2920,
-      "sha256": "f28ac31f4301c880a1561a9f34c00b353dfcde78abffda373c94d44a798d5357",
+      "sizeBytes": 3893,
+      "sha256": "03ed8551eacbca69d5818e282c6ff6615bb731bab275017db31ab5455fc72cd5",
       "downloadUrl": "/downloads/cex-v5.0.0-darwin-x86_64.tar.gz"
     },
     {
@@ -206,8 +206,8 @@
       "version": "5.0.0",
       "platform": "linux",
       "arch": "aarch64",
-      "sizeBytes": 2920,
-      "sha256": "e33d9151f46797338a42704def7c11f7c10e6a7a99cb66326a2a89aebd725979",
+      "sizeBytes": 3895,
+      "sha256": "db43339b40aac9aea3d79a3d5bb642084aa8e2104346245327a0e2ff55b96705",
       "downloadUrl": "/downloads/cex-v5.0.0-linux-aarch64.tar.gz"
     },
     {
@@ -215,8 +215,8 @@
       "version": "5.0.0",
       "platform": "linux",
       "arch": "x86_64",
-      "sizeBytes": 2921,
-      "sha256": "2883b6f8d7add4f66aa67cad8e6d6f023eedf3b7f231c4af42b913485d2f9155",
+      "sizeBytes": 3897,
+      "sha256": "bbc2174f9af34ea4c416c775622b9f18e34c9005f152a31673308ba4c351554e",
       "downloadUrl": "/downloads/cex-v5.0.0-linux-x86_64.tar.gz"
     },
     {
@@ -224,8 +224,8 @@
       "version": "5.0.0",
       "platform": "windows",
       "arch": "arm64",
-      "sizeBytes": 5084,
-      "sha256": "845b08a31ffb76f416ae99746881271af9c48316be9797002bef2b6d27d3f6e8",
+      "sizeBytes": 10015,
+      "sha256": "3fc8dd82957f4c491dda04698fea076109c30ce231e1db1022a0cf9b159e0d85",
       "downloadUrl": "/downloads/cex-v5.0.0-windows-arm64.zip"
     },
     {
@@ -233,8 +233,8 @@
       "version": "5.0.0",
       "platform": "windows",
       "arch": "x64",
-      "sizeBytes": 5036,
-      "sha256": "ae1d8efa5e471a0f7a93732f072b2bc02e5647e1845b12b356e2426186b60fe0",
+      "sizeBytes": 9945,
+      "sha256": "59b6ec0942ba0ff58e7ee202658989f932700ee8175eb295a871b70680c46586",
       "downloadUrl": "/downloads/cex-v5.0.0-windows-x64.zip"
     },
     {
@@ -242,8 +242,8 @@
       "version": "6.0.0",
       "platform": "darwin",
       "arch": "arm64",
-      "sizeBytes": 2927,
-      "sha256": "29a944d2111c69c7fad07a2255519339c4fb46df824755a888fd393e9fa8c189",
+      "sizeBytes": 3905,
+      "sha256": "26cb2cb99d682f31a9857a4c7ef9d1717c070b0bb81f2fd8f3d225e648d2bf50",
       "downloadUrl": "/downloads/cex-v6.0.0-darwin-arm64.tar.gz"
     },
     {
@@ -251,8 +251,8 @@
       "version": "6.0.0",
       "platform": "darwin",
       "arch": "x86_64",
-      "sizeBytes": 2920,
-      "sha256": "98dbaab1c9b6d7a65f0e1d6e5618a4ae2740bb359c27bdb2add4d8aec5c54639",
+      "sizeBytes": 3895,
+      "sha256": "6a85722e6a9b2dfdafe6502079398275e79ba717efcd4822daa9512c3c653b7a",
       "downloadUrl": "/downloads/cex-v6.0.0-darwin-x86_64.tar.gz"
     },
     {
@@ -260,8 +260,8 @@
       "version": "6.0.0",
       "platform": "linux",
       "arch": "aarch64",
-      "sizeBytes": 2920,
-      "sha256": "de73dcf53ed0399ca3cef285fe95deb73116b88f5a17e4e3ba37d75686201f1a",
+      "sizeBytes": 3896,
+      "sha256": "1c66dbc405e59629d3487d75a21d2dda7fb47110005260395b080e96cd865524",
       "downloadUrl": "/downloads/cex-v6.0.0-linux-aarch64.tar.gz"
     },
     {
@@ -269,8 +269,8 @@
       "version": "6.0.0",
       "platform": "linux",
       "arch": "x86_64",
-      "sizeBytes": 2923,
-      "sha256": "1b02a7fd82829d4788d130817ed3675d7ee2f1cc46e4ef9f5e55510594cc1707",
+      "sizeBytes": 3898,
+      "sha256": "49e2d8c1439749257da2430d08a813d582b80e2db8f69fc50ec7d5df237240fc",
       "downloadUrl": "/downloads/cex-v6.0.0-linux-x86_64.tar.gz"
     },
     {
@@ -278,8 +278,8 @@
       "version": "6.0.0",
       "platform": "windows",
       "arch": "arm64",
-      "sizeBytes": 5083,
-      "sha256": "a7cadd85fb5937ed0c099bf9879db3bf8a3a1388fa5966994182188f0710ed8b",
+      "sizeBytes": 10013,
+      "sha256": "6f2dfb7bb710c765ce8ba9e1d8434041448351c389f15adeb4a68bcda9b9fe1a",
       "downloadUrl": "/downloads/cex-v6.0.0-windows-arm64.zip"
     },
     {
@@ -287,8 +287,8 @@
       "version": "6.0.0",
       "platform": "windows",
       "arch": "x64",
-      "sizeBytes": 5036,
-      "sha256": "8e2efe9a71f725220c2b43ffec4ba6c48be962c0205c1b7a1aec84861cec0b82",
+      "sizeBytes": 9944,
+      "sha256": "c2aae2116a5572a1f2a4ae7192ac89ec14d9a10b887a012571fd80ffb5c020ca",
       "downloadUrl": "/downloads/cex-v6.0.0-windows-x64.zip"
     },
     {
@@ -296,8 +296,8 @@
       "version": "8.0.0",
       "platform": "darwin",
       "arch": "arm64",
-      "sizeBytes": 2921,
-      "sha256": "44bce000ef322eb80364211c702b9934f60034fec2892bd3de078e0bb59b5f10",
+      "sizeBytes": 3897,
+      "sha256": "ce44702dcb71a490ce1039785868f50cd8298bb0dfc9b022dd58a11445982e13",
       "downloadUrl": "/downloads/cex-v8.0.0-darwin-arm64.tar.gz"
     },
     {
@@ -305,8 +305,8 @@
       "version": "8.0.0",
       "platform": "darwin",
       "arch": "x86_64",
-      "sizeBytes": 2915,
-      "sha256": "8317dfb3bca8f3b4c372d9ba6aa1bcf209c8975f8c193707e04ce62d92f985f2",
+      "sizeBytes": 3888,
+      "sha256": "dad2377eec8e67a0c4f884b92866ae38fe165f787ce23d616220e1d38dde6b8a",
       "downloadUrl": "/downloads/cex-v8.0.0-darwin-x86_64.tar.gz"
     },
     {
@@ -314,8 +314,8 @@
       "version": "8.0.0",
       "platform": "linux",
       "arch": "aarch64",
-      "sizeBytes": 2913,
-      "sha256": "d3583450b673831fa8e1d514ab92f75ab7dea257ad0bd5e408b1360c86edbac3",
+      "sizeBytes": 3891,
+      "sha256": "8ee1f389bb4bd365a16a7bd58bce6e300323e82c0f26514df4accebe3566178b",
       "downloadUrl": "/downloads/cex-v8.0.0-linux-aarch64.tar.gz"
     },
     {
@@ -323,8 +323,8 @@
       "version": "8.0.0",
       "platform": "linux",
       "arch": "x86_64",
-      "sizeBytes": 2919,
-      "sha256": "9e76e20e135deba816222e145d2f57d3c414ee378e8d45e17cd895d16974d4c9",
+      "sizeBytes": 3891,
+      "sha256": "f621624fe51643e9fa9003de14b168c9bf3b12354057060fc22845587a721806",
       "downloadUrl": "/downloads/cex-v8.0.0-linux-x86_64.tar.gz"
     },
     {
@@ -332,8 +332,8 @@
       "version": "8.0.0",
       "platform": "windows",
       "arch": "arm64",
-      "sizeBytes": 5082,
-      "sha256": "d581c65c9a17028cb0304353b511bb248476dc1d274e4a1ff8424c7e097eae4f",
+      "sizeBytes": 10010,
+      "sha256": "93da82084ed278ee2fb6cda8d3ca002629c024f0e002a38f70615de17ad8e49f",
       "downloadUrl": "/downloads/cex-v8.0.0-windows-arm64.zip"
     },
     {
@@ -341,8 +341,8 @@
       "version": "8.0.0",
       "platform": "windows",
       "arch": "x64",
-      "sizeBytes": 5035,
-      "sha256": "717f42db5f59e0ab0b779aa54c7de1a85b4a81f51e05598b2aedbce4ffb61c6d",
+      "sizeBytes": 9941,
+      "sha256": "c1235ba6170ea6d20c9a9c9ad11cd1e1623a99f44ee2870d140086e894e6ec36",
       "downloadUrl": "/downloads/cex-v8.0.0-windows-x64.zip"
     }
   ]

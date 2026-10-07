@@ -77,20 +77,22 @@ class FactoryViews {
         let content: string = "<div class=\"card\" style=\"text-align: center; padding: 48px 24px; background: radial-gradient(circle at 50% 20%, #1e293b, #0f172a);\">\n";
         content += "  <h1 style=\"font-size: 34px; margin-bottom: 12px; color: #38bdf8;\">⚙️ Cex Cross-Platform Factory &amp; Runtime Setup</h1>\n";
         content += "  <p style=\"font-size: 15px; color: #94a3b8; max-width: 720px; margin: 0 auto 24px;\">\n";
-        content += "    Universal cross-platform compiler toolchain distribution and version manager for C-ext (<b>.cex</b>).\n";
-        content += "    Install, switch, and maintain multiple Cex runtimes effortlessly across Linux, macOS, and Windows—just like <code>nvm</code> for Node.\n";
+        content += "    Universal cross-platform toolchain distribution and version manager for C-ext (<b>.cex</b>).\n";
+        content += "    Download <b>cxvm</b> across platforms to effortlessly install, switch, and maintain native <b>cexr</b> runtimes on Linux, macOS, and Windows.\n";
         content += "  </p>\n";
         content += "  <div style=\"display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;\">\n";
         content += "    <a href=\"/downloads\" class=\"btn\">📦 Explore Downloads (" + std::to_string((int)artifacts->length()) + " Bundles)</a>\n";
         content += "    <a href=\"/cxvm\" class=\"btn btn-secondary\">📖 cxvm CLI Guide</a>\n";
+        content += "    <a href=\"/downloads/cxvm\" class=\"btn btn-secondary\">🐧 Download cxvm (POSIX)</a>\n";
+        content += "    <a href=\"/downloads/cxvm.ps1\" class=\"btn btn-secondary\">🪟 Download cxvm (PowerShell)</a>\n";
         content += "    <a href=\"/api/v1/manifest\" target=\"_blank\" class=\"btn btn-secondary\">📄 Manifest JSON</a>\n";
         content += "  </div>\n";
         content += "</div>\n";
 
         // Quick Install Boxes
         content += "<div class=\"card\">\n";
-        content += "  <h2 style=\"margin-bottom: 12px; display: flex; align-items: center; gap: 10px;\">🚀 Instant One-Line Setup</h2>\n";
-        content += "  <p style=\"color: #94a3b8; font-size: 13px; margin-bottom: 16px;\">Run the one-line installer script in your terminal to bootstrap <code>cxvm</code> and the latest Cex runtime:</p>\n";
+        content += "  <h2 style=\"margin-bottom: 12px; display: flex; align-items: center; gap: 10px;\">🚀 Cross-Platform One-Line Installers to Setup cexr</h2>\n";
+        content += "  <p style=\"color: #94a3b8; font-size: 13px; margin-bottom: 16px;\">Run the quick installer in your terminal to bootstrap <code>cxvm</code> and configure the native <code>cexr</code> runtime:</p>\n";
 
         content += "  <div style=\"margin-bottom: 16px;\">\n";
         content += "    <span style=\"font-size: 12px; font-weight: 700; color: #34d399;\">🐧 Linux &amp; 🍏 macOS (curl | bash):</span>\n";
@@ -195,6 +197,23 @@ class FactoryViews {
         content += "</div>\n";
 
         content += "<div class=\"card\">\n";
+        content += "  <h3 style=\"margin-bottom: 12px;\">🛠️ cxvm Management Scripts</h3>\n";
+        content += "  <table>\n";
+        content += "    <thead>\n";
+        content += "      <tr><th>Script Name</th><th>Platform</th><th>Format</th><th>Download</th></tr>\n";
+        content += "    </thead>\n";
+        content += "    <tbody>\n";
+        content += "      <tr><td><b>cxvm</b></td><td>Linux / macOS</td><td><span class=\"badge badge-lts\">POSIX Bash</span></td><td><a href=\"/downloads/cxvm\" class=\"btn\" style=\"padding:4px 10px; font-size:12px;\">Download cxvm</a></td></tr>\n";
+        content += "      <tr><td><b>cxvm.ps1</b></td><td>Windows PowerShell</td><td><span class=\"badge badge-stable\">PS1 Script</span></td><td><a href=\"/downloads/cxvm.ps1\" class=\"btn\" style=\"padding:4px 10px; font-size:12px;\">Download cxvm.ps1</a></td></tr>\n";
+        content += "      <tr><td><b>cxvm.cmd</b></td><td>Windows CMD</td><td><span class=\"badge badge-canary\">Batch Launcher</span></td><td><a href=\"/downloads/cxvm.cmd\" class=\"btn\" style=\"padding:4px 10px; font-size:12px;\">Download cxvm.cmd</a></td></tr>\n";
+        content += "      <tr><td><b>install.sh</b></td><td>Linux / macOS</td><td><span class=\"badge badge-lts\">POSIX Quick Installer</span></td><td><a href=\"/downloads/install.sh\" class=\"btn\" style=\"padding:4px 10px; font-size:12px;\">Download install.sh</a></td></tr>\n";
+        content += "      <tr><td><b>install.ps1</b></td><td>Windows PowerShell</td><td><span class=\"badge badge-stable\">PowerShell Quick Installer</span></td><td><a href=\"/downloads/install.ps1\" class=\"btn\" style=\"padding:4px 10px; font-size:12px;\">Download install.ps1</a></td></tr>\n";
+        content += "    </tbody>\n";
+        content += "  </table>\n";
+        content += "</div>\n";
+
+        content += "<div class=\"card\">\n";
+        content += "  <h3 style=\"margin-bottom: 12px;\">📦 Cex Runtime Bundles (with Native cexr)</h3>\n";
         content += "  <table>\n";
         content += "    <thead>\n";
         content += "      <tr>\n";
@@ -231,14 +250,14 @@ class FactoryViews {
     public static renderCxvmDocs(port: int): string {
         let content: string = "<div style=\"margin-bottom: 24px;\">\n";
         content += "  <h1 style=\"font-size: 28px; color: #38bdf8;\">📖 cxvm: Cex Version Manager</h1>\n";
-        content += "  <p style=\"color: #94a3b8; font-size: 15px;\">The cross-platform version manager for Cex runtimes—seamlessly switch compilers &amp; runtimes.</p>\n";
+        content += "  <p style=\"color: #94a3b8; font-size: 15px;\">The cross-platform version manager for Cex runtimes—seamlessly download cxvm to setup cexr.</p>\n";
         content += "</div>\n";
 
         content += "<div class=\"card\">\n";
         content += "  <h3 style=\"margin-bottom: 12px;\">💡 What is cxvm?</h3>\n";
         content += "  <p style=\"color: #94a3b8; font-size: 14px; margin-bottom: 16px;\">\n";
         content += "    Just like <b>nvm</b> (Node Version Manager) manages Node.js versions, <b>cxvm</b> manages multiple Cex toolchain releases on your computer.\n";
-        content += "    It installs native archives into <code>~/.cxvm/versions/v&lt;version&gt;</code>, creates clean symlinks to <code>~/.cxvm/current</code>, and validates your local C++20 compiler.\n";
+        content += "    It automatically downloads cross-platform packages, installs native archives into <code>~/.cxvm/versions/v&lt;version&gt;</code>, configures the <b>cexr</b> runtime runner, creates clean symlinks to <code>~/.cxvm/current</code>, and validates your local C++20 compiler.\n";
         content += "  </p>\n";
 
         content += "  <h3 style=\"margin-bottom: 12px;\">⌨️ Command Reference (nvm vs. cxvm)</h3>\n";
@@ -252,13 +271,13 @@ class FactoryViews {
         content += "      </tr>\n";
         content += "    </thead>\n";
         content += "    <tbody>\n";
-        content += "      <tr><td>Install runtime</td><td><code>nvm install 18</code></td><td><code style=\"color: #38bdf8;\">cxvm install 8.0.0</code></td><td>Downloads and extracts platform binary bundle (CexR v8 default)</td></tr>\n";
-        content += "      <tr><td>Switch active</td><td><code>nvm use 18</code></td><td><code style=\"color: #38bdf8;\">cxvm use 8.0.0</code></td><td>Updates current symlink &amp; PATH environment</td></tr>\n";
+        content += "      <tr><td>Install runtime</td><td><code>nvm install 18</code></td><td><code style=\"color: #38bdf8;\">cxvm install 8.0.0</code></td><td>Downloads and extracts platform binary bundle, configuring native cexr runner</td></tr>\n";
+        content += "      <tr><td>Switch active</td><td><code>nvm use 18</code></td><td><code style=\"color: #38bdf8;\">cxvm use 8.0.0</code></td><td>Updates current symlink &amp; sets up active cexr in PATH</td></tr>\n";
         content += "      <tr><td>List installed</td><td><code>nvm ls</code></td><td><code style=\"color: #38bdf8;\">cxvm list</code></td><td>Lists locally installed runtimes and active one</td></tr>\n";
         content += "      <tr><td>List remote</td><td><code>nvm ls-remote</code></td><td><code style=\"color: #38bdf8;\">cxvm list-remote</code></td><td>Queries Factory catalog for upstream releases</td></tr>\n";
         content += "      <tr><td>Set default</td><td><code>nvm alias default 18</code></td><td><code style=\"color: #38bdf8;\">cxvm default 8.0.0</code></td><td>Sets default version for all new terminals</td></tr>\n";
         content += "      <tr><td>Current version</td><td><code>nvm current</code></td><td><code style=\"color: #38bdf8;\">cxvm current</code></td><td>Prints current active version (e.g. v8.0.0)</td></tr>\n";
-        content += "      <tr><td>System doctor</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm doctor</code></td><td>Validates C++20 compiler, paths &amp; diagnostics</td></tr>\n";
+        content += "      <tr><td>System doctor</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm doctor</code></td><td>Validates cexr setup, C++20 compiler, paths &amp; diagnostics</td></tr>\n";
         content += "    </tbody>\n";
         content += "  </table>\n";
         content += "</div>\n";

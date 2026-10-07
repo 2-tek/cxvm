@@ -1,6 +1,7 @@
 // 2-TEK Factory: Lighting MVC Controller for Cross-Platform Platform & API (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
+import fs from "fs";
 import "../lighting_mvc.cex";
 import "../types.cex";
 import "../models/platform_model.cex";
@@ -40,6 +41,7 @@ class FactoryController : public BaseController {
         obj->set("totalVersions", new json_lib::Value((int)builder->versions->length()));
         obj->set("totalArtifacts", new json_lib::Value((int)builder->artifacts->length()));
         obj->set("currentActiveVersion", new json_lib::Value(cxvm->current()));
+        obj->set("crossPlatformSupport", new json_lib::Value("Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"));
         return this->json(obj);
     }
 
@@ -92,7 +94,12 @@ class FactoryController : public BaseController {
         return this->json(obj);
     }
 
-    public serveInstallSh(req: HttpRequest*, port: int): HttpResponse* {
+    public serveInstallSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/install.sh";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/x-shellscript");
+        }
         let pStr: string = std::to_string(port);
         let script: string = "#!/usr/bin/env bash\n";
         script += "# 2-TEK Cex Factory: Cross-Platform Quick Installer\n";
@@ -113,7 +120,12 @@ class FactoryController : public BaseController {
         return HttpResponse::ok(script, "text/x-shellscript");
     }
 
-    public serveInstallPs1(req: HttpRequest*, port: int): HttpResponse* {
+    public serveInstallPs1(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/install.ps1";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/plain");
+        }
         let pStr: string = std::to_string(port);
         let script: string = "# 2-TEK Cex Factory: Windows PowerShell Quick Installer\n";
         script += "$ErrorActionPreference = \"Stop\"\n";
@@ -127,10 +139,60 @@ class FactoryController : public BaseController {
         return HttpResponse::ok(script, "text/plain");
     }
 
-    public serveCxvm(req: HttpRequest*): HttpResponse* {
+    public serveCxvm(req: HttpRequest*, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/cxvm";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/x-shellscript");
+        }
         let script: string = "#!/usr/bin/env bash\n";
         script += "# cxvm: Cex Version Manager\n";
         script += "echo \"cxvm v8.0.0 (Cex Version Manager)\"\n";
         return HttpResponse::ok(script, "text/x-shellscript");
+    }
+
+    public serveCxvmPs1(req: HttpRequest*, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/cxvm.ps1";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/plain");
+        }
+        return HttpResponse::notFound("cxvm.ps1 not found");
+    }
+
+    public serveCxvmCmd(req: HttpRequest*, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/cxvm.cmd";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/plain");
+        }
+        return HttpResponse::notFound("cxvm.cmd not found");
+    }
+
+    public downloadFile(req: HttpRequest*, downloadsDir: string): HttpResponse* {
+        let filename: string = req->getParam("id");
+        if (filename.length() == 0 || filename.find("..") != -1) {
+            return HttpResponse::badRequest("Invalid download artifact filename");
+        }
+        let fullPath: string = downloadsDir + "/" + filename;
+        if (!fs.exists(fullPath)) {
+            return HttpResponse::notFound("Artifact not found: " + filename);
+        }
+        let content: string = fs.readFile(fullPath);
+        let cType: string = "application/octet-stream";
+        if (filename.find(".tar.gz") != -1) {
+            cType = "application/gzip";
+        } else if (filename.find(".zip") != -1) {
+            cType = "application/zip";
+        } else if (filename.find(".sh") != -1 || filename === "cxvm") {
+            cType = "text/x-shellscript";
+        } else if (filename.find(".ps1") != -1) {
+            cType = "text/plain";
+        } else if (filename.find(".cmd") != -1 || filename.find(".bat") != -1) {
+            cType = "text/plain";
+        } else if (filename.find(".json") != -1) {
+            cType = "application/json";
+        }
+        return HttpResponse::ok(content, cType);
     }
 }

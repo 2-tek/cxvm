@@ -22,9 +22,13 @@ elif [ -f "packages/cxvm/downloads/cxvm" ]; then
 elif [ -f "downloads/cxvm" ]; then
   cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
 elif command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$FACTORY_URL/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
+  curl -fsSL "$FACTORY_URL/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || \
+  curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
+elif command -v wget >/dev/null 2>&1; then
+  wget -q "$FACTORY_URL/downloads/cxvm" -O "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
 fi
 chmod +x "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
+cp "$CXVM_DIR/bin/cxvm" "$CXVM_DIR/bin/cxvm.sh" 2>/dev/null || true
 
 # Run cxvm install
 if [ -f "$CXVM_DIR/bin/cxvm" ]; then

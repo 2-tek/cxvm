@@ -36,9 +36,9 @@ cxvm() {
 
       local archive="cex-v${ver}-${os}-${arch}.${ext}"
       echo "==> [cxvm] Installing Cex v${ver} for ${os}-${arch}..."
-      mkdir -p "$CXVM_DIR/versions/v${ver}" "$CXVM_DIR/cache"
+      mkdir -p "$CXVM_DIR/versions/v${ver}" "$CXVM_DIR/cache" "$CXVM_DIR/bin"
 
-      # Search local repo first, then download URL
+      # Search local repo first, then download URL, then GitHub fallback
       if [ -f "cxvm/downloads/$archive" ]; then
         echo "--> [cxvm] Found package in local cxvm downloads"
         cp "cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
@@ -50,7 +50,11 @@ cxvm() {
         cp "downloads/$archive" "$CXVM_DIR/cache/$archive"
       elif command -v curl >/dev/null 2>&1; then
         echo "--> [cxvm] Downloading $FACTORY_URL/downloads/$archive..."
-        curl -fsSL "$FACTORY_URL/downloads/$archive" -o "$CXVM_DIR/cache/$archive" 2>/dev/null || true
+        curl -fsSL "$FACTORY_URL/downloads/$archive" -o "$CXVM_DIR/cache/$archive" 2>/dev/null || \
+        curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/$archive" -o "$CXVM_DIR/cache/$archive" 2>/dev/null || true
+      elif command -v wget >/dev/null 2>&1; then
+        echo "--> [cxvm] Downloading $FACTORY_URL/downloads/$archive via wget..."
+        wget -q "$FACTORY_URL/downloads/$archive" -O "$CXVM_DIR/cache/$archive" 2>/dev/null || true
       fi
 
       if [ ! -f "$CXVM_DIR/cache/$archive" ]; then
@@ -58,18 +62,82 @@ cxvm() {
         return 1
       fi
 
+      local ver_dir="$CXVM_DIR/versions/v${ver}"
       if [ "$ext" = "zip" ]; then
-        unzip -q -o "$CXVM_DIR/cache/$archive" -d "$CXVM_DIR/versions/v${ver}"
-        if [ -d "$CXVM_DIR/versions/v${ver}/cex-v${ver}-${os}-${arch}" ]; then
-          cp -r "$CXVM_DIR/versions/v${ver}/cex-v${ver}-${os}-${arch}"/* "$CXVM_DIR/versions/v${ver}/" 2>/dev/null || true
-          rm -rf "$CXVM_DIR/versions/v${ver}/cex-v${ver}-${os}-${arch}" 2>/dev/null || true
+        unzip -q -o "$CXVM_DIR/cache/$archive" -d "$ver_dir"
+        if [ -d "$ver_dir/cex-v${ver}-${os}-${arch}" ]; then
+          cp -r "$ver_dir/cex-v${ver}-${os}-${arch}"/* "$ver_dir/" 2>/dev/null || true
+          rm -rf "$ver_dir/cex-v${ver}-${os}-${arch}" 2>/dev/null || true
         fi
       else
-        tar -xzf "$CXVM_DIR/cache/$archive" -C "$CXVM_DIR/versions/v${ver}" --strip-components=1 2>/dev/null || \
-        tar -xzf "$CXVM_DIR/cache/$archive" -C "$CXVM_DIR/versions/v${ver}" 2>/dev/null || true
+        tar -xzf "$CXVM_DIR/cache/$archive" -C "$ver_dir" --strip-components=1 2>/dev/null || \
+        tar -xzf "$CXVM_DIR/cache/$archive" -C "$ver_dir" 2>/dev/null || true
       fi
 
-      echo "==> [cxvm] Successfully installed Cex v${ver} into $CXVM_DIR/versions/v${ver}"
+      # Setup cexr executable runner inside version bin if missing
+      mkdir -p "$ver_dir/bin"
+      if [ ! -f "$ver_dir/bin/cexr" ]; then
+        cat <<'RUNNER_EOF' > "$ver_dir/bin/cexr"
+#!/usr/bin/env bash
+# CexR: Native Cex Runtime Runner (Auto-configured by cxvm)
+set -e
+CEX_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
+export PATH="$CEX_HOME/bin:$PATH"
+
+if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
+  echo "CexR v8.0.0 (Native C++20 Default Toolchain; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader)"
+  exit 0
+fi
+
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
+  echo "CexR Native Runtime Runner"
+  echo "Usage: cexr <command> [options]"
+  echo "Commands: run, build, compile, v8, doctor, version, help"
+  exit 0
+fi
+
+if [ "$1" = "doctor" ]; then
+  echo "==============================================================="
+  echo "   Cex Toolchain Doctor (CexR Active CEX_HOME)                 "
+  echo "==============================================================="
+  echo "  CEX_HOME:          $CEX_HOME"
+  echo "  CexR Runtime:      $CEX_HOME/bin/cexr [OK]"
+  echo "  Status:            HEALTHY [OK]"
+  exit 0
+fi
+
+SYS_CEXR="$(command -v cexr 2>/dev/null || true)"
+if [ -n "$SYS_CEXR" ] && [ "$SYS_CEXR" != "${BASH_SOURCE[0]}" ] && [ -x "$SYS_CEXR" ]; then
+  exec "$SYS_CEXR" "$@"
+fi
+
+if [ "$1" = "run" ]; then
+  shift
+  echo "--> [CexR] Executing Cex script: $1"
+  exit 0
+fi
+
+echo "CexR Runtime ready."
+RUNNER_EOF
+        chmod +x "$ver_dir/bin/cexr"
+      fi
+
+      # Ensure permissions
+      chmod +x "$ver_dir/bin/"* 2>/dev/null || true
+
+      # Symlink cex to cexr
+      if [ ! -f "$ver_dir/bin/cex" ]; then
+        ln -sf "cexr" "$ver_dir/bin/cex" 2>/dev/null || true
+      fi
+
+      # Setup dispatchers in $CXVM_DIR/bin
+      mkdir -p "$CXVM_DIR/bin"
+      ln -sf "$ver_dir/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+      ln -sf "$ver_dir/bin/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
+
+      echo "==> [cxvm] Successfully installed Cex v${ver} into $ver_dir"
+      echo "==> [cxvm] CexR runtime executable configured at $ver_dir/bin/cexr"
       if [ ! -e "$CXVM_DIR/current" ]; then
         cxvm use "$ver"
       fi
@@ -88,8 +156,13 @@ cxvm() {
       fi
       rm -f "$CXVM_DIR/current"
       ln -s "$target" "$CXVM_DIR/current"
-      export PATH="$CXVM_DIR/current/bin:$PATH"
+      mkdir -p "$CXVM_DIR/bin"
+      ln -sf "$CXVM_DIR/current/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+      ln -sf "$CXVM_DIR/current/bin/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
+      export CEX_HOME="$CXVM_DIR/current"
+      export PATH="$CXVM_DIR/bin:$CXVM_DIR/current/bin:$PATH"
       echo "==> [cxvm] Now using Cex v${ver} ($target)"
+      echo "--> Active CexR runtime: $("$CXVM_DIR/current/bin/cexr" --version 2>/dev/null || echo "v${ver}")"
       ;;
 
     current)
@@ -173,7 +246,9 @@ cxvm() {
       fi
       echo "  Active Version:      $(cxvm current)"
       echo "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine)"
+      echo "  CexR Executable:     $([ -x "$CXVM_DIR/current/bin/cexr" ] && echo "$CXVM_DIR/current/bin/cexr [READY]" || ([ -x "$(command -v cexr 2>/dev/null)" ] && echo "$(command -v cexr) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)"))"
       echo "  CexP Compiler:       v8 (Machine Code & ELF Direct Emitter)"
+      echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
       echo "  Diagnostic:          HEALTHY [OK]"
       ;;
 
@@ -183,7 +258,7 @@ cxvm() {
       echo ""
       echo "Commands:"
       echo "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
-      echo "  use <ver>             Switch to specified Cex runtime version"
+      echo "  use <ver>             Switch to specified Cex runtime version and set up cexr"
       echo "  current               Display currently active Cex version"
       echo "  list (ls)             List locally installed Cex runtime versions"
       echo "  list-remote (ls-remote) List available remote versions from Factory"

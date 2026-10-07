@@ -1,6 +1,6 @@
 # 2-TEK Factory: Cross-Platform Cex Distribution & Version Manager (cxvm)
 
-Factory is a fullstack cross-platform toolchain distribution engine and runtime version manager for the C-ext (`.cex`) language, powered by the **Lighting Fullstack MVC Framework**. It builds and serves native compiler bundles and installers to `cxvm/downloads/` and provides `cxvm`—the Cex Version Manager (the `nvm` of the Cex ecosystem).
+Factory is a fullstack cross-platform toolchain distribution engine and runtime version manager for the C-ext (`.cex`) language, powered by the **Lighting Fullstack MVC Framework**. It builds and serves native compiler bundles and installers to `cxvm/downloads/` and provides `cxvm`—the Cex Version Manager (the `nvm` of the Cex ecosystem) to download and setup `cexr` across platforms.
 
 ---
 
@@ -9,9 +9,9 @@ Factory is a fullstack cross-platform toolchain distribution engine and runtime 
 - **Powered by Lighting MVC Framework**:
   - **Model Layer (`src/models/`)**: Active-record schema entities (`PlatformModel`, `VersionModel`, `ArtifactModel`) with validation and JSON serialization.
   - **View Layer (`src/views/`)**: High-throughput SSR template rendering (`FactoryViews`) providing the Web Portal, Downloads Explorer, and interactive `cxvm` Guide.
-  - **Controller Layer (`src/controllers/`)**: HTTP dispatchers (`FactoryController`) handling SSR pages, dynamic install scripts (`install.sh`, `install.ps1`), distribution downloads, and REST JSON APIs.
-  - **Distribution Engine (`src/builder/`)**: Cross-platform packaging pipeline that compiles and bundles runtime archives, checksums, and manifests into `cxvm/downloads/`.
-  - **Cex Version Manager (`src/cxvm/` & `downloads/cxvm`)**: Cross-platform runtime version manager CLI enabling version switching and installation across platforms.
+  - **Controller Layer (`src/controllers/`)**: HTTP dispatchers (`FactoryController`) handling SSR pages, dynamic install scripts (`install.sh`, `install.ps1`), cross-platform distribution downloads (`/downloads/:id`), and REST JSON APIs.
+  - **Distribution Engine (`src/builder/` & `scripts/generate_distributions.sh`)**: Cross-platform packaging pipeline that compiles and bundles runtime archives, `cexr` executables, checksums, and manifests into `cxvm/downloads/`.
+  - **Cex Version Manager (`src/cxvm/` & `downloads/cxvm*`)**: Cross-platform runtime version manager CLI enabling version switching and `cexr` setup across Linux, macOS, and Windows.
 - **Relocated Outside Packages**:
   - Located directly at repository root: `./cxvm`
   - Backward-compatibility symlinks: `packages/cxvm -> ../cxvm` and `bin/cxvm -> ../cxvm/downloads/cxvm`.
@@ -31,21 +31,28 @@ Factory is a fullstack cross-platform toolchain distribution engine and runtime 
 
 ---
 
-## 3. Quick Start & One-Line Installers
+## 3. Quick Start & One-Line Installers to Setup `cexr`
 
 ### POSIX Shell (Linux & macOS):
 ```bash
-# Bootstrap cxvm and default Cex runtime
+# Bootstrap cxvm and default CexR v8 runtime
 curl -fsSL http://127.0.0.1:3080/install.sh | bash
+
+# Or download cxvm CLI script directly
+curl -fsSL http://127.0.0.1:3080/downloads/cxvm -o ~/.cxvm/bin/cxvm && chmod +x ~/.cxvm/bin/cxvm
 
 # Or run directly from local repository
 bash cxvm/downloads/install.sh
 ```
 
-### Windows PowerShell:
+### Windows PowerShell & CMD:
 ```powershell
-# Bootstrap cxvm and default Cex runtime
+# Bootstrap cxvm and default CexR v8 runtime in PowerShell
 irm http://127.0.0.1:3080/install.ps1 | iex
+
+# Or download PowerShell & CMD scripts directly
+Invoke-WebRequest -Uri "http://127.0.0.1:3080/downloads/cxvm.ps1" -OutFile "$HOME\.cxvm\bin\cxvm.ps1"
+Invoke-WebRequest -Uri "http://127.0.0.1:3080/downloads/cxvm.cmd" -OutFile "$HOME\.cxvm\bin\cxvm.cmd"
 
 # Or run directly from local repository
 powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
@@ -57,22 +64,29 @@ powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
-| `cxvm install 6.0.0` | `nvm install 18` | Downloads and unpacks runtime tarball/zip (CexR v6 default) |
-| `cxvm use 6.0.0` | `nvm use 18` | Switches active version via symlink & PATH |
+| `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr` runner |
+| `cxvm use 8.0.0` | `nvm use 18` | Switches active version via symlink & activates `cexr` in PATH |
 | `cxvm list` | `nvm ls` | Lists locally installed Cex runtimes and active one |
 | `cxvm list-remote` | `nvm ls-remote` | Queries Factory catalog for available upstream releases |
-| `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v6.0.0`) |
-| `cxvm default 6.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
+| `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v8.0.0`) |
+| `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
-| `cxvm doctor` | — | Runs pre-flight diagnostics for C++20 and runtime environment |
+| `cxvm doctor` | — | Runs pre-flight diagnostics for `cexr`, C++20, and host environment |
 
 ---
 
 ## 5. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
 
-The following distribution archives (30 bundles: 5 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
+The following distribution archives (36 bundles: 6 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
-- **v6.0.0 (CexR v6 High-Performance Native Server Engine & Direct Machine Compiler - Default)**:
+- **v8.0.0 (CexR v8 .cex_boxes Dist Loader Runtime & Direct Compiler - Default)**:
+  - `cex-v8.0.0-linux-x86_64.tar.gz`
+  - `cex-v8.0.0-linux-aarch64.tar.gz`
+  - `cex-v8.0.0-darwin-arm64.tar.gz`
+  - `cex-v8.0.0-darwin-x86_64.tar.gz`
+  - `cex-v8.0.0-windows-x64.zip`
+  - `cex-v8.0.0-windows-arm64.zip`
+- **v6.0.0 (CexR v6 High-Performance Native Server Engine & Direct Machine Compiler - LTS)**:
   - `cex-v6.0.0-linux-x86_64.tar.gz`
   - `cex-v6.0.0-linux-aarch64.tar.gz`
   - `cex-v6.0.0-darwin-arm64.tar.gz`
@@ -112,6 +126,7 @@ The following distribution archives (30 bundles: 5 versions x 6 platforms) and t
   - `install.ps1` (PowerShell installer)
   - `cxvm` / `cxvm.sh` (POSIX version manager CLI)
   - `cxvm.ps1` (Windows PowerShell version manager CLI)
+  - `cxvm.cmd` (Windows Command Prompt launcher)
   - `manifest.json` (Distribution catalog & cryptographic hashes)
   - `SHA256SUMS` (Standard SHA-256 checksums file)
 
