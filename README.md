@@ -121,11 +121,11 @@ The following distribution archives (30 bundles: 5 versions x 6 platforms) and t
 
 ```bash
 # Run cxvm Demonstration & Server Engine
-./bin/cex run ./cxvm/src/index.cex
+cexr run ./cxvm/src/index.cex
 
 # Run cxvm Verification Test Suite
-./bin/cex run ./cxvm/tests/cxvm.test.cex
-./bin/cex run ./cxvm/tests/factory.test.cex
+cexr run ./cxvm/tests/cxvm.test.cex
+cexr run ./cxvm/tests/factory.test.cex
 ```
 
 ---
