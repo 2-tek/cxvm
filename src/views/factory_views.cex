@@ -272,6 +272,7 @@ class FactoryViews {
         content += "    </thead>\n";
         content += "    <tbody>\n";
         content += "      <tr><td>Install runtime</td><td><code>nvm install 18</code></td><td><code style=\"color: #38bdf8;\">cxvm install 8.0.0</code></td><td>Downloads and extracts platform binary bundle, configuring native cexr runner</td></tr>\n";
+        content += "      <tr><td>Download bundle</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm download 8.0.0 [plat]</code></td><td>Downloads cross-platform packages into cache for offline/instant cexr install (or <code>all</code>)</td></tr>\n";
         content += "      <tr><td>Switch active</td><td><code>nvm use 18</code></td><td><code style=\"color: #38bdf8;\">cxvm use 8.0.0</code></td><td>Updates current symlink &amp; sets up active cexr in PATH</td></tr>\n";
         content += "      <tr><td>List installed</td><td><code>nvm ls</code></td><td><code style=\"color: #38bdf8;\">cxvm list</code></td><td>Lists locally installed runtimes and active one</td></tr>\n";
         content += "      <tr><td>List remote</td><td><code>nvm ls-remote</code></td><td><code style=\"color: #38bdf8;\">cxvm list-remote</code></td><td>Queries Factory catalog for upstream releases</td></tr>\n";

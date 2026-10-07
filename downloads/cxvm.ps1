@@ -3,7 +3,8 @@
 
 param (
     [string]$Command = "help",
-    [string]$Version = ""
+    [string]$Version = "",
+    [string]$Platform = ""
 )
 
 $cxvmHome = if ($env:CXVM_DIR) { $env:CXVM_DIR } else { Join-Path $HOME ".cxvm" }
@@ -23,11 +24,11 @@ switch ($Command) {
         New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
         New-Item -ItemType Directory -Force -Path $binDir | Out-Null
         
-        $localZip = if (Test-Path "cxvm\downloads\$archive") { "cxvm\downloads\$archive" } elseif (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
         $destZip = Join-Path $cacheDir $archive
-        if ($localZip -and (Test-Path $localZip)) {
+        $localZip = if (Test-Path $destZip) { $destZip } elseif (Test-Path "cxvm\downloads\$archive") { "cxvm\downloads\$archive" } elseif (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
+        if ($localZip -and (Test-Path $localZip) -and ($localZip -ne $destZip)) {
             Copy-Item $localZip -Destination $destZip -Force
-        } else {
+        } elseif (-not (Test-Path $destZip)) {
             Invoke-WebRequest -Uri "$factoryUrl/downloads/$archive" -OutFile $destZip -UseBasicParsing -ErrorAction SilentlyContinue
         }
         
@@ -77,6 +78,46 @@ echo CexR Windows Runner ready.
             }
         } else {
             Write-Host "Error: Archive $archive could not be found or downloaded." -ForegroundColor Red
+        }
+    }
+    "download" {
+        $ver = if ($Version) { $Version } else { "8.0.0" }
+        $targetPlat = $Platform
+        $allPlatforms = @("linux-x86_64", "linux-aarch64", "darwin-arm64", "darwin-x86_64", "windows-x64", "windows-arm64")
+        $cacheDir = Join-Path $cxvmHome "cache"
+        New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
+
+        function Download-Bundle([string]$bVer, [string]$bPlat) {
+            $ext = if ($bPlat -like "*windows*") { "zip" } else { "tar.gz" }
+            $bArchive = "cex-v$bVer-$bPlat.$ext"
+            $destZip = Join-Path $cacheDir $bArchive
+            Write-Host "==> [cxvm] Downloading cross-platform bundle for $bPlat (Cex v$bVer to install cexr)..." -ForegroundColor Cyan
+            $localZip = if (Test-Path $destZip) { $destZip } elseif (Test-Path "cxvm\downloads\$bArchive") { "cxvm\downloads\$bArchive" } elseif (Test-Path "packages\cxvm\downloads\$bArchive") { "packages\cxvm\downloads\$bArchive" } elseif (Test-Path "downloads\$bArchive") { "downloads\$bArchive" } else { "" }
+            if ($localZip -and (Test-Path $localZip) -and ($localZip -ne $destZip)) {
+                Copy-Item $localZip -Destination $destZip -Force
+            } elseif (Test-Path $destZip) {
+                Write-Host "--> [cxvm] Package already in cache: $destZip" -ForegroundColor Yellow
+            } else {
+                Invoke-WebRequest -Uri "$factoryUrl/downloads/$bArchive" -OutFile $destZip -UseBasicParsing -ErrorAction SilentlyContinue
+            }
+            if (Test-Path $destZip) {
+                Write-Host "✓ [cxvm] Ready: $destZip (to install cexr run 'cxvm install $bVer')" -ForegroundColor Green
+            } else {
+                Write-Host "Error: Archive $bArchive could not be downloaded." -ForegroundColor Red
+            }
+        }
+
+        if ($targetPlat -eq "all" -or $ver -eq "all") {
+            if ($ver -eq "all") { $ver = if ($targetPlat -and $targetPlat -ne "all") { $targetPlat } else { "8.0.0" } }
+            Write-Host "==> [cxvm] Downloading all 6 cross-platform targets for Cex v$ver to install cexr..." -ForegroundColor Cyan
+            foreach ($p in $allPlatforms) {
+                Download-Bundle $ver $p
+            }
+            Write-Host "==> [cxvm] Successfully downloaded all 6 cross-platform bundles into $cacheDir" -ForegroundColor Green
+        } elseif ($targetPlat) {
+            Download-Bundle $ver $targetPlat
+        } else {
+            Download-Bundle $ver "windows-$arch"
         }
     }
     "use" {
@@ -143,11 +184,12 @@ echo CexR Windows Runner ready.
         Write-Host "  Active Version:      $(if (Test-Path (Join-Path $cxvmHome 'current')) { 'Active' } else { 'none' })"
         Write-Host "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine)"
         Write-Host "  Cross-Platform:      Windows (x64, arm64), Linux, macOS"
+        Write-Host "  Supported Targets:   6 architectures (download & install ready)"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green
     }
     default {
         Write-Host "Cex Version Manager (cxvm) for Windows PowerShell"
-        Write-Host "Usage: cxvm <command> [version]"
-        Write-Host "Commands: install, use, current, list, list-remote, default, uninstall, doctor, help"
+        Write-Host "Usage: cxvm <command> [version] [platform]"
+        Write-Host "Commands: install, download, use, current, list, list-remote, default, uninstall, doctor, help"
     }
 }

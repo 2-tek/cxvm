@@ -68,6 +68,8 @@ powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
 | `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr` runner |
+| `cxvm download 8.0.0 [plat]` | — | Downloads cross-platform bundle into cache for offline `cexr` setup |
+| `cxvm download 8.0.0 all` | — | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr` |
 | `cxvm use 8.0.0` | `nvm use 18` | Switches active version via symlink & activates `cexr` in PATH |
 | `cxvm list` | `nvm ls` | Lists locally installed Cex runtimes and active one |
 | `cxvm list-remote` | `nvm ls-remote` | Queries Factory catalog for available upstream releases |

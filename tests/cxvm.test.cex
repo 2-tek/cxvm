@@ -96,10 +96,25 @@ fn main(): int {
     let listOut: string = cxvm->list();
     Assert::isTrue(listOut.find("-> v2.0.0 (active") != -1, "cxvm list indicates active version with arrow");
 
+    Assert::equalsInt(6, (int)cxvm->supportedPlatforms->length(), "cxvm supports 6 target architectures for download");
+    Assert::isTrue(cxvm->isPlatformSupported("linux-x86_64"), "cxvm recognizes linux-x86_64");
+    Assert::isTrue(cxvm->isPlatformSupported("windows-x64"), "cxvm recognizes windows-x64");
+    Assert::isFalse(cxvm->isPlatformSupported("unknown-os"), "cxvm rejects unknown platform");
+
+    let downRes: CxvmCommandResult* = cxvm->download("8.0.0", "linux-x86_64");
+    Assert::isTrue(downRes->success, "cxvm download 8.0.0 linux-x86_64 succeeds");
+    Assert::isTrue(downRes->output.find("cex-v8.0.0-linux-x86_64.tar.gz") != -1, "download output mentions linux tarball");
+
+    let downAllRes: CxvmCommandResult* = cxvm->downloadAll("8.0.0");
+    Assert::isTrue(downAllRes->success, "cxvm downloadAll 8.0.0 succeeds");
+    Assert::isTrue(downAllRes->output.find("windows-x64.zip") != -1, "downloadAll output mentions windows zip");
+    Assert::isTrue(downAllRes->output.find("darwin-arm64.tar.gz") != -1, "downloadAll output mentions macOS tarball");
+
     let docOut: string = cxvm->doctor();
     Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
     Assert::isTrue(docOut.find("CexR Runtime:      v8") != -1, "cxvm doctor reports CexR v8 runtime");
     Assert::isTrue(docOut.find("Cross-Platform") != -1, "cxvm doctor reports cross-platform support");
+    Assert::isTrue(docOut.find("Supported Targets: 6 architectures") != -1, "cxvm doctor reports 6 supported targets");
 
     let uninstRes: CxvmCommandResult* = cxvm->uninstall("2.0.0");
     Assert::isTrue(uninstRes->success, "cxvm uninstall 2.0.0 succeeds");
