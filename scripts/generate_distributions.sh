@@ -41,7 +41,8 @@ cat <<'EOF' > "$DOWNLOADS_DIR/cxvm"
 # Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/2-tek/cxvm/main"
+FACTORY_URL="${CEX_FACTORY_URL:-$GITHUB_RAW_URL}"
 
 cxvm() {
   local cmd="$1"
@@ -325,7 +326,8 @@ param (
 )
 
 $cxvmHome = if ($env:CXVM_DIR) { $env:CXVM_DIR } else { Join-Path $HOME ".cxvm" }
-$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { "http://127.0.0.1:3080" }
+$githubRawUrl = "https://raw.githubusercontent.com/2-tek/cxvm/main"
+$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { $githubRawUrl }
 $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x64" }
 
 switch ($Command) {
@@ -486,8 +488,10 @@ cat <<'EOF' > "$DOWNLOADS_DIR/install.sh"
 set -e
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/2-tek/cxvm/main"
+FACTORY_URL="${CEX_FACTORY_URL:-$GITHUB_RAW_URL}"
 DEFAULT_VER="8.0.0"
+export CEX_FACTORY_URL="$FACTORY_URL"
 
 echo "==============================================================="
 echo "   2-TEK Cex Factory: Cross-Platform Runtime Installer (cxvm)  "
@@ -538,8 +542,10 @@ cat <<'EOF' > "$DOWNLOADS_DIR/install.ps1"
 
 $ErrorActionPreference = "Stop"
 $cxvmDir = Join-Path $HOME ".cxvm"
-$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { "http://127.0.0.1:3080" }
+$githubRawUrl = "https://raw.githubusercontent.com/2-tek/cxvm/main"
+$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { $githubRawUrl }
 $defaultVersion = "8.0.0"
+$env:CEX_FACTORY_URL = $factoryUrl
 
 Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host "   2-TEK Cex Factory: Windows PowerShell Installer (cxvm)      " -ForegroundColor Cyan

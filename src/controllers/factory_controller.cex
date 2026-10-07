@@ -105,7 +105,7 @@ class FactoryController : public BaseController {
         script += "# 2-TEK Cex Factory: Cross-Platform Quick Installer\n";
         script += "set -e\n";
         script += "CXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\n";
-        script += "FACTORY_URL=\"${CEX_FACTORY_URL:-http://127.0.0.1:" + pStr + "}\"\n";
+        script += "FACTORY_URL=\"${CEX_FACTORY_URL:-https://raw.githubusercontent.com/2-tek/cxvm/main}\"\n";
         script += "DEFAULT_VER=\"8.0.0\"\n";
         script += "echo \"==> Bootstrapping cxvm from $FACTORY_URL...\"\n";
         script += "mkdir -p \"$CXVM_DIR/bin\" \"$CXVM_DIR/versions\" \"$CXVM_DIR/cache\"\n";
@@ -130,7 +130,7 @@ class FactoryController : public BaseController {
         let script: string = "# 2-TEK Cex Factory: Windows PowerShell Quick Installer\n";
         script += "$ErrorActionPreference = \"Stop\"\n";
         script += "$cxvmDir = Join-Path $HOME \".cxvm\"\n";
-        script += "$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { \"http://127.0.0.1:" + pStr + "\" }\n";
+        script += "$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { \"https://raw.githubusercontent.com/2-tek/cxvm/main\" }\n";
         script += "$defaultVersion = \"8.0.0\"\n";
         script += "Write-Host \"==> Installing Cex cxvm toolchain...\" -ForegroundColor Cyan\n";
         script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"bin\") | Out-Null\n";

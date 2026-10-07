@@ -4,7 +4,8 @@
 # Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/2-tek/cxvm/main"
+FACTORY_URL="${CEX_FACTORY_URL:-$GITHUB_RAW_URL}"
 
 cxvm() {
   local cmd="$1"

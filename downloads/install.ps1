@@ -3,8 +3,10 @@
 
 $ErrorActionPreference = "Stop"
 $cxvmDir = Join-Path $HOME ".cxvm"
-$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { "http://127.0.0.1:3080" }
+$githubRawUrl = "https://raw.githubusercontent.com/2-tek/cxvm/main"
+$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { $githubRawUrl }
 $defaultVersion = "8.0.0"
+$env:CEX_FACTORY_URL = $factoryUrl
 
 Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host "   2-TEK Cex Factory: Windows PowerShell Installer (cxvm)      " -ForegroundColor Cyan

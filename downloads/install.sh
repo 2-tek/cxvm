@@ -5,8 +5,10 @@
 set -e
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/2-tek/cxvm/main"
+FACTORY_URL="${CEX_FACTORY_URL:-$GITHUB_RAW_URL}"
 DEFAULT_VER="8.0.0"
+export CEX_FACTORY_URL="$FACTORY_URL"
 
 echo "==============================================================="
 echo "   2-TEK Cex Factory: Cross-Platform Runtime Installer (cxvm)  "

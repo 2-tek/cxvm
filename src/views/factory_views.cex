@@ -95,17 +95,17 @@ class FactoryViews {
         content += "  <p style=\"color: #94a3b8; font-size: 13px; margin-bottom: 16px;\">Run the quick installer in your terminal to bootstrap <code>cxvm</code> and configure the native <code>cexr</code> runtime:</p>\n";
 
         content += "  <div style=\"margin-bottom: 16px;\">\n";
-        content += "    <span style=\"font-size: 12px; font-weight: 700; color: #34d399;\">🐧 Linux &amp; 🍏 macOS (curl | bash):</span>\n";
+        content += "    <span style=\"font-size: 12px; font-weight: 700; color: #34d399;\">🐧 Linux &amp; 🍏 macOS (curl | bash via GitHub):</span>\n";
         content += "    <div class=\"code-box\">\n";
-        content += "      <code>curl -fsSL http://127.0.0.1:" + pStr + "/install.sh | bash</code>\n";
+        content += "      <code>curl -fsSL https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/install.sh | bash</code>\n";
         content += "      <span style=\"color: #64748b; font-size: 11px;\">POSIX sh/bash</span>\n";
         content += "    </div>\n";
         content += "  </div>\n";
 
         content += "  <div>\n";
-        content += "    <span style=\"font-size: 12px; font-weight: 700; color: #60a5fa;\">🪟 Windows (PowerShell irm | iex):</span>\n";
+        content += "    <span style=\"font-size: 12px; font-weight: 700; color: #60a5fa;\">🪟 Windows (PowerShell irm | iex via GitHub):</span>\n";
         content += "    <div class=\"code-box\">\n";
-        content += "      <code>irm http://127.0.0.1:" + pStr + "/install.ps1 | iex</code>\n";
+        content += "      <code>irm https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/install.ps1 | iex</code>\n";
         content += "      <span style=\"color: #64748b; font-size: 11px;\">PowerShell 5.1+</span>\n";
         content += "    </div>\n";
         content += "  </div>\n";

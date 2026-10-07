@@ -33,30 +33,33 @@ Factory is a fullstack cross-platform toolchain distribution engine and runtime 
 
 ## 3. Quick Start & One-Line Installers to Setup `cexr`
 
-### POSIX Shell (Linux & macOS):
+### POSIX Shell (Linux & macOS via GitHub):
 ```bash
-# Bootstrap cxvm and default CexR v8 runtime
-curl -fsSL http://127.0.0.1:3080/install.sh | bash
+# Bootstrap cxvm and default CexR v8 runtime via GitHub
+curl -fsSL https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/install.sh | bash
 
-# Or download cxvm CLI script directly
-curl -fsSL http://127.0.0.1:3080/downloads/cxvm -o ~/.cxvm/bin/cxvm && chmod +x ~/.cxvm/bin/cxvm
+# Or download standalone cxvm CLI script directly
+curl -fsSL https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/cxvm -o ~/.cxvm/bin/cxvm && chmod +x ~/.cxvm/bin/cxvm
 
 # Or run directly from local repository
 bash cxvm/downloads/install.sh
 ```
 
-### Windows PowerShell & CMD:
+### Windows PowerShell & CMD (via GitHub):
 ```powershell
-# Bootstrap cxvm and default CexR v8 runtime in PowerShell
-irm http://127.0.0.1:3080/install.ps1 | iex
+# Bootstrap cxvm and default CexR v8 runtime in PowerShell via GitHub
+irm https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/install.ps1 | iex
 
 # Or download PowerShell & CMD scripts directly
-Invoke-WebRequest -Uri "http://127.0.0.1:3080/downloads/cxvm.ps1" -OutFile "$HOME\.cxvm\bin\cxvm.ps1"
-Invoke-WebRequest -Uri "http://127.0.0.1:3080/downloads/cxvm.cmd" -OutFile "$HOME\.cxvm\bin\cxvm.cmd"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/cxvm.ps1" -OutFile "$HOME\.cxvm\bin\cxvm.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/cxvm.cmd" -OutFile "$HOME\.cxvm\bin\cxvm.cmd"
 
 # Or run directly from local repository
 powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 ```
+
+> **Local Factory Server Alternative**: When running the Lighting MVC server locally (`http://127.0.0.1:3080`), you can also use `http://127.0.0.1:3080/install.sh` or `http://127.0.0.1:3080/install.ps1`.
+
 
 ---
 
