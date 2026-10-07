@@ -19,12 +19,15 @@ class CxvmEngine {
         this.cxvmHome = "$HOME/.cxvm";
 
         this.initCatalog();
+        this.install("3.0.0");
+        this.use("3.0.0");
+        this.setDefault("3.0.0");
     }
 
     private initCatalog(): void {
-        this.availableVersions->push(new VersionModel("1.0.0", "STABLE", "2026-10-07", "C++20", "Standard Cex v1 Toolchain, Lighting MVC, CodeStorm IDE", true));
-        this.availableVersions->push(new VersionModel("1.1.0", "LTS", "2026-11-01", "C++20", "Long Term Support, Thunder Microkernel Virtualization", false));
-        this.availableVersions->push(new VersionModel("2.0.0", "CANARY", "2026-12-15", "C++20", "Self-Hosted Cex v2 Engine & Realtime Object Engine (ROE)", false));
+        this.availableVersions->push(new VersionModel("3.0.0", "STABLE", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler (Default)", true));
+        this.availableVersions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "C++20", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
+        this.availableVersions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "C++20", "CexR v1 C++ Transpiler Runtime & Standard Libraries", false));
     }
 
     public isVersionAvailable(ver: string): bool {
@@ -62,7 +65,7 @@ class CxvmEngine {
             this.defaultVersion = version;
         }
 
-        let outMsg: string = "==> Installing Cex v" + version + "...\n";
+        let outMsg: string = "==> Installing Cex v" + version + " (CexR v3 Runtime)...\n";
         outMsg += "--> Verified checksum: PASSED [OK]\n";
         outMsg += "--> Extracted into " + this.cxvmHome + "/versions/v" + version + "\n";
         outMsg += "==> Successfully installed Cex v" + version;
@@ -90,7 +93,7 @@ class CxvmEngine {
     public list(): string {
         let count: int = (int)this.installedVersions->length();
         if (count === 0) {
-            return "  (No Cex versions installed. Run 'cxvm install 1.0.0')";
+            return "  (No Cex versions installed. Run 'cxvm install 3.0.0')";
         }
 
         let out: string = "Installed Cex versions:\n";
@@ -174,9 +177,11 @@ class CxvmEngine {
         out += "  CXVM Home:         " + this.cxvmHome + "\n";
         out += "  Active Cex:        " + this.current() + "\n";
         out += "  Default Cex:       " + (this.defaultVersion.length() > 0 ? "v" + this.defaultVersion : "none") + "\n";
+        out += "  CexR Runtime:      v3 (Direct Native Machine Code Engine)\n";
+        out += "  CexP Compiler:     v3 (Machine Code & ELF Direct Emitter)\n";
         out += "  Installed Count:   " + std::to_string((int)this.installedVersions->length()) + "\n";
         out += "  C++20 Toolchain:   PASSED [g++-12 / clang++-16 detected]\n";
-        out += "  Runtime Bridge:    PASSED [CexR v2 native machine bridge active]\n";
+        out += "  Runtime Bridge:    PASSED [CexR v3 native machine bridge active]\n";
         out += "  Status:            HEALTHY [OK]\n";
         return out;
     }

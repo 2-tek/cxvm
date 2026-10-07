@@ -252,12 +252,12 @@ class FactoryViews {
         content += "      </tr>\n";
         content += "    </thead>\n";
         content += "    <tbody>\n";
-        content += "      <tr><td>Install runtime</td><td><code>nvm install 18</code></td><td><code style=\"color: #38bdf8;\">cxvm install 1.0.0</code></td><td>Downloads and extracts platform binary bundle</td></tr>\n";
-        content += "      <tr><td>Switch active</td><td><code>nvm use 18</code></td><td><code style=\"color: #38bdf8;\">cxvm use 1.0.0</code></td><td>Updates current symlink &amp; PATH environment</td></tr>\n";
+        content += "      <tr><td>Install runtime</td><td><code>nvm install 18</code></td><td><code style=\"color: #38bdf8;\">cxvm install 3.0.0</code></td><td>Downloads and extracts platform binary bundle (CexR v3 default)</td></tr>\n";
+        content += "      <tr><td>Switch active</td><td><code>nvm use 18</code></td><td><code style=\"color: #38bdf8;\">cxvm use 3.0.0</code></td><td>Updates current symlink &amp; PATH environment</td></tr>\n";
         content += "      <tr><td>List installed</td><td><code>nvm ls</code></td><td><code style=\"color: #38bdf8;\">cxvm list</code></td><td>Lists locally installed runtimes and active one</td></tr>\n";
         content += "      <tr><td>List remote</td><td><code>nvm ls-remote</code></td><td><code style=\"color: #38bdf8;\">cxvm list-remote</code></td><td>Queries Factory catalog for upstream releases</td></tr>\n";
-        content += "      <tr><td>Set default</td><td><code>nvm alias default 18</code></td><td><code style=\"color: #38bdf8;\">cxvm default 1.0.0</code></td><td>Sets default version for all new terminals</td></tr>\n";
-        content += "      <tr><td>Current version</td><td><code>nvm current</code></td><td><code style=\"color: #38bdf8;\">cxvm current</code></td><td>Prints current active version (e.g. v1.0.0)</td></tr>\n";
+        content += "      <tr><td>Set default</td><td><code>nvm alias default 18</code></td><td><code style=\"color: #38bdf8;\">cxvm default 3.0.0</code></td><td>Sets default version for all new terminals</td></tr>\n";
+        content += "      <tr><td>Current version</td><td><code>nvm current</code></td><td><code style=\"color: #38bdf8;\">cxvm current</code></td><td>Prints current active version (e.g. v3.0.0)</td></tr>\n";
         content += "      <tr><td>System doctor</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm doctor</code></td><td>Validates C++20 compiler, paths &amp; diagnostics</td></tr>\n";
         content += "    </tbody>\n";
         content += "  </table>\n";

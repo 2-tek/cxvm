@@ -54,15 +54,15 @@ fn main(): int {
     println("\n[Test Suite 2: Cross-Platform Build Engine & Factory/downloads/ Invariants]");
     let builder: DistBuilder* = new DistBuilder("packages/Factory/downloads");
     Assert::equalsInt(6, (int)builder->platforms->length(), "Factory supports 6 target architectures");
-    Assert::equalsInt(2, (int)builder->versions->length(), "Factory tracks 2 release versions");
-    Assert::equalsInt(12, (int)builder->artifacts->length(), "Factory manages 12 distribution packages (2 versions x 6 platforms)");
+    Assert::equalsInt(3, (int)builder->versions->length(), "Factory tracks 3 release versions");
+    Assert::equalsInt(18, (int)builder->artifacts->length(), "Factory manages 18 distribution packages (3 versions x 6 platforms)");
 
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-linux-x86_64.tar.gz"), "Linux x86_64 v1.0.0 bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-linux-aarch64.tar.gz"), "Linux aarch64 v1.0.0 bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-darwin-arm64.tar.gz"), "macOS Apple Silicon v1.0.0 bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-darwin-x86_64.tar.gz"), "macOS Intel v1.0.0 bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-windows-x64.zip"), "Windows x64 v1.0.0 zip bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v1.0.0-windows-arm64.zip"), "Windows arm64 v1.0.0 zip bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-linux-x86_64.tar.gz"), "Linux x86_64 v3.0.0 bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-linux-aarch64.tar.gz"), "Linux aarch64 v3.0.0 bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-darwin-arm64.tar.gz"), "macOS Apple Silicon v3.0.0 bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-darwin-x86_64.tar.gz"), "macOS Intel v3.0.0 bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-windows-x64.zip"), "Windows x64 v3.0.0 zip bundle exists");
+    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-windows-arm64.zip"), "Windows arm64 v3.0.0 zip bundle exists");
 
     Assert::isTrue(fs.exists("packages/Factory/downloads/install.sh"), "POSIX install.sh exists in downloads");
     Assert::isTrue(fs.exists("packages/Factory/downloads/install.ps1"), "Windows install.ps1 exists in downloads");
@@ -76,31 +76,27 @@ fn main(): int {
     // -------------------------------------------------------------
     println("\n[Test Suite 3: CXVM Version Manager Operations (like nvm)]");
     let cxvm: CxvmEngine* = new CxvmEngine();
-    Assert::equalsString("none", cxvm->current(), "Initial cxvm state has no active version");
+    Assert::equalsString("v3.0.0", cxvm->current(), "Initial cxvm state has default v3.0.0 active");
+    Assert::isTrue(cxvm->isVersionInstalled("3.0.0"), "Version 3.0.0 is marked as installed");
 
-    let instRes1: CxvmCommandResult* = cxvm->install("1.0.0");
-    Assert::isTrue(instRes1->success, "cxvm install 1.0.0 succeeds");
-    Assert::equalsString("v1.0.0", cxvm->current(), "First installed version automatically becomes active");
-    Assert::isTrue(cxvm->isVersionInstalled("1.0.0"), "Version 1.0.0 is marked as installed");
-
-    let instRes2: CxvmCommandResult* = cxvm->install("1.1.0");
-    Assert::isTrue(instRes2->success, "cxvm install 1.1.0 succeeds");
+    let instRes1: CxvmCommandResult* = cxvm->install("2.0.0");
+    Assert::isTrue(instRes1->success, "cxvm install 2.0.0 succeeds");
     Assert::equalsInt(2, (int)cxvm->installedVersions->length(), "cxvm has 2 installed versions");
 
-    let useRes: CxvmCommandResult* = cxvm->use("1.1.0");
-    Assert::isTrue(useRes->success, "cxvm use 1.1.0 switches active version");
-    Assert::equalsString("v1.1.0", cxvm->current(), "Active version is now v1.1.0");
+    let useRes: CxvmCommandResult* = cxvm->use("2.0.0");
+    Assert::isTrue(useRes->success, "cxvm use 2.0.0 switches active version");
+    Assert::equalsString("v2.0.0", cxvm->current(), "Active version is now v2.0.0");
 
     let listOut: string = cxvm->list();
-    Assert::isTrue(listOut.find("-> v1.1.0 (active") != -1, "cxvm list indicates active version with arrow");
+    Assert::isTrue(listOut.find("-> v2.0.0 (active") != -1, "cxvm list indicates active version with arrow");
 
     let docOut: string = cxvm->doctor();
     Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
 
-    let uninstRes: CxvmCommandResult* = cxvm->uninstall("1.1.0");
-    Assert::isTrue(uninstRes->success, "cxvm uninstall 1.1.0 succeeds");
+    let uninstRes: CxvmCommandResult* = cxvm->uninstall("2.0.0");
+    Assert::isTrue(uninstRes->success, "cxvm uninstall 2.0.0 succeeds");
     Assert::equalsInt(1, (int)cxvm->installedVersions->length(), "cxvm has 1 version remaining after uninstall");
-    Assert::equalsString("v1.0.0", cxvm->current(), "cxvm active version falls back to remaining version");
+    Assert::equalsString("v3.0.0", cxvm->current(), "cxvm active version falls back to remaining version");
     suite->addResult("test_cxvm_version_manager", true, "", 1);
 
     // -------------------------------------------------------------
@@ -119,7 +115,7 @@ fn main(): int {
 
     let resDown: HttpResponse* = app->simulateRequest("GET", "/downloads", "", "text/html");
     Assert::equalsInt(200, resDown->statusCode, "GET /downloads returns 200 OK");
-    Assert::isTrue(resDown->body.find("cex-v1.0.0-linux-x86_64.tar.gz") != -1, "Downloads view lists Linux bundle");
+    Assert::isTrue(resDown->body.find("cex-v3.0.0-linux-x86_64.tar.gz") != -1, "Downloads view lists Linux bundle");
 
     let resDocs: HttpResponse* = app->simulateRequest("GET", "/cxvm", "", "text/html");
     Assert::equalsInt(200, resDocs->statusCode, "GET /cxvm returns 200 OK");
@@ -135,7 +131,7 @@ fn main(): int {
 
     let resVers: HttpResponse* = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
     Assert::equalsInt(200, resVers->statusCode, "GET /api/v1/versions returns 200 OK");
-    Assert::isTrue(resVers->body.find("1.0.0") != -1, "Versions list includes 1.0.0");
+    Assert::isTrue(resVers->body.find("3.0.0") != -1, "Versions list includes 3.0.0");
 
     let resPlat: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
     Assert::equalsInt(200, resPlat->statusCode, "GET /api/v1/platforms returns 200 OK");

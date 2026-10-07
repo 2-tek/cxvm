@@ -31,11 +31,11 @@ fn main(): int {
     let pVal: ModelValidationResult* = pModel->validate();
     print("  Platform Model Validation: "); println(pVal->isValid ? "PASSED [OK]" : "FAILED");
 
-    let vModel: VersionModel* = new VersionModel("1.0.0", "STABLE", "2026-10-07", "C++20", "Standard Toolchain", true);
+    let vModel: VersionModel* = new VersionModel("3.0.0", "STABLE", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine", true);
     let vVal: ModelValidationResult* = vModel->validate();
     print("  Version Model Validation:  "); println(vVal->isValid ? "PASSED [OK]" : "FAILED");
 
-    let aModel: ArtifactModel* = new ArtifactModel("cex-v1.0.0-linux-x86_64.tar.gz", "1.0.0", "linux", "x86_64", 2748, "886020858b17f0045dc9e3f5cb795d0b39ff7b73eb7377a7c4c2c4dcf4fd2b60", "/downloads/cex-v1.0.0-linux-x86_64.tar.gz");
+    let aModel: ArtifactModel* = new ArtifactModel("cex-v3.0.0-linux-x86_64.tar.gz", "3.0.0", "linux", "x86_64", 2797, "97c324a082371d1dd5f9051077e0563f5df2e3d8dae08c6178035db0c7d141ca", "/downloads/cex-v3.0.0-linux-x86_64.tar.gz");
     let aVal: ModelValidationResult* = aModel->validate();
     print("  Artifact Model Validation: "); println(aVal->isValid ? "PASSED [OK]" : "FAILED");
 
@@ -44,12 +44,12 @@ fn main(): int {
     print("  Current Active Version: "); println(app->cxvm->current());
     println("  " + app->cxvm->list());
 
-    println("  ▶ Simulating: cxvm install 1.1.0");
-    let instRes: CxvmCommandResult* = app->cxvm->install("1.1.0");
+    println("  ▶ Simulating: cxvm install 2.0.0");
+    let instRes: CxvmCommandResult* = app->cxvm->install("2.0.0");
     print("    Result: "); println(instRes->success ? "PASSED [OK]" : "FAILED");
 
-    println("  ▶ Simulating: cxvm use 1.1.0");
-    let useRes: CxvmCommandResult* = app->cxvm->use("1.1.0");
+    println("  ▶ Simulating: cxvm use 2.0.0");
+    let useRes: CxvmCommandResult* = app->cxvm->use("2.0.0");
     print("    Result: "); println(useRes->success ? "PASSED [OK]" : "FAILED");
     print("    Active Version now: "); println(app->cxvm->current());
 
@@ -60,7 +60,7 @@ fn main(): int {
     println("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
     print("  Supported Architectures: "); println((int)app->builder->platforms->length());
     print("  Built Artifacts in Store: "); println((int)app->builder->artifacts->length());
-    let sampleArt: ArtifactModel* = app->builder->getArtifactByFilename("cex-v1.0.0-linux-x86_64.tar.gz");
+    let sampleArt: ArtifactModel* = app->builder->getArtifactByFilename("cex-v3.0.0-linux-x86_64.tar.gz");
     if (sampleArt !== nullptr) {
         print("  Sample Target: "); print(sampleArt->filename);
         print(" | Size: "); print(sampleArt->sizeBytes); println(" bytes [OK]");

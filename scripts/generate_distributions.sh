@@ -18,7 +18,7 @@ echo "   2-TEK Cex Factory: Cross-Platform Build Pipeline Generator  "
 echo "==============================================================="
 echo "Target output directory: $DOWNLOADS_DIR"
 
-VERSIONS=("1.0.0" "1.1.0")
+VERSIONS=("3.0.0" "2.0.0" "1.0.0")
 PLATFORMS=(
   "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:g++-12 / clang++-16"
   "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:g++-12 (aarch64)"
@@ -44,9 +44,9 @@ cxvm() {
 
   case "$cmd" in
     install)
-      local ver="$1"
+      local ver="${1:-3.0.0}"
       if [ -z "$ver" ]; then
-        echo "Usage: cxvm install <version> (e.g. 1.0.0, 1.1.0)"
+        echo "Usage: cxvm install <version> (e.g. 3.0.0, 2.0.0)"
         return 1
       fi
       local os arch ext
@@ -155,9 +155,9 @@ cxvm() {
 
     list-remote|ls-remote)
       echo "Available Cex runtime versions (from Factory):"
-      echo "  v1.0.0 (STABLE - C++20 Toolchain, Lighting MVC, CodeStorm IDE)"
-      echo "  v1.1.0 (LTS - High-Performance JIT/AOT, Thunder Microkernel Virtualization)"
-      echo "  v2.0.0 (CANARY - Self-Hosted Cex v2 Engine & Realtime Object Engine)"
+      echo "  v3.0.0 (DEFAULT - CexR v3 Native Machine Engine & CexP v3 Direct Compiler)"
+      echo "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler & Self-Hosted Engine)"
+      echo "  v1.0.0 (LEGACY - CexR v1 C++ Transpiler Runtime & Standard Libraries)"
       ;;
 
     default)
@@ -310,7 +310,7 @@ set -e
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
-DEFAULT_VER="1.0.0"
+DEFAULT_VER="3.0.0"
 
 echo "==============================================================="
 echo "   2-TEK Cex Factory: Cross-Platform Runtime Installer (cxvm)  "
@@ -335,7 +335,7 @@ fi
 
 echo ""
 echo "==============================================================="
-echo "  ✓ Cex Runtime v$DEFAULT_VER installed successfully via cxvm! "
+echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v3) installed via cxvm!    "
 echo "==============================================================="
 echo ""
 echo "Activate in current terminal:"
@@ -354,7 +354,7 @@ cat <<'EOF' > "$DOWNLOADS_DIR/install.ps1"
 $ErrorActionPreference = "Stop"
 $cxvmDir = Join-Path $HOME ".cxvm"
 $factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { "http://127.0.0.1:3080" }
-$defaultVersion = "1.0.0"
+$defaultVersion = "3.0.0"
 
 Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host "   2-TEK Cex Factory: Windows PowerShell Installer (cxvm)      " -ForegroundColor Cyan
@@ -391,7 +391,7 @@ for ver in "${VERSIONS[@]}"; do
 # Cex Toolchain Runner for ${pid}
 # Version: ${ver} | Architecture: ${parch} | OS: ${pos}
 echo "2-TEK Cex Toolchain v${ver} (${pid})"
-echo "Native C++20 toolchain engine ready."
+echo "CexR v3 Native Machine Code Runtime & CexP v3 Direct Compiler ready."
 CEOF
     chmod +x "$PKG_DIR/bin/cex"
     
@@ -400,7 +400,7 @@ CEOF
       cat <<WEOF > "$PKG_DIR/bin/cex.cmd"
 @echo off
 echo 2-TEK Cex Toolchain v${ver} (${pid})
-echo Native C++20 toolchain engine ready.
+echo CexR v3 Native Machine Code Runtime & CexP v3 Direct Compiler ready.
 WEOF
     fi
     
@@ -466,9 +466,11 @@ import json, os, hashlib, glob
 downloads_dir = "$DOWNLOADS_DIR"
 manifest = {
     "engine": "2-TEK Cex Factory",
-    "version": "1.0.0",
+    "version": "3.0.0",
     "updatedAt": "2026-10-07T00:00:00Z",
-    "versions": ["1.0.0", "1.1.0"],
+    "defaultVersion": "3.0.0",
+    "defaultRuntime": "CexR v3 (Direct Machine Code)",
+    "versions": ["3.0.0", "2.0.0", "1.0.0"],
     "platforms": ["linux-x86_64", "linux-aarch64", "darwin-arm64", "darwin-x86_64", "windows-x64", "windows-arm64"],
     "artifacts": []
 }
@@ -479,7 +481,7 @@ for filepath in sorted(glob.glob(os.path.join(downloads_dir, "cex-v*"))):
     with open(filepath, "rb") as f:
         sha256 = hashlib.sha256(f.read()).hexdigest()
     parts = filename.replace(".tar.gz", "").replace(".zip", "").split("-")
-    ver = parts[1].replace("v", "") if len(parts) > 1 else "1.0.0"
+    ver = parts[1].replace("v", "") if len(parts) > 1 else "3.0.0"
     plat = parts[2] if len(parts) > 2 else ""
     arch = parts[3] if len(parts) > 3 else ""
     manifest["artifacts"].append({

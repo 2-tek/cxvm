@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 $cxvmDir = Join-Path $HOME ".cxvm"
 $factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { "http://127.0.0.1:3080" }
-$defaultVersion = "1.0.0"
+$defaultVersion = "3.0.0"
 
 Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host "   2-TEK Cex Factory: Windows PowerShell Installer (cxvm)      " -ForegroundColor Cyan

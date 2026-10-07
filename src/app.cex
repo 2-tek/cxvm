@@ -33,9 +33,10 @@ class FactoryApp {
         this.builder = new DistBuilder(this.downloadsDir);
         this.cxvm = new CxvmEngine();
 
-        // Initialize default runtime
-        this.cxvm->install("1.0.0");
-        this.cxvm->use("1.0.0");
+        // Initialize default runtime with CexR v3 (Machine Code Engine)
+        this.cxvm->install("3.0.0");
+        this.cxvm->use("3.0.0");
+        this.cxvm->setDefault("3.0.0");
 
         this.setupRoutes();
     }

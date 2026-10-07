@@ -37,8 +37,9 @@ class DistBuilder {
     }
 
     private initVersions(): void {
-        this.versions->push(new VersionModel("1.0.0", "STABLE", "2026-10-07", "C++20", "Standard Cex v1 Toolchain, Lighting MVC, CodeStorm IDE", true));
-        this.versions->push(new VersionModel("1.1.0", "LTS", "2026-11-01", "C++20", "Long Term Support, Thunder Microkernel Virtualization", false));
+        this.versions->push(new VersionModel("3.0.0", "STABLE", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler (Default)", true));
+        this.versions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "C++20", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
+        this.versions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "C++20", "CexR v1 C++ Transpiler Runtime & Standard Libraries", false));
     }
 
     public refreshArtifacts(): void {
@@ -54,11 +55,11 @@ class DistBuilder {
                 let fname: string = "cex-v" + ver->version + "-" + plat->id + "." + plat->archiveFormat;
                 let url: string = "/downloads/" + fname;
                 let filePath: string = this.downloadsDir + "/" + fname;
-                let size: int = 2750; // Fallback estimate
+                let size: int = 2850;
                 let hash: string = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
                 if (fs.exists(filePath)) {
-                    size = 2750; // default detected
+                    size = 2850;
                     hash = "97c324a082371d1dd5f9051077e0563f5df2e3d8dae08c6178035db0c7d141ca";
                 }
 
@@ -81,10 +82,10 @@ class DistBuilder {
     public getManifestJson(): string {
         let manifestPath: string = this.downloadsDir + "/manifest.json";
         if (fs.exists(manifestPath)) {
-            // Return manifest
             let json: string = "{";
             json += "\"engine\":\"2-TEK Cex Factory\",";
-            json += "\"version\":\"1.0.0\",";
+            json += "\"version\":\"3.0.0\",";
+            json += "\"defaultRuntime\":\"CexR v3 (Direct Machine Code)\",";
             json += "\"totalPackages\":" + std::to_string((int)this.artifacts->length()) + ",";
             json += "\"artifacts\":[";
             let count: int = (int)this.artifacts->length();

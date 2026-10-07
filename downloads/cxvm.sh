@@ -12,9 +12,9 @@ cxvm() {
 
   case "$cmd" in
     install)
-      local ver="$1"
+      local ver="${1:-3.0.0}"
       if [ -z "$ver" ]; then
-        echo "Usage: cxvm install <version> (e.g. 1.0.0, 1.1.0)"
+        echo "Usage: cxvm install <version> (e.g. 3.0.0, 2.0.0)"
         return 1
       fi
       local os arch ext
@@ -123,9 +123,9 @@ cxvm() {
 
     list-remote|ls-remote)
       echo "Available Cex runtime versions (from Factory):"
-      echo "  v1.0.0 (STABLE - C++20 Toolchain, Lighting MVC, CodeStorm IDE)"
-      echo "  v1.1.0 (LTS - High-Performance JIT/AOT, Thunder Microkernel Virtualization)"
-      echo "  v2.0.0 (CANARY - Self-Hosted Cex v2 Engine & Realtime Object Engine)"
+      echo "  v3.0.0 (DEFAULT - CexR v3 Native Machine Engine & CexP v3 Direct Compiler)"
+      echo "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler & Self-Hosted Engine)"
+      echo "  v1.0.0 (LEGACY - CexR v1 C++ Transpiler Runtime & Standard Libraries)"
       ;;
 
     default)

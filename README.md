@@ -54,39 +54,49 @@ powershell -ExecutionPolicy Bypass -File packages/Factory/downloads/install.ps1
 
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
-| `cxvm install 1.0.0` | `nvm install 18` | Downloads and unpacks runtime tarball/zip |
-| `cxvm use 1.0.0` | `nvm use 18` | Switches active version via symlink & PATH |
+| `cxvm install 3.0.0` | `nvm install 18` | Downloads and unpacks runtime tarball/zip (CexR v3 default) |
+| `cxvm use 3.0.0` | `nvm use 18` | Switches active version via symlink & PATH |
 | `cxvm list` | `nvm ls` | Lists locally installed Cex runtimes and active one |
 | `cxvm list-remote` | `nvm ls-remote` | Queries Factory catalog for available upstream releases |
-| `cxvm current` | `nvm current` | Prints active Cex runtime version |
-| `cxvm default 1.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
-| `cxvm uninstall 1.0.0` | `nvm uninstall 18` | Removes an installed version |
+| `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v3.0.0`) |
+| `cxvm default 3.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
+| `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
 | `cxvm doctor` | — | Runs pre-flight diagnostics for C++20 and runtime environment |
 
 ---
 
 ## 5. Pre-Built Distribution Artifacts (`Factory/downloads/`)
 
-The following distribution archives and tools are generated into `Factory/downloads/`:
+The following distribution archives (18 bundles: 3 versions x 6 platforms) and tools are generated into `Factory/downloads/`:
 
-- `cex-v1.0.0-linux-x86_64.tar.gz`
-- `cex-v1.0.0-linux-aarch64.tar.gz`
-- `cex-v1.0.0-darwin-arm64.tar.gz`
-- `cex-v1.0.0-darwin-x86_64.tar.gz`
-- `cex-v1.0.0-windows-x64.zip`
-- `cex-v1.0.0-windows-arm64.zip`
-- `cex-v1.1.0-linux-x86_64.tar.gz`
-- `cex-v1.1.0-linux-aarch64.tar.gz`
-- `cex-v1.1.0-darwin-arm64.tar.gz`
-- `cex-v1.1.0-darwin-x86_64.tar.gz`
-- `cex-v1.1.0-windows-x64.zip`
-- `cex-v1.1.0-windows-arm64.zip`
-- `install.sh` (POSIX curl | bash installer)
-- `install.ps1` (PowerShell installer)
-- `cxvm` / `cxvm.sh` (POSIX version manager CLI)
-- `cxvm.ps1` (Windows PowerShell version manager CLI)
-- `manifest.json` (Distribution catalog & cryptographic hashes)
-- `SHA256SUMS` (Standard SHA-256 checksums file)
+- **v3.0.0 (CexR v3 Native Machine Engine & CexP v3 Direct Compiler - Default)**:
+  - `cex-v3.0.0-linux-x86_64.tar.gz`
+  - `cex-v3.0.0-linux-aarch64.tar.gz`
+  - `cex-v3.0.0-darwin-arm64.tar.gz`
+  - `cex-v3.0.0-darwin-x86_64.tar.gz`
+  - `cex-v3.0.0-windows-x64.zip`
+  - `cex-v3.0.0-windows-arm64.zip`
+- **v2.0.0 (CexR v2 Multi-Source Compiler & Self-Hosted Engine)**:
+  - `cex-v2.0.0-linux-x86_64.tar.gz`
+  - `cex-v2.0.0-linux-aarch64.tar.gz`
+  - `cex-v2.0.0-darwin-arm64.tar.gz`
+  - `cex-v2.0.0-darwin-x86_64.tar.gz`
+  - `cex-v2.0.0-windows-x64.zip`
+  - `cex-v2.0.0-windows-arm64.zip`
+- **v1.0.0 (CexR v1 C++ Transpiler Runtime & Standard Libraries)**:
+  - `cex-v1.0.0-linux-x86_64.tar.gz`
+  - `cex-v1.0.0-linux-aarch64.tar.gz`
+  - `cex-v1.0.0-darwin-arm64.tar.gz`
+  - `cex-v1.0.0-darwin-x86_64.tar.gz`
+  - `cex-v1.0.0-windows-x64.zip`
+  - `cex-v1.0.0-windows-arm64.zip`
+- **Installers & Manager CLI**:
+  - `install.sh` (POSIX curl | bash installer)
+  - `install.ps1` (PowerShell installer)
+  - `cxvm` / `cxvm.sh` (POSIX version manager CLI)
+  - `cxvm.ps1` (Windows PowerShell version manager CLI)
+  - `manifest.json` (Distribution catalog & cryptographic hashes)
+  - `SHA256SUMS` (Standard SHA-256 checksums file)
 
 ---
 
