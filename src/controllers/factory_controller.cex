@@ -31,50 +31,52 @@ class FactoryController : public BaseController {
     }
 
     public apiStatus(req: HttpRequest*, port: int, builder: DistBuilder*, cxvm: CxvmEngine*): HttpResponse* {
-        let json: string = "{";
-        json += "\"status\":\"ACTIVE\",";
-        json += "\"service\":\"2-TEK Cex Factory\",";
-        json += "\"framework\":\"Lighting MVC\",";
-        json += "\"port\":" + std::to_string(port) + ",";
-        json += "\"totalPlatforms\":" + std::to_string((int)builder->platforms->length()) + ",";
-        json += "\"totalVersions\":" + std::to_string((int)builder->versions->length()) + ",";
-        json += "\"totalArtifacts\":" + std::to_string((int)builder->artifacts->length()) + ",";
-        json += "\"currentActiveVersion\":\"" + cxvm->current() + "\"";
-        json += "}";
-        return this->json(json);
+        let obj: json_lib::Value* = new json_lib::Value();
+        obj->set("status", new json_lib::Value("ACTIVE"));
+        obj->set("service", new json_lib::Value("2-TEK Cex Factory"));
+        obj->set("framework", new json_lib::Value("Lighting MVC"));
+        obj->set("port", new json_lib::Value(port));
+        obj->set("totalPlatforms", new json_lib::Value((int)builder->platforms->length()));
+        obj->set("totalVersions", new json_lib::Value((int)builder->versions->length()));
+        obj->set("totalArtifacts", new json_lib::Value((int)builder->artifacts->length()));
+        obj->set("currentActiveVersion", new json_lib::Value(cxvm->current()));
+        return this->json(obj);
     }
 
     public apiVersions(req: HttpRequest*, versions: Array<VersionModel*>*): HttpResponse* {
-        let json: string = "{\"total\":" + std::to_string((int)versions->length()) + ",\"versions\":[";
+        let root: json_lib::Value* = new json_lib::Value();
         let count: int = (int)versions->length();
+        root->set("total", new json_lib::Value(count));
+        let arr: json_lib::Value* = new json_lib::Value();
         for (let i: int = 0; i < count; i++) {
-            if (i > 0) json += ",";
-            json += versions->get(i)->toJson();
+            arr->push(versions->get(i)->toJsonValue());
         }
-        json += "]}";
-        return this->json(json);
+        root->set("versions", arr);
+        return this->json(root);
     }
 
     public apiPlatforms(req: HttpRequest*, platforms: Array<PlatformModel*>*): HttpResponse* {
-        let json: string = "{\"total\":" + std::to_string((int)platforms->length()) + ",\"platforms\":[";
+        let root: json_lib::Value* = new json_lib::Value();
         let count: int = (int)platforms->length();
+        root->set("total", new json_lib::Value(count));
+        let arr: json_lib::Value* = new json_lib::Value();
         for (let i: int = 0; i < count; i++) {
-            if (i > 0) json += ",";
-            json += platforms->get(i)->toJson();
+            arr->push(platforms->get(i)->toJsonValue());
         }
-        json += "]}";
-        return this->json(json);
+        root->set("platforms", arr);
+        return this->json(root);
     }
 
     public apiDownloads(req: HttpRequest*, artifacts: Array<ArtifactModel*>*): HttpResponse* {
-        let json: string = "{\"total\":" + std::to_string((int)artifacts->length()) + ",\"artifacts\":[";
+        let root: json_lib::Value* = new json_lib::Value();
         let count: int = (int)artifacts->length();
+        root->set("total", new json_lib::Value(count));
+        let arr: json_lib::Value* = new json_lib::Value();
         for (let i: int = 0; i < count; i++) {
-            if (i > 0) json += ",";
-            json += artifacts->get(i)->toJson();
+            arr->push(artifacts->get(i)->toJsonValue());
         }
-        json += "]}";
-        return this->json(json);
+        root->set("artifacts", arr);
+        return this->json(root);
     }
 
     public apiManifest(req: HttpRequest*, builder: DistBuilder*): HttpResponse* {
@@ -83,12 +85,11 @@ class FactoryController : public BaseController {
 
     public apiBuild(req: HttpRequest*, builder: DistBuilder*): HttpResponse* {
         let count: int = builder->buildAll();
-        let json: string = "{";
-        json += "\"status\":\"SUCCESS\",";
-        json += "\"message\":\"All cross-platform distribution archives generated in Factory/downloads/\",";
-        json += "\"totalPackagesBuilt\":" + std::to_string(count);
-        json += "}";
-        return this->json(json);
+        let obj: json_lib::Value* = new json_lib::Value();
+        obj->set("status", new json_lib::Value("SUCCESS"));
+        obj->set("message", new json_lib::Value("All cross-platform distribution archives generated in Factory/downloads/"));
+        obj->set("totalPackagesBuilt", new json_lib::Value(count));
+        return this->json(obj);
     }
 
     public serveInstallSh(req: HttpRequest*, port: int): HttpResponse* {

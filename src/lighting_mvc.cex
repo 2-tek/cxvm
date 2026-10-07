@@ -1,45 +1,52 @@
-// 2-TEK cxvm: Embedded Lighting MVC Architecture & HTTP Runtime (C-ext)
+// 2-TEK Factory: Lighting MVC Core Engine (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-class RouteParam {
-    public key: string;
-    public value: string;
-
-    public constructor(k: string, v: string) {
-        this.key = k;
-        this.value = v;
-    }
-}
+import json from "json";
 
 class HttpRequest {
     public method: string;
     public path: string;
     public body: string;
     public contentType: string;
-    public clientIp: string;
-    public pathParams: Array<RouteParam*>*;
-    public queryParams: Array<RouteParam*>*;
+    public queryParams: Array<string>*;
+    public pathParams: Array<string>*;
 
     public constructor(method: string, path: string, body: string, cType: string) {
         this.method = method;
         this.path = path;
         this.body = body;
         this.contentType = cType;
-        this.clientIp = "127.0.0.1";
-        this.pathParams = new Array<RouteParam*>();
-        this.queryParams = new Array<RouteParam*>();
+        this.queryParams = new Array<string>();
+        this.pathParams = new Array<string>();
+    }
+
+    public addQueryParam(key: string, value: string): void {
+        this.queryParams->push(key + "=" + value);
+    }
+
+    public getQuery(key: string): string {
+        let prefix: string = key + "=";
+        let count: int = (int)this.queryParams->length();
+        for (let i: int = 0; i < count; i++) {
+            let item: string = this.queryParams->get(i);
+            if (item.find(prefix) == 0) {
+                return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
+            }
+        }
+        return "";
     }
 
     public addPathParam(key: string, value: string): void {
-        this.pathParams->push(new RouteParam(key, value));
+        this.pathParams->push(key + ":" + value);
     }
 
     public getParam(key: string): string {
+        let prefix: string = key + ":";
         let count: int = (int)this.pathParams->length();
         for (let i: int = 0; i < count; i++) {
-            let p: RouteParam* = this.pathParams->get(i);
-            if (p->key === key) {
-                return p->value;
+            let item: string = this.pathParams->get(i);
+            if (item.find(prefix) == 0) {
+                return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
             }
         }
         return "";
@@ -48,15 +55,15 @@ class HttpRequest {
 
 class HttpResponse {
     public statusCode: int;
-    public statusText: string;
+    public statusMessage: string;
     public contentType: string;
     public body: string;
     public isRedirect: bool;
     public redirectUrl: string;
 
-    public constructor(code: int, text: string, cType: string, body: string) {
+    public constructor(code: int, msg: string, cType: string, body: string) {
         this.statusCode = code;
-        this.statusText = text;
+        this.statusMessage = msg;
         this.contentType = cType;
         this.body = body;
         this.isRedirect = false;
@@ -65,6 +72,10 @@ class HttpResponse {
 
     public static ok(body: string, cType: string): HttpResponse* {
         return new HttpResponse(200, "OK", cType, body);
+    }
+
+    public static json(val: json_lib::Value*): HttpResponse* {
+        return new HttpResponse(200, "OK", "application/json", val ? val->stringify() : "null");
     }
 
     public static json(jsonBody: string): HttpResponse* {
@@ -76,11 +87,17 @@ class HttpResponse {
     }
 
     public static notFound(msg: string): HttpResponse* {
-        return new HttpResponse(404, "Not Found", "application/json", "{\"error\":\"" + msg + "\",\"statusCode\":404}");
+        let errObj: json_lib::Value* = new json_lib::Value();
+        errObj->set("error", new json_lib::Value(msg));
+        errObj->set("statusCode", new json_lib::Value(404));
+        return new HttpResponse(404, "Not Found", "application/json", errObj->stringify());
     }
 
     public static badRequest(msg: string): HttpResponse* {
-        return new HttpResponse(400, "Bad Request", "application/json", "{\"error\":\"" + msg + "\",\"statusCode\":400}");
+        let errObj: json_lib::Value* = new json_lib::Value();
+        errObj->set("error", new json_lib::Value(msg));
+        errObj->set("statusCode", new json_lib::Value(400));
+        return new HttpResponse(400, "Bad Request", "application/json", errObj->stringify());
     }
 
     public static redirect(url: string): HttpResponse* {
@@ -88,6 +105,49 @@ class HttpResponse {
         res->isRedirect = true;
         res->redirectUrl = url;
         return res;
+    }
+
+    public display(): void {
+        print("HTTP/1.1 ");
+        print(this.statusCode);
+        print(" ");
+        println(this.statusMessage);
+        println("Content-Type: " + this.contentType);
+        println("Content-Length: " + std::to_string((int)this.body.length()));
+        println("");
+        println(this.body);
+    }
+
+    public displayCurl(method: string, url: string): void {
+        println("─── Simulated cURL Request ────────────────────────────────────");
+        println("> " + method + " " + url + " HTTP/1.1");
+        println("< HTTP/1.1 " + std::to_string(this.statusCode) + " " + this.statusMessage);
+        println("< Content-Type: " + this.contentType);
+        println("< Content-Length: " + std::to_string((int)this.body.length()));
+        println("<");
+        if (this.body.length() > 200) {
+            println(this.body.substr(0, 200) + "\n... [truncated]");
+        } else {
+            println(this.body);
+        }
+        println("───────────────────────────────────────────────────────────────");
+    }
+}
+
+class ViewEngine {
+    public static renderLayout(title: string, bodyContent: string): string {
+        let html: string = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
+        html += "  <meta charset=\"UTF-8\">\n";
+        html += "  <title>" + title + "</title>\n";
+        html += "  <style>\n";
+        html += "    body { font-family: system-ui; background: #0b1120; color: #f8fafc; padding: 24px; }\n";
+        html += "    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; }\n";
+        html += "  </style>\n</head>\n<body>\n";
+        html += "  <div class=\"card\">\n";
+        html += bodyContent;
+        html += "  </div>\n";
+        html += "</body>\n</html>\n";
+        return html;
     }
 }
 
@@ -112,13 +172,9 @@ class ModelValidationResult {
 
 class BaseModel {
     public id: string;
-    public createdAt: string;
-    public updatedAt: string;
 
     public constructor(id: string) {
         this.id = id;
-        this.createdAt = "2026-10-07T00:00:00Z";
-        this.updatedAt = "2026-10-07T00:00:00Z";
     }
 
     public virtual validate(): ModelValidationResult* {
@@ -129,8 +185,14 @@ class BaseModel {
         return res;
     }
 
+    public virtual toJsonValue(): json_lib::Value* {
+        let obj: json_lib::Value* = new json_lib::Value();
+        obj->set("id", new json_lib::Value(this.id));
+        return obj;
+    }
+
     public virtual toJson(): string {
-        return "{\"id\":\"" + this.id + "\"}";
+        return this->toJsonValue()->stringify();
     }
 }
 
@@ -216,15 +278,15 @@ class MiddlewareResult {
     public proceed: bool;
     public errorResponse: HttpResponse*;
 
-    public constructor(proceed: bool, resp: HttpResponse*) {
+    public constructor(proceed: bool, err: HttpResponse*) {
         this.proceed = proceed;
-        this.errorResponse = resp;
+        this.errorResponse = err;
     }
 }
 
 class LightingMiddleware {
     public static runLogger(req: HttpRequest*): void {
-        print("  [Lighting MVC Logger] ");
+        print("[Lighting MVC Logger] ");
         print(req->method);
         print(" ");
         println(req->path);
@@ -234,7 +296,10 @@ class LightingMiddleware {
         if (req->path.find("/admin") != -1) {
             let authHeader: string = req->getParam("auth");
             if (authHeader !== "admin-token") {
-                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", "{\"error\":\"Unauthorized access\",\"statusCode\":401}");
+                let errObj: json_lib::Value* = new json_lib::Value();
+                errObj->set("error", new json_lib::Value("Unauthorized access"));
+                errObj->set("statusCode", new json_lib::Value(401));
+                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", errObj->stringify());
                 return new MiddlewareResult(false, errResp);
             }
         }
@@ -250,6 +315,10 @@ class BaseController {
 
     public html(body: string): HttpResponse* {
         return HttpResponse::html(body);
+    }
+
+    public json(val: json_lib::Value*): HttpResponse* {
+        return HttpResponse::json(val);
     }
 
     public json(jsonString: string): HttpResponse* {

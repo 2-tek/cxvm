@@ -37,19 +37,21 @@ class ArtifactModel : public BaseModel {
         return res;
     }
 
+    public override toJsonValue(): json_lib::Value* {
+        let obj: json_lib::Value* = new json_lib::Value();
+        obj->set("id", new json_lib::Value(this.id));
+        obj->set("filename", new json_lib::Value(this.filename));
+        obj->set("version", new json_lib::Value(this.version));
+        obj->set("platform", new json_lib::Value(this.platform));
+        obj->set("arch", new json_lib::Value(this.arch));
+        obj->set("sizeBytes", new json_lib::Value(this.sizeBytes));
+        obj->set("sha256", new json_lib::Value(this.sha256));
+        obj->set("downloadUrl", new json_lib::Value(this.downloadUrl));
+        obj->set("isBuilt", new json_lib::Value(this.isBuilt));
+        return obj;
+    }
+
     public override toJson(): string {
-        let json: string = "{";
-        json += "\"id\":\"" + this.id + "\",";
-        json += "\"filename\":\"" + this.filename + "\",";
-        json += "\"version\":\"" + this.version + "\",";
-        json += "\"platform\":\"" + this.platform + "\",";
-        json += "\"arch\":\"" + this.arch + "\",";
-        json += "\"sizeBytes\":" + std::to_string(this.sizeBytes) + ",";
-        json += "\"sha256\":\"" + this.sha256 + "\",";
-        json += "\"downloadUrl\":\"" + this.downloadUrl + "\",";
-        json += "\"isBuilt\":";
-        json += (this.isBuilt ? "true" : "false");
-        json += "}";
-        return json;
+        return json.stringify(this->toJsonValue());
     }
 }

@@ -3,6 +3,7 @@
 
 import child_process from "child_process";
 import fs from "fs";
+import json from "json";
 import "../types.cex";
 import "../models/platform_model.cex";
 import "../models/version_model.cex";
@@ -37,7 +38,7 @@ class DistBuilder {
     }
 
     private initVersions(): void {
-        this.versions->push(new VersionModel("6.0.0", "STABLE", "2026-10-07", "C++20 & JIT Machine Engine", "CexR v6 Native JIT Runtime Engine & In-Memory Execution Pipeline (Default)", true));
+        this.versions->push(new VersionModel("6.0.0", "STABLE", "2026-10-07", "C++20 & Machine Code", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler (Default)", true));
         this.versions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
         this.versions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler", false));
         this.versions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "C++20", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
@@ -84,22 +85,23 @@ class DistBuilder {
     public getManifestJson(): string {
         let manifestPath: string = this.downloadsDir + "/manifest.json";
         if (fs.exists(manifestPath)) {
-            let json: string = "{";
-            json += "\"engine\":\"2-TEK Cex Factory\",";
-            json += "\"version\":\"6.0.0\",";
-            json += "\"defaultRuntime\":\"CexR v6 (Direct Machine Code)\",";
-            json += "\"totalPackages\":" + std::to_string((int)this.artifacts->length()) + ",";
-            json += "\"artifacts\":[";
+            let root: json_lib::Value* = new json_lib::Value();
+            root->set("engine", new json_lib::Value("2-TEK Cex Factory"));
+            root->set("version", new json_lib::Value("6.0.0"));
+            root->set("defaultRuntime", new json_lib::Value("CexR v6 (Direct Machine Code)"));
+            root->set("totalPackages", new json_lib::Value((int)this.artifacts->length()));
+            let arr: json_lib::Value* = new json_lib::Value();
             let count: int = (int)this.artifacts->length();
             for (let i: int = 0; i < count; i++) {
-                if (i > 0) json += ",";
-                json += this.artifacts->get(i)->toJson();
+                arr->push(this.artifacts->get(i)->toJsonValue());
             }
-            json += "]}";
-            return json;
+            root->set("artifacts", arr);
+            return json.stringify(root, 2);
         }
 
-        return "{\"status\":\"pending\"}";
+        let pending: json_lib::Value* = new json_lib::Value();
+        pending->set("status", new json_lib::Value("pending"));
+        return json.stringify(pending);
     }
 
     public getArtifactByFilename(fname: string): ArtifactModel* {
