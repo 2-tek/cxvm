@@ -24,17 +24,17 @@ class FactoryApp {
         this.appName = "2-TEK cxvm Engine";
         this.port = port;
         this.isRunning = false;
-        this.downloadsDir = fs.exists("packages/cxvm/downloads") ? "packages/cxvm/downloads" : (fs.exists("downloads") ? "downloads" : "packages/cxvm/downloads");
+        this.downloadsDir = fs.exists("cxvm/downloads") ? "cxvm/downloads" : (fs.exists("packages/cxvm/downloads") ? "packages/cxvm/downloads" : (fs.exists("downloads") ? "downloads" : "cxvm/downloads"));
 
         this.router = new LightingRouter();
         this.controller = new FactoryController();
         this.builder = new DistBuilder(this.downloadsDir);
         this.cxvm = new CxvmEngine();
 
-        // Initialize default runtime with CexR v3 (Machine Code Engine)
-        this.cxvm->install("3.0.0");
-        this.cxvm->use("3.0.0");
-        this.cxvm->setDefault("3.0.0");
+        // Initialize default runtime with CexR v6 (Machine Code Engine)
+        this.cxvm->install("6.0.0");
+        this.cxvm->use("6.0.0");
+        this.cxvm->setDefault("6.0.0");
 
         this.setupRoutes();
     }

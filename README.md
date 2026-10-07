@@ -1,6 +1,6 @@
 # 2-TEK Factory: Cross-Platform Cex Distribution & Version Manager (cxvm)
 
-Factory is a fullstack cross-platform toolchain distribution engine and runtime version manager for the C-ext (`.cex`) language, powered by the **Lighting Fullstack MVC Framework**. It builds and serves native compiler bundles and installers to `Factory/downloads/` and provides `cxvm`—the Cex Version Manager (the `nvm` of the Cex ecosystem).
+Factory is a fullstack cross-platform toolchain distribution engine and runtime version manager for the C-ext (`.cex`) language, powered by the **Lighting Fullstack MVC Framework**. It builds and serves native compiler bundles and installers to `cxvm/downloads/` and provides `cxvm`—the Cex Version Manager (the `nvm` of the Cex ecosystem).
 
 ---
 
@@ -10,8 +10,11 @@ Factory is a fullstack cross-platform toolchain distribution engine and runtime 
   - **Model Layer (`src/models/`)**: Active-record schema entities (`PlatformModel`, `VersionModel`, `ArtifactModel`) with validation and JSON serialization.
   - **View Layer (`src/views/`)**: High-throughput SSR template rendering (`FactoryViews`) providing the Web Portal, Downloads Explorer, and interactive `cxvm` Guide.
   - **Controller Layer (`src/controllers/`)**: HTTP dispatchers (`FactoryController`) handling SSR pages, dynamic install scripts (`install.sh`, `install.ps1`), distribution downloads, and REST JSON APIs.
-  - **Distribution Engine (`src/builder/`)**: Cross-platform packaging pipeline that compiles and bundles runtime archives, checksums, and manifests into `Factory/downloads/`.
+  - **Distribution Engine (`src/builder/`)**: Cross-platform packaging pipeline that compiles and bundles runtime archives, checksums, and manifests into `cxvm/downloads/`.
   - **Cex Version Manager (`src/cxvm/` & `downloads/cxvm`)**: Cross-platform runtime version manager CLI enabling version switching and installation across platforms.
+- **Relocated Outside Packages**:
+  - Located directly at repository root: `./cxvm`
+  - Backward-compatibility symlinks: `packages/cxvm -> ../cxvm` and `bin/cxvm -> ../cxvm/downloads/cxvm`.
 
 ---
 
@@ -36,7 +39,7 @@ Factory is a fullstack cross-platform toolchain distribution engine and runtime 
 curl -fsSL http://127.0.0.1:3080/install.sh | bash
 
 # Or run directly from local repository
-bash packages/cxvm/downloads/install.sh
+bash cxvm/downloads/install.sh
 ```
 
 ### Windows PowerShell:
@@ -45,7 +48,7 @@ bash packages/cxvm/downloads/install.sh
 irm http://127.0.0.1:3080/install.ps1 | iex
 
 # Or run directly from local repository
-powershell -ExecutionPolicy Bypass -File packages/cxvm/downloads/install.ps1
+powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 ```
 
 ---
@@ -54,36 +57,50 @@ powershell -ExecutionPolicy Bypass -File packages/cxvm/downloads/install.ps1
 
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
-| `cxvm install 3.0.0` | `nvm install 18` | Downloads and unpacks runtime tarball/zip (CexR v3 default) |
-| `cxvm use 3.0.0` | `nvm use 18` | Switches active version via symlink & PATH |
+| `cxvm install 6.0.0` | `nvm install 18` | Downloads and unpacks runtime tarball/zip (CexR v6 default) |
+| `cxvm use 6.0.0` | `nvm use 18` | Switches active version via symlink & PATH |
 | `cxvm list` | `nvm ls` | Lists locally installed Cex runtimes and active one |
 | `cxvm list-remote` | `nvm ls-remote` | Queries Factory catalog for available upstream releases |
-| `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v3.0.0`) |
-| `cxvm default 3.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
+| `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v6.0.0`) |
+| `cxvm default 6.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
 | `cxvm doctor` | — | Runs pre-flight diagnostics for C++20 and runtime environment |
 
 ---
 
-## 5. Pre-Built Distribution Artifacts (`Factory/downloads/`)
+## 5. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
 
-The following distribution archives (18 bundles: 3 versions x 6 platforms) and tools are generated into `Factory/downloads/`:
+The following distribution archives (30 bundles: 5 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
-- **v3.0.0 (CexR v3 Native Machine Engine & CexP v3 Direct Compiler - Default)**:
+- **v6.0.0 (CexR v6 High-Performance Native Server Engine & Direct Machine Compiler - Default)**:
+  - `cex-v6.0.0-linux-x86_64.tar.gz`
+  - `cex-v6.0.0-linux-aarch64.tar.gz`
+  - `cex-v6.0.0-darwin-arm64.tar.gz`
+  - `cex-v6.0.0-darwin-x86_64.tar.gz`
+  - `cex-v6.0.0-windows-x64.zip`
+  - `cex-v6.0.0-windows-arm64.zip`
+- **v5.0.0 (CexR v5 Native Server Engine & Direct Machine Compiler - LTS)**:
+  - `cex-v5.0.0-linux-x86_64.tar.gz`
+  - `cex-v5.0.0-linux-aarch64.tar.gz`
+  - `cex-v5.0.0-darwin-arm64.tar.gz`
+  - `cex-v5.0.0-darwin-x86_64.tar.gz`
+  - `cex-v5.0.0-windows-x64.zip`
+  - `cex-v5.0.0-windows-arm64.zip`
+- **v3.0.0 (CexR v3 Native Machine Engine & CexP v3 Direct Compiler - LTS)**:
   - `cex-v3.0.0-linux-x86_64.tar.gz`
   - `cex-v3.0.0-linux-aarch64.tar.gz`
   - `cex-v3.0.0-darwin-arm64.tar.gz`
   - `cex-v3.0.0-darwin-x86_64.tar.gz`
   - `cex-v3.0.0-windows-x64.zip`
   - `cex-v3.0.0-windows-arm64.zip`
-- **v2.0.0 (CexR v2 Multi-Source Compiler & Self-Hosted Engine)**:
+- **v2.0.0 (CexR v2 Multi-Source Compiler & Self-Hosted Engine - LTS)**:
   - `cex-v2.0.0-linux-x86_64.tar.gz`
   - `cex-v2.0.0-linux-aarch64.tar.gz`
   - `cex-v2.0.0-darwin-arm64.tar.gz`
   - `cex-v2.0.0-darwin-x86_64.tar.gz`
   - `cex-v2.0.0-windows-x64.zip`
   - `cex-v2.0.0-windows-arm64.zip`
-- **v1.0.0 (CexR v1 C++ Transpiler Runtime & Standard Libraries)**:
+- **v1.0.0 (CexR v1 C++ Transpiler Runtime & Standard Libraries - LEGACY)**:
   - `cex-v1.0.0-linux-x86_64.tar.gz`
   - `cex-v1.0.0-linux-aarch64.tar.gz`
   - `cex-v1.0.0-darwin-arm64.tar.gz`
@@ -104,10 +121,11 @@ The following distribution archives (18 bundles: 3 versions x 6 platforms) and t
 
 ```bash
 # Run cxvm Demonstration & Server Engine
-./bin/cex run packages/cxvm/src/index.cex
+./bin/cex run ./cxvm/src/index.cex
 
 # Run cxvm Verification Test Suite
-./bin/cex run packages/cxvm/tests/cxvm.test.cex
+./bin/cex run ./cxvm/tests/cxvm.test.cex
+./bin/cex run ./cxvm/tests/factory.test.cex
 ```
 
 ---

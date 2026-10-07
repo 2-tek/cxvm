@@ -37,7 +37,9 @@ class DistBuilder {
     }
 
     private initVersions(): void {
-        this.versions->push(new VersionModel("3.0.0", "STABLE", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler (Default)", true));
+        this.versions->push(new VersionModel("6.0.0", "STABLE", "2026-10-07", "C++20 & JIT Machine Engine", "CexR v6 Native JIT Runtime Engine & In-Memory Execution Pipeline (Default)", true));
+        this.versions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
+        this.versions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler", false));
         this.versions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "C++20", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
         this.versions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "C++20", "CexR v1 C++ Transpiler Runtime & Standard Libraries", false));
     }
@@ -70,7 +72,7 @@ class DistBuilder {
     }
 
     public buildAll(): int {
-        let scriptPath: string = fs.exists("packages/cxvm/scripts/generate_distributions.sh") ? "packages/cxvm/scripts/generate_distributions.sh" : "scripts/generate_distributions.sh";
+        let scriptPath: string = fs.exists("cxvm/scripts/generate_distributions.sh") ? "cxvm/scripts/generate_distributions.sh" : (fs.exists("packages/cxvm/scripts/generate_distributions.sh") ? "packages/cxvm/scripts/generate_distributions.sh" : "scripts/generate_distributions.sh");
         if (fs.exists(scriptPath)) {
             let cmd: string = "bash " + scriptPath + " " + this.downloadsDir;
             child_process.execSync(cmd);
@@ -84,8 +86,8 @@ class DistBuilder {
         if (fs.exists(manifestPath)) {
             let json: string = "{";
             json += "\"engine\":\"2-TEK Cex Factory\",";
-            json += "\"version\":\"3.0.0\",";
-            json += "\"defaultRuntime\":\"CexR v3 (Direct Machine Code)\",";
+            json += "\"version\":\"6.0.0\",";
+            json += "\"defaultRuntime\":\"CexR v6 (Direct Machine Code)\",";
             json += "\"totalPackages\":" + std::to_string((int)this.artifacts->length()) + ",";
             json += "\"artifacts\":[";
             let count: int = (int)this.artifacts->length();

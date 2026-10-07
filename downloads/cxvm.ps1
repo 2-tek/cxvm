@@ -19,7 +19,7 @@ switch ($Command) {
         New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
         New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
         
-        $localZip = if (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
+        $localZip = if (Test-Path "cxvm\downloads\$archive") { "cxvm\downloads\$archive" } elseif (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
         $destZip = Join-Path $cacheDir $archive
         if ($localZip -and (Test-Path $localZip)) {
             Copy-Item $localZip -Destination $destZip -Force
@@ -62,9 +62,11 @@ switch ($Command) {
     }
     "list-remote" {
         Write-Host "Available Cex runtime versions:" -ForegroundColor Cyan
-        Write-Host "  v1.0.0 (STABLE)"
-        Write-Host "  v1.1.0 (LTS)"
-        Write-Host "  v2.0.0 (CANARY)"
+        Write-Host "  v6.0.0 (DEFAULT - CexR v6 High-Performance Native Server Engine)"
+        Write-Host "  v5.0.0 (LTS - CexR v5 Native Server Engine)"
+        Write-Host "  v3.0.0 (LTS - CexR v3 Native Machine Engine)"
+        Write-Host "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler)"
+        Write-Host "  v1.0.0 (LEGACY - CexR v1 Transpiler Runtime)"
     }
     default {
         Write-Host "Cex Version Manager (cxvm) for Windows PowerShell"

@@ -31,11 +31,11 @@ fn main(): int {
     let pVal: ModelValidationResult* = pModel->validate();
     print("  Platform Model Validation: "); println(pVal->isValid ? "PASSED [OK]" : "FAILED");
 
-    let vModel: VersionModel* = new VersionModel("3.0.0", "STABLE", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine", true);
+    let vModel: VersionModel* = new VersionModel("6.0.0", "STABLE", "2026-10-07", "C++20 & Machine Code", "CexR v6 High-Performance Native Server Engine", true);
     let vVal: ModelValidationResult* = vModel->validate();
     print("  Version Model Validation:  "); println(vVal->isValid ? "PASSED [OK]" : "FAILED");
 
-    let aModel: ArtifactModel* = new ArtifactModel("cex-v3.0.0-linux-x86_64.tar.gz", "3.0.0", "linux", "x86_64", 2797, "97c324a082371d1dd5f9051077e0563f5df2e3d8dae08c6178035db0c7d141ca", "/downloads/cex-v3.0.0-linux-x86_64.tar.gz");
+    let aModel: ArtifactModel* = new ArtifactModel("cex-v6.0.0-linux-x86_64.tar.gz", "6.0.0", "linux", "x86_64", 2797, "97c324a082371d1dd5f9051077e0563f5df2e3d8dae08c6178035db0c7d141ca", "/downloads/cex-v6.0.0-linux-x86_64.tar.gz");
     let aVal: ModelValidationResult* = aModel->validate();
     print("  Artifact Model Validation: "); println(aVal->isValid ? "PASSED [OK]" : "FAILED");
 
@@ -60,7 +60,7 @@ fn main(): int {
     println("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
     print("  Supported Architectures: "); println((int)app->builder->platforms->length());
     print("  Built Artifacts in Store: "); println((int)app->builder->artifacts->length());
-    let sampleArt: ArtifactModel* = app->builder->getArtifactByFilename("cex-v3.0.0-linux-x86_64.tar.gz");
+    let sampleArt: ArtifactModel* = app->builder->getArtifactByFilename("cex-v6.0.0-linux-x86_64.tar.gz");
     if (sampleArt !== nullptr) {
         print("  Sample Target: "); print(sampleArt->filename);
         print(" | Size: "); print(sampleArt->sizeBytes); println(" bytes [OK]");

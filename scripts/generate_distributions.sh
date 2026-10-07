@@ -6,8 +6,10 @@
 set -e
 
 # Target downloads directory
-RAW_DIR="${1:-packages/cxvm/downloads}"
-if [ ! -d "$RAW_DIR" ] && [ -d "downloads" ]; then
+RAW_DIR="${1:-cxvm/downloads}"
+if [ ! -d "$RAW_DIR" ] && [ -d "packages/cxvm/downloads" ]; then
+  RAW_DIR="packages/cxvm/downloads"
+elif [ ! -d "$RAW_DIR" ] && [ -d "downloads" ]; then
   RAW_DIR="downloads"
 fi
 mkdir -p "$RAW_DIR"
@@ -21,7 +23,7 @@ echo "   2-TEK Cex Factory: Cross-Platform Build Pipeline Generator  "
 echo "==============================================================="
 echo "Target output directory: $DOWNLOADS_DIR"
 
-VERSIONS=("3.0.0" "2.0.0" "1.0.0")
+VERSIONS=("6.0.0" "5.0.0" "3.0.0" "2.0.0" "1.0.0")
 PLATFORMS=(
   "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:g++-12 / clang++-16"
   "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:g++-12 (aarch64)"
@@ -47,9 +49,9 @@ cxvm() {
 
   case "$cmd" in
     install)
-      local ver="${1:-3.0.0}"
+      local ver="${1:-6.0.0}"
       if [ -z "$ver" ]; then
-        echo "Usage: cxvm install <version> (e.g. 3.0.0, 2.0.0)"
+        echo "Usage: cxvm install <version> (e.g. 6.0.0, 5.0.0, 3.0.0)"
         return 1
       fi
       local os arch ext
@@ -74,8 +76,11 @@ cxvm() {
       mkdir -p "$CXVM_DIR/versions/v${ver}" "$CXVM_DIR/cache"
 
       # Search local repo first, then download URL
-      if [ -f "packages/cxvm/downloads/$archive" ]; then
+      if [ -f "cxvm/downloads/$archive" ]; then
         echo "--> [cxvm] Found package in local cxvm downloads"
+        cp "cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
+      elif [ -f "packages/cxvm/downloads/$archive" ]; then
+        echo "--> [cxvm] Found package in local packages/cxvm downloads"
         cp "packages/cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
       elif [ -f "downloads/$archive" ]; then
         echo "--> [cxvm] Found package in local downloads"
@@ -155,13 +160,15 @@ cxvm() {
           fi
         done
       else
-        echo "  (No versions installed yet. Run 'cxvm install 1.0.0')"
+        echo "  (No versions installed yet. Run 'cxvm install 6.0.0')"
       fi
       ;;
 
     list-remote|ls-remote)
       echo "Available Cex runtime versions (from Factory):"
-      echo "  v3.0.0 (DEFAULT - CexR v3 Native Machine Engine & CexP v3 Direct Compiler)"
+      echo "  v6.0.0 (DEFAULT - CexR v6 High-Performance Native Server Engine & Direct Machine Compiler)"
+      echo "  v5.0.0 (LTS - CexR v5 Native Server Engine & Direct Machine Compiler)"
+      echo "  v3.0.0 (LTS - CexR v3 Native Machine Engine & CexP v3 Direct Compiler)"
       echo "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler & Self-Hosted Engine)"
       echo "  v1.0.0 (LEGACY - CexR v1 C++ Transpiler Runtime & Standard Libraries)"
       ;;
@@ -201,6 +208,8 @@ cxvm() {
         echo "  C++20 Status:        WARNING: C++ compiler not in PATH"
       fi
       echo "  Active Version:      $(cxvm current)"
+      echo "  CexR Runtime:        v6 (Direct Native Machine Code Engine)"
+      echo "  CexP Compiler:       v6 (Machine Code & ELF Direct Emitter)"
       echo "  Diagnostic:          HEALTHY [OK]"
       ;;
 
@@ -209,7 +218,7 @@ cxvm() {
       echo "Usage: cxvm <command> [options]"
       echo ""
       echo "Commands:"
-      echo "  install <ver>         Download and install a Cex runtime version (e.g. 1.0.0)"
+      echo "  install <ver>         Download and install a Cex runtime version (e.g. 6.0.0, 5.0.0)"
       echo "  use <ver>             Switch to specified Cex runtime version"
       echo "  current               Display currently active Cex version"
       echo "  list (ls)             List locally installed Cex runtime versions"
@@ -252,7 +261,7 @@ switch ($Command) {
         New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
         New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
         
-        $localZip = if (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
+        $localZip = if (Test-Path "cxvm\downloads\$archive") { "cxvm\downloads\$archive" } elseif (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
         $destZip = Join-Path $cacheDir $archive
         if ($localZip -and (Test-Path $localZip)) {
             Copy-Item $localZip -Destination $destZip -Force
@@ -295,9 +304,11 @@ switch ($Command) {
     }
     "list-remote" {
         Write-Host "Available Cex runtime versions:" -ForegroundColor Cyan
-        Write-Host "  v1.0.0 (STABLE)"
-        Write-Host "  v1.1.0 (LTS)"
-        Write-Host "  v2.0.0 (CANARY)"
+        Write-Host "  v6.0.0 (DEFAULT - CexR v6 High-Performance Native Server Engine)"
+        Write-Host "  v5.0.0 (LTS - CexR v5 Native Server Engine)"
+        Write-Host "  v3.0.0 (LTS - CexR v3 Native Machine Engine)"
+        Write-Host "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler)"
+        Write-Host "  v1.0.0 (LEGACY - CexR v1 Transpiler Runtime)"
     }
     default {
         Write-Host "Cex Version Manager (cxvm) for Windows PowerShell"
@@ -316,7 +327,7 @@ set -e
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
-DEFAULT_VER="3.0.0"
+DEFAULT_VER="6.0.0"
 
 echo "==============================================================="
 echo "   2-TEK Cex Factory: Cross-Platform Runtime Installer (cxvm)  "
@@ -325,7 +336,9 @@ echo "==============================================================="
 mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
 
 # Install cxvm CLI script
-if [ -f "packages/cxvm/downloads/cxvm" ]; then
+if [ -f "cxvm/downloads/cxvm" ]; then
+  cp "cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
+elif [ -f "packages/cxvm/downloads/cxvm" ]; then
   cp "packages/cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
 elif [ -f "downloads/cxvm" ]; then
   cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
@@ -343,7 +356,7 @@ fi
 
 echo ""
 echo "==============================================================="
-echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v3) installed via cxvm!    "
+echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v6) installed via cxvm!    "
 echo "==============================================================="
 echo ""
 echo "Activate in current terminal:"
@@ -362,7 +375,7 @@ cat <<'EOF' > "$DOWNLOADS_DIR/install.ps1"
 $ErrorActionPreference = "Stop"
 $cxvmDir = Join-Path $HOME ".cxvm"
 $factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { "http://127.0.0.1:3080" }
-$defaultVersion = "3.0.0"
+$defaultVersion = "6.0.0"
 
 Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host "   2-TEK Cex Factory: Windows PowerShell Installer (cxvm)      " -ForegroundColor Cyan
@@ -373,7 +386,9 @@ New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir "versions") | Out-
 New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir "cache") | Out-Null
 
 $scriptPath = Join-Path $cxvmDir "bin\cxvm.ps1"
-if (Test-Path "packages\cxvm\downloads\cxvm.ps1") {
+if (Test-Path "cxvm\downloads\cxvm.ps1") {
+    Copy-Item "cxvm\downloads\cxvm.ps1" -Destination $scriptPath -Force
+} elseif (Test-Path "packages\cxvm\downloads\cxvm.ps1") {
     Copy-Item "packages\cxvm\downloads\cxvm.ps1" -Destination $scriptPath -Force
 } elseif (Test-Path "downloads\cxvm.ps1") {
     Copy-Item "downloads\cxvm.ps1" -Destination $scriptPath -Force
@@ -401,7 +416,7 @@ for ver in "${VERSIONS[@]}"; do
 # Cex Toolchain Runner for ${pid}
 # Version: ${ver} | Architecture: ${parch} | OS: ${pos}
 echo "2-TEK Cex Toolchain v${ver} (${pid})"
-echo "CexR v3 Native Machine Code Runtime & CexP v3 Direct Compiler ready."
+echo "CexR v6 Native Machine Code Runtime & CexP v6 Direct Compiler ready."
 CEOF
     chmod +x "$PKG_DIR/bin/cex"
     
@@ -410,7 +425,7 @@ CEOF
       cat <<WEOF > "$PKG_DIR/bin/cex.cmd"
 @echo off
 echo 2-TEK Cex Toolchain v${ver} (${pid})
-echo CexR v3 Native Machine Code Runtime & CexP v3 Direct Compiler ready.
+echo CexR v6 Native Machine Code Runtime & CexP v6 Direct Compiler ready.
 WEOF
     fi
     
@@ -476,11 +491,11 @@ import json, os, hashlib, glob
 downloads_dir = "$DOWNLOADS_DIR"
 manifest = {
     "engine": "2-TEK Cex Factory",
-    "version": "3.0.0",
+    "version": "6.0.0",
     "updatedAt": "2026-10-07T00:00:00Z",
-    "defaultVersion": "3.0.0",
-    "defaultRuntime": "CexR v3 (Direct Machine Code)",
-    "versions": ["3.0.0", "2.0.0", "1.0.0"],
+    "defaultVersion": "6.0.0",
+    "defaultRuntime": "CexR v6 (Direct Machine Code)",
+    "versions": ["6.0.0", "5.0.0", "3.0.0", "2.0.0", "1.0.0"],
     "platforms": ["linux-x86_64", "linux-aarch64", "darwin-arm64", "darwin-x86_64", "windows-x64", "windows-arm64"],
     "artifacts": []
 }
@@ -491,7 +506,7 @@ for filepath in sorted(glob.glob(os.path.join(downloads_dir, "cex-v*"))):
     with open(filepath, "rb") as f:
         sha256 = hashlib.sha256(f.read()).hexdigest()
     parts = filename.replace(".tar.gz", "").replace(".zip", "").split("-")
-    ver = parts[1].replace("v", "") if len(parts) > 1 else "3.0.0"
+    ver = parts[1].replace("v", "") if len(parts) > 1 else "6.0.0"
     plat = parts[2] if len(parts) > 2 else ""
     arch = parts[3] if len(parts) > 3 else ""
     manifest["artifacts"].append({

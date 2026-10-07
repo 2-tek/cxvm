@@ -12,9 +12,9 @@ cxvm() {
 
   case "$cmd" in
     install)
-      local ver="${1:-3.0.0}"
+      local ver="${1:-6.0.0}"
       if [ -z "$ver" ]; then
-        echo "Usage: cxvm install <version> (e.g. 3.0.0, 2.0.0)"
+        echo "Usage: cxvm install <version> (e.g. 6.0.0, 5.0.0, 3.0.0)"
         return 1
       fi
       local os arch ext
@@ -39,8 +39,11 @@ cxvm() {
       mkdir -p "$CXVM_DIR/versions/v${ver}" "$CXVM_DIR/cache"
 
       # Search local repo first, then download URL
-      if [ -f "packages/cxvm/downloads/$archive" ]; then
+      if [ -f "cxvm/downloads/$archive" ]; then
         echo "--> [cxvm] Found package in local cxvm downloads"
+        cp "cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
+      elif [ -f "packages/cxvm/downloads/$archive" ]; then
+        echo "--> [cxvm] Found package in local packages/cxvm downloads"
         cp "packages/cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
       elif [ -f "downloads/$archive" ]; then
         echo "--> [cxvm] Found package in local downloads"
@@ -120,13 +123,15 @@ cxvm() {
           fi
         done
       else
-        echo "  (No versions installed yet. Run 'cxvm install 1.0.0')"
+        echo "  (No versions installed yet. Run 'cxvm install 6.0.0')"
       fi
       ;;
 
     list-remote|ls-remote)
       echo "Available Cex runtime versions (from Factory):"
-      echo "  v3.0.0 (DEFAULT - CexR v3 Native Machine Engine & CexP v3 Direct Compiler)"
+      echo "  v6.0.0 (DEFAULT - CexR v6 High-Performance Native Server Engine & Direct Machine Compiler)"
+      echo "  v5.0.0 (LTS - CexR v5 Native Server Engine & Direct Machine Compiler)"
+      echo "  v3.0.0 (LTS - CexR v3 Native Machine Engine & CexP v3 Direct Compiler)"
       echo "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler & Self-Hosted Engine)"
       echo "  v1.0.0 (LEGACY - CexR v1 C++ Transpiler Runtime & Standard Libraries)"
       ;;
@@ -166,6 +171,8 @@ cxvm() {
         echo "  C++20 Status:        WARNING: C++ compiler not in PATH"
       fi
       echo "  Active Version:      $(cxvm current)"
+      echo "  CexR Runtime:        v6 (Direct Native Machine Code Engine)"
+      echo "  CexP Compiler:       v6 (Machine Code & ELF Direct Emitter)"
       echo "  Diagnostic:          HEALTHY [OK]"
       ;;
 
@@ -174,7 +181,7 @@ cxvm() {
       echo "Usage: cxvm <command> [options]"
       echo ""
       echo "Commands:"
-      echo "  install <ver>         Download and install a Cex runtime version (e.g. 1.0.0)"
+      echo "  install <ver>         Download and install a Cex runtime version (e.g. 6.0.0, 5.0.0)"
       echo "  use <ver>             Switch to specified Cex runtime version"
       echo "  current               Display currently active Cex version"
       echo "  list (ls)             List locally installed Cex runtime versions"

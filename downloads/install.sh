@@ -6,7 +6,7 @@ set -e
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
-DEFAULT_VER="3.0.0"
+DEFAULT_VER="6.0.0"
 
 echo "==============================================================="
 echo "   2-TEK Cex Factory: Cross-Platform Runtime Installer (cxvm)  "
@@ -15,7 +15,9 @@ echo "==============================================================="
 mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
 
 # Install cxvm CLI script
-if [ -f "packages/cxvm/downloads/cxvm" ]; then
+if [ -f "cxvm/downloads/cxvm" ]; then
+  cp "cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
+elif [ -f "packages/cxvm/downloads/cxvm" ]; then
   cp "packages/cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
 elif [ -f "downloads/cxvm" ]; then
   cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
@@ -33,7 +35,7 @@ fi
 
 echo ""
 echo "==============================================================="
-echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v3) installed via cxvm!    "
+echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v6) installed via cxvm!    "
 echo "==============================================================="
 echo ""
 echo "Activate in current terminal:"

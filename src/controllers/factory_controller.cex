@@ -98,7 +98,7 @@ class FactoryController : public BaseController {
         script += "set -e\n";
         script += "CXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\n";
         script += "FACTORY_URL=\"${CEX_FACTORY_URL:-http://127.0.0.1:" + pStr + "}\"\n";
-        script += "DEFAULT_VER=\"1.0.0\"\n";
+        script += "DEFAULT_VER=\"6.0.0\"\n";
         script += "echo \"==> Bootstrapping cxvm from $FACTORY_URL...\"\n";
         script += "mkdir -p \"$CXVM_DIR/bin\" \"$CXVM_DIR/versions\" \"$CXVM_DIR/cache\"\n";
         script += "curl -fsSL \"$FACTORY_URL/downloads/cxvm\" -o \"$CXVM_DIR/bin/cxvm\" 2>/dev/null || true\n";
@@ -118,7 +118,7 @@ class FactoryController : public BaseController {
         script += "$ErrorActionPreference = \"Stop\"\n";
         script += "$cxvmDir = Join-Path $HOME \".cxvm\"\n";
         script += "$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { \"http://127.0.0.1:" + pStr + "\" }\n";
-        script += "$defaultVersion = \"1.0.0\"\n";
+        script += "$defaultVersion = \"6.0.0\"\n";
         script += "Write-Host \"==> Installing Cex cxvm toolchain...\" -ForegroundColor Cyan\n";
         script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"bin\") | Out-Null\n";
         script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"versions\") | Out-Null\n";
@@ -129,7 +129,7 @@ class FactoryController : public BaseController {
     public serveCxvm(req: HttpRequest*): HttpResponse* {
         let script: string = "#!/usr/bin/env bash\n";
         script += "# cxvm: Cex Version Manager\n";
-        script += "echo \"cxvm v1.0.0 (Cex Version Manager)\"\n";
+        script += "echo \"cxvm v6.0.0 (Cex Version Manager)\"\n";
         return HttpResponse::ok(script, "text/x-shellscript");
     }
 }
