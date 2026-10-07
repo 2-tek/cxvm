@@ -6,7 +6,7 @@ set -e
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
-DEFAULT_VER="6.0.0"
+DEFAULT_VER="8.0.0"
 
 echo "==============================================================="
 echo "   2-TEK Cex Factory: Cross-Platform Runtime Installer (cxvm)  "
@@ -35,7 +35,7 @@ fi
 
 echo ""
 echo "==============================================================="
-echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v6) installed via cxvm!    "
+echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v8) installed via cxvm!    "
 echo "==============================================================="
 echo ""
 echo "Activate in current terminal:"

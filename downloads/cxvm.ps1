@@ -62,7 +62,8 @@ switch ($Command) {
     }
     "list-remote" {
         Write-Host "Available Cex runtime versions:" -ForegroundColor Cyan
-        Write-Host "  v6.0.0 (DEFAULT - CexR v6 High-Performance Native Server Engine)"
+        Write-Host "  v8.0.0 (DEFAULT - CexR v8 .cex_boxes Dist Loader Runtime)"
+        Write-Host "  v6.0.0 (LTS - CexR v6 High-Performance Native Server Engine)"
         Write-Host "  v5.0.0 (LTS - CexR v5 Native Server Engine)"
         Write-Host "  v3.0.0 (LTS - CexR v3 Native Machine Engine)"
         Write-Host "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler)"

@@ -38,7 +38,8 @@ class DistBuilder {
     }
 
     private initVersions(): void {
-        this.versions->push(new VersionModel("6.0.0", "STABLE", "2026-10-07", "C++20 & Machine Code", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler (Default)", true));
+        this.versions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "C++20 & .cex_boxes Dist Loader", "CexR v8 Native .cex_boxes Dist Loader Runtime & In-Memory Execution Pipeline (Default)", true));
+        this.versions->push(new VersionModel("6.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler", false));
         this.versions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
         this.versions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler", false));
         this.versions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "C++20", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
@@ -87,8 +88,8 @@ class DistBuilder {
         if (fs.exists(manifestPath)) {
             let root: json_lib::Value* = new json_lib::Value();
             root->set("engine", new json_lib::Value("2-TEK Cex Factory"));
-            root->set("version", new json_lib::Value("6.0.0"));
-            root->set("defaultRuntime", new json_lib::Value("CexR v6 (Direct Machine Code)"));
+            root->set("version", new json_lib::Value("8.0.0"));
+            root->set("defaultRuntime", new json_lib::Value("CexR v8 (Direct Machine Code & Dist Loader)"));
             root->set("totalPackages", new json_lib::Value((int)this.artifacts->length()));
             let arr: json_lib::Value* = new json_lib::Value();
             let count: int = (int)this.artifacts->length();

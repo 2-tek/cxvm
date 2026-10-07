@@ -11,8 +11,11 @@
   },
   "homepage": "https://github.com/2-tek/cxvm#readme",
   "bugs": "https://github.com/2-tek/cxvm/issues",
+  "target": "runtime",
+  "required": {
+    "cexr": "^8"
+  },
   "dependencies": {
-    "@cex": "1.0.0",
     "@cex-test": "1.0.0",
     "@cex-service": "1.0.0",
     "@2tek/lighting": "1.0.0"
@@ -23,7 +26,6 @@
     "-lpthread"
   ],
   "includeDirs": [
-    "./src",
-    "../Lighting/src"
+    "./src"
   ]
 }

@@ -23,7 +23,7 @@ echo "   2-TEK Cex Factory: Cross-Platform Build Pipeline Generator  "
 echo "==============================================================="
 echo "Target output directory: $DOWNLOADS_DIR"
 
-VERSIONS=("6.0.0" "5.0.0" "3.0.0" "2.0.0" "1.0.0")
+VERSIONS=("8.0.0" "6.0.0" "5.0.0" "3.0.0" "2.0.0" "1.0.0")
 PLATFORMS=(
   "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:g++-12 / clang++-16"
   "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:g++-12 (aarch64)"
@@ -49,9 +49,9 @@ cxvm() {
 
   case "$cmd" in
     install)
-      local ver="${1:-6.0.0}"
+      local ver="${1:-8.0.0}"
       if [ -z "$ver" ]; then
-        echo "Usage: cxvm install <version> (e.g. 6.0.0, 5.0.0, 3.0.0)"
+        echo "Usage: cxvm install <version> (e.g. 8.0.0, 6.0.0, 5.0.0)"
         return 1
       fi
       local os arch ext
@@ -160,13 +160,14 @@ cxvm() {
           fi
         done
       else
-        echo "  (No versions installed yet. Run 'cxvm install 6.0.0')"
+        echo "  (No versions installed yet. Run 'cxvm install 8.0.0')"
       fi
       ;;
 
     list-remote|ls-remote)
       echo "Available Cex runtime versions (from Factory):"
-      echo "  v6.0.0 (DEFAULT - CexR v6 High-Performance Native Server Engine & Direct Machine Compiler)"
+      echo "  v8.0.0 (DEFAULT - CexR v8 .cex_boxes Dist Loader Runtime & Direct Compiler)"
+      echo "  v6.0.0 (LTS - CexR v6 High-Performance Native Server Engine & Direct Machine Compiler)"
       echo "  v5.0.0 (LTS - CexR v5 Native Server Engine & Direct Machine Compiler)"
       echo "  v3.0.0 (LTS - CexR v3 Native Machine Engine & CexP v3 Direct Compiler)"
       echo "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler & Self-Hosted Engine)"
@@ -208,8 +209,8 @@ cxvm() {
         echo "  C++20 Status:        WARNING: C++ compiler not in PATH"
       fi
       echo "  Active Version:      $(cxvm current)"
-      echo "  CexR Runtime:        v6 (Direct Native Machine Code Engine)"
-      echo "  CexP Compiler:       v6 (Machine Code & ELF Direct Emitter)"
+      echo "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine)"
+      echo "  CexP Compiler:       v8 (Machine Code & ELF Direct Emitter)"
       echo "  Diagnostic:          HEALTHY [OK]"
       ;;
 
@@ -218,7 +219,7 @@ cxvm() {
       echo "Usage: cxvm <command> [options]"
       echo ""
       echo "Commands:"
-      echo "  install <ver>         Download and install a Cex runtime version (e.g. 6.0.0, 5.0.0)"
+      echo "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
       echo "  use <ver>             Switch to specified Cex runtime version"
       echo "  current               Display currently active Cex version"
       echo "  list (ls)             List locally installed Cex runtime versions"
@@ -304,7 +305,8 @@ switch ($Command) {
     }
     "list-remote" {
         Write-Host "Available Cex runtime versions:" -ForegroundColor Cyan
-        Write-Host "  v6.0.0 (DEFAULT - CexR v6 High-Performance Native Server Engine)"
+        Write-Host "  v8.0.0 (DEFAULT - CexR v8 .cex_boxes Dist Loader Runtime)"
+        Write-Host "  v6.0.0 (LTS - CexR v6 High-Performance Native Server Engine)"
         Write-Host "  v5.0.0 (LTS - CexR v5 Native Server Engine)"
         Write-Host "  v3.0.0 (LTS - CexR v3 Native Machine Engine)"
         Write-Host "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler)"
@@ -327,7 +329,7 @@ set -e
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 FACTORY_URL="${CEX_FACTORY_URL:-http://127.0.0.1:3080}"
-DEFAULT_VER="6.0.0"
+DEFAULT_VER="8.0.0"
 
 echo "==============================================================="
 echo "   2-TEK Cex Factory: Cross-Platform Runtime Installer (cxvm)  "
@@ -356,7 +358,7 @@ fi
 
 echo ""
 echo "==============================================================="
-echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v6) installed via cxvm!    "
+echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v8) installed via cxvm!    "
 echo "==============================================================="
 echo ""
 echo "Activate in current terminal:"
@@ -375,7 +377,7 @@ cat <<'EOF' > "$DOWNLOADS_DIR/install.ps1"
 $ErrorActionPreference = "Stop"
 $cxvmDir = Join-Path $HOME ".cxvm"
 $factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { "http://127.0.0.1:3080" }
-$defaultVersion = "6.0.0"
+$defaultVersion = "8.0.0"
 
 Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host "   2-TEK Cex Factory: Windows PowerShell Installer (cxvm)      " -ForegroundColor Cyan
@@ -416,7 +418,7 @@ for ver in "${VERSIONS[@]}"; do
 # Cex Toolchain Runner for ${pid}
 # Version: ${ver} | Architecture: ${parch} | OS: ${pos}
 echo "2-TEK Cex Toolchain v${ver} (${pid})"
-echo "CexR v6 Native Machine Code Runtime & CexP v6 Direct Compiler ready."
+echo "CexR v8 Native Machine Code Runtime & CexP v8 Direct Compiler ready."
 CEOF
     chmod +x "$PKG_DIR/bin/cex"
     
@@ -425,7 +427,7 @@ CEOF
       cat <<WEOF > "$PKG_DIR/bin/cex.cmd"
 @echo off
 echo 2-TEK Cex Toolchain v${ver} (${pid})
-echo CexR v6 Native Machine Code Runtime & CexP v6 Direct Compiler ready.
+echo CexR v8 Native Machine Code Runtime & CexP v8 Direct Compiler ready.
 WEOF
     fi
     
@@ -491,11 +493,11 @@ import json, os, hashlib, glob
 downloads_dir = "$DOWNLOADS_DIR"
 manifest = {
     "engine": "2-TEK Cex Factory",
-    "version": "6.0.0",
+    "version": "8.0.0",
     "updatedAt": "2026-10-07T00:00:00Z",
-    "defaultVersion": "6.0.0",
-    "defaultRuntime": "CexR v6 (Direct Machine Code)",
-    "versions": ["6.0.0", "5.0.0", "3.0.0", "2.0.0", "1.0.0"],
+    "defaultVersion": "8.0.0",
+    "defaultRuntime": "CexR v8 (Direct Machine Code & Dist Loader)",
+    "versions": ["8.0.0", "6.0.0", "5.0.0", "3.0.0", "2.0.0", "1.0.0"],
     "platforms": ["linux-x86_64", "linux-aarch64", "darwin-arm64", "darwin-x86_64", "windows-x64", "windows-arm64"],
     "artifacts": []
 }

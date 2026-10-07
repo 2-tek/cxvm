@@ -12,9 +12,9 @@ cxvm() {
 
   case "$cmd" in
     install)
-      local ver="${1:-6.0.0}"
+      local ver="${1:-8.0.0}"
       if [ -z "$ver" ]; then
-        echo "Usage: cxvm install <version> (e.g. 6.0.0, 5.0.0, 3.0.0)"
+        echo "Usage: cxvm install <version> (e.g. 8.0.0, 6.0.0, 5.0.0)"
         return 1
       fi
       local os arch ext
@@ -123,13 +123,14 @@ cxvm() {
           fi
         done
       else
-        echo "  (No versions installed yet. Run 'cxvm install 6.0.0')"
+        echo "  (No versions installed yet. Run 'cxvm install 8.0.0')"
       fi
       ;;
 
     list-remote|ls-remote)
       echo "Available Cex runtime versions (from Factory):"
-      echo "  v6.0.0 (DEFAULT - CexR v6 High-Performance Native Server Engine & Direct Machine Compiler)"
+      echo "  v8.0.0 (DEFAULT - CexR v8 .cex_boxes Dist Loader Runtime & Direct Compiler)"
+      echo "  v6.0.0 (LTS - CexR v6 High-Performance Native Server Engine & Direct Machine Compiler)"
       echo "  v5.0.0 (LTS - CexR v5 Native Server Engine & Direct Machine Compiler)"
       echo "  v3.0.0 (LTS - CexR v3 Native Machine Engine & CexP v3 Direct Compiler)"
       echo "  v2.0.0 (LTS - CexR v2 Multi-Source Compiler & Self-Hosted Engine)"
@@ -171,8 +172,8 @@ cxvm() {
         echo "  C++20 Status:        WARNING: C++ compiler not in PATH"
       fi
       echo "  Active Version:      $(cxvm current)"
-      echo "  CexR Runtime:        v6 (Direct Native Machine Code Engine)"
-      echo "  CexP Compiler:       v6 (Machine Code & ELF Direct Emitter)"
+      echo "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine)"
+      echo "  CexP Compiler:       v8 (Machine Code & ELF Direct Emitter)"
       echo "  Diagnostic:          HEALTHY [OK]"
       ;;
 
@@ -181,7 +182,7 @@ cxvm() {
       echo "Usage: cxvm <command> [options]"
       echo ""
       echo "Commands:"
-      echo "  install <ver>         Download and install a Cex runtime version (e.g. 6.0.0, 5.0.0)"
+      echo "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
       echo "  use <ver>             Switch to specified Cex runtime version"
       echo "  current               Display currently active Cex version"
       echo "  list (ls)             List locally installed Cex runtime versions"
