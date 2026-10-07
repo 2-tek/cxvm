@@ -135,15 +135,24 @@ The following distribution archives (36 bundles: 6 versions x 6 platforms) and t
 
 ---
 
-## 6. Execution & Testing
+## 6. Execution & Testing with CexR v8
 
 ```bash
-# Run cxvm Demonstration & Server Engine
-cexr run ./cxvm/src/index.cex
+# 1. Switch to CexR v8 Runtime via cxvm
+cxvm use 8.0.0
+# Or activate CexR v8 via toolchain
+cexr use v8
 
-# Run cxvm Verification Test Suite
-cexr run ./cxvm/tests/cxvm.test.cex
-cexr run ./cxvm/tests/factory.test.cex
+# 2. Run cxvm Demonstration & Server Engine via CexR v8
+cexr run src/index.cex
+# Or execute canonically via CexR v8 toolchain runner
+./bin/cex run src/index.cex
+# Or load and execute via CexR v8 .cex_boxes dist loader
+cexr v8 run cxvm
+
+# 3. Run cxvm Verification Test Suites with CexR v8
+cexr run tests/cxvm.test.cex
+cexr run tests/factory.test.cex
 ```
 
 ---

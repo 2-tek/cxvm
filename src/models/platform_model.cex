@@ -38,20 +38,18 @@ class PlatformModel : public BaseModel {
         return res;
     }
 
-    public override toJsonValue(): json_lib::Value* {
-        let obj: json_lib::Value* = new json_lib::Value();
-        obj->set("id", new json_lib::Value(this.id));
-        obj->set("os", new json_lib::Value(this.os));
-        obj->set("arch", new json_lib::Value(this.arch));
-        obj->set("targetTriple", new json_lib::Value(this.targetTriple));
-        obj->set("compiler", new json_lib::Value(this.compiler));
-        obj->set("archiveFormat", new json_lib::Value(this.archiveFormat));
-        obj->set("displayName", new json_lib::Value(this.displayName));
-        obj->set("isSupported", new json_lib::Value(this.isSupported));
-        return obj;
-    }
-
     public override toJson(): string {
-        return json.stringify(this->toJsonValue());
+        let str: string = "{";
+        str += "\"id\":\"" + this.id + "\",";
+        str += "\"os\":\"" + this.os + "\",";
+        str += "\"arch\":\"" + this.arch + "\",";
+        str += "\"targetTriple\":\"" + this.targetTriple + "\",";
+        str += "\"compiler\":\"" + this.compiler + "\",";
+        str += "\"archiveFormat\":\"" + this.archiveFormat + "\",";
+        str += "\"displayName\":\"" + this.displayName + "\",";
+        str += "\"isSupported\":";
+        str += (this.isSupported ? "true" : "false");
+        str += "}";
+        return str;
     }
 }

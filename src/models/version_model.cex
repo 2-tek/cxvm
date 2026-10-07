@@ -33,19 +33,17 @@ class VersionModel : public BaseModel {
         return res;
     }
 
-    public override toJsonValue(): json_lib::Value* {
-        let obj: json_lib::Value* = new json_lib::Value();
-        obj->set("id", new json_lib::Value(this.id));
-        obj->set("version", new json_lib::Value(this.version));
-        obj->set("channel", new json_lib::Value(this.channel));
-        obj->set("releaseDate", new json_lib::Value(this.releaseDate));
-        obj->set("minCpp", new json_lib::Value(this.minCpp));
-        obj->set("description", new json_lib::Value(this.description));
-        obj->set("isDefault", new json_lib::Value(this.isDefault));
-        return obj;
-    }
-
     public override toJson(): string {
-        return json.stringify(this->toJsonValue());
+        let str: string = "{";
+        str += "\"id\":\"" + this.id + "\",";
+        str += "\"version\":\"" + this.version + "\",";
+        str += "\"channel\":\"" + this.channel + "\",";
+        str += "\"releaseDate\":\"" + this.releaseDate + "\",";
+        str += "\"minCpp\":\"" + this.minCpp + "\",";
+        str += "\"description\":\"" + this.description + "\",";
+        str += "\"isDefault\":";
+        str += (this.isDefault ? "true" : "false");
+        str += "}";
+        return str;
     }
 }

@@ -3,7 +3,6 @@
 
 import child_process from "child_process";
 import fs from "fs";
-import json from "json";
 import "../types.cex";
 import "../models/platform_model.cex";
 import "../models/version_model.cex";
@@ -86,23 +85,12 @@ class DistBuilder {
     public getManifestJson(): string {
         let manifestPath: string = this.downloadsDir + "/manifest.json";
         if (fs.exists(manifestPath)) {
-            let root: json_lib::Value* = new json_lib::Value();
-            root->set("engine", new json_lib::Value("2-TEK Cex Factory"));
-            root->set("version", new json_lib::Value("8.0.0"));
-            root->set("defaultRuntime", new json_lib::Value("CexR v8 (Direct Machine Code & Dist Loader)"));
-            root->set("totalPackages", new json_lib::Value((int)this.artifacts->length()));
-            let arr: json_lib::Value* = new json_lib::Value();
-            let count: int = (int)this.artifacts->length();
-            for (let i: int = 0; i < count; i++) {
-                arr->push(this.artifacts->get(i)->toJsonValue());
-            }
-            root->set("artifacts", arr);
-            return json.stringify(root, 2);
+            let str: string = fs.readFile(manifestPath);
+            return str;
         }
 
-        let pending: json_lib::Value* = new json_lib::Value();
-        pending->set("status", new json_lib::Value("pending"));
-        return json.stringify(pending);
+        let str: string = "{\n  \"status\": \"pending\"\n}";
+        return str;
     }
 
     public getArtifactByFilename(fname: string): ArtifactModel* {

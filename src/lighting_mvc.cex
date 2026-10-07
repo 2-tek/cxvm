@@ -1,7 +1,6 @@
 // 2-TEK Factory: Lighting MVC Core Engine (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-import json from "json";
 
 class HttpRequest {
     public method: string;
@@ -74,12 +73,8 @@ class HttpResponse {
         return new HttpResponse(200, "OK", cType, body);
     }
 
-    public static json(val: json_lib::Value*): HttpResponse* {
-        return new HttpResponse(200, "OK", "application/json", val ? val->stringify() : "null");
-    }
-
-    public static json(jsonBody: string): HttpResponse* {
-        return new HttpResponse(200, "OK", "application/json", jsonBody);
+    public static json(str: string): HttpResponse* {
+        return new HttpResponse(200, "OK", "application/json", str);
     }
 
     public static html(htmlBody: string): HttpResponse* {
@@ -87,17 +82,13 @@ class HttpResponse {
     }
 
     public static notFound(msg: string): HttpResponse* {
-        let errObj: json_lib::Value* = new json_lib::Value();
-        errObj->set("error", new json_lib::Value(msg));
-        errObj->set("statusCode", new json_lib::Value(404));
-        return new HttpResponse(404, "Not Found", "application/json", errObj->stringify());
+        let str: string = "{\"error\":\"" + msg + "\",\"statusCode\":404}";
+        return new HttpResponse(404, "Not Found", "application/json", str);
     }
 
     public static badRequest(msg: string): HttpResponse* {
-        let errObj: json_lib::Value* = new json_lib::Value();
-        errObj->set("error", new json_lib::Value(msg));
-        errObj->set("statusCode", new json_lib::Value(400));
-        return new HttpResponse(400, "Bad Request", "application/json", errObj->stringify());
+        let str: string = "{\"error\":\"" + msg + "\",\"statusCode\":400}";
+        return new HttpResponse(400, "Bad Request", "application/json", str);
     }
 
     public static redirect(url: string): HttpResponse* {
@@ -185,14 +176,9 @@ class BaseModel {
         return res;
     }
 
-    public virtual toJsonValue(): json_lib::Value* {
-        let obj: json_lib::Value* = new json_lib::Value();
-        obj->set("id", new json_lib::Value(this.id));
-        return obj;
-    }
-
     public virtual toJson(): string {
-        return this->toJsonValue()->stringify();
+        let str: string = "{\"id\":\"" + this.id + "\"}";
+        return str;
     }
 }
 
@@ -296,10 +282,8 @@ class LightingMiddleware {
         if (req->path.find("/admin") != -1) {
             let authHeader: string = req->getParam("auth");
             if (authHeader !== "admin-token") {
-                let errObj: json_lib::Value* = new json_lib::Value();
-                errObj->set("error", new json_lib::Value("Unauthorized access"));
-                errObj->set("statusCode", new json_lib::Value(401));
-                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", errObj->stringify());
+                let str: string = "{\"error\":\"Unauthorized access\",\"statusCode\":401}";
+                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", str);
                 return new MiddlewareResult(false, errResp);
             }
         }
@@ -317,12 +301,8 @@ class BaseController {
         return HttpResponse::html(body);
     }
 
-    public json(val: json_lib::Value*): HttpResponse* {
-        return HttpResponse::json(val);
-    }
-
-    public json(jsonString: string): HttpResponse* {
-        return HttpResponse::json(jsonString);
+    public json(str: string): HttpResponse* {
+        return HttpResponse::json(str);
     }
 
     public badRequest(message: string): HttpResponse* {
