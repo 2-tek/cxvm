@@ -6,7 +6,10 @@
 set -e
 
 # Target downloads directory
-RAW_DIR="${1:-packages/Factory/downloads}"
+RAW_DIR="${1:-packages/cxvm/downloads}"
+if [ ! -d "$RAW_DIR" ] && [ -d "downloads" ]; then
+  RAW_DIR="downloads"
+fi
 mkdir -p "$RAW_DIR"
 DOWNLOADS_DIR="$(cd "$RAW_DIR" && pwd)"
 
@@ -71,9 +74,12 @@ cxvm() {
       mkdir -p "$CXVM_DIR/versions/v${ver}" "$CXVM_DIR/cache"
 
       # Search local repo first, then download URL
-      if [ -f "packages/Factory/downloads/$archive" ]; then
-        echo "--> [cxvm] Found package in local Factory downloads"
-        cp "packages/Factory/downloads/$archive" "$CXVM_DIR/cache/$archive"
+      if [ -f "packages/cxvm/downloads/$archive" ]; then
+        echo "--> [cxvm] Found package in local cxvm downloads"
+        cp "packages/cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
+      elif [ -f "downloads/$archive" ]; then
+        echo "--> [cxvm] Found package in local downloads"
+        cp "downloads/$archive" "$CXVM_DIR/cache/$archive"
       elif command -v curl >/dev/null 2>&1; then
         echo "--> [cxvm] Downloading $FACTORY_URL/downloads/$archive..."
         curl -fsSL "$FACTORY_URL/downloads/$archive" -o "$CXVM_DIR/cache/$archive" 2>/dev/null || true
@@ -246,9 +252,9 @@ switch ($Command) {
         New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
         New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
         
-        $localZip = Join-Path "packages\Factory\downloads" $archive
+        $localZip = if (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
         $destZip = Join-Path $cacheDir $archive
-        if (Test-Path $localZip) {
+        if ($localZip -and (Test-Path $localZip)) {
             Copy-Item $localZip -Destination $destZip -Force
         } else {
             Invoke-WebRequest -Uri "$factoryUrl/downloads/$archive" -OutFile $destZip -UseBasicParsing -ErrorAction SilentlyContinue
@@ -319,8 +325,10 @@ echo "==============================================================="
 mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
 
 # Install cxvm CLI script
-if [ -f "packages/Factory/downloads/cxvm" ]; then
-  cp "packages/Factory/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
+if [ -f "packages/cxvm/downloads/cxvm" ]; then
+  cp "packages/cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
+elif [ -f "downloads/cxvm" ]; then
+  cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
 elif command -v curl >/dev/null 2>&1; then
   curl -fsSL "$FACTORY_URL/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
 fi
@@ -365,8 +373,10 @@ New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir "versions") | Out-
 New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir "cache") | Out-Null
 
 $scriptPath = Join-Path $cxvmDir "bin\cxvm.ps1"
-if (Test-Path "packages\Factory\downloads\cxvm.ps1") {
-    Copy-Item "packages\Factory\downloads\cxvm.ps1" -Destination $scriptPath -Force
+if (Test-Path "packages\cxvm\downloads\cxvm.ps1") {
+    Copy-Item "packages\cxvm\downloads\cxvm.ps1" -Destination $scriptPath -Force
+} elseif (Test-Path "downloads\cxvm.ps1") {
+    Copy-Item "downloads\cxvm.ps1" -Destination $scriptPath -Force
 } else {
     Invoke-WebRequest -Uri "$factoryUrl/downloads/cxvm.ps1" -OutFile $scriptPath -UseBasicParsing -ErrorAction SilentlyContinue
 }

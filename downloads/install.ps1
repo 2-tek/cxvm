@@ -15,8 +15,10 @@ New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir "versions") | Out-
 New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir "cache") | Out-Null
 
 $scriptPath = Join-Path $cxvmDir "bin\cxvm.ps1"
-if (Test-Path "packages\Factory\downloads\cxvm.ps1") {
-    Copy-Item "packages\Factory\downloads\cxvm.ps1" -Destination $scriptPath -Force
+if (Test-Path "packages\cxvm\downloads\cxvm.ps1") {
+    Copy-Item "packages\cxvm\downloads\cxvm.ps1" -Destination $scriptPath -Force
+} elseif (Test-Path "downloads\cxvm.ps1") {
+    Copy-Item "downloads\cxvm.ps1" -Destination $scriptPath -Force
 } else {
     Invoke-WebRequest -Uri "$factoryUrl/downloads/cxvm.ps1" -OutFile $scriptPath -UseBasicParsing -ErrorAction SilentlyContinue
 }

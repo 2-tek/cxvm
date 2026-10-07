@@ -19,9 +19,9 @@ switch ($Command) {
         New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
         New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
         
-        $localZip = Join-Path "packages\Factory\downloads" $archive
+        $localZip = if (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
         $destZip = Join-Path $cacheDir $archive
-        if (Test-Path $localZip) {
+        if ($localZip -and (Test-Path $localZip)) {
             Copy-Item $localZip -Destination $destZip -Force
         } else {
             Invoke-WebRequest -Uri "$factoryUrl/downloads/$archive" -OutFile $destZip -UseBasicParsing -ErrorAction SilentlyContinue

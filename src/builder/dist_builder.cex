@@ -70,7 +70,7 @@ class DistBuilder {
     }
 
     public buildAll(): int {
-        let scriptPath: string = "packages/Factory/scripts/generate_distributions.sh";
+        let scriptPath: string = fs.exists("packages/cxvm/scripts/generate_distributions.sh") ? "packages/cxvm/scripts/generate_distributions.sh" : "scripts/generate_distributions.sh";
         if (fs.exists(scriptPath)) {
             let cmd: string = "bash " + scriptPath + " " + this.downloadsDir;
             child_process.execSync(cmd);

@@ -1,7 +1,7 @@
 {
-  "name": "@2tek/factory",
+  "name": "@2tek/cxvm",
   "version": "1.0.0",
-  "description": "Factory: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (cxvm), powered by Lighting MVC",
+  "description": "cxvm: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager, powered by Lighting MVC",
   "main": "src/index.cex",
   "author": "2-TEK Ecosystem",
   "license": "MIT",

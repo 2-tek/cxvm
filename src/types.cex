@@ -94,7 +94,7 @@ class FactoryStats {
         this.totalVersions = 0;
         this.supportedPlatforms = 0;
         this.totalArtifacts = 0;
-        this.downloadsDirectory = "packages/Factory/downloads";
+        this.downloadsDirectory = "packages/cxvm/downloads";
         this.lastBuildTimestamp = "2026-10-07T00:00:00Z";
     }
 }

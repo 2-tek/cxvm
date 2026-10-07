@@ -15,8 +15,10 @@ echo "==============================================================="
 mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
 
 # Install cxvm CLI script
-if [ -f "packages/Factory/downloads/cxvm" ]; then
-  cp "packages/Factory/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
+if [ -f "packages/cxvm/downloads/cxvm" ]; then
+  cp "packages/cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
+elif [ -f "downloads/cxvm" ]; then
+  cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
 elif command -v curl >/dev/null 2>&1; then
   curl -fsSL "$FACTORY_URL/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
 fi

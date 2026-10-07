@@ -36,7 +36,7 @@ Factory is a fullstack cross-platform toolchain distribution engine and runtime 
 curl -fsSL http://127.0.0.1:3080/install.sh | bash
 
 # Or run directly from local repository
-bash packages/Factory/downloads/install.sh
+bash packages/cxvm/downloads/install.sh
 ```
 
 ### Windows PowerShell:
@@ -45,7 +45,7 @@ bash packages/Factory/downloads/install.sh
 irm http://127.0.0.1:3080/install.ps1 | iex
 
 # Or run directly from local repository
-powershell -ExecutionPolicy Bypass -File packages/Factory/downloads/install.ps1
+powershell -ExecutionPolicy Bypass -File packages/cxvm/downloads/install.ps1
 ```
 
 ---
@@ -103,11 +103,11 @@ The following distribution archives (18 bundles: 3 versions x 6 platforms) and t
 ## 6. Execution & Testing
 
 ```bash
-# Run Factory Demonstration & Server Engine
-./bin/cex run packages/Factory/src/index.cex
+# Run cxvm Demonstration & Server Engine
+./bin/cex run packages/cxvm/src/index.cex
 
-# Run Factory Verification Test Suite
-./bin/cex run packages/Factory/tests/factory.test.cex
+# Run cxvm Verification Test Suite
+./bin/cex run packages/cxvm/tests/cxvm.test.cex
 ```
 
 ---

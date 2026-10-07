@@ -39,9 +39,12 @@ cxvm() {
       mkdir -p "$CXVM_DIR/versions/v${ver}" "$CXVM_DIR/cache"
 
       # Search local repo first, then download URL
-      if [ -f "packages/Factory/downloads/$archive" ]; then
-        echo "--> [cxvm] Found package in local Factory downloads"
-        cp "packages/Factory/downloads/$archive" "$CXVM_DIR/cache/$archive"
+      if [ -f "packages/cxvm/downloads/$archive" ]; then
+        echo "--> [cxvm] Found package in local cxvm downloads"
+        cp "packages/cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
+      elif [ -f "downloads/$archive" ]; then
+        echo "--> [cxvm] Found package in local downloads"
+        cp "downloads/$archive" "$CXVM_DIR/cache/$archive"
       elif command -v curl >/dev/null 2>&1; then
         echo "--> [cxvm] Downloading $FACTORY_URL/downloads/$archive..."
         curl -fsSL "$FACTORY_URL/downloads/$archive" -o "$CXVM_DIR/cache/$archive" 2>/dev/null || true

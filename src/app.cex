@@ -23,10 +23,10 @@ class FactoryApp {
     public cxvm: CxvmEngine*;
 
     public constructor(port: int) {
-        this.appName = "2-TEK Cex Factory";
+        this.appName = "2-TEK cxvm Engine";
         this.port = port;
         this.isRunning = false;
-        this.downloadsDir = "packages/Factory/downloads";
+        this.downloadsDir = fs.exists("packages/cxvm/downloads") ? "packages/cxvm/downloads" : (fs.exists("downloads") ? "downloads" : "packages/cxvm/downloads");
 
         this.router = new LightingRouter();
         this.controller = new FactoryController();
