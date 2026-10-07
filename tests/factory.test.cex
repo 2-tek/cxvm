@@ -52,23 +52,24 @@ fn main(): int {
     // Test 2: Cross-Platform Build Engine & Factory/downloads Directory
     // -------------------------------------------------------------
     println("\n[Test Suite 2: Cross-Platform Build Engine & Factory/downloads/ Invariants]");
-    let builder: DistBuilder* = new DistBuilder("packages/Factory/downloads");
+    let dDir: string = fs.exists("downloads") ? "downloads" : "packages/Factory/downloads";
+    let builder: DistBuilder* = new DistBuilder(dDir);
     Assert::equalsInt(6, (int)builder->platforms->length(), "Factory supports 6 target architectures");
     Assert::equalsInt(3, (int)builder->versions->length(), "Factory tracks 3 release versions");
     Assert::equalsInt(18, (int)builder->artifacts->length(), "Factory manages 18 distribution packages (3 versions x 6 platforms)");
 
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-linux-x86_64.tar.gz"), "Linux x86_64 v3.0.0 bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-linux-aarch64.tar.gz"), "Linux aarch64 v3.0.0 bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-darwin-arm64.tar.gz"), "macOS Apple Silicon v3.0.0 bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-darwin-x86_64.tar.gz"), "macOS Intel v3.0.0 bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-windows-x64.zip"), "Windows x64 v3.0.0 zip bundle exists");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cex-v3.0.0-windows-arm64.zip"), "Windows arm64 v3.0.0 zip bundle exists");
+    Assert::isTrue(fs.exists(dDir + "/cex-v3.0.0-linux-x86_64.tar.gz"), "Linux x86_64 v3.0.0 bundle exists");
+    Assert::isTrue(fs.exists(dDir + "/cex-v3.0.0-linux-aarch64.tar.gz"), "Linux aarch64 v3.0.0 bundle exists");
+    Assert::isTrue(fs.exists(dDir + "/cex-v3.0.0-darwin-arm64.tar.gz"), "macOS Apple Silicon v3.0.0 bundle exists");
+    Assert::isTrue(fs.exists(dDir + "/cex-v3.0.0-darwin-x86_64.tar.gz"), "macOS Intel v3.0.0 bundle exists");
+    Assert::isTrue(fs.exists(dDir + "/cex-v3.0.0-windows-x64.zip"), "Windows x64 v3.0.0 zip bundle exists");
+    Assert::isTrue(fs.exists(dDir + "/cex-v3.0.0-windows-arm64.zip"), "Windows arm64 v3.0.0 zip bundle exists");
 
-    Assert::isTrue(fs.exists("packages/Factory/downloads/install.sh"), "POSIX install.sh exists in downloads");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/install.ps1"), "Windows install.ps1 exists in downloads");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/cxvm"), "cxvm CLI exists in downloads");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/manifest.json"), "manifest.json exists in downloads");
-    Assert::isTrue(fs.exists("packages/Factory/downloads/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
+    Assert::isTrue(fs.exists(dDir + "/install.sh"), "POSIX install.sh exists in downloads");
+    Assert::isTrue(fs.exists(dDir + "/install.ps1"), "Windows install.ps1 exists in downloads");
+    Assert::isTrue(fs.exists(dDir + "/cxvm"), "cxvm CLI exists in downloads");
+    Assert::isTrue(fs.exists(dDir + "/manifest.json"), "manifest.json exists in downloads");
+    Assert::isTrue(fs.exists(dDir + "/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
     suite->addResult("test_distribution_builder_and_artifacts", true, "", 1);
 
     // -------------------------------------------------------------
