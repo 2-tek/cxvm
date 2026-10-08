@@ -71,6 +71,12 @@ class FactoryApp {
         this.router->post("/api/v1/cvm/server/start", "factory.apiCvmServerStart");
         this.router->get("/api/v1/cvm/server/status", "factory.apiCvmServerStatus");
         this.router->post("/api/v1/cvm/server/stop", "factory.apiCvmServerStop");
+        this.router->get("/api/v1/thunder/status", "factory.apiThunderStatus");
+        this.router->post("/api/v1/thunder/server/start", "factory.apiThunderServerStart");
+        this.router->get("/api/v1/thunder/server/status", "factory.apiThunderServerStatus");
+        this.router->post("/api/v1/thunder/server/stop", "factory.apiThunderServerStop");
+        this.router->get("/api/v1/thunder/containers", "factory.apiThunderContainers");
+        this.router->get("/api/v1/thunder/images", "factory.apiThunderImages");
     }
 
     public start(): void {
@@ -200,6 +206,30 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiCvmServerStop") {
             return this.controller->apiCvmServerStop(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderStatus") {
+            return this.controller->apiThunderStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderServerStart") {
+            return this.controller->apiThunderServerStart(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderServerStatus") {
+            return this.controller->apiThunderServerStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderServerStop") {
+            return this.controller->apiThunderServerStop(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderContainers") {
+            return this.controller->apiThunderContainers(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderImages") {
+            return this.controller->apiThunderImages(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

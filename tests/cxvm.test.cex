@@ -121,6 +121,8 @@ fn main(): int {
     Assert::isTrue(docOut.find("Supported Targets: 6 architectures") != -1, "cxvm doctor reports 6 supported targets");
     Assert::isTrue(docOut.find("CVM VCS Engine") != -1, "cxvm doctor reports integrated CVM engine");
     Assert::isTrue(docOut.find("CVM Commands") != -1, "cxvm doctor reports CVM commands ready");
+    Assert::isTrue(docOut.find("Thunder Engine") != -1, "cxvm doctor reports Thunder engine");
+    Assert::isTrue(docOut.find("Thunder Daemon") != -1, "cxvm doctor reports Thunder daemon");
 
     let setupCmdRes: CxvmCommandResult* = cxvm->setup("8.0.0");
     Assert::isTrue(setupCmdRes->success, "cxvm setup succeeds");
@@ -327,17 +329,78 @@ fn main(): int {
     let resSrvStop: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/server/stop", "", "application/json");
     Assert::equalsInt(200, resSrvStop->statusCode, "POST /api/v1/cvm/server/stop returns 200 OK");
 
-    // 11. Auto install & auto start of cexr, cexp, cvm when installing cxvm
+    // 11. Auto install & auto start of cexr, cexp, cvm, thunder when installing cxvm
     let instRes: CxvmCommandResult* = cxvm->install("3.0.0");
     Assert::isTrue(instRes->success, "cxvm install 3.0.0 succeeds");
     Assert::isTrue(instRes->output.find("[auto-install] cexr") != -1, "Auto-install cexr reported");
     Assert::isTrue(instRes->output.find("[auto-install] cexp") != -1, "Auto-install cexp reported");
     Assert::isTrue(instRes->output.find("[auto-install] cvm") != -1, "Auto-install cvm reported");
+    Assert::isTrue(instRes->output.find("[auto-install] thunder") != -1, "Auto-install thunder reported");
     Assert::isTrue(instRes->output.find("[auto-start] cexr") != -1, "Auto-start cexr reported");
     Assert::isTrue(instRes->output.find("[auto-start] cexp") != -1, "Auto-start cexp reported");
     Assert::isTrue(instRes->output.find("[auto-start] cvm") != -1, "Auto-start cvm reported");
+    Assert::isTrue(instRes->output.find("[auto-start] thunder") != -1, "Auto-start thunder reported");
 
     suite->addResult("test_integrated_cvm_operations", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 7: Integrated Thunder Container Engine & Microkernel in cxvm
+    // -------------------------------------------------------------
+    println("\n[Test Suite 7: Integrated Thunder Container Engine & Virtual Linux Microkernel]");
+
+    // 1. Start Thunder standalone single process
+    let thStartRes: CxvmCommandResult* = cxvm->startThunder(3050, true);
+    Assert::isTrue(thStartRes->success, "cxvm start thunder succeeds");
+    Assert::isTrue(cxvm->thunderRunning, "Thunder server marked as running");
+    Assert::equalsInt(3050, cxvm->thunderPort, "Thunder server port is 3050");
+    Assert::isTrue(thStartRes->output.find("standalone (single process)") != -1, "Output confirms Thunder standalone single process mode");
+
+    // 2. Status Thunder
+    let thStRes: CxvmCommandResult* = cxvm->statusThunder();
+    Assert::isTrue(thStRes->success, "cxvm status thunder succeeds");
+    Assert::isTrue(thStRes->output.find("single process standalone") != -1, "Status confirms Thunder single process standalone");
+
+    // 3. Stop Thunder
+    let thStopRes: CxvmCommandResult* = cxvm->stopThunder();
+    Assert::isTrue(thStopRes->success, "cxvm stop thunder succeeds");
+    Assert::isTrue(!cxvm->thunderRunning, "Thunder server marked as stopped");
+
+    // 4. CLI cvmExecute routing
+    let thExecStart: int = cxvm->cvmExecute("start", "thunder", "");
+    Assert::equalsInt(0, thExecStart, "cxvm cvmExecute start thunder returns exit code 0");
+    Assert::isTrue(cxvm->thunderRunning, "Thunder running after cvmExecute start thunder");
+
+    let thExecPs: int = cxvm->cvmExecute("thunder", "ps", "");
+    Assert::equalsInt(0, thExecPs, "cxvm cvmExecute thunder ps returns exit code 0");
+
+    let thExecDocker: int = cxvm->cvmExecute("docker", "ps", "");
+    Assert::equalsInt(0, thExecDocker, "cxvm cvmExecute docker ps returns exit code 0");
+
+    // 5. REST Endpoints for Thunder
+    let resThStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/status", "", "application/json");
+    Assert::equalsInt(200, resThStatus->statusCode, "GET /api/v1/thunder/status returns 200 OK");
+    Assert::isTrue(resThStatus->body.find("SUCCESS") != -1, "Thunder status reports SUCCESS");
+
+    let resThSrvStart: HttpResponse* = app->simulateRequest("POST", "/api/v1/thunder/server/start", "", "application/json");
+    Assert::equalsInt(200, resThSrvStart->statusCode, "POST /api/v1/thunder/server/start returns 200 OK");
+    Assert::isTrue(resThSrvStart->body.find("standalone (single process)") != -1, "Thunder server start reports standalone");
+
+    let resThSrvStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/server/status", "", "application/json");
+    Assert::equalsInt(200, resThSrvStatus->statusCode, "GET /api/v1/thunder/server/status returns 200 OK");
+    Assert::isTrue(resThSrvStatus->body.find("RUNNING") != -1, "Thunder server status reports RUNNING");
+
+    let resThContainers: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/containers", "", "application/json");
+    Assert::equalsInt(200, resThContainers->statusCode, "GET /api/v1/thunder/containers returns 200 OK");
+    Assert::isTrue(resThContainers->body.find("containers") != -1, "Thunder containers API reports containers list");
+
+    let resThImages: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/images", "", "application/json");
+    Assert::equalsInt(200, resThImages->statusCode, "GET /api/v1/thunder/images returns 200 OK");
+    Assert::isTrue(resThImages->body.find("images") != -1, "Thunder images API reports images list");
+
+    let resThSrvStop: HttpResponse* = app->simulateRequest("POST", "/api/v1/thunder/server/stop", "", "application/json");
+    Assert::equalsInt(200, resThSrvStop->statusCode, "POST /api/v1/thunder/server/stop returns 200 OK");
+
+    suite->addResult("test_integrated_thunder_operations", true, "", 1);
 
     println("\n");
     TestReporter::printSummary(suite);

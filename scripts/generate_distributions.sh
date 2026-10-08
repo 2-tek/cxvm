@@ -54,6 +54,12 @@ if [ -f "$REPO_ROOT/downloads/cvm-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT
 fi
 chmod +x "$DOWNLOADS_DIR/cvm-server" 2>/dev/null || true
 
+# 2c. Ensure thunder-server
+if [ -f "$REPO_ROOT/downloads/thunder-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
+  cp -f "$REPO_ROOT/downloads/thunder-server" "$DOWNLOADS_DIR/thunder-server"
+fi
+chmod +x "$DOWNLOADS_DIR/thunder-server" 2>/dev/null || true
+
 # 3. Generate cxvm.cmd (Windows CMD wrapper)
 cat <<'EOF' > "$DOWNLOADS_DIR/cxvm.cmd"
 @echo off
@@ -81,25 +87,30 @@ echo "==============================================================="
 
 mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
 
-# Install cxvm CLI script & cvm-server
+# Install cxvm CLI script, cvm-server, and thunder-server
 if [ -f "cxvm/downloads/cxvm" ]; then
   cp "cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp "cxvm/downloads/cvm-server" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  cp "cxvm/downloads/thunder-server" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 elif [ -f "packages/cxvm/downloads/cxvm" ]; then
   cp "packages/cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp "packages/cxvm/downloads/cvm-server" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  cp "packages/cxvm/downloads/thunder-server" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 elif [ -f "downloads/cxvm" ]; then
   cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp "downloads/cvm-server" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  cp "downloads/thunder-server" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 elif command -v curl >/dev/null 2>&1; then
   curl -fsSL "$FACTORY_URL/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || \
   curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
   curl -fsSL "$FACTORY_URL/downloads/cvm-server" -o "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  curl -fsSL "$FACTORY_URL/downloads/thunder-server" -o "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 elif command -v wget >/dev/null 2>&1; then
   wget -q "$FACTORY_URL/downloads/cxvm" -O "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
   wget -q "$FACTORY_URL/downloads/cvm-server" -O "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  wget -q "$FACTORY_URL/downloads/thunder-server" -O "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 fi
-chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* 2>/dev/null || true
+chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
 cp "$CXVM_DIR/bin/cxvm" "$CXVM_DIR/bin/cxvm.sh" 2>/dev/null || true
 
 # Run cxvm install
@@ -167,6 +178,12 @@ if (Test-Path "downloads\cvm-server") {
     Copy-Item "downloads\cvm-server" -Destination (Join-Path $cxvmDir "bin\cvm-server") -Force
 } else {
     Invoke-WebRequest -Uri "$factoryUrl/downloads/cvm-server" -OutFile (Join-Path $cxvmDir "bin\cvm-server") -UseBasicParsing -ErrorAction SilentlyContinue
+}
+
+if (Test-Path "downloads\thunder-server") {
+    Copy-Item "downloads\thunder-server" -Destination (Join-Path $cxvmDir "bin\thunder-server") -Force
+} else {
+    Invoke-WebRequest -Uri "$factoryUrl/downloads/thunder-server" -OutFile (Join-Path $cxvmDir "bin\thunder-server") -UseBasicParsing -ErrorAction SilentlyContinue
 }
 
 Write-Host "==> Installing default Cex Runtime v$defaultVersion via cxvm..." -ForegroundColor Green
@@ -298,11 +315,27 @@ WEOF
       cp "$DOWNLOADS_DIR/cxvm.ps1" "$PKG_DIR/bin/cxvm.ps1"
     fi
     
-    # Copy cxvm and cvm-server into bundle bin
+    # Copy cxvm, cvm-server, and thunder-server into bundle bin
     cp "$DOWNLOADS_DIR/cxvm" "$PKG_DIR/bin/cxvm"
     if [ -f "$DOWNLOADS_DIR/cvm-server" ]; then
       cp "$DOWNLOADS_DIR/cvm-server" "$PKG_DIR/bin/cvm-server"
       chmod +x "$PKG_DIR/bin/cvm-server"
+    fi
+    if [ -f "$DOWNLOADS_DIR/thunder-server" ]; then
+      cp "$DOWNLOADS_DIR/thunder-server" "$PKG_DIR/bin/thunder-server"
+      chmod +x "$PKG_DIR/bin/thunder-server"
+    fi
+    cat <<'TEOF' > "$PKG_DIR/bin/thunder"
+#!/usr/bin/env bash
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+exec "$CXVM_DIR/bin/cxvm" thunder "$@"
+TEOF
+    chmod +x "$PKG_DIR/bin/thunder"
+    if [ "$pos" = "windows" ]; then
+      cat <<'WEOF' > "$PKG_DIR/bin/thunder.cmd"
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" thunder %*
+WEOF
     fi
     
     # 6b. Header files
@@ -357,7 +390,7 @@ echo "Generating SHA256 checksums..."
   cd "$DOWNLOADS_DIR"
   rm -f SHA256SUMS
   sha256sum cex-v*.* > SHA256SUMS 2>/dev/null || true
-  sha256sum install.* cxvm* cvm-server setup.* >> SHA256SUMS 2>/dev/null || true
+  sha256sum install.* cxvm* cvm-server thunder-server setup.* >> SHA256SUMS 2>/dev/null || true
 )
 
 # 8. Generate manifest.json

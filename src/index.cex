@@ -89,6 +89,25 @@ fn main(): int {
     let srvStopRes: CxvmCommandResult* = app->cxvm->stopCvm();
     print("    Result: "); println(srvStopRes->success ? "PASSED [OK]" : "FAILED");
 
+    // 3c. Testing Integrated Thunder Container Engine Commands
+    println("\n[3c. Testing Integrated Thunder Engine (cxvm thunder, cxvm docker, cxvm start thunder)]");
+    println("  ▶ Simulating: cxvm start thunder (standalone single process)");
+    let thStartRes: CxvmCommandResult* = app->cxvm->startThunder(3050, true);
+    print("    Result: "); println(thStartRes->success ? "PASSED [OK]" : "FAILED");
+    print("    Output:\n    "); println(thStartRes->output);
+
+    println("  ▶ Simulating: cxvm status thunder");
+    let thStatRes: CxvmCommandResult* = app->cxvm->statusThunder();
+    println("    " + thStatRes->output);
+
+    println("  ▶ Simulating: cxvm thunder ps");
+    let thPsCode: int = app->cxvm->thunderExecute("ps", "", "");
+    print("    Result: "); println(thPsCode == 0 ? "PASSED [OK]" : "FAILED");
+
+    println("  ▶ Simulating: cxvm stop thunder");
+    let thStopRes: CxvmCommandResult* = app->cxvm->stopThunder();
+    print("    Result: "); println(thStopRes->success ? "PASSED [OK]" : "FAILED");
+
     // 4. Testing Cross-Platform DistBuilder
     println("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
     print("  Supported Architectures: "); println((int)app->builder->platforms->length());
@@ -151,6 +170,15 @@ fn main(): int {
 
     let cvmSrvStatResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/server/status", "", "application/json");
     print("  GET /api/v1/cvm/server/status -> "); println(cvmSrvStatResp->body);
+
+    let thStatusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/status", "", "application/json");
+    print("  GET /api/v1/thunder/status -> "); println(thStatusResp->body);
+
+    let thContainersResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/containers", "", "application/json");
+    print("  GET /api/v1/thunder/containers -> "); println(thContainersResp->body);
+
+    let thImagesResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/images", "", "application/json");
+    print("  GET /api/v1/thunder/images -> "); println(thImagesResp->body);
 
     app->stop();
     println("\n===============================================================================");

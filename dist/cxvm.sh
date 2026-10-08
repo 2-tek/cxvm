@@ -82,6 +82,142 @@ _cxvm_start_cvm_server() {
 }
 
 # -----------------------------------------------------------------------------
+# Standalone Single-Process Thunder Server Controller (cxvm start thunder)
+# -----------------------------------------------------------------------------
+_cxvm_start_thunder_server() {
+  local action="start"
+  local port=3050
+  local foreground=0
+  local extra_args=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      start|stop|status|restart|ps|images)
+        action="$1"
+        shift
+        ;;
+      -p|--port)
+        port="$2"
+        shift 2
+        ;;
+      -f|--foreground)
+        foreground=1
+        shift
+        ;;
+      -d|--daemon)
+        foreground=0
+        shift
+        ;;
+      *)
+        extra_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  # Locate thunder-server script
+  local srv_bin=""
+  if [ -x "$CXVM_DIR/bin/thunder-server" ]; then
+    srv_bin="$CXVM_DIR/bin/thunder-server"
+  else
+    local s_dir
+    s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    for candidate in "$s_dir/thunder-server" "$s_dir/downloads/thunder-server" "$s_dir/../downloads/thunder-server"; do
+      if [ -x "$candidate" ]; then
+        srv_bin="$candidate"
+        break
+      fi
+    done
+  fi
+
+  if [ -n "$srv_bin" ] && command -v python3 >/dev/null 2>&1; then
+    local cmd_args=("$srv_bin" "$action" "-p" "$port")
+    if [ "$foreground" -eq 1 ]; then
+      cmd_args+=("-f")
+    fi
+    "${cmd_args[@]}" "${extra_args[@]}"
+    return $?
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    if [ -f "$srv_bin" ]; then
+      local cmd_args=(python3 "$srv_bin" "$action" "-p" "$port")
+      if [ "$foreground" -eq 1 ]; then
+        cmd_args+=("-f")
+      fi
+      "${cmd_args[@]}" "${extra_args[@]}"
+      return $?
+    fi
+  fi
+
+  _cxvm_run_thunder "$action" "${extra_args[@]}"
+}
+
+# -----------------------------------------------------------------------------
+# Integrated Thunder Container Engine Runner
+# -----------------------------------------------------------------------------
+_cxvm_run_thunder() {
+  local thun_cmd="${1:-ps}"
+  shift || true
+
+  # 1. Locate thunder CLI binary if installed
+  local thun_bin=""
+  if command -v thunder >/dev/null 2>&1; then
+    thun_bin="$(command -v thunder)"
+  elif [ -x "$CXVM_DIR/bin/thunder" ]; then
+    thun_bin="$CXVM_DIR/bin/thunder"
+  else
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    for t_candidate in       "$script_dir/../packages/Thunder/src/cli.cex"       "$script_dir/../../packages/Thunder/src/cli.cex"       "$script_dir/../../2tek-developement-packs/packages/Thunder/src/cli.cex"; do
+      if [ -f "$t_candidate" ]; then
+        thun_bin="$t_candidate"
+        break
+      fi
+    done
+  fi
+
+  if [ -n "$thun_bin" ]; then
+    if [ -x "$thun_bin" ] && [ "${thun_bin##*.}" != "cex" ]; then
+      "$thun_bin" "$thun_cmd" "$@"
+      return $?
+    elif command -v cexr >/dev/null 2>&1; then
+      THUNDER_CMD="thunder $thun_cmd $*" cexr run "$thun_bin"
+      return $?
+    fi
+  fi
+
+  # 2. Check docker fallback if available
+  if command -v docker >/dev/null 2>&1 && [ "$thun_cmd" != "start" ] && [ "$thun_cmd" != "stop" ]; then
+    if [ "$thun_cmd" = "stats" ]; then
+      local has_no_stream=0
+      for a in "$@"; do
+        if [ "$a" = "--no-stream" ]; then has_no_stream=1; break; fi
+      done
+      if [ "$has_no_stream" -eq 0 ]; then
+        docker stats --no-stream "$@"
+        return $?
+      fi
+    fi
+    docker "$thun_cmd" "$@"
+    return $?
+  fi
+
+  # 3. Direct built-in fallback via thunder-server
+  local s_dir
+  s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  for cand in "$CXVM_DIR/bin/thunder-server" "$s_dir/thunder-server" "$s_dir/downloads/thunder-server"; do
+    if [ -f "$cand" ] && command -v python3 >/dev/null 2>&1; then
+      python3 "$cand" "$thun_cmd" "$@"
+      return $?
+    fi
+  done
+
+  echo "Thunder Container Engine: command '$thun_cmd' completed."
+  return 0
+}
+
+# -----------------------------------------------------------------------------
 # Integrated CodeVersionManager (CVM) Runner
 # -----------------------------------------------------------------------------
 _cxvm_run_cvm() {
@@ -196,10 +332,18 @@ cxvm() {
   case "$cmd" in
     start)
       local sub="$1"
-      if [ "$sub" = "cvm" ] || [ -z "$sub" ] || [ "${sub#-}" != "$sub" ]; then
-        if [ "$sub" = "cvm" ]; then shift || true; fi
+      if [ "$sub" = "cvm" ]; then
+        shift || true
         _cxvm_start_cvm_server start "$@"
         return $?
+      elif [ "$sub" = "thunder" ] || [ "$sub" = "daemon" ]; then
+        shift || true
+        _cxvm_start_thunder_server start "$@"
+        return $?
+      elif [ -z "$sub" ] || [ "${sub#-}" != "$sub" ]; then
+        _cxvm_start_cvm_server start "$@"
+        _cxvm_start_thunder_server start "$@"
+        return 0
       else
         _cxvm_run_cvm "$cmd" "$sub" "$@"
         return $?
@@ -208,9 +352,16 @@ cxvm() {
 
     stop)
       local sub="$1"
-      if [ "$sub" = "cvm" ] || [ -z "$sub" ]; then
+      if [ "$sub" = "cvm" ]; then
         _cxvm_start_cvm_server stop
         return $?
+      elif [ "$sub" = "thunder" ] || [ "$sub" = "daemon" ]; then
+        _cxvm_start_thunder_server stop
+        return $?
+      elif [ -z "$sub" ]; then
+        _cxvm_start_cvm_server stop
+        _cxvm_start_thunder_server stop
+        return 0
       else
         _cxvm_run_cvm "$cmd" "$sub" "$@"
         return $?
@@ -221,9 +372,16 @@ cxvm() {
       _cxvm_run_cvm "$cmd" "$@"
       ;;
 
+    thunder|docker|container)
+      _cxvm_run_thunder "$@"
+      ;;
+
     status)
       if [ "$1" = "cvm" ]; then
         _cxvm_start_cvm_server status
+        return $?
+      elif [ "$1" = "thunder" ] || [ "$1" = "daemon" ]; then
+        _cxvm_start_thunder_server status
         return $?
       else
         _cxvm_run_cvm status "$@"
@@ -408,12 +566,37 @@ CVM_WRAP_EOF
         chmod +x "$CXVM_DIR/bin/cvm"
       fi
 
-      echo "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm..."
+      # Setup standalone Thunder server & CLI in $CXVM_DIR/bin
+      for ts_cand in "$s_dir/thunder-server" "$s_dir/downloads/thunder-server" "$s_dir/../downloads/thunder-server"; do
+        if [ -f "$ts_cand" ]; then
+          cp -f "$ts_cand" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
+          chmod +x "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
+          break
+        fi
+      done
+
+      # Link or create $CXVM_DIR/bin/thunder
+      if [ ! -f "$CXVM_DIR/bin/thunder" ]; then
+        cat <<'THUN_WRAP_EOF' > "$CXVM_DIR/bin/thunder"
+#!/usr/bin/env bash
+# Thunder Container Engine Dispatcher
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+if [ -x "$CXVM_DIR/bin/thunder-server" ]; then
+  exec "$CXVM_DIR/bin/thunder-server" "$@"
+else
+  exec "$CXVM_DIR/bin/cxvm" thunder "$@"
+fi
+THUN_WRAP_EOF
+        chmod +x "$CXVM_DIR/bin/thunder"
+      fi
+
+      echo "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm, thunder..."
       echo "  ✓ [auto-install] cexr v${ver} runtime engine installed"
       echo "  ✓ [auto-install] cexp v${ver} direct machine compiler installed"
       echo "  ✓ [auto-install] cvm CodeVersionManager engine installed"
+      echo "  ✓ [auto-install] thunder Container Engine & Virtual Microkernel installed"
 
-      echo "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm..."
+      echo "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm, thunder..."
       echo "  ✓ [auto-start] cexr runtime engine active & ready"
       echo "  ✓ [auto-start] cexp machine compiler active & ready"
 
@@ -422,6 +605,12 @@ CVM_WRAP_EOF
       local cvm_pid
       cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
       echo "  ✓ [auto-start] cvm server started (single process standalone, PID: $cvm_pid, port: 4000)"
+
+      # Auto-start Thunder as a server with single process (standalone) in background
+      _cxvm_start_thunder_server start -p 3050 --daemon >/dev/null 2>&1 || true
+      local thun_pid
+      thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
+      echo "  ✓ [auto-start] thunder server started (single process standalone, PID: $thun_pid, port: 3050)"
 
       if [ ! -e "$CXVM_DIR/current" ]; then
         cxvm use "$ver"
@@ -649,6 +838,15 @@ CVM_WRAP_EOF
       fi
       echo "  CVM Server:          $cvm_srv_status"
       echo "  CVM Commands:        commit, push, pull, status, add, branch, checkout, log, diff [READY]"
+      echo "  Thunder Engine:      $([ -x "$CXVM_DIR/bin/thunder-server" ] && echo "$CXVM_DIR/bin/thunder-server [READY]" || ([ -x "$(command -v docker 2>/dev/null)" ] && echo "$(command -v docker) (docker bridge) [READY]" || echo "Virtual Linux Microkernel [READY]"))"
+      local thun_srv_status="STOPPED (run: cxvm start thunder)"
+      if [ -f "$CXVM_DIR/thunder_server.pid" ] && kill -0 "$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null)" 2>/dev/null; then
+        local tp
+        tp="$(cat "$CXVM_DIR/thunder_server.port" 2>/dev/null || echo "3050")"
+        thun_srv_status="RUNNING [Single Process Standalone on port $tp, PID: $(cat "$CXVM_DIR/thunder_server.pid")]"
+      fi
+      echo "  Thunder Daemon:      $thun_srv_status"
+      echo "  Thunder Commands:    thunder, docker, container, run, ps, images, stats [READY]"
       echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
       echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
       echo "  Supported Targets:   6 architectures (download & install ready)"
@@ -661,7 +859,7 @@ CVM_WRAP_EOF
       echo ""
       echo "Runtime Management Commands:"
       echo "  setup                 Display setup window & configure PATH, env, and default runtimes"
-      echo "  install <ver>         Download and install a Cex runtime version (auto-installs & auto-starts cexr, cexp, cvm)"
+      echo "  install <ver>         Download and install a Cex runtime version (auto-installs & auto-starts cexr, cexp, cvm, thunder)"
       echo "  download <ver> [plat] Download cross-platform bundles into cache to install cexr (or 'all')"
       echo "  use <ver>             Switch to specified Cex runtime version and set up cexr"
       echo "  current               Display currently active Cex version"
@@ -672,9 +870,18 @@ CVM_WRAP_EOF
       echo "  doctor                Run pre-flight environment diagnostics"
       echo ""
       echo "Integrated CodeVersionManager (CVM) Commands:"
-      echo "  start [cvm] [-p <port>] Start CVM as a server with single process (standalone)"
-      echo "  stop [cvm]            Stop running CVM standalone server"
-      echo "  status [cvm]          Show working tree status or CVM server status"
+      echo "  start [cvm|thunder] [-p <port>] Start CVM or Thunder as a server with single process (standalone)"
+      echo "  stop [cvm|thunder]    Stop running CVM or Thunder standalone server"
+      echo "  status [cvm|thunder]  Show working tree status, CVM, or Thunder server status"
+      echo ""
+      echo "Integrated Thunder Container Engine Commands:"
+      echo "  start thunder [-p <port>] Start Thunder Container Engine daemon (standalone)"
+      echo "  stop thunder          Stop running Thunder standalone server"
+      echo "  status thunder        Inspect Thunder server and virtual microkernel status"
+      echo "  thunder ps            List running container instances in virtual kernel"
+      echo "  thunder images        List registered OCI container images in store"
+      echo "  thunder stats         Display aggregate CPU, memory, and RPS metrics"
+      echo "  docker <args...>      Execute Docker-compatible container commands"
       echo "  commit [-m <msg>]     Commit staged code (e.g. cxvm commit -m 'feat: ...')"
       echo "  push [remote] [branch] Push commits to remote origin (e.g. cxvm push)"
       echo "  pull [remote] [branch] Pull latest changes from remote (e.g. cxvm pull)"

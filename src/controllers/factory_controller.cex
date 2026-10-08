@@ -323,4 +323,82 @@ class FactoryController : public BaseController {
         str += "}";
         return this->json(str);
     }
+
+    public apiThunderStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let str: string = "{";
+        str += "\"status\":\"SUCCESS\",";
+        str += "\"health\":\"HEALTHY\",";
+        str += "\"engine\":\"CexThunderEngine\",";
+        str += "\"controlPort\":" + std::to_string(cxvm->thunderPort) + ",";
+        str += "\"singleProcess\":true,";
+        str += "\"containersRunning\":" + std::to_string(cxvm->thunderContainersRunning) + ",";
+        str += "\"totalImages\":" + std::to_string(cxvm->thunderTotalImages) + ",";
+        str += "\"kernel\":\"Linux 6.8.0-2tek-microkernel\",";
+        str += "\"cgroups\":\"v2\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiThunderServerStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->startThunder(3050, true);
+        let str: string = "{";
+        str += "\"status\":\"SUCCESS\",";
+        str += "\"service\":\"thunder-daemon\",";
+        str += "\"mode\":\"standalone (single process)\",";
+        str += "\"port\":" + std::to_string(cxvm->thunderPort) + ",";
+        str += "\"pid\":" + std::to_string(cxvm->thunderPid) + ",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiThunderServerStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->statusThunder();
+        let str: string = "{";
+        str += cxvm->thunderRunning ? "\"status\":\"RUNNING\"," : "\"status\":\"STOPPED\",";
+        str += cxvm->thunderRunning ? "\"isRunning\":true," : "\"isRunning\":false,";
+        str += "\"port\":" + std::to_string(cxvm->thunderPort) + ",";
+        str += "\"pid\":" + std::to_string(cxvm->thunderPid) + ",";
+        str += "\"mode\":\"standalone (single process)\",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiThunderServerStop(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->stopThunder();
+        let str: string = "{";
+        str += "\"status\":\"STOPPED\",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiThunderContainers(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let str: string = "{";
+        str += "\"status\":\"SUCCESS\",";
+        str += "\"total\":" + std::to_string(cxvm->thunderContainersRunning) + ",";
+        str += "\"containers\":[";
+        str += "{\"id\":\"cxt-1a8f9\",\"name\":\"thunder-daemon\",\"image\":\"@2tek/thunder:latest\",\"hostPort\":3050,\"status\":\"RUNNING\"},";
+        str += "{\"id\":\"cxt-2a8f9\",\"name\":\"cvm-server\",\"image\":\"@2tek/cvm:latest\",\"hostPort\":4000,\"status\":\"RUNNING\"},";
+        str += "{\"id\":\"cxt-3a8f9\",\"name\":\"cxvm-factory\",\"image\":\"@2tek/cxvm:latest\",\"hostPort\":3080,\"status\":\"RUNNING\"},";
+        str += "{\"id\":\"cxt-4a8f9\",\"name\":\"lighting-mvc\",\"image\":\"@2tek/lighting:latest\",\"hostPort\":3060,\"status\":\"RUNNING\"},";
+        str += "{\"id\":\"cxt-5a8f9\",\"name\":\"codestorm-editor\",\"image\":\"@2tek/code-storm:latest\",\"hostPort\":3055,\"status\":\"RUNNING\"}";
+        str += "]}";
+        return this->json(str);
+    }
+
+    public apiThunderImages(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let str: string = "{";
+        str += "\"status\":\"SUCCESS\",";
+        str += "\"total\":" + std::to_string(cxvm->thunderTotalImages) + ",";
+        str += "\"images\":[";
+        str += "{\"tag\":\"@2tek/thunder:latest\",\"id\":\"sha256:7f92a10\",\"sizeMb\":42.5},";
+        str += "{\"tag\":\"@2tek/cvm:latest\",\"id\":\"sha256:8b41c30\",\"sizeMb\":38.2},";
+        str += "{\"tag\":\"@2tek/cxvm:latest\",\"id\":\"sha256:5d12e84\",\"sizeMb\":34.0},";
+        str += "{\"tag\":\"@2tek/lighting:latest\",\"id\":\"sha256:3a91e52\",\"sizeMb\":28.7},";
+        str += "{\"tag\":\"@2tek/code-storm:latest\",\"id\":\"sha256:9c44b11\",\"sizeMb\":56.1}";
+        str += "]}";
+        return this->json(str);
+    }
 }

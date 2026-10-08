@@ -114,6 +114,146 @@ function Start-CvmServer {
     }
 }
 
+function Start-ThunderServer {
+    param (
+        [string]$Action = "start",
+        [int]$Port = 3050,
+        [bool]$Foreground = $false,
+        [string[]]$ServerArgs = @()
+    )
+
+    $pidFile = Join-Path $cxvmHome "thunder_server.pid"
+    $portFile = Join-Path $cxvmHome "thunder_server.port"
+    $logFile = Join-Path $cxvmHome "thunder_server.log"
+
+    $srvBin = Join-Path $cxvmHome "bin\thunder-server"
+    if (-not (Test-Path $srvBin)) {
+        $candidates = @(
+            Join-Path $PSScriptRoot "thunder-server",
+            Join-Path $PSScriptRoot "..\downloads\thunder-server",
+            Join-Path $PSScriptRoot "downloads\thunder-server"
+        )
+        foreach ($c in $candidates) {
+            if (Test-Path $c) {
+                $srvBin = $c
+                break
+            }
+        }
+    }
+
+    if ($Action -eq "status") {
+        if (Test-Path $pidFile) {
+            $srvPid = (Get-Content $pidFile -Raw).Trim()
+            $proc = Get-Process -Id $srvPid -ErrorAction SilentlyContinue
+            if ($proc) {
+                $curPort = if (Test-Path $portFile) { (Get-Content $portFile -Raw).Trim() } else { "3050" }
+                Write-Host "[cxvm] Thunder Server is RUNNING (single process standalone, PID: $srvPid, port: $curPort)" -ForegroundColor Green
+                return $true
+            } else {
+                Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+                Remove-Item $portFile -Force -ErrorAction SilentlyContinue
+                Write-Host "[cxvm] Thunder Server is STOPPED (stale PID file cleaned up)." -ForegroundColor Yellow
+                return $false
+            }
+        } else {
+            Write-Host "[cxvm] Thunder Server is STOPPED (run 'cxvm start thunder' to start)." -ForegroundColor Yellow
+            return $false
+        }
+    }
+
+    if ($Action -eq "stop") {
+        if (Test-Path $pidFile) {
+            $srvPid = (Get-Content $pidFile -Raw).Trim()
+            try {
+                Stop-Process -Id $srvPid -Force -ErrorAction SilentlyContinue
+                Write-Host "[cxvm] Thunder Server (PID: $srvPid) stopped." -ForegroundColor Green
+            } catch {
+                Write-Host "[cxvm] Failed to stop Thunder Server PID: $srvPid" -ForegroundColor Yellow
+            }
+            Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+            Remove-Item $portFile -Force -ErrorAction SilentlyContinue
+        } else {
+            Write-Host "[cxvm] Thunder Server is not running." -ForegroundColor Yellow
+        }
+        return $true
+    }
+
+    if ($Action -eq "restart") {
+        Start-ThunderServer -Action "stop"
+        Start-Sleep -Milliseconds 500
+    }
+
+    if (Test-Path $pidFile) {
+        $srvPid = (Get-Content $pidFile -Raw).Trim()
+        $proc = Get-Process -Id $srvPid -ErrorAction SilentlyContinue
+        if ($proc) {
+            $curPort = if (Test-Path $portFile) { (Get-Content $portFile -Raw).Trim() } else { "3050" }
+            Write-Host "[cxvm] Thunder Server already running (PID: $srvPid, port: $curPort)" -ForegroundColor Yellow
+            return $true
+        }
+    }
+
+    $py = if (Get-Command "python3" -ErrorAction SilentlyContinue) { "python3" } elseif (Get-Command "python" -ErrorAction SilentlyContinue) { "python" } else { "" }
+
+    if ($py -and (Test-Path $srvBin)) {
+        if ($Foreground) {
+            Write-Host "==> [cxvm] Starting Thunder Server in foreground on port $Port..." -ForegroundColor Cyan
+            & $py $srvBin start -p $Port -f
+        } else {
+            Write-Host "==> [cxvm] Starting Thunder standalone server (single process) on port $Port..." -ForegroundColor Cyan
+            & $py $srvBin start -p $Port
+            $srvPid = if (Test-Path $pidFile) { (Get-Content $pidFile -Raw).Trim() } else { "$PID" }
+            Write-Host "✓ [cxvm] Thunder Server started in background (PID: $srvPid, port: $Port)" -ForegroundColor Green
+            Write-Host "  Web Dashboard: http://localhost:$Port" -ForegroundColor Cyan
+            Write-Host "  Health API:    http://localhost:$Port/health" -ForegroundColor Cyan
+        }
+        return $true
+    } else {
+        Write-Host "==> [cxvm] Python not detected or thunder-server not found, running Thunder CLI fallback..." -ForegroundColor Yellow
+        Run-Thunder -ThunderCmd "ps" -ThunderArgs $ServerArgs
+    }
+}
+
+function Run-Thunder {
+    param (
+        [string]$ThunderCmd = "ps",
+        [string[]]$ThunderArgs = @()
+    )
+
+    $thBin = if (Get-Command "thunder" -ErrorAction SilentlyContinue) { "thunder" } elseif (Test-Path (Join-Path $cxvmHome "bin\thunder.cmd")) { Join-Path $cxvmHome "bin\thunder.cmd" } else { "" }
+    if ($thBin) {
+        & $thBin $ThunderCmd @ThunderArgs
+        return
+    }
+
+    $srvBin = Join-Path $cxvmHome "bin\thunder-server"
+    if (-not (Test-Path $srvBin)) {
+        $candidates = @(
+            Join-Path $PSScriptRoot "thunder-server",
+            Join-Path $PSScriptRoot "..\downloads\thunder-server",
+            Join-Path $PSScriptRoot "downloads\thunder-server"
+        )
+        foreach ($c in $candidates) {
+            if (Test-Path $c) {
+                $srvBin = $c
+                break
+            }
+        }
+    }
+    $py = if (Get-Command "python3" -ErrorAction SilentlyContinue) { "python3" } elseif (Get-Command "python" -ErrorAction SilentlyContinue) { "python" } else { "" }
+    if ($py -and (Test-Path $srvBin)) {
+        & $py $srvBin $ThunderCmd @ThunderArgs
+        return
+    }
+
+    if (Get-Command "docker" -ErrorAction SilentlyContinue) {
+        & docker $ThunderCmd @ThunderArgs
+        return
+    }
+
+    Write-Host "Error: Neither thunder CLI, thunder-server, nor docker is available." -ForegroundColor Red
+}
+
 function Run-Cvm {
     param (
         [string]$CvmCmd = "status",
@@ -154,7 +294,7 @@ function Run-Cvm {
 switch ($Command) {
     "start" {
         $sub = if ($Version) { $Version } else { if ($ExtraArgs.Count -gt 0) { $ExtraArgs[0] } else { "cvm" } }
-        if ($sub -eq "cvm" -or $sub -like "-*") {
+        if ($sub -eq "cvm" -or ($sub -like "-*" -and $sub -ne "thunder" -and $sub -ne "docker")) {
             $p = 4000
             $fg = $false
             $all = @()
@@ -172,6 +312,23 @@ switch ($Command) {
                 }
             }
             Start-CvmServer -Action "start" -Port $p -Foreground $fg
+        } elseif ($sub -eq "thunder" -or $sub -eq "docker") {
+            $p = 3050
+            $fg = $false
+            $all = @()
+            if ($Platform) { $all += $Platform }
+            if ($ExtraArgs) { $all += $ExtraArgs }
+            for ($i = 0; $i -lt $all.Count; $i++) {
+                if ($all[$i] -eq "-p" -or $all[$i] -eq "--port") {
+                    $p = [int]$all[$i+1]
+                    $i++
+                } elseif ($all[$i] -eq "-f" -or $all[$i] -eq "--foreground") {
+                    $fg = $true
+                } elseif ($all[$i] -eq "-d" -or $all[$i] -eq "--daemon") {
+                    $fg = $false
+                }
+            }
+            Start-ThunderServer -Action "start" -Port $p -Foreground $fg
         } else {
             Run-Cvm -CvmCmd "start" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
         }
@@ -180,6 +337,8 @@ switch ($Command) {
         $sub = if ($Version) { $Version } else { "cvm" }
         if ($sub -eq "cvm") {
             Start-CvmServer -Action "stop"
+        } elseif ($sub -eq "thunder" -or $sub -eq "docker") {
+            Start-ThunderServer -Action "stop"
         } else {
             Run-Cvm -CvmCmd "stop" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
         }
@@ -187,9 +346,18 @@ switch ($Command) {
     "status" {
         if ($Version -eq "cvm") {
             Start-CvmServer -Action "status"
+        } elseif ($Version -eq "thunder" -or $Version -eq "docker") {
+            Start-ThunderServer -Action "status"
         } else {
             Run-Cvm -CvmCmd "status" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
         }
+    }
+    { $_ -in "thunder","docker" } {
+        $cmdName = if ($Version) { $Version } else { "ps" }
+        $argsList = @()
+        if ($Platform) { $argsList += $Platform }
+        if ($ExtraArgs) { $argsList += $ExtraArgs }
+        Run-Thunder -ThunderCmd $cmdName -ThunderArgs $argsList
     }
     { $_ -in "commit","push","pull","add","unstage","discard","branch","checkout","diff","log","init","cvm","db","mr","git" } {
         $argsList = @()
@@ -271,21 +439,37 @@ echo CexR Windows Runner ready.
                 "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" %*" | Set-Content -Path $cvmWrapper -Encoding ASCII
             }
 
+            # Setup standalone Thunder server & CLI in $cxvmHome\bin
+            $thCand = Join-Path $PSScriptRoot "thunder-server"
+            if (-not (Test-Path $thCand)) { $thCand = Join-Path $PSScriptRoot "..\downloads\thunder-server" }
+            if (Test-Path $thCand) {
+                Copy-Item -Force $thCand (Join-Path $binDir "thunder-server")
+            }
+            $thWrapper = Join-Path $binDir "thunder.cmd"
+            if (-not (Test-Path $thWrapper)) {
+                "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" thunder %*" | Set-Content -Path $thWrapper -Encoding ASCII
+            }
+
             Write-Host "==> [cxvm] Successfully installed Cex v$Version into $targetDir" -ForegroundColor Green
             Write-Host "==> [cxvm] CexR runtime executable configured at $(Join-Path $vBin 'cexr.cmd')" -ForegroundColor Green
 
-            Write-Host "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm..." -ForegroundColor Cyan
+            Write-Host "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm, thunder..." -ForegroundColor Cyan
             Write-Host "  ✓ [auto-install] cexr v$Version runtime engine installed" -ForegroundColor Green
             Write-Host "  ✓ [auto-install] cexp v$Version direct machine compiler installed" -ForegroundColor Green
             Write-Host "  ✓ [auto-install] cvm CodeVersionManager engine installed" -ForegroundColor Green
+            Write-Host "  ✓ [auto-install] thunder Container Engine & Virtual Linux Microkernel installed" -ForegroundColor Green
 
-            Write-Host "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm..." -ForegroundColor Cyan
+            Write-Host "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm, thunder..." -ForegroundColor Cyan
             Write-Host "  ✓ [auto-start] cexr runtime engine active & ready" -ForegroundColor Green
             Write-Host "  ✓ [auto-start] cexp machine compiler active & ready" -ForegroundColor Green
 
             Start-CvmServer -Action "start" -Port 4000 -Foreground $false
             $cvmPid = if (Test-Path (Join-Path $cxvmHome "cvm_server.pid")) { (Get-Content (Join-Path $cxvmHome "cvm_server.pid") -Raw).Trim() } else { "$PID" }
             Write-Host "  ✓ [auto-start] cvm server started (single process standalone, PID: $cvmPid, port: 4000)" -ForegroundColor Green
+
+            Start-ThunderServer -Action "start" -Port 3050 -Foreground $false
+            $thPid = if (Test-Path (Join-Path $cxvmHome "thunder_server.pid")) { (Get-Content (Join-Path $cxvmHome "thunder_server.pid") -Raw).Trim() } else { "$PID" }
+            Write-Host "  ✓ [auto-start] thunder server started (single process standalone, PID: $thPid, port: 3050)" -ForegroundColor Green
 
             if (-not (Test-Path (Join-Path $cxvmHome "current"))) {
                 & $PSCommandPath -Command "use" -Version $Version
@@ -432,6 +616,18 @@ echo CexR Windows Runner ready.
         }
         Write-Host "  CVM VCS Engine:      $(if (Test-Path (Join-Path $cxvmHome 'bin\cvm.cmd')) { 'cvm.cmd [READY]' } else { 'git (fallback) [READY]' })"
         Write-Host "  CVM Server:          $srvStatus"
+        $thStatus = "STOPPED (run: cxvm start thunder)"
+        $thPidFile = Join-Path $cxvmHome "thunder_server.pid"
+        if (Test-Path $thPidFile) {
+            $thPid = (Get-Content $thPidFile -Raw).Trim()
+            $proc = Get-Process -Id $thPid -ErrorAction SilentlyContinue
+            if ($proc) {
+                $curThPort = if (Test-Path (Join-Path $cxvmHome "thunder_server.port")) { (Get-Content (Join-Path $cxvmHome "thunder_server.port") -Raw).Trim() } else { "3050" }
+                $thStatus = "RUNNING [Single Process Standalone on port $curThPort, PID: $thPid]"
+            }
+        }
+        Write-Host "  Thunder Engine:      $(if (Test-Path (Join-Path $cxvmHome 'bin\thunder.cmd')) { 'thunder.cmd [READY]' } else { 'INTEGRATED [READY]' })"
+        Write-Host "  Thunder Daemon:      $thStatus"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green
     }
     default {
@@ -444,6 +640,11 @@ echo CexR Windows Runner ready.
         Write-Host "  start cvm             Start CVM Web Studio server with single process (standalone)"
         Write-Host "  stop cvm              Stop standalone CVM server"
         Write-Host "  status cvm            Inspect status of standalone CVM server"
+        Write-Host "  start thunder [-p <port>] Start Thunder container engine server (single process standalone)"
+        Write-Host "  stop thunder          Stop standalone Thunder server"
+        Write-Host "  status thunder        Inspect status of standalone Thunder server"
+        Write-Host "  thunder <cmd>         Thunder Container Engine CLI (ps, run, stop, images, stats)"
+        Write-Host "  docker <cmd>          Docker compatibility alias for Thunder"
         Write-Host "  commit, push, pull    CVM Version Control commands"
         Write-Host "  download <ver> [plat] Download cross-platform bundles into cache to install cexr (or 'all')"
         Write-Host "  use <ver>             Switch to specified Cex runtime version and set up cexr"

@@ -127,7 +127,12 @@ cxvm use 6.0.0
 | `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v8.0.0`) |
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
-| `cxvm doctor` | — | Runs pre-flight diagnostics for native `cexr`, `cexp`, and host environment (zero C++ dependency) |
+| `cxvm doctor` | — | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, and host environment (zero C++ dependency) |
+| `cxvm thunder <cmd>` | Docker CLI (`docker`) | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`) |
+| `cxvm docker <cmd>` | Docker CLI (`docker`) | Docker compatibility alias for Thunder |
+| `cxvm start thunder [-p <port>]` | — | Starts Thunder container engine daemon with single process (standalone) |
+| `cxvm status thunder` | — | Inspects status of standalone Thunder server |
+| `cxvm stop thunder` | — | Stops background standalone Thunder server |
 
 ---
 
@@ -200,7 +205,74 @@ When the Factory application runs on port 3080:
 
 ---
 
-## 6. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
+## 6. Integrated Thunder Container Engine & Virtual Linux Microkernel
+
+`cxvm` features native integration with **Thunder** (`@2tek/thunder`), a high-performance Pure Cex Container Engine, Virtual Linux 6.8 Microkernel, and Lighting MVC Control Daemon.
+
+Thunder enables building, isolating, executing, and orchestrating native container workloads with Docker syntax compatibility and single-process standalone daemon execution.
+
+### Thunder CLI Commands:
+
+| Command | Action | Example |
+| :--- | :--- | :--- |
+| `cxvm thunder ps` / `cxvm docker ps` | List running containers with IDs, names, images, ports, and status | `cxvm thunder ps` |
+| `cxvm thunder run <image>` | Run container workload inside virtual microkernel isolation | `cxvm thunder run @2tek/cxvm:latest` |
+| `cxvm thunder stop <id>` | Gracefully stop running container instance | `cxvm thunder stop cxt-1a8f9` |
+| `cxvm thunder images` / `cxvm docker images` | List local OCI container images in cache | `cxvm thunder images` |
+| `cxvm thunder stats` | Inspect real-time virtual CPU, memory, vFS, and network metrics | `cxvm thunder stats` |
+| `cxvm start thunder [-p <port>]` | Start Thunder as a single-process standalone daemon in background | `cxvm start thunder` \| `cxvm start thunder -p 3050` |
+| `cxvm status thunder` | Check status of single-process standalone Thunder daemon | `cxvm status thunder` |
+| `cxvm stop thunder` | Stop background standalone Thunder daemon | `cxvm stop thunder` |
+
+### Standalone Single-Process Thunder Daemon (`cxvm start thunder`):
+
+`cxvm` provisions Thunder as a lightweight, single-process standalone service:
+- **Virtual Linux 6.8 Microkernel**: Pure user-space kernel simulation providing virtual processes, namespaces (PID, Mount, Net), vFS overlays (`overlayfs`, `procfs`, `sysfs`), and cgroups v2 resource limits.
+- **Web Dashboard UI**: Real-time container control panel accessible at `http://localhost:3050`.
+- **REST APIs**:
+  - `GET /health` & `GET /api/v1/health`: Thunder health check.
+  - `GET /api/v1/thunder/status`: Microkernel and daemon status report.
+  - `GET /api/v1/thunder/containers`: Active containers list.
+  - `POST /api/v1/thunder/containers/run`: Spawn container.
+  - `POST /api/v1/thunder/containers/stop`: Terminate container.
+  - `GET /api/v1/thunder/images`: Cached images list.
+  - `GET /api/v1/thunder/stats`: Real-time performance telemetry.
+- **Lifecycle Management**:
+  ```bash
+  cxvm start thunder              # Start standalone daemon on default port 3050 (background)
+  cxvm start thunder -p 3055      # Custom port
+  cxvm start thunder --foreground # Run in foreground
+  cxvm status thunder             # Inspect PID and active port
+  cxvm stop thunder               # Stop daemon
+  ```
+
+### Auto-Install & Auto-Start on CXVM Setup & Run:
+
+When setting up `cxvm` via `scripts/setup.sh`, `scripts/setup.ps1`, `install.sh`, `install.ps1`, or running `cxvm install <version>`:
+1. **Auto-Install Toolchains**: Installs and configures:
+   - `cexr` (Cex Language Runtime Engine)
+   - `cexp` (Cex Direct Machine Compiler)
+   - `cvm` (CodeVersionManager Engine)
+   - `thunder` (Thunder Container Engine & Virtual Linux Microkernel)
+2. **Auto-Start Runtime Services**:
+   - `cexr` runtime engine initialized
+   - `cexp` direct compiler pre-warmed
+   - `cvm-server` auto-started as standalone single process on port 4000
+   - `thunder-server` auto-started as standalone single process on port 3050
+
+### Lighting MVC HTTP REST API for Thunder:
+
+When the Factory application runs on port 3080:
+- **`GET /api/v1/thunder/status`**: Returns health, microkernel version, container counts, and engine status.
+- **`POST /api/v1/thunder/server/start`**: Programmatically starts the standalone Thunder server.
+- **`GET /api/v1/thunder/server/status`**: Queries standalone Thunder server PID and port status.
+- **`POST /api/v1/thunder/server/stop`**: Programmatically stops the standalone Thunder server.
+- **`GET /api/v1/thunder/containers`**: Lists all active container instances with ports and status.
+- **`GET /api/v1/thunder/images`**: Lists cached OCI container images with SHA hashes.
+
+---
+
+## 7. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
 
 The following distribution archives (36 bundles: 6 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
@@ -257,7 +329,7 @@ The following distribution archives (36 bundles: 6 versions x 6 platforms) and t
 
 ---
 
-## 7. Execution & Testing with CexR v8
+## 8. Execution & Testing with CexR v8
 
 ```bash
 # 1. Switch to CexR v8 Runtime via cxvm
@@ -279,7 +351,7 @@ cexr run tests/factory.test.cex
 
 ---
 
-## 8. Repository & Upstream Git Origin
+## 9. Repository & Upstream Git Origin
 
 - **GitHub Repository**: [`https://github.com/2-tek/cxvm`](https://github.com/2-tek/cxvm)
 - **Clone Repository**:

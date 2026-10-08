@@ -58,7 +58,10 @@ fi
 if [ -f "$PROJECT_ROOT/downloads/cvm-server" ]; then
   cp -f "$PROJECT_ROOT/downloads/cvm-server" "$CXVM_DIR/bin/cvm-server"
 fi
-chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* 2>/dev/null || true
+if [ -f "$PROJECT_ROOT/downloads/thunder-server" ]; then
+  cp -f "$PROJECT_ROOT/downloads/thunder-server" "$CXVM_DIR/bin/thunder-server"
+fi
+chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
 echo -e "  ${GREEN}✓${RESET} CXVM core hierarchy established in ${BLUE}$CXVM_DIR${RESET}"
 
 # ------------------------------------------------------------------------------
@@ -128,6 +131,25 @@ if ! cxvm status cvm >/dev/null 2>&1; then
 fi
 LOCAL_CVM_PID="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
 echo -e "  ${GREEN}✓${RESET} CVM Standalone Server auto-started (single process, PID: ${LOCAL_CVM_PID}, port: 4000)"
+
+# Setup Thunder (Container Engine & Virtual Linux Microkernel) integration in cxvm
+if [ -f "$PROJECT_ROOT/downloads/thunder-server" ]; then
+  cp -f "$PROJECT_ROOT/downloads/thunder-server" "$CXVM_DIR/bin/thunder-server"
+fi
+cat << 'EOF' > "$CXVM_DIR/bin/thunder"
+#!/usr/bin/env bash
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+exec "$CXVM_DIR/bin/cxvm" thunder "$@"
+EOF
+chmod +x "$CXVM_DIR/bin/thunder" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
+echo -e "  ${GREEN}✓${RESET} Integrated Thunder (docker syntax, container engine) configured in ${GREEN}$CXVM_DIR/bin${RESET}"
+
+# Verify / Auto-start Thunder standalone server
+if ! cxvm status thunder >/dev/null 2>&1; then
+  cxvm start thunder -p 3050 --daemon >/dev/null 2>&1 || true
+fi
+LOCAL_THUNDER_PID="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
+echo -e "  ${GREEN}✓${RESET} Thunder Standalone Server auto-started (single process, PID: ${LOCAL_THUNDER_PID}, port: 3050)"
 
 # ------------------------------------------------------------------------------
 # Step 4: Setup Project ./bin/cexr and ./bin/cex Dispatchers

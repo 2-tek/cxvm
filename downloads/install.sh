@@ -16,25 +16,30 @@ echo "==============================================================="
 
 mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
 
-# Install cxvm CLI script & cvm-server
+# Install cxvm CLI script, cvm-server, and thunder-server
 if [ -f "cxvm/downloads/cxvm" ]; then
   cp "cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp "cxvm/downloads/cvm-server" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  cp "cxvm/downloads/thunder-server" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 elif [ -f "packages/cxvm/downloads/cxvm" ]; then
   cp "packages/cxvm/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp "packages/cxvm/downloads/cvm-server" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  cp "packages/cxvm/downloads/thunder-server" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 elif [ -f "downloads/cxvm" ]; then
   cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp "downloads/cvm-server" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  cp "downloads/thunder-server" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 elif command -v curl >/dev/null 2>&1; then
   curl -fsSL "$FACTORY_URL/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || \
   curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
   curl -fsSL "$FACTORY_URL/downloads/cvm-server" -o "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  curl -fsSL "$FACTORY_URL/downloads/thunder-server" -o "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 elif command -v wget >/dev/null 2>&1; then
   wget -q "$FACTORY_URL/downloads/cxvm" -O "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
   wget -q "$FACTORY_URL/downloads/cvm-server" -O "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+  wget -q "$FACTORY_URL/downloads/thunder-server" -O "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 fi
-chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* 2>/dev/null || true
+chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
 cp "$CXVM_DIR/bin/cxvm" "$CXVM_DIR/bin/cxvm.sh" 2>/dev/null || true
 
 # Run cxvm install
