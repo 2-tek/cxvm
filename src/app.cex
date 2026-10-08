@@ -77,6 +77,8 @@ class FactoryApp {
         this.router->post("/api/v1/thunder/server/stop", "factory.apiThunderServerStop");
         this.router->get("/api/v1/thunder/containers", "factory.apiThunderContainers");
         this.router->get("/api/v1/thunder/images", "factory.apiThunderImages");
+        this.router->get("/api/v1/light/status", "factory.apiLightStatus");
+        this.router->post("/api/v1/light/create", "factory.apiLightCreate");
     }
 
     public start(): void {
@@ -230,6 +232,14 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiThunderImages") {
             return this.controller->apiThunderImages(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiLightStatus") {
+            return this.controller->apiLightStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiLightCreate") {
+            return this.controller->apiLightCreate(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

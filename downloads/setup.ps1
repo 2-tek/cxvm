@@ -122,6 +122,13 @@ if (Test-Path $cxvmScript) {
   Write-Host "  ✓ Thunder Standalone Server auto-started (single process, PID: $thPid, port: 3050)" -ForegroundColor Green
 }
 
+# Setup Lighting (Lighting Fullstack MVC engine, light CLI) integration in cxvm
+$lightBin = Join-Path $CxvmDir "bin\light.cmd"
+if (-not (Test-Path $lightBin)) {
+  "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" light %*" | Set-Content -Path $lightBin -Encoding ASCII
+}
+Write-Host "  ✓ Integrated Lighting (light create, light dev, light build) configured in $(Join-Path $CxvmDir 'bin')" -ForegroundColor Green
+
 # Step 4: Configure Project ./bin/ Dispatchers
 Write-Host "`n[4/5] Configuring Project ./bin/cexr & ./bin/cex for Default Run cxvm..." -ForegroundColor White
 $targetBin = Join-Path $ProjectRoot "bin"

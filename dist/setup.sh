@@ -151,6 +151,15 @@ fi
 LOCAL_THUNDER_PID="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
 echo -e "  ${GREEN}✓${RESET} Thunder Standalone Server auto-started (single process, PID: ${LOCAL_THUNDER_PID}, port: 3050)"
 
+# Setup Lighting (Lighting Fullstack MVC engine, light CLI) integration in cxvm
+cat << 'EOF' > "$CXVM_DIR/bin/light"
+#!/usr/bin/env bash
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+exec "$CXVM_DIR/bin/cxvm" light "$@"
+EOF
+chmod +x "$CXVM_DIR/bin/light" 2>/dev/null || true
+echo -e "  ${GREEN}✓${RESET} Integrated Lighting (light create, light dev, light build) configured in ${GREEN}$CXVM_DIR/bin${RESET}"
+
 # ------------------------------------------------------------------------------
 # Step 4: Setup Project ./bin/cexr and ./bin/cex Dispatchers
 # ------------------------------------------------------------------------------

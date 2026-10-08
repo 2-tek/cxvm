@@ -127,7 +127,11 @@ cxvm use 6.0.0
 | `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v8.0.0`) |
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
-| `cxvm doctor` | — | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, and host environment (zero C++ dependency) |
+| `cxvm doctor` | — | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
+| `cxvm light create <name>` | `nest new` | Hooks project creation logic in MVC-Lighting to scaffold new Fullstack MVC project |
+| `cxvm light dev` | `npm run dev` | Starts local Lighting MVC development server on port 3080 |
+| `cxvm light build` | `npm run build` | Compiles Lighting project with `cexp` direct machine compiler |
+| `cxvm light doctor` | — | Runs Lighting engine diagnostic and verification |
 | `cxvm thunder <cmd>` | Docker CLI (`docker`) | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`) |
 | `cxvm docker <cmd>` | Docker CLI (`docker`) | Docker compatibility alias for Thunder |
 | `cxvm start thunder [-p <port>]` | — | Starts Thunder container engine daemon with single process (standalone) |
@@ -272,7 +276,43 @@ When the Factory application runs on port 3080:
 
 ---
 
-## 7. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
+## 7. Integrated Lighting Fullstack MVC Engine & Scaffolder (`cxvm light`)
+
+`cxvm` natively integrates **Lighting Fullstack MVC** (`@2tek/lighting`), allowing developers to immediately scaffold, develop, build, and deploy high-performance web applications using Pure Cex.
+
+### Scaffolding New Projects with `cxvm light create {projectName}`:
+To create a new project powered by Lighting Fullstack MVC:
+```bash
+cxvm light create my-awesome-app
+# Or using the alias:
+cxvm lighting create my-awesome-app
+```
+
+`cxvm` hooks directly into the logic scripts of `MVC-Lighting` (`bin/light`, `scripts/create.sh`, `create.cex`):
+1. **Directory Structure**:
+   - `src/controllers/`: MVC controllers (e.g. `HomeController`, `FactoryController`).
+   - `src/models/`: Strongly-typed schema models with validation.
+   - `src/views/`: Server-rendered templates and HTML views.
+   - `public/`: Static assets and styling.
+   - `bin/light`: Project runner dispatcher.
+2. **Package Configuration (`cex-pack.json`)**: Configured with `"target": "runtime"` and dependency `@2tek/lighting: "^8.0.0"`.
+3. **Application Entrypoint (`src/index.cex`)**: High-throughput Lighting HTTP server pre-configured.
+
+### Running & Building Lighting Applications:
+```bash
+cd my-awesome-app
+cxvm light dev    # Or ./bin/light dev (starts server on port 3080)
+cxvm light build  # Or ./bin/light build (compiles native binary via cexp)
+cxvm light doctor # Runs diagnostic health check
+```
+
+### Lighting MVC REST Endpoints:
+- **`GET /api/v1/light/status`**: Returns Lighting engine readiness, framework version, and available commands.
+- **`POST /api/v1/light/create`**: Programmatically triggers project scaffolding via JSON payload `{"projectName": "app-name"}`.
+
+---
+
+## 8. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
 
 The following distribution archives (36 bundles: 6 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
@@ -329,7 +369,7 @@ The following distribution archives (36 bundles: 6 versions x 6 platforms) and t
 
 ---
 
-## 8. Execution & Testing with CexR v8
+## 9. Execution & Testing with CexR v8
 
 ```bash
 # 1. Switch to CexR v8 Runtime via cxvm
@@ -351,7 +391,7 @@ cexr run tests/factory.test.cex
 
 ---
 
-## 9. Repository & Upstream Git Origin
+## 10. Repository & Upstream Git Origin
 
 - **GitHub Repository**: [`https://github.com/2-tek/cxvm`](https://github.com/2-tek/cxvm)
 - **Clone Repository**:

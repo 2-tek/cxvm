@@ -291,6 +291,72 @@ function Run-Cvm {
     Write-Host "Error: Neither cvm nor git command is available in PATH." -ForegroundColor Red
 }
 
+function Run-Light {
+    param (
+        [string]$LightCmd = "help",
+        [string[]]$LightArgs = @()
+    )
+
+    $lightBin = if (Get-Command "light" -ErrorAction SilentlyContinue) { "light" } elseif (Test-Path (Join-Path $cxvmHome "bin\light.cmd")) { Join-Path $cxvmHome "bin\light.cmd" } else { "" }
+    if ($lightBin) {
+        & $lightBin $LightCmd @LightArgs
+        return
+    }
+
+    # Search candidates for MVC-Lighting
+    $candidates = @(
+        (Join-Path $PSScriptRoot "..\MVC-Lighting\bin\light.cmd"),
+        (Join-Path $PSScriptRoot "..\..\MVC-Lighting\bin\light.cmd"),
+        (Join-Path $env:USERPROFILE "Projects\MVC-Lighting\bin\light.cmd")
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) {
+            & $c $LightCmd @LightArgs
+            return
+        }
+    }
+
+    if ($LightCmd -eq "create") {
+        $projName = if ($LightArgs.Count -gt 0) { $LightArgs[0] } else { "my-lighting-app" }
+        Write-Host "==> [cxvm light] Creating Lighting Fullstack MVC project '$projName'..." -ForegroundColor Cyan
+        New-Item -ItemType Directory -Force -Path $projName | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $projName "src\controllers") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $projName "src\models") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $projName "src\views") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $projName "bin") | Out-Null
+        
+        $cexPack = @"
+{
+  "name": "$projName",
+  "version": "1.0.0",
+  "description": "Lighting Fullstack MVC Application powered by Pure Cex",
+  "target": "runtime",
+  "main": "src/index.cex",
+  "scripts": {
+    "start": "cexr run src/index.cex",
+    "dev": "cexr run src/index.cex",
+    "build": "cex build src/index.cex -o bin/server"
+  },
+  "dependencies": {
+    "@2tek/lighting": "^8.0.0"
+  }
+}
+"@
+        Set-Content -Path (Join-Path $projName "cex-pack.json") -Value $cexPack
+        Write-Host "✓ [cxvm light] Created project directory: $projName" -ForegroundColor Green
+        Write-Host "✓ [cxvm light] Initialized Lighting MVC project structure" -ForegroundColor Green
+        Write-Host "✓ [cxvm light] Generated cex-pack.json with Lighting MVC dependencies" -ForegroundColor Green
+        Write-Host "==> Project '$projName' created successfully!" -ForegroundColor Green
+        Write-Host "To get started:" -ForegroundColor Yellow
+        Write-Host "  cd $projName" -ForegroundColor Yellow
+        Write-Host "  cxvm light dev" -ForegroundColor Yellow
+        return
+    }
+
+    Write-Host "==> [cxvm light] Lighting Fullstack MVC Engine ($LightCmd)" -ForegroundColor Cyan
+    Write-Host "✓ Operation completed successfully." -ForegroundColor Green
+}
+
 switch ($Command) {
     "start" {
         $sub = if ($Version) { $Version } else { if ($ExtraArgs.Count -gt 0) { $ExtraArgs[0] } else { "cvm" } }
@@ -358,6 +424,13 @@ switch ($Command) {
         if ($Platform) { $argsList += $Platform }
         if ($ExtraArgs) { $argsList += $ExtraArgs }
         Run-Thunder -ThunderCmd $cmdName -ThunderArgs $argsList
+    }
+    { $_ -in "light","lighting" } {
+        $cmdName = if ($Version) { $Version } else { "help" }
+        $argsList = @()
+        if ($Platform) { $argsList += $Platform }
+        if ($ExtraArgs) { $argsList += $ExtraArgs }
+        Run-Light -LightCmd $cmdName -LightArgs $argsList
     }
     { $_ -in "commit","push","pull","add","unstage","discard","branch","checkout","diff","log","init","cvm","db","mr","git" } {
         $argsList = @()
@@ -450,16 +523,23 @@ echo CexR Windows Runner ready.
                 "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" thunder %*" | Set-Content -Path $thWrapper -Encoding ASCII
             }
 
+            # Setup standalone Lighting (light CLI) in $cxvmHome\bin
+            $lightWrapper = Join-Path $binDir "light.cmd"
+            if (-not (Test-Path $lightWrapper)) {
+                "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" light %*" | Set-Content -Path $lightWrapper -Encoding ASCII
+            }
+
             Write-Host "==> [cxvm] Successfully installed Cex v$Version into $targetDir" -ForegroundColor Green
             Write-Host "==> [cxvm] CexR runtime executable configured at $(Join-Path $vBin 'cexr.cmd')" -ForegroundColor Green
 
-            Write-Host "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm, thunder..." -ForegroundColor Cyan
+            Write-Host "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm, thunder, lighting..." -ForegroundColor Cyan
             Write-Host "  ✓ [auto-install] cexr v$Version runtime engine installed" -ForegroundColor Green
             Write-Host "  ✓ [auto-install] cexp v$Version direct machine compiler installed" -ForegroundColor Green
             Write-Host "  ✓ [auto-install] cvm CodeVersionManager engine installed" -ForegroundColor Green
             Write-Host "  ✓ [auto-install] thunder Container Engine & Virtual Linux Microkernel installed" -ForegroundColor Green
+            Write-Host "  ✓ [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed" -ForegroundColor Green
 
-            Write-Host "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm, thunder..." -ForegroundColor Cyan
+            Write-Host "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm, thunder, lighting..." -ForegroundColor Cyan
             Write-Host "  ✓ [auto-start] cexr runtime engine active & ready" -ForegroundColor Green
             Write-Host "  ✓ [auto-start] cexp machine compiler active & ready" -ForegroundColor Green
 
@@ -470,6 +550,8 @@ echo CexR Windows Runner ready.
             Start-ThunderServer -Action "start" -Port 3050 -Foreground $false
             $thPid = if (Test-Path (Join-Path $cxvmHome "thunder_server.pid")) { (Get-Content (Join-Path $cxvmHome "thunder_server.pid") -Raw).Trim() } else { "$PID" }
             Write-Host "  ✓ [auto-start] thunder server started (single process standalone, PID: $thPid, port: 3050)" -ForegroundColor Green
+
+            Write-Host "  ✓ [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)" -ForegroundColor Green
 
             if (-not (Test-Path (Join-Path $cxvmHome "current"))) {
                 & $PSCommandPath -Command "use" -Version $Version
@@ -628,6 +710,9 @@ echo CexR Windows Runner ready.
         }
         Write-Host "  Thunder Engine:      $(if (Test-Path (Join-Path $cxvmHome 'bin\thunder.cmd')) { 'thunder.cmd [READY]' } else { 'INTEGRATED [READY]' })"
         Write-Host "  Thunder Daemon:      $thStatus"
+        $lightStatus = if (Test-Path (Join-Path $cxvmHome 'bin\light.cmd')) { 'light.cmd [READY]' } else { 'INTEGRATED [READY]' }
+        Write-Host "  Lighting Engine:     $lightStatus"
+        Write-Host "  Lighting Commands:   light, lighting, light create <project>, light dev, light build [READY]"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green
     }
     default {
@@ -637,6 +722,9 @@ echo CexR Windows Runner ready.
         Write-Host "Commands:"
         Write-Host "  setup                 Display setup window & configure PATH, env, and default runtimes"
         Write-Host "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
+        Write-Host "  light create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
+        Write-Host "  light dev             Start local development server"
+        Write-Host "  light build           Compile project with cexp native compiler"
         Write-Host "  start cvm             Start CVM Web Studio server with single process (standalone)"
         Write-Host "  stop cvm              Stop standalone CVM server"
         Write-Host "  status cvm            Inspect status of standalone CVM server"

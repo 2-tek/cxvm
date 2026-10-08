@@ -402,6 +402,54 @@ fn main(): int {
 
     suite->addResult("test_integrated_thunder_operations", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 8: Integrated Lighting Fullstack MVC Engine & Scaffolder (as light)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 8: Integrated Lighting Fullstack MVC Engine & Scaffolder (as light)]");
+
+    // 1. Direct lightCreate call
+    let lightRes: CxvmCommandResult* = cxvm->lightCreate("sample-app", ".");
+    Assert::isTrue(lightRes->success, "cxvm lightCreate succeeds");
+    Assert::equalsString("sample-app", lightRes->version, "Target project name matches");
+    Assert::isTrue(lightRes->output.find("Lighting Fullstack MVC project 'sample-app'") != -1, "Output confirms Lighting project creation");
+    Assert::isTrue(lightRes->output.find("src/controllers") != -1, "Output details controller directory");
+    Assert::isTrue(lightRes->output.find("./bin/light") != -1, "Output details local light dispatcher");
+
+    // 2. CLI cvmExecute routing for light and lighting
+    let lightExecCreate: int = cxvm->cvmExecute("light", "create", "test-project");
+    Assert::equalsInt(0, lightExecCreate, "cxvm cvmExecute light create returns exit code 0");
+
+    let lightExecDev: int = cxvm->cvmExecute("light", "dev", "");
+    Assert::equalsInt(0, lightExecDev, "cxvm cvmExecute light dev returns exit code 0");
+
+    let lightExecBuild: int = cxvm->cvmExecute("light", "build", "");
+    Assert::equalsInt(0, lightExecBuild, "cxvm cvmExecute light build returns exit code 0");
+
+    let lightExecDoc: int = cxvm->cvmExecute("light", "doctor", "");
+    Assert::equalsInt(0, lightExecDoc, "cxvm cvmExecute light doctor returns exit code 0");
+
+    let lightingExecCreate: int = cxvm->cvmExecute("lighting", "create", "test-lighting-app");
+    Assert::equalsInt(0, lightingExecCreate, "cxvm cvmExecute lighting create returns exit code 0");
+
+    // 3. REST API /api/v1/light/status
+    let resLightStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/light/status", "", "application/json");
+    Assert::equalsInt(200, resLightStatus->statusCode, "GET /api/v1/light/status returns 200 OK");
+    Assert::isTrue(resLightStatus->body.find("LightingFullstackMVC") != -1, "Light status reports LightingFullstackMVC");
+    Assert::isTrue(resLightStatus->body.find("\"ready\":true") != -1, "Light status reports ready:true");
+
+    // 4. REST API /api/v1/light/create
+    let resLightCreate: HttpResponse* = app->simulateRequest("POST", "/api/v1/light/create", "{\"projectName\":\"my-new-app\"}", "application/json");
+    Assert::equalsInt(200, resLightCreate->statusCode, "POST /api/v1/light/create returns 200 OK");
+    Assert::isTrue(resLightCreate->body.find("SUCCESS") != -1, "Light create API reports SUCCESS");
+    Assert::isTrue(resLightCreate->body.find("my-new-app") != -1, "Light create API reports project name");
+
+    // 5. Doctor output verification
+    let docStr: string = cxvm->doctor();
+    Assert::isTrue(docStr.find("Lighting Engine:") != -1, "Doctor reports Lighting Engine status");
+    Assert::isTrue(docStr.find("Lighting Commands:") != -1, "Doctor reports Lighting Commands");
+
+    suite->addResult("test_integrated_lighting_engine_and_scaffolder", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

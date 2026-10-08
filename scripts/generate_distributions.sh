@@ -337,6 +337,19 @@ TEOF
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" thunder %*
 WEOF
     fi
+
+    cat <<'LEOF' > "$PKG_DIR/bin/light"
+#!/usr/bin/env bash
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+exec "$CXVM_DIR/bin/cxvm" light "$@"
+LEOF
+    chmod +x "$PKG_DIR/bin/light"
+    if [ "$pos" = "windows" ]; then
+      cat <<'WEOF' > "$PKG_DIR/bin/light.cmd"
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" light %*
+WEOF
+    fi
     
     # 6b. Header files
     cat <<HEOF > "$PKG_DIR/include/cex/runtime.h"

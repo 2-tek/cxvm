@@ -401,4 +401,38 @@ class FactoryController : public BaseController {
         str += "]}";
         return this->json(str);
     }
+
+    public apiLightStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let str: string = "{";
+        str += "\"status\":\"SUCCESS\",";
+        str += "\"engine\":\"LightingFullstackMVC\",";
+        str += cxvm->lightEngineReady ? "\"ready\":true," : "\"ready\":false,";
+        str += "\"framework\":\"Lighting Fullstack MVC (Pure Cex)\",";
+        str += "\"commands\":[\"create\",\"dev\",\"build\",\"doctor\"],";
+        str += "\"version\":\"8.0.0\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiLightCreate(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let projectName: string = "my-lighting-app";
+        if (req->body.find("\"projectName\":") != -1) {
+            let start: int = (int)req->body.find("\"projectName\":") + 14;
+            let firstQuote: int = (int)req->body.find("\"", start);
+            if (firstQuote != -1) {
+                let secondQuote: int = (int)req->body.find("\"", firstQuote + 1);
+                if (secondQuote != -1 && secondQuote > firstQuote) {
+                    projectName = req->body.substr(firstQuote + 1, secondQuote - firstQuote - 1);
+                }
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->lightCreate(projectName, ".");
+        let str: string = "{";
+        str += "\"status\":\"SUCCESS\",";
+        str += "\"projectName\":\"" + projectName + "\",";
+        str += "\"framework\":\"Lighting Fullstack MVC\",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
 }
