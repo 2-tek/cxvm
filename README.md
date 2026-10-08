@@ -1,11 +1,14 @@
-# 2-TEK Factory: Cross-Platform Cex Distribution & Version Manager (cxvm)
+# 2-TEK Factory: Cross-Platform Cex Distribution & Version Manager (cxvm v2)
 
-Factory is a fullstack cross-platform toolchain distribution engine and runtime version manager for the C-ext (`.cex`) language, powered by the **Lighting Fullstack MVC Framework**. It builds and serves native compiler bundles and installers to `cxvm/downloads/` and provides `cxvm`—the Cex Version Manager (the `nvm` of the Cex ecosystem) to download and setup `cexr` across platforms.
+Factory is a fullstack cross-platform toolchain distribution engine and runtime version manager for the C-ext (`.cex`) language, powered by the **Lighting Fullstack MVC Framework**. In v2, cxvm uses a **Pure Cex Toolchain** (`cexr` Runtime + `cexp` Compiler) with **zero C++ dependency**, managing native runtime bundles across Linux, macOS, and Windows.
 
 ---
 
 ## 1. Architectural Highlights
 
+- **Pure Cex Toolchain (Zero C++ Dependency)**:
+  - Powered directly by **`cexr`** (Cex Language Runtime Engine) and **`cexp`** (Cex Language Direct Machine Compiler).
+  - No external C++ compilers (`g++`, `clang++`, `MSVC`) or C++20 header dependencies required.
 - **Powered by Lighting MVC Framework**:
   - **Model Layer (`src/models/`)**: Active-record schema entities (`PlatformModel`, `VersionModel`, `ArtifactModel`) with validation and JSON serialization.
   - **View Layer (`src/views/`)**: High-throughput SSR template rendering (`FactoryViews`) providing the Web Portal, Downloads Explorer, and interactive `cxvm` Guide.
@@ -20,14 +23,14 @@ Factory is a fullstack cross-platform toolchain distribution engine and runtime 
 
 ## 2. Supported Cross-Platform Architecture Matrix
 
-| Platform ID | Operating System | Architecture | Target Triple | Packaging Format | Compiler Toolchain |
+| Platform ID | Operating System | Architecture | Target Triple | Packaging Format | Native Toolchain |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`linux-x86_64`** | Linux | x86_64 (Intel/AMD) | `x86_64-unknown-linux-gnu` | `.tar.gz` | `g++-12 / clang++-16` |
-| **`linux-aarch64`** | Linux | aarch64 (ARM64) | `aarch64-unknown-linux-gnu` | `.tar.gz` | `g++-12 (aarch64)` |
-| **`darwin-arm64`** | macOS | Apple Silicon (M1-M4) | `aarch64-apple-darwin` | `.tar.gz` | `clang++-16 (Apple Silicon)` |
-| **`darwin-x86_64`** | macOS | Intel 64-bit | `x86_64-apple-darwin` | `.tar.gz` | `clang++-16 (Intel x86_64)` |
-| **`windows-x64`** | Windows | x64 (64-bit) | `x86_64-pc-windows-msvc` | `.zip` | `MSVC 2022 / clang-cl` |
-| **`windows-arm64`** | Windows | arm64 (ARM64) | `aarch64-pc-windows-msvc` | `.zip` | `MSVC 2022 ARM64` |
+| **`linux-x86_64`** | Linux | x86_64 (Intel/AMD) | `x86_64-unknown-linux-gnu` | `.tar.gz` | `CexP v8 (Native Direct Compiler)` |
+| **`linux-aarch64`** | Linux | aarch64 (ARM64) | `aarch64-unknown-linux-gnu` | `.tar.gz` | `CexP v8 (Native Direct Compiler)` |
+| **`darwin-arm64`** | macOS | Apple Silicon (M1-M4) | `aarch64-apple-darwin` | `.tar.gz` | `CexP v8 (Native Direct Compiler)` |
+| **`darwin-x86_64`** | macOS | Intel 64-bit | `x86_64-apple-darwin` | `.tar.gz` | `CexP v8 (Native Direct Compiler)` |
+| **`windows-x64`** | Windows | x64 (64-bit) | `x86_64-pc-windows-msvc` | `.zip` | `CexP v8 (Native Direct Compiler)` |
+| **`windows-arm64`** | Windows | arm64 (ARM64) | `aarch64-pc-windows-msvc` | `.zip` | `CexP v8 (Native Direct Compiler)` |
 
 ---
 
@@ -76,7 +79,7 @@ powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 | `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v8.0.0`) |
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
-| `cxvm doctor` | — | Runs pre-flight diagnostics for `cexr`, C++20, and host environment |
+| `cxvm doctor` | — | Runs pre-flight diagnostics for native `cexr`, `cexp`, and host environment (zero C++ dependency) |
 
 ---
 

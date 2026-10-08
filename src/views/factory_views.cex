@@ -123,7 +123,7 @@ class FactoryViews {
         content += "        <th>Target Architecture</th>\n";
         content += "        <th>Operating System</th>\n";
         content += "        <th>Target Triple</th>\n";
-        content += "        <th>Recommended Compiler</th>\n";
+        content += "        <th>Native Toolchain</th>\n";
         content += "        <th>Format</th>\n";
         content += "        <th>Status</th>\n";
         content += "      </tr>\n";
@@ -159,7 +159,7 @@ class FactoryViews {
         content += "        <th>Version</th>\n";
         content += "        <th>Channel</th>\n";
         content += "        <th>Release Date</th>\n";
-        content += "        <th>C++ Standard</th>\n";
+        content += "        <th>Toolchain Standard</th>\n";
         content += "        <th>Description</th>\n";
         content += "      </tr>\n";
         content += "    </thead>\n";
@@ -257,7 +257,7 @@ class FactoryViews {
         content += "  <h3 style=\"margin-bottom: 12px;\">💡 What is cxvm?</h3>\n";
         content += "  <p style=\"color: #94a3b8; font-size: 14px; margin-bottom: 16px;\">\n";
         content += "    Just like <b>nvm</b> (Node Version Manager) manages Node.js versions, <b>cxvm</b> manages multiple Cex toolchain releases on your computer.\n";
-        content += "    It automatically downloads cross-platform packages, installs native archives into <code>~/.cxvm/versions/v&lt;version&gt;</code>, configures the <b>cexr</b> runtime runner, creates clean symlinks to <code>~/.cxvm/current</code>, and validates your local C++20 compiler.\n";
+        content += "    It automatically downloads cross-platform packages, installs native archives into <code>~/.cxvm/versions/v&lt;version&gt;</code>, configures the <b>cexr</b> runtime runner and <b>cexp</b> compiler, creates clean symlinks to <code>~/.cxvm/current</code>, and validates your native Cex toolchain with zero C++ dependency.\n";
         content += "  </p>\n";
 
         content += "  <h3 style=\"margin-bottom: 12px;\">⌨️ Command Reference (nvm vs. cxvm)</h3>\n";
@@ -278,7 +278,7 @@ class FactoryViews {
         content += "      <tr><td>List remote</td><td><code>nvm ls-remote</code></td><td><code style=\"color: #38bdf8;\">cxvm list-remote</code></td><td>Queries Factory catalog for upstream releases</td></tr>\n";
         content += "      <tr><td>Set default</td><td><code>nvm alias default 18</code></td><td><code style=\"color: #38bdf8;\">cxvm default 8.0.0</code></td><td>Sets default version for all new terminals</td></tr>\n";
         content += "      <tr><td>Current version</td><td><code>nvm current</code></td><td><code style=\"color: #38bdf8;\">cxvm current</code></td><td>Prints current active version (e.g. v8.0.0)</td></tr>\n";
-        content += "      <tr><td>System doctor</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm doctor</code></td><td>Validates cexr setup, C++20 compiler, paths &amp; diagnostics</td></tr>\n";
+        content += "      <tr><td>System doctor</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm doctor</code></td><td>Validates native cexr runtime, cexp compiler, paths &amp; diagnostics (zero C++ dependency)</td></tr>\n";
         content += "    </tbody>\n";
         content += "  </table>\n";
         content += "</div>\n";

@@ -25,12 +25,12 @@ echo "Target output directory: $DOWNLOADS_DIR"
 
 VERSIONS=("8.0.0" "6.0.0" "5.0.0" "3.0.0" "2.0.0" "1.0.0")
 PLATFORMS=(
-  "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:g++-12 / clang++-16"
-  "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:g++-12 (aarch64)"
-  "darwin-arm64:darwin:arm64:tar.gz:aarch64-apple-darwin:clang++-16 (Apple Silicon)"
-  "darwin-x86_64:darwin:x86_64:tar.gz:x86_64-apple-darwin:clang++-16 (Intel x86_64)"
-  "windows-x64:windows:x64:zip:x86_64-pc-windows-msvc:MSVC 2022 / clang-cl"
-  "windows-arm64:windows:arm64:zip:aarch64-pc-windows-msvc:MSVC 2022 ARM64"
+  "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:CexP v8 (Native Direct Compiler)"
+  "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:CexP v8 (Native Direct Compiler)"
+  "darwin-arm64:darwin:arm64:tar.gz:aarch64-apple-darwin:CexP v8 (Native Direct Compiler)"
+  "darwin-x86_64:darwin:x86_64:tar.gz:x86_64-apple-darwin:CexP v8 (Native Direct Compiler)"
+  "windows-x64:windows:x64:zip:x86_64-pc-windows-msvc:CexP v8 (Native Direct Compiler)"
+  "windows-arm64:windows:arm64:zip:aarch64-pc-windows-msvc:CexP v8 (Native Direct Compiler)"
 )
 
 # 1. Generate standalone cxvm (bash) and cxvm.sh
@@ -126,7 +126,7 @@ export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
 export PATH="$CEX_HOME/bin:$PATH"
 
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexR v8.0.0 (Native C++20 Default Toolchain; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader)"
+  echo "CexR v8.0.0 (Native Machine Engine; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)"
   exit 0
 fi
 
@@ -368,21 +368,15 @@ RUNNER_EOF
 
     doctor)
       echo "==============================================================="
-      echo "   Cex Version Manager (cxvm) System Diagnostic Doctor         "
+      echo "   Cex Version Manager (cxvm v2) System Diagnostic Doctor      "
       echo "==============================================================="
       echo "  Host OS:             $(uname -s)"
       echo "  Architecture:        $(uname -m)"
       echo "  CXVM Home:           $CXVM_DIR"
-      echo "  C++ Compiler:        $(command -v g++ || command -v clang++ || echo 'Not found')"
-      if command -v g++ >/dev/null 2>&1 || command -v clang++ >/dev/null 2>&1; then
-        echo "  C++20 Status:        PASSED [g++ / clang++ available]"
-      else
-        echo "  C++20 Status:        WARNING: C++ compiler not in PATH"
-      fi
       echo "  Active Version:      $(cxvm current)"
-      echo "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine)"
-      echo "  CexR Executable:     $([ -x "$CXVM_DIR/current/bin/cexr" ] && echo "$CXVM_DIR/current/bin/cexr [READY]" || ([ -x "$(command -v cexr 2>/dev/null)" ] && echo "$(command -v cexr) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)"))"
-      echo "  CexP Compiler:       v8 (Machine Code & ELF Direct Emitter)"
+      echo "  CexR Runtime:        $([ -x "$CXVM_DIR/current/bin/cexr" ] && echo "$CXVM_DIR/current/bin/cexr [READY]" || ([ -x "$(command -v cexr 2>/dev/null)" ] && echo "$(command -v cexr) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)"))"
+      echo "  CexP Compiler:       $([ -x "$CXVM_DIR/current/bin/cex" ] && echo "$CXVM_DIR/current/bin/cex [READY]" || ([ -x "$(command -v cexp 2>/dev/null)" ] && echo "$(command -v cexp) [READY]" || ([ -x "$(command -v cex 2>/dev/null)" ] && echo "$(command -v cex) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)")))"
+      echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
       echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
       echo "  Supported Targets:   6 architectures (download & install ready)"
       echo "  Diagnostic:          HEALTHY [OK]"
@@ -595,12 +589,14 @@ echo CexR Windows Runner ready.
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan
-        Write-Host "   Cex Version Manager (cxvm) System Diagnostic Doctor (Windows)" -ForegroundColor Cyan
+        Write-Host "   Cex Version Manager (cxvm v2) System Diagnostic Doctor (Windows)" -ForegroundColor Cyan
         Write-Host "===============================================================" -ForegroundColor Cyan
         Write-Host "  Host OS:             Windows ($arch)"
         Write-Host "  CXVM Home:           $cxvmHome"
         Write-Host "  Active Version:      $(if (Test-Path (Join-Path $cxvmHome 'current')) { 'Active' } else { 'none' })"
-        Write-Host "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine)"
+        Write-Host "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine [READY])"
+        Write-Host "  CexP Compiler:       v8 (Direct Machine Code & ELF Emitter [READY])"
+        Write-Host "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
         Write-Host "  Cross-Platform:      Windows (x64, arm64), Linux, macOS"
         Write-Host "  Supported Targets:   6 architectures (download & install ready)"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green
@@ -759,7 +755,7 @@ export CEX_HOME="\${CEX_HOME:-\$(cd "\$CEX_BIN_DIR/.." && pwd)}"
 export PATH="\$CEX_HOME/bin:\$PATH"
 
 if [ "\$1" = "--version" ] || [ "\$1" = "-v" ] || [ "\$1" = "version" ]; then
-  echo "CexR v${ver} (Native C++20 Default Toolchain; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader for ${pid})"
+  echo "CexR v${ver} (Native Machine Engine; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader for ${pid}; Pure Cex Toolchain)"
   exit 0
 fi
 
@@ -816,7 +812,7 @@ popd
 set "PATH=%CEX_HOME%\bin;%PATH%"
 
 if "%~1"=="--version" (
-    echo CexR v${ver} (Native C++20 Default Toolchain; CexR v8 .cex_boxes Dist Loader for ${pid})
+    echo CexR v${ver} (Native Machine Engine; CexR v8 .cex_boxes Dist Loader for ${pid}; Pure Cex Toolchain)
     exit /b 0
 )
 if "%~1"=="doctor" (
@@ -842,14 +838,12 @@ WEOF
     
     # 6b. Header files
     cat <<HEOF > "$PKG_DIR/include/cex/runtime.h"
-// Cex Runtime Headers v${ver} for ${pid}
+// Cex Pure Native Runtime Definitions v${ver} for ${pid} (CexR + CexP)
 #ifndef CEX_RUNTIME_H
 #define CEX_RUNTIME_H
-#include <iostream>
-#include <string>
-#include <vector>
 #define CEX_VERSION "${ver}"
 #define CEX_TARGET_TRIPLE "${ptriple}"
+#define CEX_TOOLCHAIN_STANDARD "cexr+cexp"
 #endif
 HEOF
     
@@ -861,8 +855,9 @@ HEOF
   "arch": "${parch}",
   "targetTriple": "${ptriple}",
   "compiler": "${pcompiler}",
-  "minCpp": "C++20",
-  "generated": "2026-10-07T00:00:00Z"
+  "runtime": "CexR v${ver} (Native Machine Runtime)",
+  "toolchain": "cexr + cexp (zero C++ dependency)",
+  "generated": "2026-10-08T00:00:00Z"
 }
 MEOF
 
@@ -903,10 +898,11 @@ import json, os, hashlib, glob
 downloads_dir = "$DOWNLOADS_DIR"
 manifest = {
     "engine": "2-TEK Cex Factory",
-    "version": "8.0.0",
-    "updatedAt": "2026-10-07T00:00:00Z",
+    "version": "2.0.0",
+    "updatedAt": "2026-10-08T00:00:00Z",
     "defaultVersion": "8.0.0",
-    "defaultRuntime": "CexR v8 (Direct Machine Code & Dist Loader)",
+    "defaultRuntime": "CexR v8 + CexP v8 (Pure Cex Native Engine)",
+    "toolchain": "cexr + cexp (zero C++ dependency)",
     "versions": ["8.0.0", "6.0.0", "5.0.0", "3.0.0", "2.0.0", "1.0.0"],
     "platforms": ["linux-x86_64", "linux-aarch64", "darwin-arm64", "darwin-x86_64", "windows-x64", "windows-arm64"],
     "artifacts": []

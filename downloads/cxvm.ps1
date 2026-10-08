@@ -177,12 +177,14 @@ echo CexR Windows Runner ready.
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan
-        Write-Host "   Cex Version Manager (cxvm) System Diagnostic Doctor (Windows)" -ForegroundColor Cyan
+        Write-Host "   Cex Version Manager (cxvm v2) System Diagnostic Doctor (Windows)" -ForegroundColor Cyan
         Write-Host "===============================================================" -ForegroundColor Cyan
         Write-Host "  Host OS:             Windows ($arch)"
         Write-Host "  CXVM Home:           $cxvmHome"
         Write-Host "  Active Version:      $(if (Test-Path (Join-Path $cxvmHome 'current')) { 'Active' } else { 'none' })"
-        Write-Host "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine)"
+        Write-Host "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine [READY])"
+        Write-Host "  CexP Compiler:       v8 (Direct Machine Code & ELF Emitter [READY])"
+        Write-Host "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
         Write-Host "  Cross-Platform:      Windows (x64, arm64), Linux, macOS"
         Write-Host "  Supported Targets:   6 architectures (download & install ready)"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green

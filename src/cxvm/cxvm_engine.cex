@@ -37,12 +37,12 @@ class CxvmEngine {
     }
 
     private initCatalog(): void {
-        this.availableVersions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "C++20 & .cex_boxes Dist Loader", "CexR v8 Native .cex_boxes Dist Loader Runtime & In-Memory Execution Pipeline (Default)", true));
-        this.availableVersions->push(new VersionModel("6.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler", false));
-        this.availableVersions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
-        this.availableVersions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "C++20 & Machine Code", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler", false));
-        this.availableVersions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "C++20", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
-        this.availableVersions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "C++20", "CexR v1 C++ Transpiler Runtime & Standard Libraries", false));
+        this.availableVersions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & CexP v8 Pure Engine", "CexR v8 Native .cex_boxes Dist Loader Runtime & CexP v8 Direct Machine Compiler (Default)", true));
+        this.availableVersions->push(new VersionModel("6.0.0", "LTS", "2026-10-07", "CexR v6 & CexP v6 Pure Engine", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler", false));
+        this.availableVersions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "CexR v5 & CexP v5 Pure Engine", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
+        this.availableVersions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "CexR v3 & CexP v3 Pure Engine", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler", false));
+        this.availableVersions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "CexR v2 & CexP v2 Pure Engine", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
+        this.availableVersions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "CexR v1 & CexP v1 Pure Engine", "CexR v1 Native Machine Runtime & Standard Libraries", false));
     }
 
     public isVersionAvailable(ver: string): bool {
@@ -246,20 +246,20 @@ class CxvmEngine {
 
     public doctor(): string {
         let out: string = "===============================================================\n";
-        out += "       Cex Version Manager (cxvm) System Diagnostic Doctor      \n";
+        out += "       Cex Version Manager (cxvm v2) System Diagnostic Doctor   \n";
         out += "===============================================================\n";
         out += "  CXVM Home:         " + this.cxvmHome + "\n";
         out += "  Active Cex:        " + this.current() + "\n";
         out += "  Default Cex:       " + (this.defaultVersion.length() > 0 ? "v" + this.defaultVersion : "none") + "\n";
-        out += "  CexR Runtime:      v8 (.cex_boxes Dist Loader Runtime Engine)\n";
+        out += "  CexR Runtime:      v8 (.cex_boxes Dist Loader Runtime Engine [READY])\n";
         out += "  CexR Setup:        Cross-Platform Native Runtime Ready [OK]\n";
-        out += "  CexP Compiler:     v8 (Direct Machine Code & ELF Emitter)\n";
+        out += "  CexP Compiler:     v8 (Direct Machine Code & ELF Emitter [READY])\n";
+        out += "  Toolchain Model:   Pure Cex Native Engine (cexr + cexp; zero C++ dependency)\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + std::to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
         out += "  Installed Count:   " + std::to_string((int)this.installedVersions->length()) + "\n";
-        out += "  C++20 Toolchain:   PASSED [g++-12 / clang++-16 detected]\n";
         out += "  Runtime Bridge:    PASSED [CexR v8 native machine bridge active]\n";
-        out += "  Status:            HEALTHY [OK]\n";
+        out += "  Diagnostic:        HEALTHY [OK]\n";
         return out;
     }
 }

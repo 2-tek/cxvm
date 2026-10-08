@@ -1,7 +1,7 @@
 {
   "name": "@2tek/cxvm",
-  "version": "1.0.0",
-  "description": "cxvm: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager, powered by Lighting MVC",
+  "version": "2.0.0",
+  "description": "cxvm v2: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (Pure Cex: cexr + cexp, zero C++ dependency), powered by Lighting MVC",
   "main": "src/index.cex",
   "author": "2-TEK Ecosystem",
   "license": "MIT",
@@ -13,7 +13,8 @@
   "bugs": "https://github.com/2-tek/cxvm/issues",
   "target": "runtime",
   "required": {
-    "cexr": "^8"
+    "cexr": "^8",
+    "cexp": "^8"
   },
   "dependencies": {
     "@cex-test": "1.0.0",
@@ -22,7 +23,6 @@
   },
   "cFlags": [
     "-O3",
-    "-std=c++20",
     "-lpthread"
   ],
   "includeDirs": [

@@ -27,11 +27,11 @@ fn main(): int {
 
     // 2. Testing Model Layer & Validation
     println("\n[2. Testing Model Layer & Entity Validation]");
-    let pModel: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "g++-12 / clang++-16", "tar.gz", "Linux x86_64");
+    let pModel: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8 (Native Direct Compiler)", "tar.gz", "Linux x86_64");
     let pVal: ModelValidationResult* = pModel->validate();
     print("  Platform Model Validation: "); println(pVal->isValid ? "PASSED [OK]" : "FAILED");
 
-    let vModel: VersionModel* = new VersionModel("8.0.0", "STABLE", "2026-10-07", "C++20 & .cex_boxes Dist Loader", "CexR v8 High-Performance Native Server Engine", true);
+    let vModel: VersionModel* = new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & CexP v8 Pure Engine", "CexR v8 High-Performance Native Server Engine", true);
     let vVal: ModelValidationResult* = vModel->validate();
     print("  Version Model Validation:  "); println(vVal->isValid ? "PASSED [OK]" : "FAILED");
 

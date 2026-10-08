@@ -89,7 +89,7 @@ export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
 export PATH="$CEX_HOME/bin:$PATH"
 
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexR v8.0.0 (Native C++20 Default Toolchain; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader)"
+  echo "CexR v8.0.0 (Native Machine Engine; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)"
   exit 0
 fi
 
@@ -331,21 +331,15 @@ RUNNER_EOF
 
     doctor)
       echo "==============================================================="
-      echo "   Cex Version Manager (cxvm) System Diagnostic Doctor         "
+      echo "   Cex Version Manager (cxvm v2) System Diagnostic Doctor      "
       echo "==============================================================="
       echo "  Host OS:             $(uname -s)"
       echo "  Architecture:        $(uname -m)"
       echo "  CXVM Home:           $CXVM_DIR"
-      echo "  C++ Compiler:        $(command -v g++ || command -v clang++ || echo 'Not found')"
-      if command -v g++ >/dev/null 2>&1 || command -v clang++ >/dev/null 2>&1; then
-        echo "  C++20 Status:        PASSED [g++ / clang++ available]"
-      else
-        echo "  C++20 Status:        WARNING: C++ compiler not in PATH"
-      fi
       echo "  Active Version:      $(cxvm current)"
-      echo "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine)"
-      echo "  CexR Executable:     $([ -x "$CXVM_DIR/current/bin/cexr" ] && echo "$CXVM_DIR/current/bin/cexr [READY]" || ([ -x "$(command -v cexr 2>/dev/null)" ] && echo "$(command -v cexr) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)"))"
-      echo "  CexP Compiler:       v8 (Machine Code & ELF Direct Emitter)"
+      echo "  CexR Runtime:        $([ -x "$CXVM_DIR/current/bin/cexr" ] && echo "$CXVM_DIR/current/bin/cexr [READY]" || ([ -x "$(command -v cexr 2>/dev/null)" ] && echo "$(command -v cexr) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)"))"
+      echo "  CexP Compiler:       $([ -x "$CXVM_DIR/current/bin/cex" ] && echo "$CXVM_DIR/current/bin/cex [READY]" || ([ -x "$(command -v cexp 2>/dev/null)" ] && echo "$(command -v cexp) [READY]" || ([ -x "$(command -v cex 2>/dev/null)" ] && echo "$(command -v cex) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)")))"
+      echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
       echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
       echo "  Supported Targets:   6 architectures (download & install ready)"
       echo "  Diagnostic:          HEALTHY [OK]"

@@ -25,7 +25,7 @@ fn main(): int {
     // Test 1: Factory Models & Schema Validation
     // -------------------------------------------------------------
     println("\n[Test Suite 1: Factory Models & Schema Validation]");
-    let pValid: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "g++-12", "tar.gz", "Linux x86_64");
+    let pValid: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8", "tar.gz", "Linux x86_64");
     let valRes1: ModelValidationResult* = pValid->validate();
     Assert::isTrue(valRes1->isValid, "Valid platform passes validation");
     Assert::equalsInt(0, valRes1->getErrorCount(), "Valid platform has 0 errors");
@@ -35,12 +35,12 @@ fn main(): int {
     Assert::isFalse(valRes2->isValid, "Invalid platform fails validation");
     Assert::isTrue(valRes2->getErrorCount() >= 3, "Invalid platform detects missing OS, arch, triple");
 
-    let vValid: VersionModel* = new VersionModel("8.0.0", "STABLE", "2026-10-07", "C++20", "Stable release", true);
+    let vValid: VersionModel* = new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 + CexP v8", "Stable release", true);
     let vVal: ModelValidationResult* = vValid->validate();
     Assert::isTrue(vVal->isValid, "Valid version passes validation");
     Assert::isTrue(vValid->toJson().find("8.0.0") != -1, "Version JSON contains version string");
 
-    let vInvalid: VersionModel* = new VersionModel("8.0.0", "UNKNOWN_CHANNEL", "2026-10-07", "C++20", "Invalid", false);
+    let vInvalid: VersionModel* = new VersionModel("8.0.0", "UNKNOWN_CHANNEL", "2026-10-07", "CexR v8 + CexP v8", "Invalid", false);
     let vValInv: ModelValidationResult* = vInvalid->validate();
     Assert::isFalse(vValInv->isValid, "Invalid channel fails validation");
 
@@ -113,6 +113,8 @@ fn main(): int {
     let docOut: string = cxvm->doctor();
     Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
     Assert::isTrue(docOut.find("CexR Runtime:      v8") != -1, "cxvm doctor reports CexR v8 runtime");
+    Assert::isTrue(docOut.find("CexP Compiler:     v8") != -1, "cxvm doctor reports CexP v8 compiler");
+    Assert::isTrue(docOut.find("Pure Cex Native Engine") != -1, "cxvm doctor reports Pure Cex Native Engine");
     Assert::isTrue(docOut.find("Cross-Platform") != -1, "cxvm doctor reports cross-platform support");
     Assert::isTrue(docOut.find("Supported Targets: 6 architectures") != -1, "cxvm doctor reports 6 supported targets");
 
