@@ -101,7 +101,7 @@ class DistBuilder {
             return str;
         }
 
-        return JsonDoc::stringifyIndent(this->getManifestDoc(), 2);
+        return JsonDoc::stringifyIndent(this.getManifestDoc(), 2);
     }
 
     public getArtifactByFilename(fname: string): ArtifactModel* {

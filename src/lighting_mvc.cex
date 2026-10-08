@@ -265,7 +265,7 @@ class BaseModel {
     }
 
     public virtual toJson(): string {
-        return JsonDoc::stringify(this->toJsonValue());
+        return JsonDoc::stringify(this.toJsonValue());
     }
 }
 

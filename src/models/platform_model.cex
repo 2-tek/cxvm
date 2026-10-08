@@ -52,6 +52,6 @@ class PlatformModel : public BaseModel {
     }
 
     public override toJson(): string {
-        return JsonDoc::stringify(this->toJsonValue());
+        return JsonDoc::stringify(this.toJsonValue());
     }
 }

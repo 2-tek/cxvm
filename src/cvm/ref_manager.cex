@@ -36,10 +36,10 @@ class RefManager {
     }
 
     public setBranchCommit(branch: string, commitHash: string): void {
-        let count: int = (int)this->branchNames->length();
+        let count: int = (int)this.branchNames->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->branchNames->get(i) == branch) {
-                this->branchCommits->set(i, commitHash);
+            if (this.branchNames->get(i) == branch) {
+                this.branchCommits->set(i, commitHash);
                 return;
             }
         }
@@ -50,19 +50,19 @@ class RefManager {
     }
 
     public getBranchCommit(branch: string): string {
-        let count: int = (int)this->branchNames->length();
+        let count: int = (int)this.branchNames->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->branchNames->get(i) == branch) {
-                return this->branchCommits->get(i);
+            if (this.branchNames->get(i) == branch) {
+                return this.branchCommits->get(i);
             }
         }
         return "";
     }
 
     public hasBranch(branch: string): bool {
-        let count: int = (int)this->branchNames->length();
+        let count: int = (int)this.branchNames->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->branchNames->get(i) == branch) {
+            if (this.branchNames->get(i) == branch) {
                 return true;
             }
         }
@@ -70,11 +70,11 @@ class RefManager {
     }
 
     public createBranch(branch: string, startCommit: string): bool {
-        if (this->hasBranch(branch)) {
+        if (this.hasBranch(branch)) {
             return false;
         }
-        this->branchNames->push(branch);
-        this->branchCommits->push(startCommit);
+        this.branchNames->push(branch);
+        this.branchCommits->push(startCommit);
         return true;
     }
 
@@ -82,20 +82,20 @@ class RefManager {
         if (branch == this.currentBranch) {
             return false; // Cannot delete currently active branch
         }
-        let count: int = (int)this->branchNames->length();
+        let count: int = (int)this.branchNames->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->branchNames->get(i) == branch) {
+            if (this.branchNames->get(i) == branch) {
                 // remove branch
                 let newNames: Array<string>* = new Array<string>();
                 let newCommits: Array<string>* = new Array<string>();
                 for (let j: int = 0; j < count; j++) {
                     if (j != i) {
-                        newNames->push(this->branchNames->get(j));
-                        newCommits->push(this->branchCommits->get(j));
+                        newNames->push(this.branchNames->get(j));
+                        newCommits->push(this.branchCommits->get(j));
                     }
                 }
-                this->branchNames = newNames;
-                this->branchCommits = newCommits;
+                this.branchNames = newNames;
+                this.branchCommits = newCommits;
                 return true;
             }
         }
@@ -103,32 +103,32 @@ class RefManager {
     }
 
     public listBranches(): Array<string>* {
-        return this->branchNames;
+        return this.branchNames;
     }
 
     public setTag(tag: string, commitHash: string): void {
-        let count: int = (int)this->tagNames->length();
+        let count: int = (int)this.tagNames->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->tagNames->get(i) == tag) {
-                this->tagCommits->set(i, commitHash);
+            if (this.tagNames->get(i) == tag) {
+                this.tagCommits->set(i, commitHash);
                 return;
             }
         }
-        this->tagNames->push(tag);
-        this->tagCommits->push(commitHash);
+        this.tagNames->push(tag);
+        this.tagCommits->push(commitHash);
     }
 
     public getTagCommit(tag: string): string {
-        let count: int = (int)this->tagNames->length();
+        let count: int = (int)this.tagNames->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->tagNames->get(i) == tag) {
-                return this->tagCommits->get(i);
+            if (this.tagNames->get(i) == tag) {
+                return this.tagCommits->get(i);
             }
         }
         return "";
     }
 
     public listTags(): Array<string>* {
-        return this->tagNames;
+        return this.tagNames;
     }
 }

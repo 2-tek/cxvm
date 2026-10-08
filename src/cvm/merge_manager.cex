@@ -89,21 +89,21 @@ class MergeRequestManager {
     }
 
     public getRequest(id: string): MergeRequest* {
-        let count: int = (int)this->requests->length();
+        let count: int = (int)this.requests->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->requests->get(i)->id == id) {
-                return this->requests->get(i);
+            if (this.requests->get(i)->id == id) {
+                return this.requests->get(i);
             }
         }
         return nullptr;
     }
 
     public listRequests(): Array<MergeRequest*>* {
-        return this->requests;
+        return this.requests;
     }
 
     public addComment(mrId: string, author: GitUser*, content: string): MergeRequestComment* {
-        let mr: MergeRequest* = this->getRequest(mrId);
+        let mr: MergeRequest* = this.getRequest(mrId);
         if (mr == nullptr) {
             return nullptr;
         }
@@ -115,7 +115,7 @@ class MergeRequestManager {
     }
 
     public executeMerge(mrId: string, mergedBy: string): bool {
-        let mr: MergeRequest* = this->getRequest(mrId);
+        let mr: MergeRequest* = this.getRequest(mrId);
         if (mr == nullptr) {
             return false;
         }

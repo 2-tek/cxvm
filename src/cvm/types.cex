@@ -48,9 +48,9 @@ class TreeObject {
     }
 
     public getEntry(path: string): TreeEntry* {
-        let count: int = (int)this->entries->length();
+        let count: int = (int)this.entries->length();
         for (let i: int = 0; i < count; i++) {
-            let e: TreeEntry* = this->entries->get(i);
+            let e: TreeEntry* = this.entries->get(i);
             if (e->path == path) {
                 return e;
             }
@@ -226,7 +226,7 @@ class CvmPatch {
         this.files->push(file);
         this.additions = this.additions + file->additions;
         this.deletions = this.deletions + file->deletions;
-        this.filesCount = (int)this->files->length();
+        this.filesCount = (int)this.files->length();
     }
 }
 

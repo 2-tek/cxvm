@@ -39,32 +39,32 @@ class ObjectStore {
     public saveBlob(content: string): string {
         let hash: string = GitHash::hashObject("blob", content);
 
-        let count: int = (int)this->blobMapKeys->length();
+        let count: int = (int)this.blobMapKeys->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->blobMapKeys->get(i) == hash) {
+            if (this.blobMapKeys->get(i) == hash) {
                 return hash;
             }
         }
 
-        this->blobMapKeys->push(hash);
-        this->blobMapValues->push(content);
+        this.blobMapKeys->push(hash);
+        this.blobMapValues->push(content);
         return hash;
     }
 
     public getBlob(hash: string): string {
-        let count: int = (int)this->blobMapKeys->length();
+        let count: int = (int)this.blobMapKeys->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->blobMapKeys->get(i) == hash) {
-                return this->blobMapValues->get(i);
+            if (this.blobMapKeys->get(i) == hash) {
+                return this.blobMapValues->get(i);
             }
         }
         return "";
     }
 
     public hasBlob(hash: string): bool {
-        let count: int = (int)this->blobMapKeys->length();
+        let count: int = (int)this.blobMapKeys->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->blobMapKeys->get(i) == hash) {
+            if (this.blobMapKeys->get(i) == hash) {
                 return true;
             }
         }
@@ -86,16 +86,16 @@ class ObjectStore {
             treeObj->addEntry(entries->get(i));
         }
 
-        this->treeMapKeys->push(hash);
-        this->treeMapValues->push(treeObj);
+        this.treeMapKeys->push(hash);
+        this.treeMapValues->push(treeObj);
         return hash;
     }
 
     public getTree(hash: string): TreeObject* {
-        let count: int = (int)this->treeMapKeys->length();
+        let count: int = (int)this.treeMapKeys->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->treeMapKeys->get(i) == hash) {
-                return this->treeMapValues->get(i);
+            if (this.treeMapKeys->get(i) == hash) {
+                return this.treeMapValues->get(i);
             }
         }
         return nullptr;
@@ -114,23 +114,23 @@ class ObjectStore {
         let hash: string = GitHash::hashObject("commit", payload);
         let commitObj: CommitObject* = new CommitObject(hash, treeHash, parentHash, author, message);
 
-        this->commitMapKeys->push(hash);
-        this->commitMapValues->push(commitObj);
+        this.commitMapKeys->push(hash);
+        this.commitMapValues->push(commitObj);
         return hash;
     }
 
     public getCommit(hash: string): CommitObject* {
-        let count: int = (int)this->commitMapKeys->length();
+        let count: int = (int)this.commitMapKeys->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->commitMapKeys->get(i) == hash) {
-                return this->commitMapValues->get(i);
+            if (this.commitMapKeys->get(i) == hash) {
+                return this.commitMapValues->get(i);
             }
         }
         return nullptr;
     }
 
     public listCommits(): Array<CommitObject*>* {
-        return this->commitMapValues;
+        return this.commitMapValues;
     }
 
     // 4. Tag Storage
@@ -139,22 +139,22 @@ class ObjectStore {
         let hash: string = GitHash::hashObject("tag", payload);
         let tagObj: TagObject* = new TagObject(hash, targetHash, tag, tagger, message);
 
-        this->tagMapKeys->push(tag);
-        this->tagMapValues->push(tagObj);
+        this.tagMapKeys->push(tag);
+        this.tagMapValues->push(tagObj);
         return hash;
     }
 
     public getTag(tag: string): TagObject* {
-        let count: int = (int)this->tagMapKeys->length();
+        let count: int = (int)this.tagMapKeys->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->tagMapKeys->get(i) == tag) {
-                return this->tagMapValues->get(i);
+            if (this.tagMapKeys->get(i) == tag) {
+                return this.tagMapValues->get(i);
             }
         }
         return nullptr;
     }
 
     public getObjectsCount(): int {
-        return (int)this->blobMapKeys->length() + (int)this->treeMapKeys->length() + (int)this->commitMapKeys->length() + (int)this->tagMapKeys->length();
+        return (int)this.blobMapKeys->length() + (int)this.treeMapKeys->length() + (int)this.commitMapKeys->length() + (int)this.tagMapKeys->length();
     }
 }

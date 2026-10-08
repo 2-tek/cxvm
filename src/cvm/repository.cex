@@ -46,22 +46,22 @@ class Repository {
 
     // 1. Working File Operations
     public setFile(path: string, content: string): void {
-        let count: int = (int)this->workFilesPaths->length();
+        let count: int = (int)this.workFilesPaths->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->workFilesPaths->get(i) == path) {
-                this->workFilesContents->set(i, content);
+            if (this.workFilesPaths->get(i) == path) {
+                this.workFilesContents->set(i, content);
                 return;
             }
         }
-        this->workFilesPaths->push(path);
-        this->workFilesContents->push(content);
+        this.workFilesPaths->push(path);
+        this.workFilesContents->push(content);
     }
 
     public getFile(path: string): string {
-        let count: int = (int)this->workFilesPaths->length();
+        let count: int = (int)this.workFilesPaths->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->workFilesPaths->get(i) == path) {
-                return this->workFilesContents->get(i);
+            if (this.workFilesPaths->get(i) == path) {
+                return this.workFilesContents->get(i);
             }
         }
         return "";
@@ -71,38 +71,38 @@ class Repository {
     public stage(path: string, content: string): void {
         this.setFile(path, content);
 
-        let count: int = (int)this->stagedPaths->length();
+        let count: int = (int)this.stagedPaths->length();
         for (let i: int = 0; i < count; i++) {
-            if (this->stagedPaths->get(i) == path) {
-                this->stagedContents->set(i, content);
+            if (this.stagedPaths->get(i) == path) {
+                this.stagedContents->set(i, content);
                 return;
             }
         }
-        this->stagedPaths->push(path);
-        this->stagedContents->push(content);
+        this.stagedPaths->push(path);
+        this.stagedContents->push(content);
     }
 
     public unstage(path: string): void {
-        let count: int = (int)this->stagedPaths->length();
+        let count: int = (int)this.stagedPaths->length();
         let newPaths: Array<string>* = new Array<string>();
         let newContents: Array<string>* = new Array<string>();
         for (let i: int = 0; i < count; i++) {
-            if (this->stagedPaths->get(i) != path) {
-                newPaths->push(this->stagedPaths->get(i));
-                newContents->push(this->stagedContents->get(i));
+            if (this.stagedPaths->get(i) != path) {
+                newPaths->push(this.stagedPaths->get(i));
+                newContents->push(this.stagedContents->get(i));
             }
         }
-        this->stagedPaths = newPaths;
-        this->stagedContents = newContents;
+        this.stagedPaths = newPaths;
+        this.stagedContents = newContents;
     }
 
     public getStagedCount(): int {
-        return (int)this->stagedPaths->length();
+        return (int)this.stagedPaths->length();
     }
 
     // 3. Commit Creation (git commit)
     public commit(message: string, author: GitUser*): CommitObject* {
-        if ((int)this->stagedPaths->length() == 0 && (int)this->headFilesPaths->length() == 0) {
+        if ((int)this.stagedPaths->length() == 0 && (int)this.headFilesPaths->length() == 0) {
             return nullptr;
         }
 
@@ -110,64 +110,64 @@ class Repository {
         let treeEntries: Array<TreeEntry*>* = new Array<TreeEntry*>();
 
         // Merge staged into head files snapshot
-        let sCount: int = (int)this->stagedPaths->length();
+        let sCount: int = (int)this.stagedPaths->length();
         for (let s: int = 0; s < sCount; s++) {
-            let sPath: string = this->stagedPaths->get(s);
-            let sContent: string = this->stagedContents->get(s);
+            let sPath: string = this.stagedPaths->get(s);
+            let sContent: string = this.stagedContents->get(s);
 
-            let blobHash: string = this->objectStore->saveBlob(sContent);
+            let blobHash: string = this.objectStore->saveBlob(sContent);
             treeEntries->push(new TreeEntry("100644", "blob", blobHash, sPath));
 
             // update head files
             let found: bool = false;
-            let hCount: int = (int)this->headFilesPaths->length();
+            let hCount: int = (int)this.headFilesPaths->length();
             for (let h: int = 0; h < hCount; h++) {
-                if (this->headFilesPaths->get(h) == sPath) {
-                    this->headFilesContents->set(h, sContent);
+                if (this.headFilesPaths->get(h) == sPath) {
+                    this.headFilesContents->set(h, sContent);
                     found = true;
                     break;
                 }
             }
             if (!found) {
-                this->headFilesPaths->push(sPath);
-                this->headFilesContents->push(sContent);
+                this.headFilesPaths->push(sPath);
+                this.headFilesContents->push(sContent);
             }
         }
 
-        let treeHash: string = this->objectStore->saveTree(treeEntries);
-        let parentHash: string = this->refManager->getHeadCommit();
-        let commitHash: string = this->objectStore->saveCommit(treeHash, parentHash, author, message);
+        let treeHash: string = this.objectStore->saveTree(treeEntries);
+        let parentHash: string = this.refManager->getHeadCommit();
+        let commitHash: string = this.objectStore->saveCommit(treeHash, parentHash, author, message);
 
         // Advance branch HEAD
-        this->refManager->setBranchCommit(this->refManager->getCurrentBranch(), commitHash);
+        this.refManager->setBranchCommit(this.refManager->getCurrentBranch(), commitHash);
 
         // Clear staging area
-        this->stagedPaths = new Array<string>();
-        this->stagedContents = new Array<string>();
+        this.stagedPaths = new Array<string>();
+        this.stagedContents = new Array<string>();
 
-        return this->objectStore->getCommit(commitHash);
+        return this.objectStore->getCommit(commitHash);
     }
 
     // 4. Status Check (git status)
     public status(): RepoStatus* {
-        let statusObj: RepoStatus* = new RepoStatus(this->refManager->getCurrentBranch(), this->refManager->getHeadCommit());
+        let statusObj: RepoStatus* = new RepoStatus(this.refManager->getCurrentBranch(), this.refManager->getHeadCommit());
 
         // Staged files
-        let sCount: int = (int)this->stagedPaths->length();
+        let sCount: int = (int)this.stagedPaths->length();
         for (let i: int = 0; i < sCount; i++) {
-            statusObj->addStaged(this->stagedPaths->get(i));
+            statusObj->addStaged(this.stagedPaths->get(i));
         }
 
         // Unstaged or modified files: compare work files to head files
-        let wCount: int = (int)this->workFilesPaths->length();
+        let wCount: int = (int)this.workFilesPaths->length();
         for (let w: int = 0; w < wCount; w++) {
-            let wPath: string = this->workFilesPaths->get(w);
-            let wContent: string = this->workFilesContents->get(w);
+            let wPath: string = this.workFilesPaths->get(w);
+            let wContent: string = this.workFilesContents->get(w);
 
             // If already staged, skip modified check
             let isStaged: bool = false;
             for (let s: int = 0; s < sCount; s++) {
-                if (this->stagedPaths->get(s) == wPath) {
+                if (this.stagedPaths->get(s) == wPath) {
                     isStaged = true;
                     break;
                 }
@@ -178,11 +178,11 @@ class Repository {
 
             // Check against head
             let foundInHead: bool = false;
-            let hCount: int = (int)this->headFilesPaths->length();
+            let hCount: int = (int)this.headFilesPaths->length();
             for (let h: int = 0; h < hCount; h++) {
-                if (this->headFilesPaths->get(h) == wPath) {
+                if (this.headFilesPaths->get(h) == wPath) {
                     foundInHead = true;
-                    if (this->headFilesContents->get(h) != wContent) {
+                    if (this.headFilesContents->get(h) != wContent) {
                         statusObj->addModified(wPath);
                     }
                     break;
@@ -198,32 +198,32 @@ class Repository {
 
     // 5. Branch & Checkout Operations
     public createBranch(name: string): bool {
-        let currentHead: string = this->refManager->getHeadCommit();
-        return this->refManager->createBranch(name, currentHead);
+        let currentHead: string = this.refManager->getHeadCommit();
+        return this.refManager->createBranch(name, currentHead);
     }
 
     public checkout(branch: string): bool {
-        if (!this->refManager->hasBranch(branch)) {
+        if (!this.refManager->hasBranch(branch)) {
             return false;
         }
-        this->refManager->setCurrentBranch(branch);
+        this.refManager->setCurrentBranch(branch);
         return true;
     }
 
     // 6. Diff calculation
     public diffWorking(): Array<FileDiff*>* {
         let diffs: Array<FileDiff*>* = new Array<FileDiff*>();
-        let wCount: int = (int)this->workFilesPaths->length();
+        let wCount: int = (int)this.workFilesPaths->length();
 
         for (let w: int = 0; w < wCount; w++) {
-            let wPath: string = this->workFilesPaths->get(w);
-            let wContent: string = this->workFilesContents->get(w);
+            let wPath: string = this.workFilesPaths->get(w);
+            let wContent: string = this.workFilesContents->get(w);
 
             let oldContent: string = "";
-            let hCount: int = (int)this->headFilesPaths->length();
+            let hCount: int = (int)this.headFilesPaths->length();
             for (let h: int = 0; h < hCount; h++) {
-                if (this->headFilesPaths->get(h) == wPath) {
-                    oldContent = this->headFilesContents->get(h);
+                if (this.headFilesPaths->get(h) == wPath) {
+                    oldContent = this.headFilesContents->get(h);
                     break;
                 }
             }
@@ -239,15 +239,15 @@ class Repository {
 
     // 7. Generate Change Record (.cvm)
     public generateCvmPatch(id: string, message: string, author: GitUser*): CvmPatch* {
-        let patch: CvmPatch* = new CvmPatch("1.0", id, author, "2026-10-06T12:00:00Z", this->refManager->getCurrentBranch(), message);
-        patch->baseCommit = this->refManager->getHeadCommit();
+        let patch: CvmPatch* = new CvmPatch("1.0", id, author, "2026-10-06T12:00:00Z", this.refManager->getCurrentBranch(), message);
+        patch->baseCommit = this.refManager->getHeadCommit();
 
-        let diffs: Array<FileDiff*>* = this->diffWorking();
+        let diffs: Array<FileDiff*>* = this.diffWorking();
         let dCount: int = (int)diffs->length();
 
         for (let i: int = 0; i < dCount; i++) {
             let d: FileDiff* = diffs->get(i);
-            let content: string = this->getFile(d->filePath);
+            let content: string = this.getFile(d->filePath);
             let entry: CvmFileEntry* = new CvmFileEntry(d->filePath, "100644", d->additions, d->deletions, d->rawUnified, content, d->isDeleted);
             patch->addFile(entry);
         }
@@ -260,7 +260,7 @@ class Repository {
         let fCount: int = (int)patch->files->length();
         for (let i: int = 0; i < fCount; i++) {
             let f: CvmFileEntry* = patch->files->get(i);
-            this->stage(f->filePath, f->fileContent);
+            this.stage(f->filePath, f->fileContent);
         }
         return true;
     }

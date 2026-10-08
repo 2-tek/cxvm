@@ -187,8 +187,8 @@ class CxvmEngine {
         outMsg += "  ✓ [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)\n";
         outMsg += "==> Successfully installed and auto-started cexr, cexp, cvm, thunder, lighting for v" + version;
 
-        this->startCvm(4000, true);
-        this->startThunder(3050, true);
+        this.startCvm(4000, true);
+        this.startThunder(3050, true);
         return new CxvmCommandResult("install", version, true, "Successfully installed and auto-started cexr, cexp, cvm, thunder, lighting for v" + version, outMsg);
     }
 
@@ -320,10 +320,10 @@ class CxvmEngine {
 
     public setup(defaultVer: string): CxvmCommandResult* {
         let targetDef: string = defaultVer.length() == 0 ? "8.0.0" : defaultVer;
-        this->install("8.0.0");
-        this->install("6.0.0");
-        this->setDefault(targetDef);
-        this->use(targetDef);
+        this.install("8.0.0");
+        this.install("6.0.0");
+        this.setDefault(targetDef);
+        this.use(targetDef);
 
         let outMsg: string = "==> [cxvm setup] Cross-Platform Environment & Toolchain Configured:\n";
         outMsg += "  CXVM Home:           " + this.cxvmHome + "\n";
@@ -557,17 +557,17 @@ class CxvmEngine {
 
     public thunderExecute(cmd: string, arg1: string, arg2: string): int {
         if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this->startThunder(3050, true);
+            let res: CxvmCommandResult* = this.startThunder(3050, true);
             println(res->output);
             return 0;
         }
         if (cmd == "stop" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this->stopThunder();
+            let res: CxvmCommandResult* = this.stopThunder();
             println(res->output);
             return 0;
         }
         if (cmd == "status" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this->statusThunder();
+            let res: CxvmCommandResult* = this.statusThunder();
             println(res->output);
             return 0;
         }
@@ -598,40 +598,40 @@ class CxvmEngine {
 
     public cvmExecute(cmd: string, arg1: string, arg2: string): int {
         if (cmd == "start" && (arg1 == "cvm" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this->startCvm(4000, true);
+            let res: CxvmCommandResult* = this.startCvm(4000, true);
             println(res->output);
             return 0;
         }
         if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this->startThunder(3050, true);
+            let res: CxvmCommandResult* = this.startThunder(3050, true);
             println(res->output);
             return 0;
         }
         if (cmd == "stop" && (arg1 == "cvm" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this->stopCvm();
+            let res: CxvmCommandResult* = this.stopCvm();
             println(res->output);
             return 0;
         }
         if (cmd == "stop" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this->stopThunder();
+            let res: CxvmCommandResult* = this.stopThunder();
             println(res->output);
             return 0;
         }
         if (cmd == "status" && arg1 == "cvm") {
-            let res: CxvmCommandResult* = this->statusCvm();
+            let res: CxvmCommandResult* = this.statusCvm();
             println(res->output);
             return 0;
         }
         if (cmd == "status" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this->statusThunder();
+            let res: CxvmCommandResult* = this.statusThunder();
             println(res->output);
             return 0;
         }
         if (cmd == "thunder" || cmd == "docker") {
-            return this->thunderExecute(arg1, arg2, "");
+            return this.thunderExecute(arg1, arg2, "");
         }
         if (cmd == "light" || cmd == "lighting") {
-            return this->lightExecute(arg1, arg2, "");
+            return this.lightExecute(arg1, arg2, "");
         }
         return this.cvmCli->execute(cmd, arg1, arg2);
     }
@@ -660,7 +660,7 @@ class CxvmEngine {
     public lightExecute(cmd: string, arg1: string, arg2: string): int {
         if (cmd == "create") {
             let pName: string = arg1.length() == 0 ? "my-lighting-app" : arg1;
-            let res: CxvmCommandResult* = this->lightCreate(pName, ".");
+            let res: CxvmCommandResult* = this.lightCreate(pName, ".");
             println(res->output);
             return 0;
         }

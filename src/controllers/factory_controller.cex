@@ -18,23 +18,23 @@ class FactoryController : public BaseController {
 
     public index(req: HttpRequest*, port: int, versions: Array<VersionModel*>*, platforms: Array<PlatformModel*>*, artifacts: Array<ArtifactModel*>*, activeVer: string): HttpResponse* {
         let pageHtml: string = FactoryViews::renderDashboard(port, versions, platforms, artifacts, activeVer);
-        return this->html(pageHtml);
+        return this.html(pageHtml);
     }
 
     public downloadsHtml(req: HttpRequest*, port: int, artifacts: Array<ArtifactModel*>*): HttpResponse* {
         let pageHtml: string = FactoryViews::renderDownloads(port, artifacts);
-        return this->html(pageHtml);
+        return this.html(pageHtml);
     }
 
     public cxvmDocs(req: HttpRequest*, port: int): HttpResponse* {
         let pageHtml: string = FactoryViews::renderCxvmDocs(port);
-        return this->html(pageHtml);
+        return this.html(pageHtml);
     }
 
     public setupHtml(req: HttpRequest*, port: int, cxvm: CxvmEngine*): HttpResponse* {
         let doctorOut: string = cxvm->doctor();
         let pageHtml: string = FactoryViews::renderSetupWindow(port, cxvm->current(), cxvm->defaultVersion, doctorOut);
-        return this->html(pageHtml);
+        return this.html(pageHtml);
     }
 
     public apiStatus(req: HttpRequest*, port: int, builder: DistBuilder*, cxvm: CxvmEngine*): HttpResponse* {
@@ -48,7 +48,7 @@ class FactoryController : public BaseController {
         JsonDoc::setNum(doc, "totalArtifacts", (int)builder->artifacts->length());
         JsonDoc::setStr(doc, "currentActiveVersion", cxvm->current());
         JsonDoc::setStr(doc, "crossPlatformSupport", "Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)");
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiVersions(req: HttpRequest*, versions: Array<VersionModel*>*): HttpResponse* {
@@ -60,7 +60,7 @@ class FactoryController : public BaseController {
         }
         JsonDoc::setNum(doc, "total", count);
         JsonDoc::setVal(doc, "versions", arr);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiPlatforms(req: HttpRequest*, platforms: Array<PlatformModel*>*): HttpResponse* {
@@ -72,7 +72,7 @@ class FactoryController : public BaseController {
         }
         JsonDoc::setVal(doc, "platforms", arr);
         JsonDoc::setNum(doc, "total", count);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiDownloads(req: HttpRequest*, artifacts: Array<ArtifactModel*>*): HttpResponse* {
@@ -84,11 +84,11 @@ class FactoryController : public BaseController {
         }
         JsonDoc::setVal(doc, "artifacts", arr);
         JsonDoc::setNum(doc, "total", count);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiManifest(req: HttpRequest*, builder: DistBuilder*): HttpResponse* {
-        return this->json(builder->getManifestDoc());
+        return this.json(builder->getManifestDoc());
     }
 
     public apiBuild(req: HttpRequest*, builder: DistBuilder*): HttpResponse* {
@@ -97,7 +97,7 @@ class FactoryController : public BaseController {
         JsonDoc::setStr(doc, "message", "All cross-platform distribution archives generated in Factory/downloads/");
         JsonDoc::setStr(doc, "status", "SUCCESS");
         JsonDoc::setNum(doc, "totalPackagesBuilt", count);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public serveInstallSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
@@ -248,7 +248,7 @@ class FactoryController : public BaseController {
         JsonDoc::setVal(doc, "dispatchers", disp);
 
         JsonDoc::setStr(doc, "toolchain", "Pure Cex Native Engine (zero C++ dependency; powered by cexr + cexp)");
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiSetupPost(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -259,7 +259,7 @@ class FactoryController : public BaseController {
         JsonDoc::setStr(doc, "message", res->message);
         JsonDoc::setStr(doc, "activeVersion", cxvm->current());
         JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiCvmStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -268,7 +268,7 @@ class FactoryController : public BaseController {
         JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
         JsonDoc::setStr(doc, "branch", res->version);
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiCvmCommit(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -278,7 +278,7 @@ class FactoryController : public BaseController {
         JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
         JsonDoc::setStr(doc, "commitHash", res->version);
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiCvmPush(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -287,7 +287,7 @@ class FactoryController : public BaseController {
         JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
         JsonDoc::setStr(doc, "branch", res->version);
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiCvmServerStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -299,7 +299,7 @@ class FactoryController : public BaseController {
         JsonDoc::setNum(doc, "port", cxvm->cvmServerPort);
         JsonDoc::setNum(doc, "pid", cxvm->cvmServerPid);
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiCvmServerStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -311,7 +311,7 @@ class FactoryController : public BaseController {
         JsonDoc::setNum(doc, "pid", cxvm->cvmServerPid);
         JsonDoc::setStr(doc, "mode", "standalone (single process)");
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiCvmServerStop(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -319,7 +319,7 @@ class FactoryController : public BaseController {
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "STOPPED");
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiThunderStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -333,7 +333,7 @@ class FactoryController : public BaseController {
         JsonDoc::setNum(doc, "totalImages", cxvm->thunderTotalImages);
         JsonDoc::setStr(doc, "kernel", "Linux 6.8.0-2tek-microkernel");
         JsonDoc::setStr(doc, "cgroups", "v2");
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiThunderServerStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -345,7 +345,7 @@ class FactoryController : public BaseController {
         JsonDoc::setNum(doc, "port", cxvm->thunderPort);
         JsonDoc::setNum(doc, "pid", cxvm->thunderPid);
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiThunderServerStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -357,7 +357,7 @@ class FactoryController : public BaseController {
         JsonDoc::setNum(doc, "pid", cxvm->thunderPid);
         JsonDoc::setStr(doc, "mode", "standalone (single process)");
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiThunderServerStop(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -365,7 +365,7 @@ class FactoryController : public BaseController {
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "STOPPED");
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiThunderContainers(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -416,7 +416,7 @@ class FactoryController : public BaseController {
         JsonDoc::pushVal(arr, c5);
 
         JsonDoc::setVal(doc, "containers", arr);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiThunderImages(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -457,7 +457,7 @@ class FactoryController : public BaseController {
         JsonDoc::pushVal(arr, im5);
 
         JsonDoc::setVal(doc, "images", arr);
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiLightStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -475,7 +475,7 @@ class FactoryController : public BaseController {
         JsonDoc::setVal(doc, "commands", arr);
 
         JsonDoc::setStr(doc, "version", "8.0.0");
-        return this->json(doc);
+        return this.json(doc);
     }
 
     public apiLightCreate(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
@@ -492,6 +492,6 @@ class FactoryController : public BaseController {
         JsonDoc::setStr(doc, "projectName", projectName);
         JsonDoc::setStr(doc, "framework", "Lighting Fullstack MVC");
         JsonDoc::setStr(doc, "message", res->message);
-        return this->json(doc);
+        return this.json(doc);
     }
 }
