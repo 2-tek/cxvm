@@ -24,7 +24,7 @@ class FactoryApp {
         this.appName = "2-TEK cxvm Engine";
         this.port = port;
         this.isRunning = false;
-        this.downloadsDir = fs.exists("cxvm/downloads") ? "cxvm/downloads" : (fs.exists("packages/cxvm/downloads") ? "packages/cxvm/downloads" : (fs.exists("downloads") ? "downloads" : "cxvm/downloads"));
+        this.downloadsDir = fs.exists("dist") ? "dist" : (fs.exists("cxvm/downloads") ? "cxvm/downloads" : (fs.exists("packages/cxvm/downloads") ? "packages/cxvm/downloads" : (fs.exists("downloads") ? "downloads" : "dist")));
 
         this.router = new LightingRouter();
         this.controller = new FactoryController();

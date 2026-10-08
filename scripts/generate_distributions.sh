@@ -990,6 +990,14 @@ with open(os.path.join(downloads_dir, "manifest.json"), "w") as out:
 print(f"Manifest created with {len(manifest['artifacts'])} distribution packages.")
 PYEOF
 
+# 9. Sync/keep dist/ directory with cross-platform downloads (Rule 69)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+DIST_DIR="$ROOT_DIR/dist"
+mkdir -p "$DIST_DIR"
+cp -a "$DOWNLOADS_DIR"/* "$DIST_DIR/"
+echo "  ✓ Synchronized all cross-platform distributions into dist/"
+
 echo "==============================================================="
 echo "  ✓ All cross-platform Cex distributions successfully built!   "
 echo "==============================================================="
