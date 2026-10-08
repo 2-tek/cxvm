@@ -1,0 +1,178 @@
+// CodeVersionManager: Change Records Engine (.cvm / .chr) (C-ext)
+// Structured Patch Format Serializer, Parser, Previewer, and Applier
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./types.cex";
+import "./hash_utils.cex";
+import "./diff_engine.cex";
+
+class CvmPatchEngine {
+    // 1. Serialize CvmPatch to .cvm format
+    public static serializeCvm(patch: CvmPatch*): string {
+        let out: string = "# --- CODE VERSION MANAGER CHANGE RECORD (.cvm) ---\n";
+        out = out + "VERSION: " + (patch->version != "" ? patch->version : "1.0") + "\n";
+        out = out + "ID: " + patch->id + "\n";
+        out = out + "AUTHOR: " + patch->author->name + " <" + patch->author->email + ">\n";
+        out = out + "DATE: " + patch->date + "\n";
+        out = out + "BRANCH: " + patch->branch + "\n";
+        if (patch->baseCommit != "") {
+            out = out + "BASE_COMMIT: " + patch->baseCommit + "\n";
+        }
+        out = out + "MESSAGE: " + patch->message + "\n";
+        out = out + "STATS: +" + to_string(patch->additions) + ", -" + to_string(patch->deletions) + " across " + to_string(patch->filesCount) + " file(s)\n\n";
+
+        let count: int = (int)patch->files->length();
+        for (let i: int = 0; i < count; i++) {
+            let f: CvmFileEntry* = patch->files->get(i);
+            out = out + "--- FILE: " + f->filePath + " ---\n";
+            out = out + "ADDITIONS: " + to_string(f->additions) + "\n";
+            out = out + "DELETIONS: " + to_string(f->deletions) + "\n";
+            out = out + "PAYLOAD_B64: " + Base64::encode(f->fileContent) + "\n";
+            out = out + "DIFF_START\n";
+            out = out + f->rawUnified;
+            out = out + "DIFF_END\n";
+            out = out + "--- END FILE ---\n\n";
+        }
+
+        out = out + "# --- END CODE VERSION MANAGER CHANGE RECORD ---\n";
+        patch->rawText = out;
+        return out;
+    }
+
+    // 2. Serialize CvmPatch to .chr format
+    public static serializeChr(patch: CvmPatch*): string {
+        let cvmStr: string = CvmPatchEngine::serializeCvm(patch);
+        // Replace header and footer
+        let headerOld: string = "# --- CODE VERSION MANAGER CHANGE RECORD (.cvm) ---";
+        let headerNew: string = "# --- CHECKER CHANGE RECORD (.chr) ---";
+        let footerOld: string = "# --- END CODE VERSION MANAGER CHANGE RECORD ---";
+        let footerNew: string = "# --- END CHECKER CHANGE RECORD ---";
+
+        let out: string = cvmStr;
+        let pos1: int = (int)out.find(headerOld);
+        if (pos1 >= 0) {
+            out = headerNew + out.substr((int)headerOld.length());
+        }
+        let pos2: int = (int)out.find(footerOld);
+        if (pos2 >= 0) {
+            out = out.substr(0, pos2) + footerNew + "\n";
+        }
+        return out;
+    }
+
+    // 3. Parse .cvm or .chr patch string
+    public static parsePatch(rawText: string): CvmPatch* {
+        let lines: Array<string>* = DiffEngine::splitLines(rawText);
+        let totalLines: int = (int)lines->length();
+
+        let version: string = "1.0";
+        let id: string = "cvm_record";
+        let authorName: string = "Unknown";
+        let authorEmail: string = "unknown@2tek.local";
+        let date: string = "2026-10-06T12:00:00Z";
+        let branch: string = "main";
+        let baseCommit: string = "";
+        let message: string = "";
+
+        let currentFile: string = "";
+        let currentAdditions: int = 0;
+        let currentDeletions: int = 0;
+        let currentPayloadB64: string = "";
+        let currentDiff: string = "";
+        let inDiff: bool = false;
+
+        let parsedFiles: Array<CvmFileEntry*>* = new Array<CvmFileEntry*>();
+
+        for (let i: int = 0; i < totalLines; i++) {
+            let line: string = lines->get(i);
+
+            if (line.substr(0, 9) == "VERSION: ") {
+                version = line.substr(9);
+            } else if (line.substr(0, 4) == "ID: ") {
+                id = line.substr(4);
+            } else if (line.substr(0, 8) == "AUTHOR: ") {
+                let authorStr: string = line.substr(8);
+                let openAngle: int = (int)authorStr.find("<");
+                let closeAngle: int = (int)authorStr.find(">");
+                if (openAngle >= 0 && closeAngle > openAngle) {
+                    authorName = authorStr.substr(0, openAngle - 1);
+                    authorEmail = authorStr.substr(openAngle + 1, closeAngle - openAngle - 1);
+                } else {
+                    authorName = authorStr;
+                }
+            } else if (line.substr(0, 6) == "DATE: ") {
+                date = line.substr(6);
+            } else if (line.substr(0, 8) == "BRANCH: ") {
+                branch = line.substr(8);
+            } else if (line.substr(0, 13) == "BASE_COMMIT: ") {
+                baseCommit = line.substr(13);
+            } else if (line.substr(0, 9) == "MESSAGE: ") {
+                message = line.substr(9);
+            } else if (line.substr(0, 10) == "--- FILE: ") {
+                let endMarker: int = (int)line.find(" ---");
+                if (endMarker > 10) {
+                    currentFile = line.substr(10, endMarker - 10);
+                }
+                currentAdditions = 0;
+                currentDeletions = 0;
+                currentPayloadB64 = "";
+                currentDiff = "";
+                inDiff = false;
+            } else if (line.substr(0, 11) == "ADDITIONS: ") {
+                currentAdditions = (int)atoi(line.substr(11).c_str());
+            } else if (line.substr(0, 11) == "DELETIONS: ") {
+                currentDeletions = (int)atoi(line.substr(11).c_str());
+            } else if (line.substr(0, 13) == "PAYLOAD_B64: ") {
+                currentPayloadB64 = line.substr(13);
+            } else if (line == "DIFF_START") {
+                inDiff = true;
+            } else if (line == "DIFF_END") {
+                inDiff = false;
+            } else if (line == "--- END FILE ---") {
+                let decodedPayload: string = Base64::decode(currentPayloadB64);
+                let entry: CvmFileEntry* = new CvmFileEntry(currentFile, "100644", currentAdditions, currentDeletions, currentDiff, decodedPayload, false);
+                parsedFiles->push(entry);
+                currentFile = "";
+            } else if (inDiff) {
+                currentDiff = currentDiff + line + "\n";
+            }
+        }
+
+        let patch: CvmPatch* = new CvmPatch(version, id, new GitUser(authorName, authorEmail), date, branch, message);
+        patch->baseCommit = baseCommit;
+        patch->rawText = rawText;
+
+        let fCount: int = (int)parsedFiles->length();
+        for (let i: int = 0; i < fCount; i++) {
+            patch->addFile(parsedFiles->get(i));
+        }
+
+        return patch;
+    }
+
+    // 4. Preview Change Record
+    public static preview(patch: CvmPatch*): void {
+        println("╔═══════════════════════════════════════════════════════════════╗");
+        println("║         ⚡ CODE VERSION MANAGER CHANGE RECORD PREVIEW ⚡       ║");
+        println("╚═══════════════════════════════════════════════════════════════╝");
+        print("  • Record ID:   "); println(patch->id);
+        print("  • Author:      "); println(patch->author->formatAuthorLine());
+        print("  • Date:        "); println(patch->date);
+        print("  • Branch:      "); println(patch->branch);
+        print("  • Message:     "); println(patch->message);
+        print("  • Stats:       +"); print(to_string(patch->additions)); print(", -"); print(to_string(patch->deletions));
+        print(" across "); print(to_string(patch->filesCount)); println(" file(s)");
+        println("─────────────────────────────────────────────────────────────────");
+
+        let count: int = (int)patch->files->length();
+        for (let i: int = 0; i < count; i++) {
+            let f: CvmFileEntry* = patch->files->get(i);
+            print("  [File "); print(to_string(i + 1)); print("/"); print(to_string(count)); print("] ");
+            print(f->filePath); print(" (+"); print(to_string(f->additions)); print(", -"); print(to_string(f->deletions)); println(")");
+            if (f->rawUnified != "") {
+                println(f->rawUnified);
+            }
+        }
+        println("─────────────────────────────────────────────────────────────────");
+    }
+}

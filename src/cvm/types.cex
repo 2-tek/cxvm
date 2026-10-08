@@ -1,0 +1,318 @@
+// CodeVersionManager Types (C-ext)
+// Core types for Git Object Storage, Diffs, Patches (.cvm/.chr), Merge Requests, and Repository Status
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+class GitUser {
+    public name: string;
+    public email: string;
+    public timestamp: int;
+    public timezoneOffset: string;
+
+    public constructor(name: string, email: string) {
+        this.name = name;
+        this.email = email;
+        this.timestamp = 1775369200;
+        this.timezoneOffset = "+0700";
+    }
+
+    public formatAuthorLine(): string {
+        return this.name + " <" + this.email + "> " + to_string(this.timestamp) + " " + this.timezoneOffset;
+    }
+}
+
+class TreeEntry {
+    public mode: string; // "100644" for normal file, "100755" for executable, "040000" for tree
+    public type: string; // "blob" | "tree"
+    public hash: string;
+    public path: string;
+
+    public constructor(mode: string, type: string, hash: string, path: string) {
+        this.mode = mode;
+        this.type = type;
+        this.hash = hash;
+        this.path = path;
+    }
+}
+
+class TreeObject {
+    public hash: string;
+    public entries: Array<TreeEntry*>*;
+
+    public constructor(hash: string) {
+        this.hash = hash;
+        this.entries = new Array<TreeEntry*>();
+    }
+
+    public addEntry(entry: TreeEntry*): void {
+        this.entries->push(entry);
+    }
+
+    public getEntry(path: string): TreeEntry* {
+        let count: int = (int)this->entries->length();
+        for (let i: int = 0; i < count; i++) {
+            let e: TreeEntry* = this->entries->get(i);
+            if (e->path == path) {
+                return e;
+            }
+        }
+        return nullptr;
+    }
+}
+
+class CommitObject {
+    public hash: string;
+    public tree: string;
+    public parent: string;
+    public author: GitUser*;
+    public committer: GitUser*;
+    public message: string;
+    public timestamp: int;
+
+    public constructor(hash: string, tree: string, parent: string, author: GitUser*, message: string) {
+        this.hash = hash;
+        this.tree = tree;
+        this.parent = parent;
+        this.author = author;
+        this.committer = author;
+        this.message = message;
+        this.timestamp = 1775369200;
+    }
+
+    public display(): void {
+        print("commit "); println(this.hash);
+        if (this.parent != "") {
+            print("Parent: "); println(this.parent);
+        }
+        print("Author: "); println(this.author->formatAuthorLine());
+        print("Date:   "); println(to_string(this.timestamp));
+        println("");
+        print("    "); println(this.message);
+        println("");
+    }
+}
+
+class TagObject {
+    public hash: string;
+    public targetHash: string;
+    public tag: string;
+    public tagger: GitUser*;
+    public message: string;
+    public timestamp: int;
+
+    public constructor(hash: string, targetHash: string, tag: string, tagger: GitUser*, message: string) {
+        this.hash = hash;
+        this.targetHash = targetHash;
+        this.tag = tag;
+        this.tagger = tagger;
+        this.message = message;
+        this.timestamp = 1775369200;
+    }
+}
+
+class DiffLine {
+    public type: string; // "add", "delete", "normal"
+    public content: string;
+    public oldLine: int;
+    public newLine: int;
+
+    public constructor(type: string, content: string, oldLine: int, newLine: int) {
+        this.type = type;
+        this.content = content;
+        this.oldLine = oldLine;
+        this.newLine = newLine;
+    }
+}
+
+class DiffHunk {
+    public oldStart: int;
+    public oldLines: int;
+    public newStart: int;
+    public newLines: int;
+    public header: string;
+    public lines: Array<DiffLine*>*;
+
+    public constructor(oldStart: int, oldLines: int, newStart: int, newLines: int, header: string) {
+        this.oldStart = oldStart;
+        this.oldLines = oldLines;
+        this.newStart = newStart;
+        this.newLines = newLines;
+        this.header = header;
+        this.lines = new Array<DiffLine*>();
+    }
+
+    public addLine(line: DiffLine*): void {
+        this.lines->push(line);
+    }
+}
+
+class FileDiff {
+    public filePath: string;
+    public oldPath: string;
+    public newPath: string;
+    public additions: int;
+    public deletions: int;
+    public hunks: Array<DiffHunk*>*;
+    public rawUnified: string;
+    public isNew: bool;
+    public isDeleted: bool;
+
+    public constructor(filePath: string) {
+        this.filePath = filePath;
+        this.oldPath = "a/" + filePath;
+        this.newPath = "b/" + filePath;
+        this.additions = 0;
+        this.deletions = 0;
+        this.hunks = new Array<DiffHunk*>();
+        this.rawUnified = "";
+        this.isNew = false;
+        this.isDeleted = false;
+    }
+
+    public addHunk(hunk: DiffHunk*): void {
+        this.hunks->push(hunk);
+    }
+}
+
+class CvmFileEntry {
+    public filePath: string;
+    public mode: string;
+    public additions: int;
+    public deletions: int;
+    public rawUnified: string;
+    public fileContent: string;
+    public isDeleted: bool;
+
+    public constructor(filePath: string, mode: string, additions: int, deletions: int, rawUnified: string, fileContent: string, isDeleted: bool) {
+        this.filePath = filePath;
+        this.mode = mode;
+        this.additions = additions;
+        this.deletions = deletions;
+        this.rawUnified = rawUnified;
+        this.fileContent = fileContent;
+        this.isDeleted = isDeleted;
+    }
+}
+
+class CvmPatch {
+    public version: string;
+    public id: string;
+    public author: GitUser*;
+    public date: string;
+    public branch: string;
+    public baseCommit: string;
+    public message: string;
+    public additions: int;
+    public deletions: int;
+    public filesCount: int;
+    public files: Array<CvmFileEntry*>*;
+    public rawText: string;
+
+    public constructor(version: string, id: string, author: GitUser*, date: string, branch: string, message: string) {
+        this.version = version;
+        this.id = id;
+        this.author = author;
+        this.date = date;
+        this.branch = branch;
+        this.baseCommit = "";
+        this.message = message;
+        this.additions = 0;
+        this.deletions = 0;
+        this.filesCount = 0;
+        this.files = new Array<CvmFileEntry*>();
+        this.rawText = "";
+    }
+
+    public addFile(file: CvmFileEntry*): void {
+        this.files->push(file);
+        this.additions = this.additions + file->additions;
+        this.deletions = this.deletions + file->deletions;
+        this.filesCount = (int)this->files->length();
+    }
+}
+
+class MergeRequestComment {
+    public id: string;
+    public mrId: string;
+    public author: GitUser*;
+    public content: string;
+    public createdAt: string;
+
+    public constructor(id: string, mrId: string, author: GitUser*, content: string, createdAt: string) {
+        this.id = id;
+        this.mrId = mrId;
+        this.author = author;
+        this.content = content;
+        this.createdAt = createdAt;
+    }
+}
+
+class MergeRequest {
+    public id: string;
+    public number: int;
+    public title: string;
+    public description: string;
+    public sourceBranch: string;
+    public targetBranch: string;
+    public author: GitUser*;
+    public status: string; // "OPEN" | "MERGED" | "CLOSED"
+    public canMergeCleanly: bool;
+    public changedFiles: Array<string>*;
+    public comments: Array<MergeRequestComment*>*;
+    public createdAt: string;
+    public mergedAt: string;
+    public mergedBy: string;
+
+    public constructor(id: string, number: int, title: string, description: string, sourceBranch: string, targetBranch: string, author: GitUser*) {
+        this.id = id;
+        this.number = number;
+        this.title = title;
+        this.description = description;
+        this.sourceBranch = sourceBranch;
+        this.targetBranch = targetBranch;
+        this.author = author;
+        this.status = "OPEN";
+        this.canMergeCleanly = true;
+        this.changedFiles = new Array<string>();
+        this.comments = new Array<MergeRequestComment*>();
+        this.createdAt = "2026-10-06T12:00:00Z";
+        this.mergedAt = "";
+        this.mergedBy = "";
+    }
+
+    public addComment(comment: MergeRequestComment*): void {
+        this.comments->push(comment);
+    }
+}
+
+class RepoStatus {
+    public branch: string;
+    public headCommit: string;
+    public stagedFiles: Array<string>*;
+    public modifiedFiles: Array<string>*;
+    public untrackedFiles: Array<string>*;
+    public isClean: bool;
+
+    public constructor(branch: string, headCommit: string) {
+        this.branch = branch;
+        this.headCommit = headCommit;
+        this.stagedFiles = new Array<string>();
+        this.modifiedFiles = new Array<string>();
+        this.untrackedFiles = new Array<string>();
+        this.isClean = true;
+    }
+
+    public addStaged(path: string): void {
+        this.stagedFiles->push(path);
+        this.isClean = false;
+    }
+
+    public addModified(path: string): void {
+        this.modifiedFiles->push(path);
+        this.isClean = false;
+    }
+
+    public addUntracked(path: string): void {
+        this.untrackedFiles->push(path);
+        this.isClean = false;
+    }
+}

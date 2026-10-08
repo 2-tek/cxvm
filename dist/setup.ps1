@@ -115,6 +115,7 @@ $cexCmd = Join-Path $targetBin "cex.cmd"
 $cxvmCmd = Join-Path $targetBin "cxvm.cmd"
 $cexrPs1 = Join-Path $targetBin "cexr.ps1"
 $cexPs1 = Join-Path $targetBin "cex.ps1"
+$cxvmPs1 = Join-Path $targetBin "cxvm.ps1"
 
 @"
 @echo off
@@ -176,7 +177,24 @@ if (Test-Path `$CurrentCex) {
 }
 "@ | Set-Content -Path $cexPs1 -Encoding UTF8
 
-Write-Host "  ✓ Windows executables (cexr.cmd, cex.cmd, cexr.ps1, cex.ps1) generated in $targetBin" -ForegroundColor Green
+@"
+param([Parameter(ValueFromRemainingArguments = `$true)]`$Args)
+`$BinDir = `$PSScriptRoot
+`$CxvmDir = if (`$env:CXVM_DIR) { `$env:CXVM_DIR } else { Join-Path `$HOME ".cxvm" }
+`$InstalledCxvm = Join-Path `$CxvmDir "bin\cxvm.ps1"
+if (Test-Path `$InstalledCxvm) {
+  & `$InstalledCxvm @Args
+} else {
+  `$LocalCxvm = Join-Path `$BinDir "..\downloads\cxvm.ps1"
+  if (Test-Path `$LocalCxvm) {
+    & `$LocalCxvm @Args
+  } else {
+    Write-Error "cxvm CLI not found."
+  }
+}
+"@ | Set-Content -Path $cxvmPs1 -Encoding UTF8
+
+Write-Host "  ✓ Windows executables (cexr.cmd, cex.cmd, cxvm.cmd, cexr.ps1, cex.ps1, cxvm.ps1) generated in $targetBin" -ForegroundColor Green
 
 # Step 5: Verification & Doctor
 Write-Host "`n[5/5] Running System Diagnostic Verification..." -ForegroundColor White

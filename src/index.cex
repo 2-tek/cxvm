@@ -56,6 +56,26 @@ fn main(): int {
     println("\n  ▶ Simulating: cxvm doctor");
     println(app->cxvm->doctor());
 
+    // 3b. Testing Integrated CVM (CodeVersionManager) Commands
+    println("\n[3b. Testing Integrated CVM Commands (cxvm commit, cxvm push, cxvm status)]");
+    println("  ▶ Simulating: cxvm status");
+    let stRes: CxvmCommandResult* = app->cxvm->cvmStatus();
+    println("    " + stRes->output);
+
+    println("  ▶ Simulating: cxvm add src/app.cex");
+    let addRes: CxvmCommandResult* = app->cxvm->cvmAdd("src/app.cex", "// app content\n");
+    print("    Result: "); println(addRes->success ? "PASSED [OK]" : "FAILED");
+
+    println("  ▶ Simulating: cxvm commit -m \"feat(cxvm): integrate cvm into cxvm\"");
+    let comRes: CxvmCommandResult* = app->cxvm->cvmCommit("feat(cxvm): integrate cvm into cxvm", "2-TEK Lead", "lead@2tek.local");
+    print("    Result: "); println(comRes->success ? "PASSED [OK]" : "FAILED");
+    print("    Commit: "); println(comRes->output);
+
+    println("  ▶ Simulating: cxvm push origin main");
+    let pushRes: CxvmCommandResult* = app->cxvm->cvmPush("origin", "main");
+    print("    Result: "); println(pushRes->success ? "PASSED [OK]" : "FAILED");
+    print("    Push output:\n    "); println(pushRes->output);
+
     // 4. Testing Cross-Platform DistBuilder
     println("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
     print("  Supported Architectures: "); println((int)app->builder->platforms->length());
@@ -106,6 +126,15 @@ fn main(): int {
 
     let buildResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
     print("  POST /api/v1/build -> "); println(buildResp->body);
+
+    let cvmStatusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/status", "", "application/json");
+    print("  GET /api/v1/cvm/status -> "); println(cvmStatusResp->body);
+
+    let cvmCommitResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/commit", "feat: api commit test", "application/json");
+    print("  POST /api/v1/cvm/commit -> "); println(cvmCommitResp->body);
+
+    let cvmPushResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/push", "", "application/json");
+    print("  POST /api/v1/cvm/push -> "); println(cvmPushResp->body);
 
     app->stop();
     println("\n===============================================================================");

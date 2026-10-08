@@ -1,0 +1,106 @@
+// CodeVersionManager: Diff Engine (C-ext)
+// Line-by-Line Unified Diff Generator and Change Metrics Calculator
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./types.cex";
+
+class DiffEngine {
+    // Splits text by newline
+    public static splitLines(text: string): Array<string>* {
+        let lines: Array<string>* = new Array<string>();
+        let len: int = (int)text.length();
+        if (len == 0) {
+            return lines;
+        }
+
+        let curr: string = "";
+        for (let i: int = 0; i < len; i++) {
+            let c: char = text[i];
+            if (c == '\r') {
+                continue;
+            }
+            if (c == '\n') {
+                lines->push(curr);
+                curr = "";
+            } else {
+                curr = curr + c;
+            }
+        }
+        lines->push(curr);
+        return lines;
+    }
+
+    // Computes line-by-line difference between oldText and newText
+    public static computeDiff(oldText: string, newText: string, filePath: string): FileDiff* {
+        let diff: FileDiff* = new FileDiff(filePath);
+        let oldLines: Array<string>* = DiffEngine::splitLines(oldText);
+        let newLines: Array<string>* = DiffEngine::splitLines(newText);
+
+        let oldLen: int = (int)oldLines->length();
+        let newLen: int = (int)newLines->length();
+
+        if (oldText == "" && newText != "") {
+            diff->isNew = true;
+        } else if (oldText != "" && newText == "") {
+            diff->isDeleted = true;
+        }
+
+        let hunk: DiffHunk* = new DiffHunk(1, oldLen, 1, newLen, "@@ -1," + to_string(oldLen) + " +1," + to_string(newLen) + " @@");
+
+        let o: int = 0;
+        let n: int = 0;
+
+        while (o < oldLen || n < newLen) {
+            if (o < oldLen && n < newLen && oldLines->get(o) == newLines->get(n)) {
+                hunk->addLine(new DiffLine("normal", oldLines->get(o), o + 1, n + 1));
+                o++;
+                n++;
+            } else if (o < oldLen && (n >= newLen || oldLines->get(o) != newLines->get(n))) {
+                // Check if old line is deleted
+                let foundAhead: bool = false;
+                for (let look: int = n; look < newLen && look < n + 5; look++) {
+                    if (oldLines->get(o) == newLines->get(look)) {
+                        foundAhead = true;
+                        break;
+                    }
+                }
+
+                if (foundAhead && n < newLen) {
+                    hunk->addLine(new DiffLine("add", newLines->get(n), 0, n + 1));
+                    diff->additions++;
+                    n++;
+                } else {
+                    hunk->addLine(new DiffLine("delete", oldLines->get(o), o + 1, 0));
+                    diff->deletions++;
+                    o++;
+                }
+            } else if (n < newLen) {
+                hunk->addLine(new DiffLine("add", newLines->get(n), 0, n + 1));
+                diff->additions++;
+                n++;
+            }
+        }
+
+        diff->addHunk(hunk);
+
+        // Format unified diff representation
+        let unified: string = "--- a/" + filePath + "\n";
+        unified = unified + "+++ b/" + filePath + "\n";
+        unified = unified + hunk->header + "\n";
+
+        let linesCount: int = (int)hunk->lines->length();
+        for (let i: int = 0; i < linesCount; i++) {
+            let l: DiffLine* = hunk->lines->get(i);
+            if (l->type == "add") {
+                unified = unified + "+" + l->content + "\n";
+            } else if (l->type == "delete") {
+                unified = unified + "-" + l->content + "\n";
+            } else {
+                unified = unified + " " + l->content + "\n";
+            }
+        }
+
+        diff->rawUnified = unified;
+        return diff;
+    }
+}

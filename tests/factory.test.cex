@@ -7,9 +7,9 @@ import "@cex-test/src/runner.cex";
 import fs from "fs";
 import "../src/lighting_mvc.cex";
 import "../src/types.cex";
-import "../models/platform_model.cex";
-import "../models/version_model.cex";
-import "../models/artifact_model.cex";
+import "../src/models/platform_model.cex";
+import "../src/models/version_model.cex";
+import "../src/models/artifact_model.cex";
 import "../src/builder/dist_builder.cex";
 import "../src/cxvm/cxvm_engine.cex";
 import "../src/app.cex";
@@ -119,6 +119,8 @@ fn main(): int {
     Assert::isTrue(docOut.find("Pure Cex Native Engine") != -1, "cxvm doctor reports Pure Cex Native Engine");
     Assert::isTrue(docOut.find("Cross-Platform") != -1, "cxvm doctor reports cross-platform support");
     Assert::isTrue(docOut.find("Supported Targets: 6 architectures") != -1, "cxvm doctor reports 6 supported targets");
+    Assert::isTrue(docOut.find("CVM VCS Engine") != -1, "cxvm doctor reports integrated CVM engine");
+    Assert::isTrue(docOut.find("CVM Commands") != -1, "cxvm doctor reports CVM commands ready");
 
     let setupCmdRes: CxvmCommandResult* = cxvm->setup("8.0.0");
     Assert::isTrue(setupCmdRes->success, "cxvm setup succeeds");
@@ -232,6 +234,70 @@ fn main(): int {
     Assert::isTrue(foundWinX64, "Windows x64 with .zip format verified");
     Assert::isTrue(foundWinArm, "Windows arm64 with .zip format verified");
     suite->addResult("test_platform_matrix_invariants", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 6: Integrated CVM (CodeVersionManager) Operations in cxvm
+    // -------------------------------------------------------------
+    println("\n[Test Suite 6: Integrated CVM (CodeVersionManager) Subsystem in cxvm]");
+
+    // 1. Status
+    let cvmSt1: CxvmCommandResult* = cxvm->cvmStatus();
+    Assert::isTrue(cvmSt1->success, "cxvm status succeeds");
+    Assert::equalsString("main", cvmSt1->version, "Initial branch is main");
+
+    // 2. Add
+    let cvmAddRes: CxvmCommandResult* = cxvm->cvmAdd("src/test_sample.cex", "// Sample module\nfn hello(): void { println(\"hi\"); }\n");
+    Assert::isTrue(cvmAddRes->success, "cxvm add file succeeds");
+    Assert::equalsString("src/test_sample.cex", cvmAddRes->version, "Target file matches");
+
+    // 3. Commit
+    let cvmComRes: CxvmCommandResult* = cxvm->cvmCommit("feat(cxvm): integrate cvm into cxvm", "Antigravity", "antigravity@2tek.local");
+    Assert::isTrue(cvmComRes->success, "cxvm commit succeeds");
+    Assert::isTrue((int)cvmComRes->version.length() >= 7, "Commit hash generated");
+    Assert::isTrue(cvmComRes->output.find("feat(cxvm): integrate cvm into cxvm") != -1, "Commit message in output");
+
+    // 4. Push
+    let cvmPushRes: CxvmCommandResult* = cxvm->cvmPush("origin", "main");
+    Assert::isTrue(cvmPushRes->success, "cxvm push succeeds");
+    Assert::isTrue(cvmPushRes->output.find("Successfully pushed branch main to origin") != -1, "Push output verifies remote push");
+
+    // 5. Pull
+    let cvmPullRes: CxvmCommandResult* = cxvm->cvmPull("origin", "main");
+    Assert::isTrue(cvmPullRes->success, "cxvm pull succeeds");
+    Assert::isTrue(cvmPullRes->output.find("Already up to date") != -1, "Pull output verifies up to date");
+
+    // 6. Branch & Checkout
+    let cvmBrRes: CxvmCommandResult* = cxvm->cvmBranch("feature/vcs-integration");
+    Assert::isTrue(cvmBrRes->success, "cxvm branch create succeeds");
+
+    let cvmCoRes: CxvmCommandResult* = cxvm->cvmCheckout("feature/vcs-integration");
+    Assert::isTrue(cvmCoRes->success, "cxvm checkout succeeds");
+
+    let cvmBrList: CxvmCommandResult* = cxvm->cvmBranch("");
+    Assert::isTrue(cvmBrList->success, "cxvm branch list succeeds");
+    Assert::isTrue(cvmBrList->output.find("feature/vcs-integration (active)") != -1, "Active branch switched to new branch");
+
+    // 7. Log
+    let cvmLogRes: CxvmCommandResult* = cxvm->cvmLog();
+    Assert::isTrue(cvmLogRes->success, "cxvm log succeeds");
+    Assert::isTrue(cvmLogRes->output.find("feat(cxvm): integrate cvm into cxvm") != -1, "Log contains commit message");
+
+    // 8. CLI Execute
+    let cvmExecCode: int = cxvm->cvmExecute("status", "", "");
+    Assert::equalsInt(0, cvmExecCode, "cxvm cvmExecute status returns exit code 0");
+
+    // 9. HTTP REST API endpoints for CVM
+    let resCvmStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/status", "", "application/json");
+    Assert::equalsInt(200, resCvmStatus->statusCode, "GET /api/v1/cvm/status returns 200 OK");
+    Assert::isTrue(resCvmStatus->body.find("SUCCESS") != -1, "CVM Status API reports SUCCESS");
+
+    let resCvmCommit: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/commit", "feat: http test commit", "application/json");
+    Assert::equalsInt(200, resCvmCommit->statusCode, "POST /api/v1/cvm/commit returns 200 OK");
+
+    let resCvmPush: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/push", "", "application/json");
+    Assert::equalsInt(200, resCvmPush->statusCode, "POST /api/v1/cvm/push returns 200 OK");
+
+    suite->addResult("test_integrated_cvm_operations", true, "", 1);
 
     println("\n");
     TestReporter::printSummary(suite);

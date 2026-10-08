@@ -111,6 +111,14 @@ cxvm default "$DEFAULT_VER" >/dev/null 2>&1 || true
 cxvm use "$DEFAULT_VER" >/dev/null 2>&1 || true
 echo -e "  ${GREEN}✓${RESET} Active default version set to ${GREEN}v${DEFAULT_VER}${RESET}"
 
+# Setup CVM (CodeVersionManager) integration in cxvm
+if command -v cvm >/dev/null 2>&1; then
+  ln -sf "$(command -v cvm)" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
+elif [ -f "$HOME/.local/bin/cvm" ]; then
+  ln -sf "$HOME/.local/bin/cvm" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
+fi
+echo -e "  ${GREEN}✓${RESET} Integrated CVM (commit, push, status) configured in ${GREEN}$CXVM_DIR/bin${RESET}"
+
 # ------------------------------------------------------------------------------
 # Step 4: Setup Project ./bin/cexr and ./bin/cex Dispatchers
 # ------------------------------------------------------------------------------
@@ -122,6 +130,8 @@ if [ -L "$TARGET_BIN_DIR" ]; then
   REAL_BIN="$(readlink -f "$TARGET_BIN_DIR" 2>/dev/null || true)"
   if [ -n "$REAL_BIN" ] && [ -d "$REAL_BIN" ]; then
     TARGET_BIN_DIR="$REAL_BIN"
+  else
+    rm -f "$TARGET_BIN_DIR"
   fi
 fi
 mkdir -p "$TARGET_BIN_DIR"
@@ -175,8 +185,10 @@ if [ ! -x "$CXVM_RUNNER" ]; then
   fi
 fi
 
-# Fallback: check system cexr
-if [ ! -x "$CXVM_RUNNER" ]; then
+# Fallback: check system cexr or native runner
+if [ -x "$HOME/.local/bin/cexr" ] && ! (file "$CXVM_RUNNER" 2>/dev/null | grep -q ELF); then
+  CXVM_RUNNER="$HOME/.local/bin/cexr"
+elif [ ! -x "$CXVM_RUNNER" ]; then
   SYS_CEXR="$(command -v cexr 2>/dev/null || true)"
   if [ -n "$SYS_CEXR" ] && [ "$SYS_CEXR" != "${BASH_SOURCE[0]}" ]; then
     CXVM_RUNNER="$SYS_CEXR"
@@ -338,6 +350,25 @@ if (Test-Path $CurrentCex) {
   & $CurrentCex @Args
 } else {
   & bash (Join-Path $BinDir "cex") @Args
+}
+PS1_EOF
+
+cat <<'PS1_EOF' > "$TARGET_BIN_DIR/cxvm.ps1"
+# 2-TEK cxvm CLI Windows PowerShell Launcher
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+$cxvmDir = if ($env:CXVM_DIR) { $env:CXVM_DIR } else { Join-Path $HOME ".cxvm" }
+$installedCxvm = Join-Path $cxvmDir "bin\cxvm.ps1"
+if (Test-Path $installedCxvm) {
+  & $installedCxvm @args
+} else {
+  $repoDir = Split-Path -Parent $PSScriptRoot
+  $localCxvm = Join-Path $repoDir "downloads\cxvm.ps1"
+  if (Test-Path $localCxvm) {
+    & $localCxvm @args
+  } else {
+    Write-Error "cxvm CLI not found. Run scripts/setup.ps1"
+    exit 1
+  }
 }
 PS1_EOF
 

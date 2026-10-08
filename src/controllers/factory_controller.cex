@@ -257,4 +257,35 @@ class FactoryController : public BaseController {
         str += "}";
         return this->json(str);
     }
+
+    public apiCvmStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->cvmStatus();
+        let str: string = "{";
+        str += res->success ? "\"status\":\"SUCCESS\"," : "\"status\":\"ERROR\",";
+        str += "\"branch\":\"" + res->version + "\",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiCvmCommit(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let msg: string = req->body.length() > 0 ? req->body : "Commit via CXVM Lighting API";
+        let res: CxvmCommandResult* = cxvm->cvmCommit(msg, "API User", "api@2tek.local");
+        let str: string = "{";
+        str += res->success ? "\"status\":\"SUCCESS\"," : "\"status\":\"ERROR\",";
+        str += "\"commitHash\":\"" + res->version + "\",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiCvmPush(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->cvmPush("origin", "main");
+        let str: string = "{";
+        str += res->success ? "\"status\":\"SUCCESS\"," : "\"status\":\"ERROR\",";
+        str += "\"branch\":\"" + res->version + "\",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
 }

@@ -1,0 +1,131 @@
+// CodeVersionManager: Merge Engine & Merge Request Subsystem (C-ext)
+// 3-Way DAG Text Merge, Conflict Detection, and Merge Request Governance
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./types.cex";
+import "./diff_engine.cex";
+
+class MergeResult {
+    public isSuccess: bool;
+    public mergedText: string;
+    public conflictCount: int;
+
+    public constructor(isSuccess: bool, mergedText: string, conflictCount: int) {
+        this.isSuccess = isSuccess;
+        this.mergedText = mergedText;
+        this.conflictCount = conflictCount;
+    }
+}
+
+class MergeEngine {
+    // 3-way text merge
+    public static merge3WayText(baseText: string, oursText: string, theirsText: string): MergeResult* {
+        // Fast paths
+        if (oursText == theirsText) {
+            return new MergeResult(true, oursText, 0);
+        }
+        if (baseText == oursText) {
+            return new MergeResult(true, theirsText, 0);
+        }
+        if (baseText == theirsText) {
+            return new MergeResult(true, oursText, 0);
+        }
+
+        let baseLines: Array<string>* = DiffEngine::splitLines(baseText);
+        let oursLines: Array<string>* = DiffEngine::splitLines(oursText);
+        let theirsLines: Array<string>* = DiffEngine::splitLines(theirsText);
+
+        let maxLen: int = (int)oursLines->length();
+        if ((int)theirsLines->length() > maxLen) {
+            maxLen = (int)theirsLines->length();
+        }
+
+        let merged: string = "";
+        let conflicts: int = 0;
+
+        let oLen: int = (int)oursLines->length();
+        let tLen: int = (int)theirsLines->length();
+        let bLen: int = (int)baseLines->length();
+
+        let i: int = 0;
+        while (i < oLen || i < tLen) {
+            let oLine: string = i < oLen ? oursLines->get(i) : "";
+            let tLine: string = i < tLen ? theirsLines->get(i) : "";
+            let bLine: string = i < bLen ? baseLines->get(i) : "";
+
+            if (oLine == tLine) {
+                merged = merged + oLine + "\n";
+            } else if (oLine == bLine && i < tLen) {
+                merged = merged + tLine + "\n";
+            } else if (tLine == bLine && i < oLen) {
+                merged = merged + oLine + "\n";
+            } else {
+                // Conflict
+                conflicts++;
+                merged = merged + "<<<<<<< OURS\n" + oLine + "\n=======\n" + tLine + "\n>>>>>>> THEIRS\n";
+            }
+            i++;
+        }
+
+        return new MergeResult(conflicts == 0, merged, conflicts);
+    }
+}
+
+class MergeRequestManager {
+    private requests: Array<MergeRequest*>*;
+    private nextId: int;
+
+    public constructor() {
+        this.requests = new Array<MergeRequest*>();
+        this.nextId = 1;
+    }
+
+    public createRequest(title: string, desc: string, sourceBranch: string, targetBranch: string, author: GitUser*): MergeRequest* {
+        let mrId: string = "MR-" + to_string(this.nextId);
+        let mr: MergeRequest* = new MergeRequest(mrId, this.nextId, title, desc, sourceBranch, targetBranch, author);
+        this.nextId++;
+        this.requests->push(mr);
+        return mr;
+    }
+
+    public getRequest(id: string): MergeRequest* {
+        let count: int = (int)this->requests->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this->requests->get(i)->id == id) {
+                return this->requests->get(i);
+            }
+        }
+        return nullptr;
+    }
+
+    public listRequests(): Array<MergeRequest*>* {
+        return this->requests;
+    }
+
+    public addComment(mrId: string, author: GitUser*, content: string): MergeRequestComment* {
+        let mr: MergeRequest* = this->getRequest(mrId);
+        if (mr == nullptr) {
+            return nullptr;
+        }
+
+        let cId: string = "comment_" + to_string((int)mr->comments->length() + 1);
+        let comment: MergeRequestComment* = new MergeRequestComment(cId, mrId, author, content, "2026-10-06T12:00:00Z");
+        mr->addComment(comment);
+        return comment;
+    }
+
+    public executeMerge(mrId: string, mergedBy: string): bool {
+        let mr: MergeRequest* = this->getRequest(mrId);
+        if (mr == nullptr) {
+            return false;
+        }
+        if (mr->status != "OPEN") {
+            return false;
+        }
+
+        mr->status = "MERGED";
+        mr->mergedAt = "2026-10-06T12:00:00Z";
+        mr->mergedBy = mergedBy;
+        return true;
+    }
+}

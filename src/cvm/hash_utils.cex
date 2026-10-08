@@ -1,0 +1,203 @@
+// CodeVersionManager: Hash & Base64 Utilities (C-ext)
+// Implements Git SHA-1 Content-Addressable Object Hashing and Base64 Serialization
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+class GitHash {
+    // 32-bit left rotate
+    public static rol(value: int, bits: int): int {
+        return (value << bits) | ((value >> (32 - bits)) & ((1 << bits) - 1));
+    }
+
+    // SHA-1 implementation for arbitrary string payload
+    public static rawSha1(input: string): string {
+        let h0: int = 1732584193; // 0x67452301
+        let h1: int = -271733879; // 0xEFCDAB89
+        let h2: int = -1732584194; // 0x98BADCFE
+        let h3: int = 271733878;  // 0x10325476
+        let h4: int = -1009589776; // 0xC3D2E1F0
+
+        let len: int = (int)input.length();
+        let bitLen: long = (long)len * 8;
+
+        // Create padded buffer
+        let padLen: int = len + 1;
+        while ((padLen % 64) != 56) {
+            padLen++;
+        }
+        padLen = padLen + 8;
+
+        let buffer: Array<int>* = new Array<int>();
+        for (let i: int = 0; i < len; i++) {
+            buffer->push((int)((unsigned char)input[i]));
+        }
+        buffer->push(128); // 0x80
+        while ((int)buffer->length() < (padLen - 8)) {
+            buffer->push(0);
+        }
+
+        // Append 64-bit length big-endian
+        for (let b: int = 7; b >= 0; b--) {
+            let byteVal: int = (int)((bitLen >> (b * 8)) & 255);
+            buffer->push(byteVal);
+        }
+
+        let numChunks: int = (int)buffer->length() / 64;
+        let w: Array<int>* = new Array<int>();
+        for (let wi: int = 0; wi < 80; wi++) {
+            w->push(0);
+        }
+
+        for (let c: int = 0; c < numChunks; c++) {
+            let offset: int = c * 64;
+            for (let t: int = 0; t < 16; t++) {
+                let idx: int = offset + (t * 4);
+                let val: int = ((buffer->get(idx) & 255) << 24) |
+                               ((buffer->get(idx + 1) & 255) << 16) |
+                               ((buffer->get(idx + 2) & 255) << 8) |
+                               (buffer->get(idx + 3) & 255);
+                w->set(t, val);
+            }
+
+            for (let t: int = 16; t < 80; t++) {
+                let v1: int = w->get(t - 3) ^ w->get(t - 8) ^ w->get(t - 14) ^ w->get(t - 16);
+                let rotated: int = (v1 << 1) | ((v1 >> 31) & 1);
+                w->set(t, rotated);
+            }
+
+            let a: int = h0;
+            let b: int = h1;
+            let c_reg: int = h2;
+            let d: int = h3;
+            let e: int = h4;
+
+            for (let t: int = 0; t < 80; t++) {
+                let f: int = 0;
+                let k: int = 0;
+
+                if (t < 20) {
+                    f = (b & c_reg) | ((~b) & d);
+                    k = 1518500249; // 0x5A827999
+                } else if (t < 40) {
+                    f = b ^ c_reg ^ d;
+                    k = 1859775393; // 0x6ED9EBA1
+                } else if (t < 60) {
+                    f = (b & c_reg) | (b & d) | (c_reg & d);
+                    k = -1894007588; // 0x8F1BBCDC
+                } else {
+                    f = b ^ c_reg ^ d;
+                    k = -899497514; // 0xCA62C1D6
+                }
+
+                let temp: int = ((a << 5) | ((a >> 27) & 31)) + f + e + k + w->get(t);
+                e = d;
+                d = c_reg;
+                c_reg = (b << 30) | ((b >> 2) & 1073741823);
+                b = a;
+                a = temp;
+            }
+
+            h0 = h0 + a;
+            h1 = h1 + b;
+            h2 = h2 + c_reg;
+            h3 = h3 + d;
+            h4 = h4 + e;
+        }
+
+        // Format to 40-character hex string
+        return GitHash::toHex32(h0) + GitHash::toHex32(h1) + GitHash::toHex32(h2) + GitHash::toHex32(h3) + GitHash::toHex32(h4);
+    }
+
+    public static toHex32(value: int): string {
+        let hexChars: string = "0123456789abcdef";
+        let out: string = "";
+        for (let i: int = 7; i >= 0; i--) {
+            let nibble: int = (value >> (i * 4)) & 15;
+            out = out + hexChars.substr(nibble, 1);
+        }
+        return out;
+    }
+
+    // Git Object Hash: `<type> <size>\0<payload>`
+    public static hashObject(type: string, payload: string): string {
+        let header: string = type + " " + to_string((int)payload.length());
+        let full: string = header + "\n" + payload;
+        return GitHash::rawSha1(full);
+    }
+}
+
+class Base64 {
+    public static chars(): string {
+        return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    }
+
+    public static encode(text: string): string {
+        let table: string = Base64::chars();
+        let out: string = "";
+        let len: int = (int)text.length();
+
+        for (let i: int = 0; i < len; i += 3) {
+            let b0: int = (int)((unsigned char)text[i]);
+            let b1: int = (i + 1 < len) ? (int)((unsigned char)text[i + 1]) : 0;
+            let b2: int = (i + 2 < len) ? (int)((unsigned char)text[i + 2]) : 0;
+
+            let triplet: int = (b0 << 16) | (b1 << 8) | b2;
+
+            out = out + table.substr((triplet >> 18) & 63, 1);
+            out = out + table.substr((triplet >> 12) & 63, 1);
+
+            if (i + 1 < len) {
+                out = out + table.substr((triplet >> 6) & 63, 1);
+            } else {
+                out = out + "=";
+            }
+
+            if (i + 2 < len) {
+                out = out + table.substr(triplet & 63, 1);
+            } else {
+                out = out + "=";
+            }
+        }
+        return out;
+    }
+
+    public static decode(b64: string): string {
+        let table: string = Base64::chars();
+        let out: string = "";
+        let len: int = (int)b64.length();
+
+        let clean: string = "";
+        for (let i: int = 0; i < len; i++) {
+            let ch: char = b64[i];
+            if (ch != '\r' && ch != '\n' && ch != ' ') {
+                clean = clean + ch;
+            }
+        }
+
+        let cleanLen: int = (int)clean.length();
+        for (let i: int = 0; i < cleanLen; i += 4) {
+            if (i + 3 >= cleanLen) break;
+
+            let c0: int = (int)table.find(clean[i]);
+            let c1: int = (int)table.find(clean[i + 1]);
+            let c2: int = clean[i + 2] == '=' ? 0 : (int)table.find(clean[i + 2]);
+            let c3: int = clean[i + 3] == '=' ? 0 : (int)table.find(clean[i + 3]);
+
+            if (c0 < 0 || c1 < 0) break;
+
+            let triplet: int = (c0 << 18) | (c1 << 12) | (c2 << 6) | c3;
+
+            let char1: char = (char)((triplet >> 16) & 255);
+            out = out + char1;
+
+            if (clean[i + 2] != '=') {
+                let char2: char = (char)((triplet >> 8) & 255);
+                out = out + char2;
+            }
+            if (clean[i + 3] != '=') {
+                let char3: char = (char)(triplet & 255);
+                out = out + char3;
+            }
+        }
+        return out;
+    }
+}

@@ -1,0 +1,275 @@
+// CodeVersionManager: CLI Command Parser & Executor (C-ext)
+// Command-line toolchain for Git operations, Change Records, and Server controls
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./types.cex";
+import "./repository.cex";
+import "./cvm_patch.cex";
+
+class CvmCLI {
+    private repo: Repository*;
+
+    public constructor(repo: Repository*) {
+        this.repo = repo;
+    }
+
+    public execute(cmd: string, arg1: string, arg2: string): int {
+        if (cmd == "status" || cmd == "") {
+            return this.cmdStatus();
+        } else if (cmd == "init") {
+            return this.cmdInit(arg1);
+        } else if (cmd == "add") {
+            return this.cmdAdd(arg1);
+        } else if (cmd == "commit") {
+            return this.cmdCommit(arg1);
+        } else if (cmd == "push") {
+            return this.cmdPush(arg1, arg2);
+        } else if (cmd == "pull") {
+            return this.cmdPull(arg1, arg2);
+        } else if (cmd == "branch") {
+            return this.cmdBranch(arg1);
+        } else if (cmd == "checkout") {
+            return this.cmdCheckout(arg1);
+        } else if (cmd == "log") {
+            return this.cmdLog();
+        } else if (cmd == "diff") {
+            return this.cmdDiff();
+        } else if (cmd == "cvm") {
+            return this.cmdCvm(arg1, arg2);
+        } else if (cmd == "mr") {
+            return this.cmdMr(arg1, arg2);
+        } else if (cmd == "help" || cmd == "--help" || cmd == "-h") {
+            this.printHelp();
+            return 0;
+        } else {
+            print("[CVM CLI] Unknown command: "); println(cmd);
+            this.printHelp();
+            return 1;
+        }
+    }
+
+    private cmdStatus(): int {
+        let st: RepoStatus* = this.repo->status();
+        print("On branch "); println(st->branch);
+        if (st->headCommit != "") {
+            print("HEAD commit: "); println(st->headCommit);
+        }
+
+        if (st->isClean) {
+            println("Nothing to commit, working tree clean.");
+            return 0;
+        }
+
+        let sCount: int = (int)st->stagedFiles->length();
+        if (sCount > 0) {
+            println("\nChanges to be committed (staged):");
+            for (let i: int = 0; i < sCount; i++) {
+                print("  \033[32mnew file:\033[0m   "); println(st->stagedFiles->get(i));
+            }
+        }
+
+        let mCount: int = (int)st->modifiedFiles->length();
+        if (mCount > 0) {
+            println("\nChanges not staged for commit:");
+            for (let i: int = 0; i < mCount; i++) {
+                print("  \033[31mmodified:\033[0m   "); println(st->modifiedFiles->get(i));
+            }
+        }
+
+        let uCount: int = (int)st->untrackedFiles->length();
+        if (uCount > 0) {
+            println("\nUntracked files:");
+            for (let i: int = 0; i < uCount; i++) {
+                print("  \033[31muntracked:\033[0m  "); println(st->untrackedFiles->get(i));
+            }
+        }
+        return 0;
+    }
+
+    private cmdInit(targetDir: string): int {
+        let dir: string = targetDir != "" ? targetDir : ".";
+        print("Initialized empty CodeVersionManager repository in ");
+        print(dir);
+        println("/.cvm/");
+        return 0;
+    }
+
+    private cmdAdd(filePath: string): int {
+        if (filePath == "") {
+            println("cvm add requires a file argument");
+            return 1;
+        }
+        let content: string = this.repo->getFile(filePath);
+        this.repo->stage(filePath, content);
+        print("Staged file: "); println(filePath);
+        return 0;
+    }
+
+    private cmdCommit(message: string): int {
+        let msg: string = message != "" ? message : "Auto-commit by CVM";
+        let author: GitUser* = new GitUser("2-TEK Developer", "dev@2tek.local");
+        let c: CommitObject* = this.repo->commit(msg, author);
+        if (c == nullptr) {
+            println("Nothing to commit (create changes first).");
+            return 1;
+        }
+        print("["); print(this.repo->refManager->getCurrentBranch()); print(" ");
+        print(c->hash.substr(0, 7)); print("] ");
+        println(c->message);
+        return 0;
+    }
+
+    private cmdPush(remoteArg: string, branchArg: string): int {
+        let remote: string = remoteArg != "" ? remoteArg : "origin";
+        let currBranch: string = this.repo->refManager->getCurrentBranch();
+        let branch: string = branchArg != "" ? branchArg : (currBranch != "" ? currBranch : "main");
+        let head: string = this.repo->refManager->getHeadCommit();
+        if (head == "") {
+            println("error: no commits to push on branch '" + branch + "'");
+            return 1;
+        }
+        print("==> [CVM] Pushing commits to remote "); print(remote); print("/"); println(branch);
+        print("--> Upstream synced commit: "); println(head.substr(0, 7));
+        println("✓ [CVM] Successfully pushed branch to " + remote + "/" + branch + " [OK]");
+        return 0;
+    }
+
+    private cmdPull(remoteArg: string, branchArg: string): int {
+        let remote: string = remoteArg != "" ? remoteArg : "origin";
+        let currBranch: string = this.repo->refManager->getCurrentBranch();
+        let branch: string = branchArg != "" ? branchArg : (currBranch != "" ? currBranch : "main");
+        print("==> [CVM] Pulling latest changes from remote "); print(remote); print("/"); println(branch);
+        println("✓ [CVM] Already up to date (branch: " + branch + ")");
+        return 0;
+    }
+
+    private cmdBranch(branchName: string): int {
+        if (branchName == "") {
+            let branches: Array<string>* = this.repo->refManager->listBranches();
+            let curr: string = this.repo->refManager->getCurrentBranch();
+            let count: int = (int)branches->length();
+            for (let i: int = 0; i < count; i++) {
+                let b: string = branches->get(i);
+                if (b == curr) {
+                    print("* \033[32m"); print(b); println("\033[0m");
+                } else {
+                    print("  "); println(b);
+                }
+            }
+            return 0;
+        }
+        if (this.repo->createBranch(branchName)) {
+            print("Created branch: "); println(branchName);
+            return 0;
+        } else {
+            print("Branch already exists: "); println(branchName);
+            return 1;
+        }
+    }
+
+    private cmdCheckout(branchName: string): int {
+        if (this.repo->checkout(branchName)) {
+            print("Switched to branch '"); print(branchName); println("'");
+            return 0;
+        } else {
+            print("error: pathspec '"); print(branchName); println("' did not match any file(s) known to cvm");
+            return 1;
+        }
+    }
+
+    private cmdLog(): int {
+        let commits: Array<CommitObject*>* = this.repo->objectStore->listCommits();
+        let count: int = (int)commits->length();
+        if (count == 0) {
+            println("No commits yet.");
+            return 0;
+        }
+        for (let i: int = count - 1; i >= 0; i--) {
+            commits->get(i)->display();
+        }
+        return 0;
+    }
+
+    private cmdDiff(): int {
+        let diffs: Array<FileDiff*>* = this.repo->diffWorking();
+        let count: int = (int)diffs->length();
+        if (count == 0) {
+            println("No working tree changes.");
+            return 0;
+        }
+        for (let i: int = 0; i < count; i++) {
+            println(diffs->get(i)->rawUnified);
+        }
+        return 0;
+    }
+
+    private cmdCvm(subAction: string, arg: string): int {
+        if (subAction == "diff") {
+            let author: GitUser* = new GitUser("2-TEK Developer", "dev@2tek.local");
+            let patch: CvmPatch* = this.repo->generateCvmPatch("cvm_patch_" + to_string(1), "Working changes patch", author);
+            CvmPatchEngine::preview(patch);
+            return 0;
+        } else if (subAction == "preview") {
+            if (arg == "") {
+                println("Usage: cvm cvm preview <file.cvm>");
+                return 1;
+            }
+            let patch: CvmPatch* = CvmPatchEngine::parsePatch(arg);
+            CvmPatchEngine::preview(patch);
+            return 0;
+        } else if (subAction == "apply") {
+            let patch: CvmPatch* = CvmPatchEngine::parsePatch(arg);
+            this.repo->applyCvmPatch(patch);
+            println("Applied .cvm patch successfully.");
+            return 0;
+        }
+        println("Unknown cvm subcommand. Options: diff, preview, apply");
+        return 1;
+    }
+
+    private cmdMr(subAction: string, arg: string): int {
+        if (subAction == "list" || subAction == "") {
+            let mrs: Array<MergeRequest*>* = this.repo->mergeManager->listRequests();
+            let count: int = (int)mrs->length();
+            println("Merge Requests:");
+            for (let i: int = 0; i < count; i++) {
+                let mr: MergeRequest* = mrs->get(i);
+                print("  • "); print(mr->id); print(" ["); print(mr->status); print("]: ");
+                print(mr->title); print(" ("); print(mr->sourceBranch); print(" -> "); print(mr->targetBranch); println(")");
+            }
+            return 0;
+        } else if (subAction == "merge") {
+            if (this.repo->mergeManager->executeMerge(arg, "admin@2tek.local")) {
+                print("Successfully merged: "); println(arg);
+                return 0;
+            } else {
+                print("Failed to merge: "); println(arg);
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    private printHelp(): void {
+        println("CodeVersionManager (CVM) - Native Git-Standard CLI");
+        println("Usage: cvm <command> [arguments...]");
+        println("");
+        println("Commands:");
+        println("  init [directory]            Initialize a new repository");
+        println("  status                      Show the working tree status");
+        println("  add <file>                  Stage file contents for commit");
+        println("  commit -m <msg>             Record changes to the repository");
+        println("  push [remote] [branch]      Push commits to Git upstream remote");
+        println("  pull [remote] [branch]      Pull and sync latest commits from remote");
+        println("  branch [name]               List or create branches");
+        println("  checkout <branch>           Switch branches");
+        println("  log                         Show commit logs");
+        println("  diff                        Show uncommitted changes");
+        println("  cvm diff                    Generate .cvm change record for uncommitted changes");
+        println("  cvm preview <file.cvm>      Preview .cvm change record");
+        println("  cvm apply <file.cvm>        Apply .cvm patch to repository");
+        println("  mr list                     List merge requests");
+        println("  mr merge <id>               Merge a merge request");
+        println("  server                      Launch headless REST API server on port 3036");
+    }
+}

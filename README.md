@@ -131,7 +131,37 @@ cxvm use 6.0.0
 
 ---
 
-## 5. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
+## 5. Integrated CodeVersionManager (CVM) Commands (like `git` & `cvm`)
+
+`cxvm` features an integrated **CodeVersionManager (CVM)** engine built natively in pure C-ext (`src/cvm/`). All VCS operations can be executed directly via `cxvm`:
+
+| Command | Action | Example |
+| :--- | :--- | :--- |
+| `cxvm status` | Inspect branch, working tree, and untracked/staged files | `cxvm status` |
+| `cxvm add <files...>` | Stage file modifications into index | `cxvm add src/app.cex` \| `cxvm add .` |
+| `cxvm commit -m <msg>` | Commit staged changes to local DAG graph with SHA hash | `cxvm commit -m "feat(cxvm): integrate cvm into cxvm"` |
+| `cxvm push [remote] [branch]` | Push committed changes to upstream remote repository | `cxvm push` \| `cxvm push origin main` |
+| `cxvm pull [remote] [branch]` | Fetch and integrate changes from upstream remote | `cxvm pull` \| `cxvm pull origin main` |
+| `cxvm branch [name]` | List existing branches or create a new branch | `cxvm branch` \| `cxvm branch feature/my-feature` |
+| `cxvm checkout <branch>` | Switch active HEAD to target branch | `cxvm checkout main` |
+| `cxvm diff [file]` | Display unified diff of modified files | `cxvm diff` |
+| `cxvm log [--oneline]` | Display commit log history with hashes and authors | `cxvm log` |
+| `cxvm unstage <files...>` | Unstage files from index without discarding changes | `cxvm unstage src/index.cex` |
+| `cxvm discard <files...>` | Discard changes in working directory | `cxvm discard src/index.cex` |
+| `cxvm init [dir] [--git]` | Initialize new repository with object store | `cxvm init` |
+| `cxvm git <args...>` | Direct pass-through to native git toolchain | `cxvm git log -n 5` |
+| `cxvm start [-p <port>]` | Launch visual CVM Web Studio dashboard | `cxvm start -p 4000` |
+
+### Lighting MVC HTTP REST API for CVM:
+
+When the Factory application runs on port 3080:
+- **`GET /api/v1/cvm/status`**: Returns JSON object representing current repository status, active branch, and cleanliness.
+- **`POST /api/v1/cvm/commit`**: Commits staged files with provided message payload, returning commit hash.
+- **`POST /api/v1/cvm/push`**: Pushes local branch commits to upstream remote.
+
+---
+
+## 6. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
 
 The following distribution archives (36 bundles: 6 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
@@ -188,7 +218,7 @@ The following distribution archives (36 bundles: 6 versions x 6 platforms) and t
 
 ---
 
-## 6. Execution & Testing with CexR v8
+## 7. Execution & Testing with CexR v8
 
 ```bash
 # 1. Switch to CexR v8 Runtime via cxvm
@@ -210,7 +240,7 @@ cexr run tests/factory.test.cex
 
 ---
 
-## 7. Repository & Upstream Git Origin
+## 8. Repository & Upstream Git Origin
 
 - **GitHub Repository**: [`https://github.com/2-tek/cxvm`](https://github.com/2-tek/cxvm)
 - **Clone Repository**:

@@ -1,0 +1,160 @@
+// CodeVersionManager: Git-Standard Object Store (C-ext)
+// Content-Addressable Database for Blobs, Trees, Commits, and Tags
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./types.cex";
+import "./hash_utils.cex";
+import fs from "fs";
+
+class ObjectStore {
+    private basePath: string;
+    private objectsDir: string;
+    private blobMapKeys: Array<string>*;
+    private blobMapValues: Array<string>*;
+    private treeMapKeys: Array<string>*;
+    private treeMapValues: Array<TreeObject*>*;
+    private commitMapKeys: Array<string>*;
+    private commitMapValues: Array<CommitObject*>*;
+    private tagMapKeys: Array<string>*;
+    private tagMapValues: Array<TagObject*>*;
+
+    public constructor(basePath: string) {
+        this.basePath = basePath;
+        this.objectsDir = basePath == "" ? ".cvm/objects" : basePath + "/.cvm/objects";
+        this.blobMapKeys = new Array<string>();
+        this.blobMapValues = new Array<string>();
+        this.treeMapKeys = new Array<string>();
+        this.treeMapValues = new Array<TreeObject*>();
+        this.commitMapKeys = new Array<string>();
+        this.commitMapValues = new Array<CommitObject*>();
+        this.tagMapKeys = new Array<string>();
+        this.tagMapValues = new Array<TagObject*>();
+    }
+
+    public getObjectsDir(): string {
+        return this.objectsDir;
+    }
+
+    // 1. Blob Storage
+    public saveBlob(content: string): string {
+        let hash: string = GitHash::hashObject("blob", content);
+
+        let count: int = (int)this->blobMapKeys->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this->blobMapKeys->get(i) == hash) {
+                return hash;
+            }
+        }
+
+        this->blobMapKeys->push(hash);
+        this->blobMapValues->push(content);
+        return hash;
+    }
+
+    public getBlob(hash: string): string {
+        let count: int = (int)this->blobMapKeys->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this->blobMapKeys->get(i) == hash) {
+                return this->blobMapValues->get(i);
+            }
+        }
+        return "";
+    }
+
+    public hasBlob(hash: string): bool {
+        let count: int = (int)this->blobMapKeys->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this->blobMapKeys->get(i) == hash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 2. Tree Storage
+    public saveTree(entries: Array<TreeEntry*>*): string {
+        let serialized: string = "";
+        let count: int = (int)entries->length();
+        for (let i: int = 0; i < count; i++) {
+            let e: TreeEntry* = entries->get(i);
+            serialized = serialized + e->mode + " " + e->path + " " + e->hash + "\n";
+        }
+
+        let hash: string = GitHash::hashObject("tree", serialized);
+        let treeObj: TreeObject* = new TreeObject(hash);
+        for (let i: int = 0; i < count; i++) {
+            treeObj->addEntry(entries->get(i));
+        }
+
+        this->treeMapKeys->push(hash);
+        this->treeMapValues->push(treeObj);
+        return hash;
+    }
+
+    public getTree(hash: string): TreeObject* {
+        let count: int = (int)this->treeMapKeys->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this->treeMapKeys->get(i) == hash) {
+                return this->treeMapValues->get(i);
+            }
+        }
+        return nullptr;
+    }
+
+    // 3. Commit Storage
+    public saveCommit(treeHash: string, parentHash: string, author: GitUser*, message: string): string {
+        let payload: string = "tree " + treeHash + "\n";
+        if (parentHash != "") {
+            payload = payload + "parent " + parentHash + "\n";
+        }
+        payload = payload + "author " + author->formatAuthorLine() + "\n";
+        payload = payload + "committer " + author->formatAuthorLine() + "\n";
+        payload = payload + "\n" + message + "\n";
+
+        let hash: string = GitHash::hashObject("commit", payload);
+        let commitObj: CommitObject* = new CommitObject(hash, treeHash, parentHash, author, message);
+
+        this->commitMapKeys->push(hash);
+        this->commitMapValues->push(commitObj);
+        return hash;
+    }
+
+    public getCommit(hash: string): CommitObject* {
+        let count: int = (int)this->commitMapKeys->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this->commitMapKeys->get(i) == hash) {
+                return this->commitMapValues->get(i);
+            }
+        }
+        return nullptr;
+    }
+
+    public listCommits(): Array<CommitObject*>* {
+        return this->commitMapValues;
+    }
+
+    // 4. Tag Storage
+    public saveTag(targetHash: string, tag: string, tagger: GitUser*, message: string): string {
+        let payload: string = "object " + targetHash + "\ntype commit\ntag " + tag + "\ntagger " + tagger->formatAuthorLine() + "\n\n" + message + "\n";
+        let hash: string = GitHash::hashObject("tag", payload);
+        let tagObj: TagObject* = new TagObject(hash, targetHash, tag, tagger, message);
+
+        this->tagMapKeys->push(tag);
+        this->tagMapValues->push(tagObj);
+        return hash;
+    }
+
+    public getTag(tag: string): TagObject* {
+        let count: int = (int)this->tagMapKeys->length();
+        for (let i: int = 0; i < count; i++) {
+            if (this->tagMapKeys->get(i) == tag) {
+                return this->tagMapValues->get(i);
+            }
+        }
+        return nullptr;
+    }
+
+    public getObjectsCount(): int {
+        return (int)this->blobMapKeys->length() + (int)this->treeMapKeys->length() + (int)this->commitMapKeys->length() + (int)this->tagMapKeys->length();
+    }
+}
