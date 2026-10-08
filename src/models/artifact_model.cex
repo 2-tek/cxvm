@@ -37,19 +37,21 @@ class ArtifactModel : public BaseModel {
         return res;
     }
 
+    public virtual toJsonValue(): JsonValue* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "id", this.id);
+        JsonDoc::setStr(doc, "filename", this.filename);
+        JsonDoc::setStr(doc, "version", this.version);
+        JsonDoc::setStr(doc, "platform", this.platform);
+        JsonDoc::setStr(doc, "arch", this.arch);
+        JsonDoc::setNum(doc, "sizeBytes", this.sizeBytes);
+        JsonDoc::setStr(doc, "sha256", this.sha256);
+        JsonDoc::setStr(doc, "downloadUrl", this.downloadUrl);
+        JsonDoc::setBool(doc, "isBuilt", this.isBuilt);
+        return doc;
+    }
+
     public override toJson(): string {
-        let str: string = "{";
-        str += "\"id\":\"" + this.id + "\",";
-        str += "\"filename\":\"" + this.filename + "\",";
-        str += "\"version\":\"" + this.version + "\",";
-        str += "\"platform\":\"" + this.platform + "\",";
-        str += "\"arch\":\"" + this.arch + "\",";
-        str += "\"sizeBytes\":" + std::to_string(this.sizeBytes) + ",";
-        str += "\"sha256\":\"" + this.sha256 + "\",";
-        str += "\"downloadUrl\":\"" + this.downloadUrl + "\",";
-        str += "\"isBuilt\":";
-        str += (this.isBuilt ? "true" : "false");
-        str += "}";
-        return str;
+        return JsonDoc::stringify(this->toJsonValue());
     }
 }

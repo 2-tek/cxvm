@@ -38,65 +38,66 @@ class FactoryController : public BaseController {
     }
 
     public apiStatus(req: HttpRequest*, port: int, builder: DistBuilder*, cxvm: CxvmEngine*): HttpResponse* {
-        let str: string = "{";
-        str += "\"status\":\"ACTIVE\",";
-        str += "\"service\":\"2-TEK Cex Factory\",";
-        str += "\"framework\":\"Lighting MVC\",";
-        str += "\"port\":" + std::to_string(port) + ",";
-        str += "\"totalPlatforms\":" + std::to_string((int)builder->platforms->length()) + ",";
-        str += "\"totalVersions\":" + std::to_string((int)builder->versions->length()) + ",";
-        str += "\"totalArtifacts\":" + std::to_string((int)builder->artifacts->length()) + ",";
-        str += "\"currentActiveVersion\":\"" + cxvm->current() + "\",";
-        str += "\"crossPlatformSupport\":\"Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "ACTIVE");
+        JsonDoc::setStr(doc, "service", "2-TEK Cex Factory");
+        JsonDoc::setStr(doc, "framework", "Lighting MVC");
+        JsonDoc::setNum(doc, "port", port);
+        JsonDoc::setNum(doc, "totalPlatforms", (int)builder->platforms->length());
+        JsonDoc::setNum(doc, "totalVersions", (int)builder->versions->length());
+        JsonDoc::setNum(doc, "totalArtifacts", (int)builder->artifacts->length());
+        JsonDoc::setStr(doc, "currentActiveVersion", cxvm->current());
+        JsonDoc::setStr(doc, "crossPlatformSupport", "Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)");
+        return this->json(doc);
     }
 
     public apiVersions(req: HttpRequest*, versions: Array<VersionModel*>*): HttpResponse* {
         let count: int = (int)versions->length();
-        let str: string = "{\"total\":" + std::to_string(count) + ",\"versions\":[";
+        let doc: JsonValue* = JsonDoc::obj();
+        let arr: JsonValue* = JsonDoc::arr();
         for (let i: int = 0; i < count; i++) {
-            if (i > 0) str += ",";
-            str += versions->get(i)->toJson();
+            JsonDoc::pushVal(arr, versions->get(i)->toJsonValue());
         }
-        str += "]}";
-        return this->json(str);
+        JsonDoc::setNum(doc, "total", count);
+        JsonDoc::setVal(doc, "versions", arr);
+        return this->json(doc);
     }
 
     public apiPlatforms(req: HttpRequest*, platforms: Array<PlatformModel*>*): HttpResponse* {
         let count: int = (int)platforms->length();
-        let str: string = "{\"platforms\":[";
+        let doc: JsonValue* = JsonDoc::obj();
+        let arr: JsonValue* = JsonDoc::arr();
         for (let i: int = 0; i < count; i++) {
-            if (i > 0) str += ",";
-            str += platforms->get(i)->toJson();
+            JsonDoc::pushVal(arr, platforms->get(i)->toJsonValue());
         }
-        str += "],\"total\":" + std::to_string(count) + "}";
-        return this->json(str);
+        JsonDoc::setVal(doc, "platforms", arr);
+        JsonDoc::setNum(doc, "total", count);
+        return this->json(doc);
     }
 
     public apiDownloads(req: HttpRequest*, artifacts: Array<ArtifactModel*>*): HttpResponse* {
         let count: int = (int)artifacts->length();
-        let str: string = "{\"artifacts\":[";
+        let doc: JsonValue* = JsonDoc::obj();
+        let arr: JsonValue* = JsonDoc::arr();
         for (let i: int = 0; i < count; i++) {
-            if (i > 0) str += ",";
-            str += artifacts->get(i)->toJson();
+            JsonDoc::pushVal(arr, artifacts->get(i)->toJsonValue());
         }
-        str += "],\"total\":" + std::to_string(count) + "}";
-        return this->json(str);
+        JsonDoc::setVal(doc, "artifacts", arr);
+        JsonDoc::setNum(doc, "total", count);
+        return this->json(doc);
     }
 
     public apiManifest(req: HttpRequest*, builder: DistBuilder*): HttpResponse* {
-        return this->json(builder->getManifestJson());
+        return this->json(builder->getManifestDoc());
     }
 
     public apiBuild(req: HttpRequest*, builder: DistBuilder*): HttpResponse* {
         let count: int = builder->buildAll();
-        let str: string = "{";
-        str += "\"message\":\"All cross-platform distribution archives generated in Factory/downloads/\",";
-        str += "\"status\":\"SUCCESS\",";
-        str += "\"totalPackagesBuilt\":" + std::to_string(count);
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "message", "All cross-platform distribution archives generated in Factory/downloads/");
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setNum(doc, "totalPackagesBuilt", count);
+        return this->json(doc);
     }
 
     public serveInstallSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
@@ -228,211 +229,269 @@ class FactoryController : public BaseController {
     }
 
     public apiSetupGet(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
-        let str: string = "{";
-        str += "\"status\":\"ACTIVE\",";
-        str += "\"cxvmHome\":\"" + cxvm->cxvmHome + "\",";
-        str += "\"currentActive\":\"" + cxvm->current() + "\",";
-        str += "\"defaultVersion\":\"v" + cxvm->defaultVersion + "\",";
-        str += "\"installedVersions\":[";
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "ACTIVE");
+        JsonDoc::setStr(doc, "cxvmHome", cxvm->cxvmHome);
+        JsonDoc::setStr(doc, "currentActive", cxvm->current());
+        JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
+
+        let arr: JsonValue* = JsonDoc::arr();
         let count: int = (int)cxvm->installedVersions->length();
         for (let i: int = 0; i < count; i++) {
-            if (i > 0) str += ",";
-            str += "\"v" + cxvm->installedVersions->get(i) + "\"";
+            JsonDoc::pushStr(arr, "v" + cxvm->installedVersions->get(i));
         }
-        str += "],";
-        str += "\"dispatchers\":{\"cexr\":\"./bin/cexr (v8 default, v6 supported)\",\"cex\":\"./bin/cex\"},";
-        str += "\"toolchain\":\"Pure Cex Native Engine (zero C++ dependency; powered by cexr + cexp)\"";
-        str += "}";
-        return this->json(str);
+        JsonDoc::setVal(doc, "installedVersions", arr);
+
+        let disp: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(disp, "cexr", "./bin/cexr (v8 default, v6 supported)");
+        JsonDoc::setStr(disp, "cex", "./bin/cex");
+        JsonDoc::setVal(doc, "dispatchers", disp);
+
+        JsonDoc::setStr(doc, "toolchain", "Pure Cex Native Engine (zero C++ dependency; powered by cexr + cexp)");
+        return this->json(doc);
     }
 
     public apiSetupPost(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->setup("8.0.0");
         let statStr: string = res->success ? "SUCCESS" : "ERROR";
-        let str: string = "{";
-        str += "\"status\":\"" + statStr + "\",";
-        str += "\"message\":\"" + res->message + "\",";
-        str += "\"activeVersion\":\"" + cxvm->current() + "\",";
-        str += "\"defaultVersion\":\"v" + cxvm->defaultVersion + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", statStr);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "activeVersion", cxvm->current());
+        JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
+        return this->json(doc);
     }
 
     public apiCvmStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->cvmStatus();
-        let str: string = "{";
-        str += res->success ? "\"status\":\"SUCCESS\"," : "\"status\":\"ERROR\",";
-        str += "\"branch\":\"" + res->version + "\",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "branch", res->version);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiCvmCommit(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let msg: string = req->body.length() > 0 ? req->body : "Commit via CXVM Lighting API";
         let res: CxvmCommandResult* = cxvm->cvmCommit(msg, "API User", "api@2tek.local");
-        let str: string = "{";
-        str += res->success ? "\"status\":\"SUCCESS\"," : "\"status\":\"ERROR\",";
-        str += "\"commitHash\":\"" + res->version + "\",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "commitHash", res->version);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiCvmPush(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->cvmPush("origin", "main");
-        let str: string = "{";
-        str += res->success ? "\"status\":\"SUCCESS\"," : "\"status\":\"ERROR\",";
-        str += "\"branch\":\"" + res->version + "\",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "branch", res->version);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiCvmServerStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->startCvm(4000, true);
-        let str: string = "{";
-        str += "\"status\":\"SUCCESS\",";
-        str += "\"service\":\"cvm-server\",";
-        str += "\"mode\":\"standalone (single process)\",";
-        str += "\"port\":" + std::to_string(cxvm->cvmServerPort) + ",";
-        str += "\"pid\":" + std::to_string(cxvm->cvmServerPid) + ",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "service", "cvm-server");
+        JsonDoc::setStr(doc, "mode", "standalone (single process)");
+        JsonDoc::setNum(doc, "port", cxvm->cvmServerPort);
+        JsonDoc::setNum(doc, "pid", cxvm->cvmServerPid);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiCvmServerStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->statusCvm();
-        let str: string = "{";
-        str += cxvm->cvmServerRunning ? "\"status\":\"RUNNING\"," : "\"status\":\"STOPPED\",";
-        str += cxvm->cvmServerRunning ? "\"isRunning\":true," : "\"isRunning\":false,";
-        str += "\"port\":" + std::to_string(cxvm->cvmServerPort) + ",";
-        str += "\"pid\":" + std::to_string(cxvm->cvmServerPid) + ",";
-        str += "\"mode\":\"standalone (single process)\",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", cxvm->cvmServerRunning ? "RUNNING" : "STOPPED");
+        JsonDoc::setBool(doc, "isRunning", cxvm->cvmServerRunning);
+        JsonDoc::setNum(doc, "port", cxvm->cvmServerPort);
+        JsonDoc::setNum(doc, "pid", cxvm->cvmServerPid);
+        JsonDoc::setStr(doc, "mode", "standalone (single process)");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiCvmServerStop(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->stopCvm();
-        let str: string = "{";
-        str += "\"status\":\"STOPPED\",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "STOPPED");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiThunderStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
-        let str: string = "{";
-        str += "\"status\":\"SUCCESS\",";
-        str += "\"health\":\"HEALTHY\",";
-        str += "\"engine\":\"CexThunderEngine\",";
-        str += "\"controlPort\":" + std::to_string(cxvm->thunderPort) + ",";
-        str += "\"singleProcess\":true,";
-        str += "\"containersRunning\":" + std::to_string(cxvm->thunderContainersRunning) + ",";
-        str += "\"totalImages\":" + std::to_string(cxvm->thunderTotalImages) + ",";
-        str += "\"kernel\":\"Linux 6.8.0-2tek-microkernel\",";
-        str += "\"cgroups\":\"v2\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "health", "HEALTHY");
+        JsonDoc::setStr(doc, "engine", "CexThunderEngine");
+        JsonDoc::setNum(doc, "controlPort", cxvm->thunderPort);
+        JsonDoc::setBool(doc, "singleProcess", true);
+        JsonDoc::setNum(doc, "containersRunning", cxvm->thunderContainersRunning);
+        JsonDoc::setNum(doc, "totalImages", cxvm->thunderTotalImages);
+        JsonDoc::setStr(doc, "kernel", "Linux 6.8.0-2tek-microkernel");
+        JsonDoc::setStr(doc, "cgroups", "v2");
+        return this->json(doc);
     }
 
     public apiThunderServerStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->startThunder(3050, true);
-        let str: string = "{";
-        str += "\"status\":\"SUCCESS\",";
-        str += "\"service\":\"thunder-daemon\",";
-        str += "\"mode\":\"standalone (single process)\",";
-        str += "\"port\":" + std::to_string(cxvm->thunderPort) + ",";
-        str += "\"pid\":" + std::to_string(cxvm->thunderPid) + ",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "service", "thunder-daemon");
+        JsonDoc::setStr(doc, "mode", "standalone (single process)");
+        JsonDoc::setNum(doc, "port", cxvm->thunderPort);
+        JsonDoc::setNum(doc, "pid", cxvm->thunderPid);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiThunderServerStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->statusThunder();
-        let str: string = "{";
-        str += cxvm->thunderRunning ? "\"status\":\"RUNNING\"," : "\"status\":\"STOPPED\",";
-        str += cxvm->thunderRunning ? "\"isRunning\":true," : "\"isRunning\":false,";
-        str += "\"port\":" + std::to_string(cxvm->thunderPort) + ",";
-        str += "\"pid\":" + std::to_string(cxvm->thunderPid) + ",";
-        str += "\"mode\":\"standalone (single process)\",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", cxvm->thunderRunning ? "RUNNING" : "STOPPED");
+        JsonDoc::setBool(doc, "isRunning", cxvm->thunderRunning);
+        JsonDoc::setNum(doc, "port", cxvm->thunderPort);
+        JsonDoc::setNum(doc, "pid", cxvm->thunderPid);
+        JsonDoc::setStr(doc, "mode", "standalone (single process)");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiThunderServerStop(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let res: CxvmCommandResult* = cxvm->stopThunder();
-        let str: string = "{";
-        str += "\"status\":\"STOPPED\",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "STOPPED");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 
     public apiThunderContainers(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
-        let str: string = "{";
-        str += "\"status\":\"SUCCESS\",";
-        str += "\"total\":" + std::to_string(cxvm->thunderContainersRunning) + ",";
-        str += "\"containers\":[";
-        str += "{\"id\":\"cxt-1a8f9\",\"name\":\"thunder-daemon\",\"image\":\"@2tek/thunder:latest\",\"hostPort\":3050,\"status\":\"RUNNING\"},";
-        str += "{\"id\":\"cxt-2a8f9\",\"name\":\"cvm-server\",\"image\":\"@2tek/cvm:latest\",\"hostPort\":4000,\"status\":\"RUNNING\"},";
-        str += "{\"id\":\"cxt-3a8f9\",\"name\":\"cxvm-factory\",\"image\":\"@2tek/cxvm:latest\",\"hostPort\":3080,\"status\":\"RUNNING\"},";
-        str += "{\"id\":\"cxt-4a8f9\",\"name\":\"lighting-mvc\",\"image\":\"@2tek/lighting:latest\",\"hostPort\":3060,\"status\":\"RUNNING\"},";
-        str += "{\"id\":\"cxt-5a8f9\",\"name\":\"codestorm-editor\",\"image\":\"@2tek/code-storm:latest\",\"hostPort\":3055,\"status\":\"RUNNING\"}";
-        str += "]}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setNum(doc, "total", cxvm->thunderContainersRunning);
+
+        let arr: JsonValue* = JsonDoc::arr();
+
+        let c1: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(c1, "id", "cxt-1a8f9");
+        JsonDoc::setStr(c1, "name", "thunder-daemon");
+        JsonDoc::setStr(c1, "image", "@2tek/thunder:latest");
+        JsonDoc::setNum(c1, "hostPort", 3050);
+        JsonDoc::setStr(c1, "status", "RUNNING");
+        JsonDoc::pushVal(arr, c1);
+
+        let c2: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(c2, "id", "cxt-2a8f9");
+        JsonDoc::setStr(c2, "name", "cvm-server");
+        JsonDoc::setStr(c2, "image", "@2tek/cvm:latest");
+        JsonDoc::setNum(c2, "hostPort", 4000);
+        JsonDoc::setStr(c2, "status", "RUNNING");
+        JsonDoc::pushVal(arr, c2);
+
+        let c3: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(c3, "id", "cxt-3a8f9");
+        JsonDoc::setStr(c3, "name", "cxvm-factory");
+        JsonDoc::setStr(c3, "image", "@2tek/cxvm:latest");
+        JsonDoc::setNum(c3, "hostPort", 3080);
+        JsonDoc::setStr(c3, "status", "RUNNING");
+        JsonDoc::pushVal(arr, c3);
+
+        let c4: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(c4, "id", "cxt-4a8f9");
+        JsonDoc::setStr(c4, "name", "lighting-mvc");
+        JsonDoc::setStr(c4, "image", "@2tek/lighting:latest");
+        JsonDoc::setNum(c4, "hostPort", 3060);
+        JsonDoc::setStr(c4, "status", "RUNNING");
+        JsonDoc::pushVal(arr, c4);
+
+        let c5: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(c5, "id", "cxt-5a8f9");
+        JsonDoc::setStr(c5, "name", "codestorm-editor");
+        JsonDoc::setStr(c5, "image", "@2tek/code-storm:latest");
+        JsonDoc::setNum(c5, "hostPort", 3055);
+        JsonDoc::setStr(c5, "status", "RUNNING");
+        JsonDoc::pushVal(arr, c5);
+
+        JsonDoc::setVal(doc, "containers", arr);
+        return this->json(doc);
     }
 
     public apiThunderImages(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
-        let str: string = "{";
-        str += "\"status\":\"SUCCESS\",";
-        str += "\"total\":" + std::to_string(cxvm->thunderTotalImages) + ",";
-        str += "\"images\":[";
-        str += "{\"tag\":\"@2tek/thunder:latest\",\"id\":\"sha256:7f92a10\",\"sizeMb\":42.5},";
-        str += "{\"tag\":\"@2tek/cvm:latest\",\"id\":\"sha256:8b41c30\",\"sizeMb\":38.2},";
-        str += "{\"tag\":\"@2tek/cxvm:latest\",\"id\":\"sha256:5d12e84\",\"sizeMb\":34.0},";
-        str += "{\"tag\":\"@2tek/lighting:latest\",\"id\":\"sha256:3a91e52\",\"sizeMb\":28.7},";
-        str += "{\"tag\":\"@2tek/code-storm:latest\",\"id\":\"sha256:9c44b11\",\"sizeMb\":56.1}";
-        str += "]}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setNum(doc, "total", cxvm->thunderTotalImages);
+
+        let arr: JsonValue* = JsonDoc::arr();
+
+        let im1: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(im1, "tag", "@2tek/thunder:latest");
+        JsonDoc::setStr(im1, "id", "sha256:7f92a10");
+        JsonDoc::setDouble(im1, "sizeMb", 42.5);
+        JsonDoc::pushVal(arr, im1);
+
+        let im2: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(im2, "tag", "@2tek/cvm:latest");
+        JsonDoc::setStr(im2, "id", "sha256:8b41c30");
+        JsonDoc::setDouble(im2, "sizeMb", 38.2);
+        JsonDoc::pushVal(arr, im2);
+
+        let im3: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(im3, "tag", "@2tek/cxvm:latest");
+        JsonDoc::setStr(im3, "id", "sha256:5d12e84");
+        JsonDoc::setDouble(im3, "sizeMb", 34.0);
+        JsonDoc::pushVal(arr, im3);
+
+        let im4: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(im4, "tag", "@2tek/lighting:latest");
+        JsonDoc::setStr(im4, "id", "sha256:3a91e52");
+        JsonDoc::setDouble(im4, "sizeMb", 28.7);
+        JsonDoc::pushVal(arr, im4);
+
+        let im5: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(im5, "tag", "@2tek/code-storm:latest");
+        JsonDoc::setStr(im5, "id", "sha256:9c44b11");
+        JsonDoc::setDouble(im5, "sizeMb", 56.1);
+        JsonDoc::pushVal(arr, im5);
+
+        JsonDoc::setVal(doc, "images", arr);
+        return this->json(doc);
     }
 
     public apiLightStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
-        let str: string = "{";
-        str += "\"status\":\"SUCCESS\",";
-        str += "\"engine\":\"LightingFullstackMVC\",";
-        str += cxvm->lightEngineReady ? "\"ready\":true," : "\"ready\":false,";
-        str += "\"framework\":\"Lighting Fullstack MVC (Pure Cex)\",";
-        str += "\"commands\":[\"create\",\"dev\",\"build\",\"doctor\"],";
-        str += "\"version\":\"8.0.0\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "engine", "LightingFullstackMVC");
+        JsonDoc::setBool(doc, "ready", cxvm->lightEngineReady);
+        JsonDoc::setStr(doc, "framework", "Lighting Fullstack MVC (Pure Cex)");
+
+        let arr: JsonValue* = JsonDoc::arr();
+        JsonDoc::pushStr(arr, "create");
+        JsonDoc::pushStr(arr, "dev");
+        JsonDoc::pushStr(arr, "build");
+        JsonDoc::pushStr(arr, "doctor");
+        JsonDoc::setVal(doc, "commands", arr);
+
+        JsonDoc::setStr(doc, "version", "8.0.0");
+        return this->json(doc);
     }
 
     public apiLightCreate(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let projectName: string = "my-lighting-app";
-        if (req->body.find("\"projectName\":") != -1) {
-            let start: int = (int)req->body.find("\"projectName\":") + 14;
-            let firstQuote: int = (int)req->body.find("\"", start);
-            if (firstQuote != -1) {
-                let secondQuote: int = (int)req->body.find("\"", firstQuote + 1);
-                if (secondQuote != -1 && secondQuote > firstQuote) {
-                    projectName = req->body.substr(firstQuote + 1, secondQuote - firstQuote - 1);
-                }
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("projectName")) {
+                projectName = parsed->get("projectName")->asString();
             }
         }
         let res: CxvmCommandResult* = cxvm->lightCreate(projectName, ".");
-        let str: string = "{";
-        str += "\"status\":\"SUCCESS\",";
-        str += "\"projectName\":\"" + projectName + "\",";
-        str += "\"framework\":\"Lighting Fullstack MVC\",";
-        str += "\"message\":\"" + res->message + "\"";
-        str += "}";
-        return this->json(str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "projectName", projectName);
+        JsonDoc::setStr(doc, "framework", "Lighting Fullstack MVC");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this->json(doc);
     }
 }

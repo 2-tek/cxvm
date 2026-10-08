@@ -82,6 +82,18 @@ class DistBuilder {
         return (int)this.artifacts->length();
     }
 
+    public getManifestDoc(): JsonValue* {
+        let manifestPath: string = this.downloadsDir + "/manifest.json";
+        if (fs.exists(manifestPath)) {
+            let str: string = fs.readFile(manifestPath);
+            return JsonDoc::parse(str);
+        }
+
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "pending");
+        return doc;
+    }
+
     public getManifestJson(): string {
         let manifestPath: string = this.downloadsDir + "/manifest.json";
         if (fs.exists(manifestPath)) {
@@ -89,8 +101,7 @@ class DistBuilder {
             return str;
         }
 
-        let str: string = "{\n  \"status\": \"pending\"\n}";
-        return str;
+        return JsonDoc::stringifyIndent(this->getManifestDoc(), 2);
     }
 
     public getArtifactByFilename(fname: string): ArtifactModel* {

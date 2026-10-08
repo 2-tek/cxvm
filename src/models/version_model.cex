@@ -33,17 +33,19 @@ class VersionModel : public BaseModel {
         return res;
     }
 
+    public virtual toJsonValue(): JsonValue* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "id", this.id);
+        JsonDoc::setStr(doc, "version", this.version);
+        JsonDoc::setStr(doc, "channel", this.channel);
+        JsonDoc::setStr(doc, "releaseDate", this.releaseDate);
+        JsonDoc::setStr(doc, "minCpp", this.minCpp);
+        JsonDoc::setStr(doc, "description", this.description);
+        JsonDoc::setBool(doc, "isDefault", this.isDefault);
+        return doc;
+    }
+
     public override toJson(): string {
-        let str: string = "{";
-        str += "\"id\":\"" + this.id + "\",";
-        str += "\"version\":\"" + this.version + "\",";
-        str += "\"channel\":\"" + this.channel + "\",";
-        str += "\"releaseDate\":\"" + this.releaseDate + "\",";
-        str += "\"minCpp\":\"" + this.minCpp + "\",";
-        str += "\"description\":\"" + this.description + "\",";
-        str += "\"isDefault\":";
-        str += (this.isDefault ? "true" : "false");
-        str += "}";
-        return str;
+        return JsonDoc::stringify(this->toJsonValue());
     }
 }

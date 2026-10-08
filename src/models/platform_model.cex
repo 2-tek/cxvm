@@ -38,18 +38,20 @@ class PlatformModel : public BaseModel {
         return res;
     }
 
+    public virtual toJsonValue(): JsonValue* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "id", this.id);
+        JsonDoc::setStr(doc, "os", this.os);
+        JsonDoc::setStr(doc, "arch", this.arch);
+        JsonDoc::setStr(doc, "targetTriple", this.targetTriple);
+        JsonDoc::setStr(doc, "compiler", this.compiler);
+        JsonDoc::setStr(doc, "archiveFormat", this.archiveFormat);
+        JsonDoc::setStr(doc, "displayName", this.displayName);
+        JsonDoc::setBool(doc, "isSupported", this.isSupported);
+        return doc;
+    }
+
     public override toJson(): string {
-        let str: string = "{";
-        str += "\"id\":\"" + this.id + "\",";
-        str += "\"os\":\"" + this.os + "\",";
-        str += "\"arch\":\"" + this.arch + "\",";
-        str += "\"targetTriple\":\"" + this.targetTriple + "\",";
-        str += "\"compiler\":\"" + this.compiler + "\",";
-        str += "\"archiveFormat\":\"" + this.archiveFormat + "\",";
-        str += "\"displayName\":\"" + this.displayName + "\",";
-        str += "\"isSupported\":";
-        str += (this.isSupported ? "true" : "false");
-        str += "}";
-        return str;
+        return JsonDoc::stringify(this->toJsonValue());
     }
 }

@@ -1,6 +1,80 @@
-// 2-TEK Factory: Lighting MVC Core Engine (C-ext)
-// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+import json from "json";
 
+using JsonValue = json_lib::Value;
+
+class JsonDoc {
+    public static obj(): JsonValue* {
+        let v: JsonValue* = new JsonValue();
+        v->type = json_lib::JsonType::Object;
+        return v;
+    }
+
+    public static arr(): JsonValue* {
+        let v: JsonValue* = new JsonValue();
+        v->type = json_lib::JsonType::Array;
+        return v;
+    }
+
+    public static str(s: string): JsonValue* {
+        return new JsonValue(s);
+    }
+
+    public static num(n: int): JsonValue* {
+        return new JsonValue(n);
+    }
+
+    public static numDouble(n: double): JsonValue* {
+        return new JsonValue(n);
+    }
+
+    public static boolean(b: bool): JsonValue* {
+        return new JsonValue(b);
+    }
+
+    public static parse(s: string): JsonValue* {
+        return json.parse(s);
+    }
+
+    public static stringify(v: JsonValue*): string {
+        return json.stringify(v);
+    }
+
+    public static stringifyIndent(v: JsonValue*, indent: int): string {
+        return json.stringify(v, indent);
+    }
+
+    public static setStr(o: JsonValue*, key: string, val: string): void {
+        o->set(key, new JsonValue(val));
+    }
+
+    public static setNum(o: JsonValue*, key: string, val: int): void {
+        o->set(key, new JsonValue(val));
+    }
+
+    public static setDouble(o: JsonValue*, key: string, val: double): void {
+        o->set(key, new JsonValue(val));
+    }
+
+    public static setBool(o: JsonValue*, key: string, val: bool): void {
+        o->set(key, new JsonValue(val));
+    }
+
+    public static setVal(o: JsonValue*, key: string, val: JsonValue*): void {
+        o->set(key, val);
+    }
+
+    public static pushStr(a: JsonValue*, val: string): void {
+        a->push(new JsonValue(val));
+    }
+
+    public static pushNum(a: JsonValue*, val: int): void {
+        a->push(new JsonValue(val));
+    }
+
+    public static pushVal(a: JsonValue*, val: JsonValue*): void {
+        a->push(val);
+    }
+}
 
 class HttpRequest {
     public method: string;
@@ -73,6 +147,10 @@ class HttpResponse {
         return new HttpResponse(200, "OK", cType, body);
     }
 
+    public static json(val: JsonValue*): HttpResponse* {
+        return new HttpResponse(200, "OK", "application/json", JsonDoc::stringify(val));
+    }
+
     public static json(str: string): HttpResponse* {
         return new HttpResponse(200, "OK", "application/json", str);
     }
@@ -82,13 +160,17 @@ class HttpResponse {
     }
 
     public static notFound(msg: string): HttpResponse* {
-        let str: string = "{\"error\":\"" + msg + "\",\"statusCode\":404}";
-        return new HttpResponse(404, "Not Found", "application/json", str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "error", msg);
+        JsonDoc::setNum(doc, "statusCode", 404);
+        return new HttpResponse(404, "Not Found", "application/json", JsonDoc::stringify(doc));
     }
 
     public static badRequest(msg: string): HttpResponse* {
-        let str: string = "{\"error\":\"" + msg + "\",\"statusCode\":400}";
-        return new HttpResponse(400, "Bad Request", "application/json", str);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "error", msg);
+        JsonDoc::setNum(doc, "statusCode", 400);
+        return new HttpResponse(400, "Bad Request", "application/json", JsonDoc::stringify(doc));
     }
 
     public static redirect(url: string): HttpResponse* {
@@ -176,9 +258,14 @@ class BaseModel {
         return res;
     }
 
+    public virtual toJsonValue(): JsonValue* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "id", this.id);
+        return doc;
+    }
+
     public virtual toJson(): string {
-        let str: string = "{\"id\":\"" + this.id + "\"}";
-        return str;
+        return JsonDoc::stringify(this->toJsonValue());
     }
 }
 
@@ -282,8 +369,10 @@ class LightingMiddleware {
         if (req->path.find("/admin") != -1) {
             let authHeader: string = req->getParam("auth");
             if (authHeader !== "admin-token") {
-                let str: string = "{\"error\":\"Unauthorized access\",\"statusCode\":401}";
-                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", str);
+                let doc: JsonValue* = JsonDoc::obj();
+                JsonDoc::setStr(doc, "error", "Unauthorized access");
+                JsonDoc::setNum(doc, "statusCode", 401);
+                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", JsonDoc::stringify(doc));
                 return new MiddlewareResult(false, errResp);
             }
         }
@@ -299,6 +388,10 @@ class BaseController {
 
     public html(body: string): HttpResponse* {
         return HttpResponse::html(body);
+    }
+
+    public json(val: JsonValue*): HttpResponse* {
+        return HttpResponse::json(val);
     }
 
     public json(str: string): HttpResponse* {
