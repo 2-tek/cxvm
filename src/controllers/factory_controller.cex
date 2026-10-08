@@ -31,6 +31,12 @@ class FactoryController : public BaseController {
         return this->html(pageHtml);
     }
 
+    public setupHtml(req: HttpRequest*, port: int, cxvm: CxvmEngine*): HttpResponse* {
+        let doctorOut: string = cxvm->doctor();
+        let pageHtml: string = FactoryViews::renderSetupWindow(port, cxvm->current(), cxvm->defaultVersion, doctorOut);
+        return this->html(pageHtml);
+    }
+
     public apiStatus(req: HttpRequest*, port: int, builder: DistBuilder*, cxvm: CxvmEngine*): HttpResponse* {
         let str: string = "{";
         str += "\"status\":\"ACTIVE\",";
@@ -193,5 +199,62 @@ class FactoryController : public BaseController {
             cType = "application/json";
         }
         return HttpResponse::ok(content, cType);
+    }
+
+    public serveSetupSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/setup.sh";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/x-shellscript");
+        }
+        if (fs.exists("scripts/setup.sh")) {
+            let content: string = fs.readFile("scripts/setup.sh");
+            return HttpResponse::ok(content, "text/x-shellscript");
+        }
+        return HttpResponse::notFound("setup.sh not found");
+    }
+
+    public serveSetupPs1(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/setup.ps1";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/plain");
+        }
+        if (fs.exists("scripts/setup.ps1")) {
+            let content: string = fs.readFile("scripts/setup.ps1");
+            return HttpResponse::ok(content, "text/plain");
+        }
+        return HttpResponse::notFound("setup.ps1 not found");
+    }
+
+    public apiSetupGet(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let str: string = "{";
+        str += "\"status\":\"ACTIVE\",";
+        str += "\"cxvmHome\":\"" + cxvm->cxvmHome + "\",";
+        str += "\"currentActive\":\"" + cxvm->current() + "\",";
+        str += "\"defaultVersion\":\"v" + cxvm->defaultVersion + "\",";
+        str += "\"installedVersions\":[";
+        let count: int = (int)cxvm->installedVersions->length();
+        for (let i: int = 0; i < count; i++) {
+            if (i > 0) str += ",";
+            str += "\"v" + cxvm->installedVersions->get(i) + "\"";
+        }
+        str += "],";
+        str += "\"dispatchers\":{\"cexr\":\"./bin/cexr (v8 default, v6 supported)\",\"cex\":\"./bin/cex\"},";
+        str += "\"toolchain\":\"Pure Cex Native Engine (zero C++ dependency; powered by cexr + cexp)\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiSetupPost(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->setup("8.0.0");
+        let statStr: string = res->success ? "SUCCESS" : "ERROR";
+        let str: string = "{";
+        str += "\"status\":\"" + statStr + "\",";
+        str += "\"message\":\"" + res->message + "\",";
+        str += "\"activeVersion\":\"" + cxvm->current() + "\",";
+        str += "\"defaultVersion\":\"v" + cxvm->defaultVersion + "\"";
+        str += "}";
+        return this->json(str);
     }
 }

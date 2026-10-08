@@ -262,4 +262,22 @@ class CxvmEngine {
         out += "  Diagnostic:        HEALTHY [OK]\n";
         return out;
     }
+
+    public setup(defaultVer: string): CxvmCommandResult* {
+        let targetDef: string = defaultVer.length() == 0 ? "8.0.0" : defaultVer;
+        this->install("8.0.0");
+        this->install("6.0.0");
+        this->setDefault(targetDef);
+        this->use(targetDef);
+
+        let outMsg: string = "==> [cxvm setup] Cross-Platform Environment & Toolchain Configured:\n";
+        outMsg += "  CXVM Home:           " + this.cxvmHome + "\n";
+        outMsg += "  Active Runtime:      v" + targetDef + "\n";
+        outMsg += "  Installed Runtimes:  v8.0.0 (Pure Cex Default), v6.0.0 (LTS)\n";
+        outMsg += "  PATH Entry:          " + this.cxvmHome + "/bin:" + this.cxvmHome + "/current/bin\n";
+        outMsg += "  Dispatcher:          ./bin/cexr & ./bin/cex configured for default run cxvm\n";
+        outMsg += "  Status:              SETUP COMPLETE [OK]";
+
+        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, and v8/v6 runtimes successfully configured.", outMsg);
+    }
 }

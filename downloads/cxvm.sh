@@ -329,6 +329,33 @@ RUNNER_EOF
       echo "==> [cxvm] Uninstalled Cex v${ver}"
       ;;
 
+    setup)
+      local setup_script=""
+      if [ -f "$CXVM_DIR/bin/setup.sh" ]; then
+        setup_script="$CXVM_DIR/bin/setup.sh"
+      elif [ -f "scripts/setup.sh" ]; then
+        setup_script="scripts/setup.sh"
+      elif [ -f "downloads/setup.sh" ]; then
+        setup_script="downloads/setup.sh"
+      fi
+
+      if [ -n "$setup_script" ]; then
+        bash "$setup_script" "$@"
+        return $?
+      fi
+
+      echo "==============================================================="
+      echo "   ⚙️  CXVM Cross-Platform Setup Window                        "
+      echo "==============================================================="
+      echo "==> Configuring Environment & PATH for cxvm..."
+      mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
+      cxvm install 8.0.0
+      cxvm install 6.0.0
+      cxvm default 8.0.0
+      cxvm use 8.0.0
+      echo "==> Setup complete! Active default: v8.0.0 (v6.0.0 ready)"
+      ;;
+
     doctor)
       echo "==============================================================="
       echo "   Cex Version Manager (cxvm v2) System Diagnostic Doctor      "
@@ -350,6 +377,7 @@ RUNNER_EOF
       echo "Usage: cxvm <command> [options]"
       echo ""
       echo "Commands:"
+      echo "  setup                 Display setup window & configure PATH, env, and default runtimes"
       echo "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
       echo "  download <ver> [plat] Download cross-platform bundles into cache to install cexr (or 'all')"
       echo "  use <ver>             Switch to specified Cex runtime version and set up cexr"

@@ -175,6 +175,25 @@ echo CexR Windows Runner ready.
             Write-Host "==> [cxvm] Uninstalled Cex v$Version" -ForegroundColor Green
         }
     }
+    "setup" {
+        $setupScript = Join-Path $cxvmHome "bin\setup.ps1"
+        if (-not (Test-Path $setupScript)) {
+            $setupScript = Join-Path $PSScriptRoot "setup.ps1"
+        }
+        if (Test-Path $setupScript) {
+            & $setupScript
+        } else {
+            Write-Host "===============================================================" -ForegroundColor Cyan
+            Write-Host "   ⚙️  CXVM Cross-Platform Setup Window (Windows PowerShell)     " -ForegroundColor Cyan
+            Write-Host "===============================================================" -ForegroundColor Cyan
+            Write-Host "==> Configuring Environment & PATH for cxvm..."
+            & $PSCommandPath -Command "install" -Version "8.0.0"
+            & $PSCommandPath -Command "install" -Version "6.0.0"
+            & $PSCommandPath -Command "default" -Version "8.0.0"
+            & $PSCommandPath -Command "use" -Version "8.0.0"
+            Write-Host "==> Setup complete! Active default: v8.0.0 (v6.0.0 ready)" -ForegroundColor Green
+        }
+    }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan
         Write-Host "   Cex Version Manager (cxvm v2) System Diagnostic Doctor (Windows)" -ForegroundColor Cyan
@@ -192,6 +211,6 @@ echo CexR Windows Runner ready.
     default {
         Write-Host "Cex Version Manager (cxvm) for Windows PowerShell"
         Write-Host "Usage: cxvm <command> [version] [platform]"
-        Write-Host "Commands: install, download, use, current, list, list-remote, default, uninstall, doctor, help"
+        Write-Host "Commands: setup, install, download, use, current, list, list-remote, default, uninstall, doctor, help"
     }
 }

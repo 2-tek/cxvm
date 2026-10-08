@@ -118,9 +118,13 @@ fn main(): int {
     Assert::isTrue(docOut.find("Cross-Platform") != -1, "cxvm doctor reports cross-platform support");
     Assert::isTrue(docOut.find("Supported Targets: 6 architectures") != -1, "cxvm doctor reports 6 supported targets");
 
+    let setupCmdRes: CxvmCommandResult* = cxvm->setup("8.0.0");
+    Assert::isTrue(setupCmdRes->success, "cxvm setup succeeds");
+    Assert::equalsString("v8.0.0", cxvm->current(), "Active version after setup is v8.0.0");
+
     let uninstRes: CxvmCommandResult* = cxvm->uninstall("2.0.0");
     Assert::isTrue(uninstRes->success, "cxvm uninstall 2.0.0 succeeds");
-    Assert::equalsInt(1, (int)cxvm->installedVersions->length(), "cxvm has 1 version remaining after uninstall");
+    Assert::equalsInt(2, (int)cxvm->installedVersions->length(), "cxvm has 2 versions remaining after setup & uninstall");
     Assert::equalsString("v8.0.0", cxvm->current(), "cxvm active version falls back to remaining version");
     suite->addResult("test_cxvm_version_manager", true, "", 1);
 
@@ -146,6 +150,10 @@ fn main(): int {
     Assert::equalsInt(200, resDocs->statusCode, "GET /cxvm returns 200 OK");
     Assert::isTrue(resDocs->body.find("Command Reference") != -1, "cxvm docs contains command table");
 
+    let resSetup: HttpResponse* = app->simulateRequest("GET", "/setup", "", "text/html");
+    Assert::equalsInt(200, resSetup->statusCode, "GET /setup returns 200 OK");
+    Assert::isTrue(resSetup->body.find("CXVM Cross-Platform System Setup Window") != -1, "Setup window view contains title");
+
     let resSh: HttpResponse* = app->simulateRequest("GET", "/install.sh", "", "text/x-shellscript");
     Assert::equalsInt(200, resSh->statusCode, "GET /install.sh returns 200 OK");
     Assert::isTrue(resSh->body.find("CXVM_DIR") != -1, "install.sh contains CXVM_DIR variable");
@@ -161,6 +169,10 @@ fn main(): int {
     let resPlat: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
     Assert::equalsInt(200, resPlat->statusCode, "GET /api/v1/platforms returns 200 OK");
     Assert::isTrue(resPlat->body.find("linux-x86_64") != -1, "Platforms list includes linux-x86_64");
+
+    let resSetupApi: HttpResponse* = app->simulateRequest("GET", "/api/v1/setup", "", "application/json");
+    Assert::equalsInt(200, resSetupApi->statusCode, "GET /api/v1/setup returns 200 OK");
+    Assert::isTrue(resSetupApi->body.find("dispatchers") != -1, "Setup API includes dispatchers info");
 
     let resBuild: HttpResponse* = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
     Assert::equalsInt(200, resBuild->statusCode, "POST /api/v1/build returns 200 OK");

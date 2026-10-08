@@ -366,6 +366,33 @@ RUNNER_EOF
       echo "==> [cxvm] Uninstalled Cex v${ver}"
       ;;
 
+    setup)
+      local setup_script=""
+      if [ -f "$CXVM_DIR/bin/setup.sh" ]; then
+        setup_script="$CXVM_DIR/bin/setup.sh"
+      elif [ -f "scripts/setup.sh" ]; then
+        setup_script="scripts/setup.sh"
+      elif [ -f "downloads/setup.sh" ]; then
+        setup_script="downloads/setup.sh"
+      fi
+
+      if [ -n "$setup_script" ]; then
+        bash "$setup_script" "$@"
+        return $?
+      fi
+
+      echo "==============================================================="
+      echo "   ⚙️  CXVM Cross-Platform Setup Window                        "
+      echo "==============================================================="
+      echo "==> Configuring Environment & PATH for cxvm..."
+      mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
+      cxvm install 8.0.0
+      cxvm install 6.0.0
+      cxvm default 8.0.0
+      cxvm use 8.0.0
+      echo "==> Setup complete! Active default: v8.0.0 (v6.0.0 ready)"
+      ;;
+
     doctor)
       echo "==============================================================="
       echo "   Cex Version Manager (cxvm v2) System Diagnostic Doctor      "
@@ -387,6 +414,7 @@ RUNNER_EOF
       echo "Usage: cxvm <command> [options]"
       echo ""
       echo "Commands:"
+      echo "  setup                 Display setup window & configure PATH, env, and default runtimes"
       echo "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
       echo "  download <ver> [plat] Download cross-platform bundles into cache to install cexr (or 'all')"
       echo "  use <ver>             Switch to specified Cex runtime version and set up cexr"
@@ -587,6 +615,25 @@ echo CexR Windows Runner ready.
             Write-Host "==> [cxvm] Uninstalled Cex v$Version" -ForegroundColor Green
         }
     }
+    "setup" {
+        $setupScript = Join-Path $cxvmHome "bin\setup.ps1"
+        if (-not (Test-Path $setupScript)) {
+            $setupScript = Join-Path $PSScriptRoot "setup.ps1"
+        }
+        if (Test-Path $setupScript) {
+            & $setupScript
+        } else {
+            Write-Host "===============================================================" -ForegroundColor Cyan
+            Write-Host "   ⚙️  CXVM Cross-Platform Setup Window (Windows PowerShell)     " -ForegroundColor Cyan
+            Write-Host "===============================================================" -ForegroundColor Cyan
+            Write-Host "==> Configuring Environment & PATH for cxvm..."
+            & $PSCommandPath -Command "install" -Version "8.0.0"
+            & $PSCommandPath -Command "install" -Version "6.0.0"
+            & $PSCommandPath -Command "default" -Version "8.0.0"
+            & $PSCommandPath -Command "use" -Version "8.0.0"
+            Write-Host "==> Setup complete! Active default: v8.0.0 (v6.0.0 ready)" -ForegroundColor Green
+        }
+    }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan
         Write-Host "   Cex Version Manager (cxvm v2) System Diagnostic Doctor (Windows)" -ForegroundColor Cyan
@@ -604,7 +651,7 @@ echo CexR Windows Runner ready.
     default {
         Write-Host "Cex Version Manager (cxvm) for Windows PowerShell"
         Write-Host "Usage: cxvm <command> [version] [platform]"
-        Write-Host "Commands: install, download, use, current, list, list-remote, default, uninstall, doctor, help"
+        Write-Host "Commands: setup, install, download, use, current, list, list-remote, default, uninstall, doctor, help"
     }
 }
 EOF
@@ -734,6 +781,15 @@ Write-Host "  `$env:CXVM_DIR = `"$cxvmDir`"" -ForegroundColor Yellow
 Write-Host "  `$env:PATH = `"`$env:CXVM_DIR\bin;`$env:CXVM_DIR\current\bin;`$env:PATH`"" -ForegroundColor Yellow
 Write-Host "Run 'cxvm --help' or 'cexr --version' to get started." -ForegroundColor Green
 EOF
+
+# Copy setup scripts to downloads store
+if [ -f "$SCRIPT_DIR/setup.sh" ]; then
+  cp -f "$SCRIPT_DIR/setup.sh" "$DOWNLOADS_DIR/setup.sh"
+  chmod +x "$DOWNLOADS_DIR/setup.sh"
+fi
+if [ -f "$SCRIPT_DIR/setup.ps1" ]; then
+  cp -f "$SCRIPT_DIR/setup.ps1" "$DOWNLOADS_DIR/setup.ps1"
+fi
 
 # 6. Build distribution bundles for each version and platform
 for ver in "${VERSIONS[@]}"; do

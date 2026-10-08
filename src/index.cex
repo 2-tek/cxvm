@@ -84,6 +84,10 @@ fn main(): int {
     print("  GET /cxvm -> Status: "); print(cxvmDocsResp->statusCode);
     print(" | Size: "); print((int)cxvmDocsResp->body.length()); println(" bytes");
 
+    let setupResp: HttpResponse* = app->simulateRequest("GET", "/setup", "", "text/html");
+    print("  GET /setup -> Status: "); print(setupResp->statusCode);
+    print(" | Size: "); print((int)setupResp->body.length()); println(" bytes");
+
     let shResp: HttpResponse* = app->simulateRequest("GET", "/install.sh", "", "text/x-shellscript");
     print("  GET /install.sh -> Status: "); print(shResp->statusCode);
     print(" | Content-Type: "); println(shResp->contentType);
@@ -96,6 +100,9 @@ fn main(): int {
 
     let platResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
     print("  GET /api/v1/platforms -> "); println(platResp->body);
+
+    let setupApiResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/setup", "", "application/json");
+    print("  GET /api/v1/setup -> "); println(setupApiResp->body);
 
     let buildResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
     print("  POST /api/v1/build -> "); println(buildResp->body);

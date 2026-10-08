@@ -66,10 +66,58 @@ powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 
 ---
 
+## 3. Cross-Platform Setup Window & `./bin` Toolchain Configuration
+
+### Terminal Setup Window (Cross-Platform CLI):
+Run the setup window to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), and project dispatchers (`./bin/cexr` and `./bin/cex`):
+
+```bash
+# Linux / macOS (POSIX)
+curl -fsSL https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/setup.sh | bash
+# Or run locally:
+bash scripts/setup.sh
+# Or via cxvm CLI:
+cxvm setup
+```
+
+```powershell
+# Windows PowerShell
+irm https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/setup.ps1 | iex
+# Or run locally:
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
+# Or via CMD batch launcher:
+.\downloads\setup.cmd
+```
+
+### Web Setup Window (Lighting MVC):
+When running the Factory application (`cexr run src/index.cex` on port 3080):
+- Open **`http://localhost:3080/setup`** in your browser to view the interactive Setup Window.
+- Monitor environment variables, PATH persistence, default version status, and live `cxvm doctor` diagnostics.
+
+### Running cxvm with Default `./bin/cexr` and `./bin/cex`:
+The project `./bin/` dispatchers are preconfigured to run cxvm using **v8.0.0** by default, with instant support for **v6.0.0**:
+
+```bash
+# Run using default v8 runtime:
+./bin/cexr run src/index.cex
+./bin/cex run src/index.cex
+
+# Run using v6 runtime:
+./bin/cexr v6 run src/index.cex
+./bin/cex v6 run src/index.cex
+
+# Switch active version across sessions:
+cxvm use 8.0.0
+cxvm use 6.0.0
+```
+
+---
+
 ## 4. Cex Version Manager (`cxvm`) CLI (like `nvm`)
 
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
+| `cxvm setup` | — | Displays cross-platform setup window, configures PATH & env, and links `./bin/cexr` & `./bin/cex` (v8 & v6) |
 | `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr` runner |
 | `cxvm download 8.0.0 [plat]` | — | Downloads cross-platform bundle into cache for offline `cexr` setup |
 | `cxvm download 8.0.0 all` | — | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr` |

@@ -44,10 +44,13 @@ class FactoryApp {
         this.router->get("/", "factory.index");
         this.router->get("/downloads", "factory.downloads");
         this.router->get("/cxvm", "factory.cxvmDocs");
+        this.router->get("/setup", "factory.setup");
 
         // Shell & PowerShell Installers & Cross-Platform Downloads
         this.router->get("/install.sh", "factory.installSh");
         this.router->get("/install.ps1", "factory.installPs1");
+        this.router->get("/setup.sh", "factory.setupSh");
+        this.router->get("/setup.ps1", "factory.setupPs1");
         this.router->get("/cxvm.sh", "factory.cxvmScript");
         this.router->get("/cxvm.ps1", "factory.cxvmPs1");
         this.router->get("/cxvm.cmd", "factory.cxvmCmd");
@@ -59,6 +62,8 @@ class FactoryApp {
         this.router->get("/api/v1/platforms", "factory.platforms");
         this.router->get("/api/v1/downloads", "factory.downloadsApi");
         this.router->get("/api/v1/manifest", "factory.manifest");
+        this.router->get("/api/v1/setup", "factory.apiSetupGet");
+        this.router->post("/api/v1/setup", "factory.apiSetupPost");
         this.router->post("/api/v1/build", "factory.build");
     }
 
@@ -99,12 +104,24 @@ class FactoryApp {
             return this.controller->cxvmDocs(req, this.port);
         }
 
+        if (route->handlerId === "factory.setup") {
+            return this.controller->setupHtml(req, this.port, this.cxvm);
+        }
+
         if (route->handlerId === "factory.installSh") {
             return this.controller->serveInstallSh(req, this.port, this.downloadsDir);
         }
 
         if (route->handlerId === "factory.installPs1") {
             return this.controller->serveInstallPs1(req, this.port, this.downloadsDir);
+        }
+
+        if (route->handlerId === "factory.setupSh") {
+            return this.controller->serveSetupSh(req, this.port, this.downloadsDir);
+        }
+
+        if (route->handlerId === "factory.setupPs1") {
+            return this.controller->serveSetupPs1(req, this.port, this.downloadsDir);
         }
 
         if (route->handlerId === "factory.cxvmScript") {
@@ -141,6 +158,14 @@ class FactoryApp {
 
         if (route->handlerId === "factory.manifest") {
             return this.controller->apiManifest(req, this.builder);
+        }
+
+        if (route->handlerId === "factory.apiSetupGet") {
+            return this.controller->apiSetupGet(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiSetupPost") {
+            return this.controller->apiSetupPost(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.build") {
