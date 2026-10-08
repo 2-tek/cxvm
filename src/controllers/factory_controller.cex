@@ -288,4 +288,39 @@ class FactoryController : public BaseController {
         str += "}";
         return this->json(str);
     }
+
+    public apiCvmServerStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->startCvm(4000, true);
+        let str: string = "{";
+        str += "\"status\":\"SUCCESS\",";
+        str += "\"service\":\"cvm-server\",";
+        str += "\"mode\":\"standalone (single process)\",";
+        str += "\"port\":" + std::to_string(cxvm->cvmServerPort) + ",";
+        str += "\"pid\":" + std::to_string(cxvm->cvmServerPid) + ",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiCvmServerStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->statusCvm();
+        let str: string = "{";
+        str += cxvm->cvmServerRunning ? "\"status\":\"RUNNING\"," : "\"status\":\"STOPPED\",";
+        str += cxvm->cvmServerRunning ? "\"isRunning\":true," : "\"isRunning\":false,";
+        str += "\"port\":" + std::to_string(cxvm->cvmServerPort) + ",";
+        str += "\"pid\":" + std::to_string(cxvm->cvmServerPid) + ",";
+        str += "\"mode\":\"standalone (single process)\",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
+
+    public apiCvmServerStop(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->stopCvm();
+        let str: string = "{";
+        str += "\"status\":\"STOPPED\",";
+        str += "\"message\":\"" + res->message + "\"";
+        str += "}";
+        return this->json(str);
+    }
 }

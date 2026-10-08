@@ -68,6 +68,9 @@ class FactoryApp {
         this.router->get("/api/v1/cvm/status", "factory.apiCvmStatus");
         this.router->post("/api/v1/cvm/commit", "factory.apiCvmCommit");
         this.router->post("/api/v1/cvm/push", "factory.apiCvmPush");
+        this.router->post("/api/v1/cvm/server/start", "factory.apiCvmServerStart");
+        this.router->get("/api/v1/cvm/server/status", "factory.apiCvmServerStatus");
+        this.router->post("/api/v1/cvm/server/stop", "factory.apiCvmServerStop");
     }
 
     public start(): void {
@@ -185,6 +188,18 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiCvmPush") {
             return this.controller->apiCvmPush(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiCvmServerStart") {
+            return this.controller->apiCvmServerStart(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiCvmServerStatus") {
+            return this.controller->apiCvmServerStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiCvmServerStop") {
+            return this.controller->apiCvmServerStop(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

@@ -48,14 +48,17 @@ mkdir -p "$CXVM_DIR/bin"
 mkdir -p "$CXVM_DIR/versions"
 mkdir -p "$CXVM_DIR/cache"
 
-# Install/copy cxvm CLI dispatcher
+# Install/copy cxvm CLI dispatcher and standalone CVM server
 if [ -f "$PROJECT_ROOT/downloads/cxvm" ]; then
   cp -f "$PROJECT_ROOT/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp -f "$PROJECT_ROOT/downloads/cxvm.sh" "$CXVM_DIR/bin/cxvm.sh" 2>/dev/null || true
 elif [ -f "$PROJECT_ROOT/downloads/cxvm.sh" ]; then
   cp -f "$PROJECT_ROOT/downloads/cxvm.sh" "$CXVM_DIR/bin/cxvm"
 fi
-chmod +x "$CXVM_DIR/bin/cxvm"* 2>/dev/null || true
+if [ -f "$PROJECT_ROOT/downloads/cvm-server" ]; then
+  cp -f "$PROJECT_ROOT/downloads/cvm-server" "$CXVM_DIR/bin/cvm-server"
+fi
+chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* 2>/dev/null || true
 echo -e "  ${GREEN}✓${RESET} CXVM core hierarchy established in ${BLUE}$CXVM_DIR${RESET}"
 
 # ------------------------------------------------------------------------------
@@ -118,6 +121,13 @@ elif [ -f "$HOME/.local/bin/cvm" ]; then
   ln -sf "$HOME/.local/bin/cvm" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
 fi
 echo -e "  ${GREEN}✓${RESET} Integrated CVM (commit, push, status) configured in ${GREEN}$CXVM_DIR/bin${RESET}"
+
+# Verify / Auto-start CVM standalone server
+if ! cxvm status cvm >/dev/null 2>&1; then
+  cxvm start cvm -p 4000 --daemon >/dev/null 2>&1 || true
+fi
+LOCAL_CVM_PID="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
+echo -e "  ${GREEN}✓${RESET} CVM Standalone Server auto-started (single process, PID: ${LOCAL_CVM_PID}, port: 4000)"
 
 # ------------------------------------------------------------------------------
 # Step 4: Setup Project ./bin/cexr and ./bin/cex Dispatchers
@@ -385,6 +395,7 @@ echo -e "${CYAN}║${RESET}                     ${BOLD}SETUP COMPLETE — SYSTEM
 echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝${RESET}"
 
 "$TARGET_BIN_DIR/cex" doctor
+"$CXVM_DIR/bin/cxvm" doctor
 
 echo -e "\n${BOLD}Installed Runtimes in cxvm:${RESET}"
 "$CXVM_DIR/bin/cxvm" list

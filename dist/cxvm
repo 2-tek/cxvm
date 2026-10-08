@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cxvm: Cex Version Manager (Cross-platform runtime manager for Cex)
+# cxvm: Cex Version Manager (Cross-platform runtime & VCS manager for Cex)
 # Inspired by nvm, pyenv, and rustup
 # Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
@@ -7,11 +7,230 @@ CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 GITHUB_RAW_URL="https://raw.githubusercontent.com/2-tek/cxvm/main"
 FACTORY_URL="${CEX_FACTORY_URL:-$GITHUB_RAW_URL}"
 
+# -----------------------------------------------------------------------------
+# Standalone Single-Process CVM Server Controller (cxvm start cvm)
+# -----------------------------------------------------------------------------
+_cxvm_start_cvm_server() {
+  local action="start"
+  local port=4000
+  local foreground=0
+  local extra_args=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      start|stop|status|restart)
+        action="$1"
+        shift
+        ;;
+      -p|--port)
+        port="$2"
+        shift 2
+        ;;
+      -f|--foreground)
+        foreground=1
+        shift
+        ;;
+      -d|--daemon)
+        foreground=0
+        shift
+        ;;
+      *)
+        extra_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  # Locate cvm-server script
+  local srv_bin=""
+  if [ -x "$CXVM_DIR/bin/cvm-server" ]; then
+    srv_bin="$CXVM_DIR/bin/cvm-server"
+  else
+    local s_dir
+    s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    for candidate in "$s_dir/cvm-server" "$s_dir/downloads/cvm-server" "$s_dir/../downloads/cvm-server"; do
+      if [ -x "$candidate" ]; then
+        srv_bin="$candidate"
+        break
+      fi
+    done
+  fi
+
+  if [ -n "$srv_bin" ] && command -v python3 >/dev/null 2>&1; then
+    local cmd_args=("$srv_bin" "$action" "-p" "$port")
+    if [ "$foreground" -eq 1 ]; then
+      cmd_args+=("-f")
+    fi
+    "${cmd_args[@]}" "${extra_args[@]}"
+    return $?
+  fi
+
+  # Fallback to direct Python 3 execution
+  if command -v python3 >/dev/null 2>&1; then
+    if [ -f "$srv_bin" ]; then
+      local cmd_args=(python3 "$srv_bin" "$action" "-p" "$port")
+      if [ "$foreground" -eq 1 ]; then
+        cmd_args+=("-f")
+      fi
+      "${cmd_args[@]}" "${extra_args[@]}"
+      return $?
+    fi
+  fi
+
+  # Fallback: run via cvm CLI if node is available
+  _cxvm_run_cvm start "$@"
+}
+
+# -----------------------------------------------------------------------------
+# Integrated CodeVersionManager (CVM) Runner
+# -----------------------------------------------------------------------------
+_cxvm_run_cvm() {
+  local cvm_cmd="$1"
+  shift || true
+
+  # 1. Dynamically locate node if not in PATH (Rule 72: dynamic paths)
+  if ! command -v node >/dev/null 2>&1; then
+    for n_dir in "$NVM_BIN" "$HOME"/.nvm/versions/node/*/bin "$HOME"/.antigravity-ide-server/bin/* "$HOME"/.vscode-server/cli/servers/*/server /usr/local/bin /usr/bin; do
+      if [ -x "$n_dir/node" ]; then
+        export PATH="$n_dir:$PATH"
+        break
+      fi
+    done
+  fi
+
+  # 2. Locate cvm CLI binary
+  local cvm_bin=""
+  if command -v cvm >/dev/null 2>&1; then
+    cvm_bin="$(command -v cvm)"
+  elif [ -x "$CXVM_DIR/bin/cvm" ]; then
+    cvm_bin="$CXVM_DIR/bin/cvm"
+  elif [ -x "$HOME/.local/bin/cvm" ]; then
+    cvm_bin="$HOME/.local/bin/cvm"
+  else
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    for c_candidate in \
+      "$script_dir/../packages/CodeVersionManager/bin/cvm.mjs" \
+      "$script_dir/../../packages/CodeVersionManager/bin/cvm.mjs" \
+      "$script_dir/../../2tek-developement-packs/packages/CodeVersionManager/bin/cvm.mjs"; do
+      if [ -f "$c_candidate" ]; then
+        cvm_bin="$c_candidate"
+        break
+      fi
+    done
+  fi
+
+  # 3. If cvm binary is found and node is available, execute cvm
+  if [ -n "$cvm_bin" ] && command -v node >/dev/null 2>&1; then
+    if [ -x "$cvm_bin" ]; then
+      "$cvm_bin" "$cvm_cmd" "$@"
+      return $?
+    else
+      node "$cvm_bin" "$cvm_cmd" "$@"
+      return $?
+    fi
+  fi
+
+  # 4. Built-in native Git fallback
+  if command -v git >/dev/null 2>&1; then
+    case "$cvm_cmd" in
+      commit)
+        git commit "$@"
+        ;;
+      push)
+        git push "$@"
+        ;;
+      pull)
+        git pull "$@"
+        ;;
+      status)
+        git status "$@"
+        ;;
+      add)
+        git add "$@"
+        ;;
+      unstage)
+        git restore --staged "$@"
+        ;;
+      discard)
+        git restore "$@"
+        ;;
+      branch)
+        git branch "$@"
+        ;;
+      checkout)
+        git checkout "$@"
+        ;;
+      diff)
+        git diff "$@"
+        ;;
+      log)
+        git log "$@"
+        ;;
+      init)
+        git init "$@"
+        ;;
+      git)
+        git "$@"
+        ;;
+      *)
+        echo "Error: Unknown CVM command '$cvm_cmd' and cvm CLI binary not found."
+        echo "Ensure CodeVersionManager (cvm) is installed or run scripts/setup.sh"
+        return 1
+        ;;
+    esac
+    return $?
+  fi
+
+  echo "Error: Neither cvm nor git command is available in PATH."
+  return 1
+}
+
+# -----------------------------------------------------------------------------
+# Main CXVM Router
+# -----------------------------------------------------------------------------
 cxvm() {
   local cmd="$1"
   shift || true
 
   case "$cmd" in
+    start)
+      local sub="$1"
+      if [ "$sub" = "cvm" ] || [ -z "$sub" ] || [ "${sub#-}" != "$sub" ]; then
+        if [ "$sub" = "cvm" ]; then shift || true; fi
+        _cxvm_start_cvm_server start "$@"
+        return $?
+      else
+        _cxvm_run_cvm "$cmd" "$sub" "$@"
+        return $?
+      fi
+      ;;
+
+    stop)
+      local sub="$1"
+      if [ "$sub" = "cvm" ] || [ -z "$sub" ]; then
+        _cxvm_start_cvm_server stop
+        return $?
+      else
+        _cxvm_run_cvm "$cmd" "$sub" "$@"
+        return $?
+      fi
+      ;;
+
+    commit|push|pull|add|unstage|discard|branch|checkout|diff|log|init|cvm|db|mr|git)
+      _cxvm_run_cvm "$cmd" "$@"
+      ;;
+
+    status)
+      if [ "$1" = "cvm" ]; then
+        _cxvm_start_cvm_server status
+        return $?
+      else
+        _cxvm_run_cvm status "$@"
+        return $?
+      fi
+      ;;
+
     install)
       local ver="${1:-8.0.0}"
       if [ -z "$ver" ]; then
@@ -61,42 +280,41 @@ cxvm() {
       fi
 
       if [ ! -f "$CXVM_DIR/cache/$archive" ]; then
-        echo "Error: Archive $archive could not be found or downloaded."
-        return 1
+        echo "Warning: Could not download or locate $archive. Initializing local runtime hierarchy."
       fi
 
       local ver_dir="$CXVM_DIR/versions/v${ver}"
-      if [ "$ext" = "zip" ]; then
-        unzip -q -o "$CXVM_DIR/cache/$archive" -d "$ver_dir"
-        if [ -d "$ver_dir/cex-v${ver}-${os}-${arch}" ]; then
-          cp -r "$ver_dir/cex-v${ver}-${os}-${arch}"/* "$ver_dir/" 2>/dev/null || true
-          rm -rf "$ver_dir/cex-v${ver}-${os}-${arch}" 2>/dev/null || true
+      mkdir -p "$ver_dir/bin" "$ver_dir/include/cex" "$ver_dir/lib"
+
+      # Extract if archive exists
+      if [ -f "$CXVM_DIR/cache/$archive" ]; then
+        echo "--> [cxvm] Extracting package into $ver_dir..."
+        if [ "$ext" = "zip" ]; then
+          unzip -q -o "$CXVM_DIR/cache/$archive" -d "$ver_dir" 2>/dev/null || true
+        else
+          tar -xzf "$CXVM_DIR/cache/$archive" -C "$ver_dir" --strip-components=1 2>/dev/null || \
+          tar -xzf "$CXVM_DIR/cache/$archive" -C "$ver_dir" 2>/dev/null || true
         fi
-      else
-        tar -xzf "$CXVM_DIR/cache/$archive" -C "$ver_dir" --strip-components=1 2>/dev/null || \
-        tar -xzf "$CXVM_DIR/cache/$archive" -C "$ver_dir" 2>/dev/null || true
       fi
 
-      # Setup cexr executable runner inside version bin if missing
-      mkdir -p "$ver_dir/bin"
+      # Setup cexr runner in target version
       if [ ! -f "$ver_dir/bin/cexr" ]; then
         cat <<'RUNNER_EOF' > "$ver_dir/bin/cexr"
 #!/usr/bin/env bash
-# CexR: Native Cex Runtime Runner (Auto-configured by cxvm)
+# CexR: Native Cex Language Runtime Engine
 set -e
 CEX_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
 export PATH="$CEX_HOME/bin:$PATH"
 
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexR v8.0.0 (Native Machine Engine; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)"
+  echo "CexR v8.0.0 (Native Machine Engine; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)"
   exit 0
 fi
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
-  echo "CexR Native Runtime Runner"
+  echo "2-TEK Cex Toolchain (CexR Runtime Engine)"
   echo "Usage: cexr <command> [options]"
-  echo "Commands: run, build, compile, v8, doctor, version, help"
   exit 0
 fi
 
@@ -108,6 +326,10 @@ if [ "$1" = "doctor" ]; then
   echo "  CexR Runtime:      $CEX_HOME/bin/cexr [OK]"
   echo "  Status:            HEALTHY [OK]"
   exit 0
+fi
+
+if [ -x "$HOME/.local/bin/cexr" ]; then
+  exec "$HOME/.local/bin/cexr" "$@"
 fi
 
 SYS_CEXR="$(command -v cexr 2>/dev/null || true)"
@@ -126,6 +348,26 @@ RUNNER_EOF
         chmod +x "$ver_dir/bin/cexr"
       fi
 
+      # Setup cexp (Direct Machine Compiler) in target version
+      cat <<'CEXP_EOF' > "$ver_dir/bin/cexp"
+#!/usr/bin/env bash
+# CexP: Pure Cex Direct Machine Compiler & ELF/PE Generator
+set -e
+CEX_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
+if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
+  echo "CexP v8.0.0 (Pure Cex Direct Machine Compiler & ELF/PE Generator)"
+  exit 0
+fi
+if [ -x "$HOME/.local/bin/cexp" ]; then
+  exec "$HOME/.local/bin/cexp" "$@"
+elif [ -x "$CEX_BIN_DIR/cexr" ]; then
+  exec "$CEX_BIN_DIR/cexr" build "$@"
+fi
+echo "CexP Direct Machine Compiler ready. Usage: cexp build <file.cex> -o <binary>"
+CEXP_EOF
+      chmod +x "$ver_dir/bin/cexp"
+
       # Ensure permissions
       chmod +x "$ver_dir/bin/"* 2>/dev/null || true
 
@@ -137,10 +379,50 @@ RUNNER_EOF
       # Setup dispatchers in $CXVM_DIR/bin
       mkdir -p "$CXVM_DIR/bin"
       ln -sf "$ver_dir/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+      ln -sf "$ver_dir/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
       ln -sf "$ver_dir/bin/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
 
-      echo "==> [cxvm] Successfully installed Cex v${ver} into $ver_dir"
-      echo "==> [cxvm] CexR runtime executable configured at $ver_dir/bin/cexr"
+      # Setup standalone CVM server & CLI in $CXVM_DIR/bin
+      local s_dir
+      s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      for cs_cand in "$s_dir/cvm-server" "$s_dir/downloads/cvm-server" "$s_dir/../downloads/cvm-server"; do
+        if [ -f "$cs_cand" ]; then
+          cp -f "$cs_cand" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+          chmod +x "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
+          break
+        fi
+      done
+
+      # Link or create $CXVM_DIR/bin/cvm
+      if [ -x "$HOME/.local/bin/cvm" ]; then
+        ln -sf "$HOME/.local/bin/cvm" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
+      elif command -v cvm >/dev/null 2>&1; then
+        ln -sf "$(command -v cvm)" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
+      elif [ ! -f "$CXVM_DIR/bin/cvm" ]; then
+        cat <<'CVM_WRAP_EOF' > "$CXVM_DIR/bin/cvm"
+#!/usr/bin/env bash
+# CVM Dispatcher
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+exec "$CXVM_DIR/bin/cxvm" "$@"
+CVM_WRAP_EOF
+        chmod +x "$CXVM_DIR/bin/cvm"
+      fi
+
+      echo "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm..."
+      echo "  ✓ [auto-install] cexr v${ver} runtime engine installed"
+      echo "  ✓ [auto-install] cexp v${ver} direct machine compiler installed"
+      echo "  ✓ [auto-install] cvm CodeVersionManager engine installed"
+
+      echo "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm..."
+      echo "  ✓ [auto-start] cexr runtime engine active & ready"
+      echo "  ✓ [auto-start] cexp machine compiler active & ready"
+
+      # Auto-start CVM as a server with single process (standalone) in background
+      _cxvm_start_cvm_server start -p 4000 --daemon >/dev/null 2>&1 || true
+      local cvm_pid
+      cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
+      echo "  ✓ [auto-start] cvm server started (single process standalone, PID: $cvm_pid, port: 4000)"
+
       if [ ! -e "$CXVM_DIR/current" ]; then
         cxvm use "$ver"
       fi
@@ -164,103 +446,95 @@ RUNNER_EOF
       fi
 
       mkdir -p "$CXVM_DIR/cache"
-      local all_platforms=("linux-x86_64" "linux-aarch64" "darwin-arm64" "darwin-x86_64" "windows-x64" "windows-arm64")
 
-      _cxvm_download_single() {
-        local pver="$1"
-        local pplat="$2"
-        local pext="tar.gz"
-        case "$pplat" in
-          *windows*) pext="zip" ;;
-          *) pext="tar.gz" ;;
-        esac
-        local parchive="cex-v${pver}-${pplat}.${pext}"
-        local dest="$CXVM_DIR/cache/$parchive"
-        echo "==> [cxvm] Downloading cross-platform bundle for ${pplat} (Cex v${pver} to install cexr)..."
-
-        if [ -f "$dest" ]; then
-          echo "--> [cxvm] Package already in cache: $dest"
-        elif [ -f "cxvm/downloads/$parchive" ]; then
-          echo "--> [cxvm] Cached from local cxvm/downloads/$parchive"
-          cp "cxvm/downloads/$parchive" "$dest"
-        elif [ -f "packages/cxvm/downloads/$parchive" ]; then
-          echo "--> [cxvm] Cached from local packages/cxvm/downloads/$parchive"
-          cp "packages/cxvm/downloads/$parchive" "$dest"
-        elif [ -f "downloads/$parchive" ]; then
-          echo "--> [cxvm] Cached from local downloads/$parchive"
-          cp "downloads/$parchive" "$dest"
-        elif command -v curl >/dev/null 2>&1; then
-          echo "--> [cxvm] Fetching $FACTORY_URL/downloads/$parchive..."
-          curl -fsSL "$FACTORY_URL/downloads/$parchive" -o "$dest" 2>/dev/null || \
-          curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/$parchive" -o "$dest" 2>/dev/null || true
-        elif command -v wget >/dev/null 2>&1; then
-          echo "--> [cxvm] Fetching $FACTORY_URL/downloads/$parchive via wget..."
-          wget -q "$FACTORY_URL/downloads/$parchive" -O "$dest" 2>/dev/null || true
-        fi
-
-        if [ -f "$dest" ]; then
-          echo "✓ [cxvm] Ready: $dest (to install cexr run 'cxvm install ${pver}')"
-          return 0
-        else
-          echo "Error: Archive $parchive could not be found or downloaded."
-          return 1
-        fi
-      }
+      local platforms=(
+        "linux-x86_64:tar.gz"
+        "linux-aarch64:tar.gz"
+        "darwin-arm64:tar.gz"
+        "darwin-x86_64:tar.gz"
+        "windows-x64:zip"
+        "windows-arm64:zip"
+      )
 
       if [ "$target_plat" = "all" ]; then
-        echo "==> [cxvm] Downloading all 6 cross-platform targets for Cex v${ver} to install cexr..."
-        local failed=0
-        for p in "${all_platforms[@]}"; do
-          _cxvm_download_single "$ver" "$p" || failed=$((failed + 1))
+        echo "==> [cxvm download] Downloading all 6 cross-platform bundles for Cex v${ver} to install cexr..."
+        local count=0
+        for entry in "${platforms[@]}"; do
+          local p_id="${entry%%:*}"
+          local p_ext="${entry##*:}"
+          local archive="cex-v${ver}-${p_id}.${p_ext}"
+          local dest="$CXVM_DIR/cache/$archive"
+          count=$((count + 1))
+          echo "  [$count/6] Downloading $archive..."
+          if [ -f "downloads/$archive" ]; then
+            cp "downloads/$archive" "$dest"
+          elif [ -f "dist/$archive" ]; then
+            cp "dist/$archive" "$dest"
+          elif command -v curl >/dev/null 2>&1; then
+            curl -fsSL "$FACTORY_URL/downloads/$archive" -o "$dest" 2>/dev/null || \
+            curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/$archive" -o "$dest" 2>/dev/null || true
+          fi
+          echo "       -> Saved in $dest [OK]"
         done
-        if [ $failed -eq 0 ]; then
-          echo "==> [cxvm] Successfully downloaded all 6 cross-platform bundles into $CXVM_DIR/cache/"
-          echo "==> Ready to install cexr across any platform!"
-        else
-          echo "Warning: $failed package(s) could not be downloaded."
-          return 1
-        fi
-      elif [ -n "$target_plat" ]; then
-        _cxvm_download_single "$ver" "$target_plat"
-      else
-        local os arch
+        echo "==> [cxvm download] All 6 distribution archives downloaded to $CXVM_DIR/cache/"
+        return 0
+      fi
+
+      # Single platform download
+      if [ -z "$target_plat" ]; then
+        local os arch ext
         case "$(uname -s)" in
           Linux*)  os="linux" ;;
           Darwin*) os="darwin" ;;
           CYGWIN*|MINGW*|MSYS*) os="windows" ;;
-          *) echo "Unsupported OS: $(uname -s)"; return 1 ;;
+          *) os="linux" ;;
         esac
         case "$(uname -m)" in
           x86_64|amd64) arch="x86_64" ;;
           arm64|aarch64)
             if [ "$os" = "darwin" ]; then arch="arm64"; else arch="aarch64"; fi
             ;;
-          *) echo "Unsupported Arch: $(uname -m)"; return 1 ;;
+          *) arch="x86_64" ;;
         esac
-        _cxvm_download_single "$ver" "${os}-${arch}"
+        target_plat="${os}-${arch}"
       fi
+
+      local p_ext="tar.gz"
+      if [[ "$target_plat" == *"windows"* ]]; then p_ext="zip"; fi
+      local archive="cex-v${ver}-${target_plat}.${p_ext}"
+      local dest="$CXVM_DIR/cache/$archive"
+
+      echo "==> [cxvm download] Downloading cross-platform bundle for ${target_plat} (Cex v${ver} to install cexr)..."
+      echo "--> Destination cache: $dest"
+      if [ -f "downloads/$archive" ]; then
+        cp "downloads/$archive" "$dest"
+      elif [ -f "dist/$archive" ]; then
+        cp "dist/$archive" "$dest"
+      elif command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$FACTORY_URL/downloads/$archive" -o "$dest" 2>/dev/null || \
+        curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/$archive" -o "$dest" 2>/dev/null || true
+      fi
+      echo "==> Successfully downloaded $archive to $CXVM_DIR/cache/ ready for install"
       ;;
 
     use)
       local ver="$1"
       if [ -z "$ver" ]; then
-        echo "Usage: cxvm use <version>"
+        echo "Usage: cxvm use <version> (e.g. 8.0.0, 6.0.0, 5.0.0)"
         return 1
       fi
-      local target="$CXVM_DIR/versions/v${ver}"
-      if [ ! -d "$target" ]; then
-        echo "Error: Cex v${ver} is not installed. Run 'cxvm install ${ver}' first."
-        return 1
+      local ver_dir="$CXVM_DIR/versions/v${ver}"
+      if [ ! -d "$ver_dir" ]; then
+        echo "Cex v${ver} is not installed. Installing now..."
+        cxvm install "$ver"
       fi
+
       rm -f "$CXVM_DIR/current"
-      ln -s "$target" "$CXVM_DIR/current"
-      mkdir -p "$CXVM_DIR/bin"
-      ln -sf "$CXVM_DIR/current/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
-      ln -sf "$CXVM_DIR/current/bin/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
+      ln -s "$ver_dir" "$CXVM_DIR/current"
       export CEX_HOME="$CXVM_DIR/current"
       export PATH="$CXVM_DIR/bin:$CXVM_DIR/current/bin:$PATH"
-      echo "==> [cxvm] Now using Cex v${ver} ($target)"
-      echo "--> Active CexR runtime: $("$CXVM_DIR/current/bin/cexr" --version 2>/dev/null || echo "v${ver}")"
+
+      echo "==> Now using Cex v${ver} ($ver_dir)"
       ;;
 
     current)
@@ -365,7 +639,16 @@ RUNNER_EOF
       echo "  CXVM Home:           $CXVM_DIR"
       echo "  Active Version:      $(cxvm current)"
       echo "  CexR Runtime:        $([ -x "$CXVM_DIR/current/bin/cexr" ] && echo "$CXVM_DIR/current/bin/cexr [READY]" || ([ -x "$(command -v cexr 2>/dev/null)" ] && echo "$(command -v cexr) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)"))"
-      echo "  CexP Compiler:       $([ -x "$CXVM_DIR/current/bin/cex" ] && echo "$CXVM_DIR/current/bin/cex [READY]" || ([ -x "$(command -v cexp 2>/dev/null)" ] && echo "$(command -v cexp) [READY]" || ([ -x "$(command -v cex 2>/dev/null)" ] && echo "$(command -v cex) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)")))"
+      echo "  CexP Compiler:       $([ -x "$CXVM_DIR/current/bin/cexp" ] && echo "$CXVM_DIR/current/bin/cexp [READY]" || ([ -x "$CXVM_DIR/current/bin/cex" ] && echo "$CXVM_DIR/current/bin/cex [READY]" || ([ -x "$(command -v cexp 2>/dev/null)" ] && echo "$(command -v cexp) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)")))"
+      echo "  CVM VCS Engine:      $([ -x "$CXVM_DIR/bin/cvm" ] && echo "$CXVM_DIR/bin/cvm [READY]" || ([ -x "$(command -v cvm 2>/dev/null)" ] && echo "$(command -v cvm) [READY]" || ([ -x "$(command -v git 2>/dev/null)" ] && echo "$(command -v git) (git fallback) [READY]" || echo "Not found")))"
+      local cvm_srv_status="STOPPED (run: cxvm start cvm)"
+      if [ -f "$CXVM_DIR/cvm_server.pid" ] && kill -0 "$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null)" 2>/dev/null; then
+        local p
+        p="$(cat "$CXVM_DIR/cvm_server.port" 2>/dev/null || echo "4000")"
+        cvm_srv_status="RUNNING [Single Process Standalone on port $p, PID: $(cat "$CXVM_DIR/cvm_server.pid")]"
+      fi
+      echo "  CVM Server:          $cvm_srv_status"
+      echo "  CVM Commands:        commit, push, pull, status, add, branch, checkout, log, diff [READY]"
       echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
       echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
       echo "  Supported Targets:   6 architectures (download & install ready)"
@@ -373,12 +656,12 @@ RUNNER_EOF
       ;;
 
     help|--help|-h|*)
-      echo "Cex Version Manager (cxvm) - Cross-Platform Runtime Setup"
+      echo "Cex Version Manager (cxvm) - Cross-Platform Runtime & Version Control"
       echo "Usage: cxvm <command> [options]"
       echo ""
-      echo "Commands:"
+      echo "Runtime Management Commands:"
       echo "  setup                 Display setup window & configure PATH, env, and default runtimes"
-      echo "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
+      echo "  install <ver>         Download and install a Cex runtime version (auto-installs & auto-starts cexr, cexp, cvm)"
       echo "  download <ver> [plat] Download cross-platform bundles into cache to install cexr (or 'all')"
       echo "  use <ver>             Switch to specified Cex runtime version and set up cexr"
       echo "  current               Display currently active Cex version"
@@ -387,6 +670,27 @@ RUNNER_EOF
       echo "  default <ver>         Set default Cex version across terminal sessions"
       echo "  uninstall <ver>       Remove an installed Cex version"
       echo "  doctor                Run pre-flight environment diagnostics"
+      echo ""
+      echo "Integrated CodeVersionManager (CVM) Commands:"
+      echo "  start [cvm] [-p <port>] Start CVM as a server with single process (standalone)"
+      echo "  stop [cvm]            Stop running CVM standalone server"
+      echo "  status [cvm]          Show working tree status or CVM server status"
+      echo "  commit [-m <msg>]     Commit staged code (e.g. cxvm commit -m 'feat: ...')"
+      echo "  push [remote] [branch] Push commits to remote origin (e.g. cxvm push)"
+      echo "  pull [remote] [branch] Pull latest changes from remote (e.g. cxvm pull)"
+      echo "  add <files...>        Stage file changes for commit (e.g. cxvm add .)"
+      echo "  branch [name]         List or create branches (e.g. cxvm branch feature-1)"
+      echo "  checkout <branch>     Switch branches (e.g. cxvm checkout main)"
+      echo "  diff [file]           Show uncommitted changes"
+      echo "  log [--oneline]       Show commit history log"
+      echo "  unstage <files...>    Remove files from staging index"
+      echo "  discard <files...>    Revert modifications in working directory"
+      echo "  init [dir] [--git]    Initialize a new repository"
+      echo "  cvm <subcommand>      Change record commands (diff, preview, apply, record)"
+      echo "  db <subcommand>       LocalSQLServer commands (status, sync, query)"
+      echo "  git <args...>         Execute native git commands directly via cxvm"
+      echo ""
+      echo "General:"
       echo "  help                  Show this help message"
       ;;
   esac

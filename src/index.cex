@@ -76,6 +76,19 @@ fn main(): int {
     print("    Result: "); println(pushRes->success ? "PASSED [OK]" : "FAILED");
     print("    Push output:\n    "); println(pushRes->output);
 
+    println("\n  ▶ Simulating: cxvm start cvm (standalone single process)");
+    let srvStartRes: CxvmCommandResult* = app->cxvm->startCvm(4000, true);
+    print("    Result: "); println(srvStartRes->success ? "PASSED [OK]" : "FAILED");
+    print("    Output:\n    "); println(srvStartRes->output);
+
+    println("  ▶ Simulating: cxvm status cvm");
+    let srvStatRes: CxvmCommandResult* = app->cxvm->statusCvm();
+    println("    " + srvStatRes->output);
+
+    println("  ▶ Simulating: cxvm stop cvm");
+    let srvStopRes: CxvmCommandResult* = app->cxvm->stopCvm();
+    print("    Result: "); println(srvStopRes->success ? "PASSED [OK]" : "FAILED");
+
     // 4. Testing Cross-Platform DistBuilder
     println("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
     print("  Supported Architectures: "); println((int)app->builder->platforms->length());
@@ -135,6 +148,9 @@ fn main(): int {
 
     let cvmPushResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/push", "", "application/json");
     print("  POST /api/v1/cvm/push -> "); println(cvmPushResp->body);
+
+    let cvmSrvStatResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/server/status", "", "application/json");
+    print("  GET /api/v1/cvm/server/status -> "); println(cvmSrvStatResp->body);
 
     app->stop();
     println("\n===============================================================================");

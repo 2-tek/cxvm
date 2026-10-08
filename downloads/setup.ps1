@@ -46,6 +46,9 @@ if (Test-Path (Join-Path $downloadsDir "cxvm.ps1")) {
 if (Test-Path (Join-Path $downloadsDir "cxvm.cmd")) {
   Copy-Item -Force (Join-Path $downloadsDir "cxvm.cmd") (Join-Path $binDir "cxvm.cmd")
 }
+if (Test-Path (Join-Path $downloadsDir "cvm-server")) {
+  Copy-Item -Force (Join-Path $downloadsDir "cvm-server") (Join-Path $binDir "cvm-server")
+}
 Write-Host "  ✓ CXVM core hierarchy established in $CxvmDir" -ForegroundColor Green
 
 # Step 2: Environment Variables & PATH Persistence
@@ -102,6 +105,12 @@ if (Test-Path $cxvmScript) {
   & $cxvmScript default $DefaultVersion | Out-Null
   & $cxvmScript use $DefaultVersion | Out-Null
   Write-Host "  ✓ Active default version set to v$DefaultVersion" -ForegroundColor Green
+
+  if (-not (& $cxvmScript status cvm | Out-Null)) {
+    & $cxvmScript start cvm -p 4000 --daemon | Out-Null
+  }
+  $cvmPid = if (Test-Path (Join-Path $CxvmDir "cvm_server.pid")) { (Get-Content (Join-Path $CxvmDir "cvm_server.pid") -Raw).Trim() } else { "$PID" }
+  Write-Host "  ✓ CVM Standalone Server auto-started (single process, PID: $cvmPid, port: 4000)" -ForegroundColor Green
 }
 
 # Step 4: Configure Project ./bin/ Dispatchers

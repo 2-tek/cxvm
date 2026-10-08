@@ -297,6 +297,46 @@ fn main(): int {
     let resCvmPush: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/push", "", "application/json");
     Assert::equalsInt(200, resCvmPush->statusCode, "POST /api/v1/cvm/push returns 200 OK");
 
+    // 10. CVM Standalone Single-Process Server Operations (cxvm start cvm)
+    let srvRes: CxvmCommandResult* = cxvm->startCvm(4000, true);
+    Assert::isTrue(srvRes->success, "cxvm start cvm succeeds");
+    Assert::isTrue(cxvm->cvmServerRunning, "CVM server marked as running");
+    Assert::equalsInt(4000, cxvm->cvmServerPort, "CVM server port is 4000");
+    Assert::isTrue(srvRes->output.find("standalone (single process)") != -1, "Output confirms standalone single process mode");
+
+    let srvSt: CxvmCommandResult* = cxvm->statusCvm();
+    Assert::isTrue(srvSt->success, "cxvm status cvm succeeds");
+    Assert::isTrue(srvSt->output.find("single process standalone") != -1, "Status confirms single process standalone");
+
+    let srvStop: CxvmCommandResult* = cxvm->stopCvm();
+    Assert::isTrue(srvStop->success, "cxvm stop cvm succeeds");
+    Assert::isTrue(!cxvm->cvmServerRunning, "CVM server marked as stopped");
+
+    let startCode: int = cxvm->cvmExecute("start", "cvm", "");
+    Assert::equalsInt(0, startCode, "cxvm cvmExecute start cvm returns exit code 0");
+    Assert::isTrue(cxvm->cvmServerRunning, "CVM server running after execute start cvm");
+
+    let resSrvStart: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/server/start", "", "application/json");
+    Assert::equalsInt(200, resSrvStart->statusCode, "POST /api/v1/cvm/server/start returns 200 OK");
+    Assert::isTrue(resSrvStart->body.find("standalone (single process)") != -1, "Server Start API reports standalone");
+
+    let resSrvStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/server/status", "", "application/json");
+    Assert::equalsInt(200, resSrvStatus->statusCode, "GET /api/v1/cvm/server/status returns 200 OK");
+    Assert::isTrue(resSrvStatus->body.find("RUNNING") != -1, "Server Status API reports RUNNING");
+
+    let resSrvStop: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/server/stop", "", "application/json");
+    Assert::equalsInt(200, resSrvStop->statusCode, "POST /api/v1/cvm/server/stop returns 200 OK");
+
+    // 11. Auto install & auto start of cexr, cexp, cvm when installing cxvm
+    let instRes: CxvmCommandResult* = cxvm->install("3.0.0");
+    Assert::isTrue(instRes->success, "cxvm install 3.0.0 succeeds");
+    Assert::isTrue(instRes->output.find("[auto-install] cexr") != -1, "Auto-install cexr reported");
+    Assert::isTrue(instRes->output.find("[auto-install] cexp") != -1, "Auto-install cexp reported");
+    Assert::isTrue(instRes->output.find("[auto-install] cvm") != -1, "Auto-install cvm reported");
+    Assert::isTrue(instRes->output.find("[auto-start] cexr") != -1, "Auto-start cexr reported");
+    Assert::isTrue(instRes->output.find("[auto-start] cexp") != -1, "Auto-start cexp reported");
+    Assert::isTrue(instRes->output.find("[auto-start] cvm") != -1, "Auto-start cvm reported");
+
     suite->addResult("test_integrated_cvm_operations", true, "", 1);
 
     println("\n");

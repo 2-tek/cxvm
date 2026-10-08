@@ -150,7 +150,43 @@ cxvm use 6.0.0
 | `cxvm discard <files...>` | Discard changes in working directory | `cxvm discard src/index.cex` |
 | `cxvm init [dir] [--git]` | Initialize new repository with object store | `cxvm init` |
 | `cxvm git <args...>` | Direct pass-through to native git toolchain | `cxvm git log -n 5` |
-| `cxvm start [-p <port>]` | Launch visual CVM Web Studio dashboard | `cxvm start -p 4000` |
+| `cxvm start cvm [-p <port>]` | Start CVM as a server with single process (standalone) in background | `cxvm start cvm` \| `cxvm start cvm -p 4000` |
+| `cxvm status cvm` | Check single-process standalone CVM server status | `cxvm status cvm` |
+| `cxvm stop cvm` | Stop background standalone CVM server | `cxvm stop cvm` |
+
+### Standalone Single-Process CVM Server (`cxvm start cvm`):
+
+`cxvm` provides a lightweight, **single-process standalone CVM server** that runs without heavy multi-process frameworks (e.g. Next.js multi-process `npx next dev`).
+- **Single OS Process**: Zero multi-process overhead, instant launch, and minimal memory footprint.
+- **Web Studio UI**: Visual dashboard accessible at `http://localhost:4000` for managing commits, branches, and diffs.
+- **REST Endpoints**:
+  - `GET /health` & `GET /api/v1/health`: Server health check and process PID report.
+  - `GET /api/v1/cvm/status`: Current git/CVM repository working tree status.
+  - `POST /api/v1/cvm/commit`: Commit staged files.
+  - `POST /api/v1/cvm/push`: Push to upstream repository.
+  - `POST /api/v1/cvm/pull`: Pull latest changes.
+  - `GET /api/v1/cvm/log`: Commit history log.
+  - `GET /api/v1/cvm/diff`: Working tree diff.
+- **Lifecycle Management**:
+  ```bash
+  cxvm start cvm              # Start standalone server on port 4000 (daemon background)
+  cxvm start cvm -p 5000      # Custom port
+  cxvm start cvm --foreground # Run in foreground
+  cxvm status cvm             # Inspect PID and active port
+  cxvm stop cvm               # Stop server
+  ```
+
+### Auto-Install & Auto-Start on CXVM Install:
+
+When installing `cxvm` via `cxvm install <version>`, `install.sh`, `setup.sh`, or `setup.ps1`:
+1. **Auto-Install Toolchains**: Automatically installs and configures:
+   - `cexr` (Cex Language Runtime Engine)
+   - `cexp` (Cex Direct Machine Compiler)
+   - `cvm` (CodeVersionManager Engine & standalone server)
+2. **Auto-Start Runtime Services**:
+   - Initializes active `cexr` runtime engine
+   - Pre-warms `cexp` machine compiler
+   - Auto-starts `cvm` server with a single process (standalone) in the background on port 4000.
 
 ### Lighting MVC HTTP REST API for CVM:
 
@@ -158,6 +194,9 @@ When the Factory application runs on port 3080:
 - **`GET /api/v1/cvm/status`**: Returns JSON object representing current repository status, active branch, and cleanliness.
 - **`POST /api/v1/cvm/commit`**: Commits staged files with provided message payload, returning commit hash.
 - **`POST /api/v1/cvm/push`**: Pushes local branch commits to upstream remote.
+- **`POST /api/v1/cvm/server/start`**: Programmatically starts the standalone CVM server.
+- **`GET /api/v1/cvm/server/status`**: Queries standalone CVM server PID and port status.
+- **`POST /api/v1/cvm/server/stop`**: Programmatically stops the standalone CVM server.
 
 ---
 
