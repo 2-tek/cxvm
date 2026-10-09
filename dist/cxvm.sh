@@ -1504,6 +1504,36 @@ INDEX_EOF
       fi
       ;;
 
+    compile)
+      local c_bin="cex"
+      if [ -x "$CXVM_DIR/bin/cex" ]; then
+        c_bin="$CXVM_DIR/bin/cex"
+      elif [ -x "$CXVM_DIR/current/bin/cex" ]; then
+        c_bin="$CXVM_DIR/current/bin/cex"
+      fi
+      exec "$c_bin" compile "$@"
+      ;;
+
+    cex)
+      local c_bin="cex"
+      if [ -x "$CXVM_DIR/bin/cex" ]; then
+        c_bin="$CXVM_DIR/bin/cex"
+      elif [ -x "$CXVM_DIR/current/bin/cex" ]; then
+        c_bin="$CXVM_DIR/current/bin/cex"
+      fi
+      exec "$c_bin" "$@"
+      ;;
+
+    cexp)
+      local cp_bin="cexp"
+      if [ -x "$CXVM_DIR/bin/cexp" ]; then
+        cp_bin="$CXVM_DIR/bin/cexp"
+      elif [ -x "$CXVM_DIR/current/bin/cexp" ]; then
+        cp_bin="$CXVM_DIR/current/bin/cexp"
+      fi
+      exec "$cp_bin" "$@"
+      ;;
+
     check)
       local p_bin="$CXVM_DIR/bin/cex-pack"
       if [ -x "$p_bin" ]; then
@@ -1711,6 +1741,7 @@ INDEX_EOF
       echo ""
       echo "Integrated Cex-CLI Build Runner & Task Automation Commands:"
       echo "  cli <args...>         Run commands via integrated @2tek/cli dispatcher"
+      echo "  compile [file] [-o out] Compile full project or Cex file via integrated Cex compiler"
       echo "  build                 Compile application or trigger cex-cli build pipeline"
       echo "  test                  Run test suites via cex-cli runner"
       echo "  watch                 Watch source directories for changes via cex-cli"
