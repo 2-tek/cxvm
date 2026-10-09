@@ -5,7 +5,7 @@ trigger: always_on
 # 2-TEK cxvm: Project Standards & Governance
 
 <!-- Standard Specification: .agents/rules/standard-for-project.md -->
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), Rule (Documents Update) -->
 
 > **CORE PRINCIPLE**:
 > `cxvm` (`@2tek/cxvm`) is the official cross-platform distribution engine and runtime version manager for the Cex native language ecosystem.
@@ -36,6 +36,10 @@ trigger: always_on
    - All tests live under `tests/` (`tests/cxvm.test.cex`, `tests/factory.test.cex`) and must pass cleanly with `cexr run <test_file>`.
 8. **Rule (No Symbols)**:
    - All source code, console outputs, scripts, setup windows, documentation, and agent rules inside `cxvm` must use pure ASCII text without emojis, unicode symbols, or non-ASCII icon characters.
+9. **Rule (Pure Cex Binaries in bin/)**:
+   - Across `cxvm` and packages, `bin/` directories must contain exclusively `.cex` files. Absolutely no `.js` files or JavaScript/Node.js scripts are permitted.
+10. **Rule (Documents Update - RULE_DOCUMENTS_UPDATE)**:
+    - Whenever a new feature, command, API, or architectural change is introduced in any project (`cxvm`, `cexp`, `cexr`, or packages), update the central documentation book at `documents/` under `../{projectName}`.
 
 ---
 
