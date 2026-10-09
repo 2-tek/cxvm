@@ -129,6 +129,7 @@ cxvm use 6.0.0
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
 | `cxvm upgrade [ver]` | — | Auto-detects latest release (or specified version) and upgrades `cexr` & `cexp` toolchains |
+| `cxvm pull dependencies` | — | Fetches & caches dependencies into `$CXVM_DIR/tmp/dependencies` (`--upgrade`, `--clean`) |
 | `cxvm start` | `npm start` | Auto-lints and starts project (auto-detects main entrypoint from `cex-pack.json`) |
 | `cxvm dev` | `npm run dev` | Auto-lints and starts development server (auto-detects main entrypoint from `cex-pack.json`) |
 | `cxvm build` | `npm run build` | Compiles project with `cexp` native compiler (auto-detects main entrypoint from `cex-pack.json`) |
@@ -317,6 +318,8 @@ cxvm light doctor # Runs diagnostic health check
 ### Lighting MVC REST Endpoints:
 - **`GET /api/v1/light/status`**: Returns Lighting engine readiness, framework version, and available commands.
 - **`POST /api/v1/light/create`**: Programmatically triggers project scaffolding via JSON payload `{"projectName": "app-name"}`.
+- **`GET /api/v1/dependencies/pull`**: Returns status of cached dependencies in `$CXVM_DIR/tmp/dependencies`.
+- **`POST /api/v1/dependencies/pull`**: Programmatically triggers dependency pulling with optional `--upgrade` or `--clean` parameters.
 
 ---
 

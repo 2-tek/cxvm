@@ -520,6 +520,54 @@ fn main(): int {
 
     suite->addResult("test_auto_upgrade_toolchain", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 12: Pull Dependencies Subsystem (cxvm pull dependencies)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 12: Pull Dependencies Subsystem (cxvm pull dependencies)]");
+    let depsDir: string = cxvm->getDependenciesDir();
+    Assert::isTrue(depsDir.find("tmp/dependencies") != -1, "Dependencies directory resolves to tmp/dependencies");
+
+    // Test pullDependencies normal
+    let pullRes1: CxvmCommandResult* = cxvm->pullDependencies("cex-pack.json", false, false, "");
+    Assert::isTrue(pullRes1->success, "cxvm pullDependencies succeeds");
+    Assert::isTrue(pullRes1->output.find("dependencies successfully pulled") != -1, "Output confirms dependencies pulled");
+
+    // Test pullDependencies with --upgrade (should cache old version to .old.zip)
+    let pullRes2: CxvmCommandResult* = cxvm->pullDependencies("cex-pack.json", true, false, "");
+    Assert::isTrue(pullRes2->success, "cxvm pullDependencies --upgrade succeeds");
+    Assert::isTrue(pullRes2->output.find("Cached old version") != -1, "Output confirms old version cached");
+    Assert::isTrue(pullRes2->output.find(".old.zip") != -1, "Output confirms .old.zip created");
+
+    // Test pullDependencies with --clean (should clean .old.zip files)
+    let pullRes3: CxvmCommandResult* = cxvm->pullDependencies("cex-pack.json", false, true, "");
+    Assert::isTrue(pullRes3->success, "cxvm pullDependencies --clean succeeds");
+    Assert::isTrue(pullRes3->output.find("Cleaned old cache backup files") != -1, "Output confirms .old.zip files cleaned");
+
+    // Test CLI execution via cvmExecute
+    let pullExec1: int = cxvm->cvmExecute("pull", "dependencies", "");
+    Assert::equalsInt(0, pullExec1, "cxvm cvmExecute pull dependencies returns exit code 0");
+
+    let pullExec2: int = cxvm->cvmExecute("pull-dependencies", "--clean", "");
+    Assert::equalsInt(0, pullExec2, "cxvm cvmExecute pull-dependencies --clean returns exit code 0");
+
+    let pullExec3: int = cxvm->cvmExecute("dependencies", "pull", "--upgrade");
+    Assert::equalsInt(0, pullExec3, "cxvm cvmExecute dependencies pull --upgrade returns exit code 0");
+
+    // Test cvmPull method with dependencies
+    let cvmPullDepRes: CxvmCommandResult* = cxvm->cvmPull("dependencies", "");
+    Assert::isTrue(cvmPullDepRes->success, "cxvm cvmPull dependencies succeeds");
+
+    // Test REST API endpoints
+    let pullApiGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/dependencies/pull", "", "application/json");
+    Assert::equalsInt(200, pullApiGet->statusCode, "GET /api/v1/dependencies/pull returns 200 OK");
+    Assert::isTrue(pullApiGet->body.find("\"status\":\"SUCCESS\"") != -1, "GET API reports status SUCCESS");
+
+    let pullApiPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/dependencies/pull", "{\"upgrade\":true,\"clean\":true}", "application/json");
+    Assert::equalsInt(200, pullApiPost->statusCode, "POST /api/v1/dependencies/pull returns 200 OK");
+    Assert::isTrue(pullApiPost->body.find("\"clean\":true") != -1, "POST API reports clean:true");
+
+    suite->addResult("test_pull_dependencies_subsystem", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

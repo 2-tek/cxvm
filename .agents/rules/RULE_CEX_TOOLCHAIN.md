@@ -34,6 +34,7 @@ trigger: always_on
 | **Switch Active Runtime** | `cxvm use <version>` \| `./bin/cxvm use <version>` | Update active runtime symlink and session PATH |
 | **Install Version** | `cxvm install <version>` | Download and install pre-built runtime package |
 | **Upgrade Toolchain** | `cxvm upgrade [version]` \| `cxvm update` | Auto-detect latest release and upgrade `cexr` & `cexp` |
+| **Pull Dependencies** | `cxvm pull dependencies [flags]` | Fetch and cache dependencies into `$CXVM_DIR/tmp/dependencies` (`--upgrade`, `--clean`) |
 
 ---
 

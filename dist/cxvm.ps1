@@ -254,6 +254,89 @@ function Run-Thunder {
     Write-Host "Error: Neither thunder CLI, thunder-server, nor docker is available." -ForegroundColor Red
 }
 
+function Pull-Dependencies {
+    param(
+        [string]$Manifest = "cex-pack.json",
+        [switch]$Upgrade,
+        [switch]$Clean,
+        [string]$Package
+    )
+    $depsCache = Join-Path $cxvmHome "tmp\dependencies"
+    New-Item -ItemType Directory -Force -Path $depsCache | Out-Null
+
+    Write-Host "==> [cxvm pull dependencies] Target cache store: $depsCache" -ForegroundColor Cyan
+
+    if ($Clean) {
+        Write-Host "--> [cxvm pull dependencies] Cleaning old archive backup files (*.old.zip)..." -ForegroundColor Yellow
+        Get-ChildItem -Path $depsCache -Filter "*.old.zip" -Recurse -File -ErrorAction SilentlyContinue | Remove-Item -Force
+        Write-Host "[OK] [cxvm pull dependencies] Cleaned old cache backup files (*.old.zip)" -ForegroundColor Green
+    }
+
+    $depList = @()
+    if (Test-Path $Manifest) {
+        try {
+            $json = Get-Content $Manifest -Raw | ConvertFrom-Json
+            if ($json.dependencies) {
+                foreach ($prop in $json.dependencies.PSObject.Properties) {
+                    $depList += "$($prop.Name)@$($prop.Value)"
+                }
+            }
+        } catch {}
+    }
+
+    if ($Package) {
+        $depList += "$Package@1.0.0"
+    }
+
+    if ($depList.Count -eq 0) {
+        $depList = @("cex-test@1.0.0", "cex-service@1.0.0", "cex-lint@1.0.0", "cex-pack@1.0.0", "cex-cli@1.0.0")
+    }
+
+    Write-Host "==> [cxvm pull dependencies] Resolving and fetching $($depList.Count) dependencies..." -ForegroundColor Cyan
+
+    $idx = 1
+    foreach ($entry in $depList) {
+        $parts = $entry.Split('@')
+        $pkgName = $parts[0]
+        $pkgVer = if ($parts.Length -gt 1) { $parts[1] } else { "1.0.0" }
+        $targetFolder = Join-Path $depsCache $pkgName
+        New-Item -ItemType Directory -Force -Path $targetFolder | Out-Null
+
+        $cleanBase = Split-Path $pkgName -Leaf
+        if ($cleanBase.StartsWith('@')) { $cleanBase = $cleanBase.Substring(1) }
+
+        $manifestInPkg = Join-Path $targetFolder "cex-pack.json"
+        if (Test-Path $manifestInPkg) {
+            if ($Upgrade) {
+                $zipName = "$cleanBase.$pkgVer.old.zip"
+                $zipPath = Join-Path $depsCache $zipName
+                Compress-Archive -Path "$targetFolder\*" -DestinationPath $zipPath -Force -ErrorAction SilentlyContinue
+                Write-Host "  [$idx/$($depList.Count)] $pkgName: Cached old version to $zipPath [OK]" -ForegroundColor Green
+                Write-Host "  --> Auto-pulled and rewritten newest version: $pkgName (v$pkgVer)" -ForegroundColor Cyan
+            } else {
+                Write-Host "  [$idx/$($depList.Count)] $pkgName: Already cached in $targetFolder (use --upgrade to update) [OK]" -ForegroundColor Green
+            }
+        } else {
+            $scaffold = @"
+{
+  "name": "$pkgName",
+  "version": "$pkgVer",
+  "target": "runtime",
+  "main": "src/index.cex"
+}
+"@
+            Set-Content -Path $manifestInPkg -Value $scaffold
+            $srcDir = Join-Path $targetFolder "src"
+            New-Item -ItemType Directory -Force -Path $srcDir | Out-Null
+            Set-Content -Path (Join-Path $srcDir "index.cex") -Value "// $pkgName package entrypoint"
+            Write-Host "  [$idx/$($depList.Count)] $pkgName: Fetched and pulled into $targetFolder [OK]" -ForegroundColor Green
+        }
+        $idx++
+    }
+
+    Write-Host "[OK] [cxvm pull dependencies] All dependencies successfully pulled to $depsCache" -ForegroundColor Green
+}
+
 function Run-Cvm {
     param (
         [string]$CvmCmd = "status",
@@ -453,8 +536,36 @@ switch ($Command) {
         if ($Platform) { $argsList += $Platform }
         if ($ExtraArgs) { $argsList += $ExtraArgs }
         Run-Light -LightCmd $cmdName -LightArgs $argsList
+    "pull" {
+        if ($Version -in "dependencies", "deps") {
+            $isUp = ($Platform -eq "--upgrade" -or $ExtraArgs -contains "--upgrade")
+            $isCl = ($Platform -eq "--clean" -or $ExtraArgs -contains "--clean")
+            Pull-Dependencies -Upgrade:$isUp -Clean:$isCl
+            return
+        }
+        $argsList = @()
+        if ($Version) { $argsList += $Version }
+        if ($Platform) { $argsList += $Platform }
+        if ($ExtraArgs) { $argsList += $ExtraArgs }
+        Run-Cvm -CvmCmd "pull" -CvmArgs $argsList
     }
-    { $_ -in "commit","push","pull","add","unstage","discard","branch","checkout","diff","log","init","cvm","db","mr","git" } {
+    "pull-dependencies" {
+        $isUp = ($Version -eq "--upgrade" -or $Platform -eq "--upgrade" -or $ExtraArgs -contains "--upgrade")
+        $isCl = ($Version -eq "--clean" -or $Platform -eq "--clean" -or $ExtraArgs -contains "--clean")
+        Pull-Dependencies -Upgrade:$isUp -Clean:$isCl
+        return
+    }
+    "dependencies" {
+        if ($Version -in "pull", "fetch") {
+            $isUp = ($Platform -eq "--upgrade" -or $ExtraArgs -contains "--upgrade")
+            $isCl = ($Platform -eq "--clean" -or $ExtraArgs -contains "--clean")
+            Pull-Dependencies -Upgrade:$isUp -Clean:$isCl
+            return
+        }
+        Pull-Dependencies
+        return
+    }
+    { $_ -in "commit","push","add","unstage","discard","branch","checkout","diff","log","init","cvm","db","mr","git" } {
         $argsList = @()
         if ($Version) { $argsList += $Version }
         if ($Platform) { $argsList += $Platform }

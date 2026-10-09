@@ -81,6 +81,8 @@ class FactoryApp {
         this.router->post("/api/v1/light/create", "factory.apiLightCreate");
         this.router->get("/api/v1/upgrade", "factory.apiUpgrade");
         this.router->post("/api/v1/upgrade", "factory.apiUpgrade");
+        this.router->get("/api/v1/dependencies/pull", "factory.apiPullDependencies");
+        this.router->post("/api/v1/dependencies/pull", "factory.apiPullDependencies");
     }
 
     public start(): void {
@@ -190,6 +192,10 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiUpgrade") {
             return this.controller->apiUpgrade(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiPullDependencies") {
+            return this.controller->apiPullDependencies(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.apiCvmStatus") {

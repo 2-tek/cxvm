@@ -53,4 +53,3 @@ fi
 
 echo "[ERROR] cex-cli binary or source entrypoint not found"
 exit 1
-

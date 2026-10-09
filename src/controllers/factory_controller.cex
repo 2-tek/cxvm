@@ -110,6 +110,44 @@ class FactoryController extends BaseController {
         return this.json(doc);
     }
 
+    public apiPullDependencies(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let isUpgrade: bool = false;
+        let isClean: bool = false;
+        let pkg: string = "";
+
+        if (req->path.find("upgrade=true") != -1 || req->path.find("upgrade=1") != -1) {
+            isUpgrade = true;
+        }
+        if (req->path.find("clean=true") != -1 || req->path.find("clean=1") != -1) {
+            isClean = true;
+        }
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (parsed->has("upgrade")) {
+                    isUpgrade = parsed->get("upgrade")->asBool();
+                }
+                if (parsed->has("clean")) {
+                    isClean = parsed->get("clean")->asBool();
+                }
+                if (parsed->has("package")) {
+                    pkg = parsed->get("package")->asString();
+                }
+            }
+        }
+
+        let res: CxvmCommandResult* = cxvm->pullDependencies("cex-pack.json", isUpgrade, isClean, pkg);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "cacheDir", cxvm->getDependenciesDir());
+        JsonDoc::setBool(doc, "upgrade", isUpgrade);
+        JsonDoc::setBool(doc, "clean", isClean);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
     public serveInstallSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
         let filePath: string = downloadsDir + "/install.sh";
         if (fs.exists(filePath)) {

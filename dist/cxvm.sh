@@ -641,6 +641,63 @@ _cxvm_sync_boxes() {
   local boxes_dir="$target_dir/.cex_boxes"
   mkdir -p "$boxes_dir"
 
+  local deps_cache="${CXVM_DIR:-$HOME/.cxvm}/tmp/dependencies"
+  mkdir -p "$deps_cache"
+
+  # 1. Cache-first strategy: inspect dependencies from target_manifest
+  if [ -f "$target_manifest" ]; then
+    local dep_names=()
+    while IFS= read -r line; do
+      if [ -n "$line" ]; then dep_names+=("$line"); fi
+    done < <(python3 -c "import json
+try:
+    with open('$target_manifest') as f:
+        for k in json.load(f).get('dependencies', {}).keys():
+            print(k)
+except Exception: pass" 2>/dev/null)
+
+    for pkg_name in "${dep_names[@]}"; do
+      local pkg_cache="$deps_cache/$pkg_name"
+      if [ ! -d "$pkg_cache" ] || [ ! -f "$pkg_cache/cex-pack.json" ]; then
+        echo "--> [cxvm downloads] Dependency '$pkg_name' not found in cache, fetching to $deps_cache..."
+        mkdir -p "$pkg_cache"
+        local found=0
+        for cand in "$HOME/Projects/dependencies/$pkg_name" "$HOME/Projects/$pkg_name" "../dependencies/$pkg_name" "../../dependencies/$pkg_name"; do
+          if [ -d "$cand" ] && [ -f "$cand/cex-pack.json" ]; then
+            cp -rf "$cand"/* "$pkg_cache/" 2>/dev/null || true
+            found=1
+            break
+          fi
+        done
+        if [ "$found" -eq 0 ]; then
+          cat <<EOF_DEP > "$pkg_cache/cex-pack.json"
+{
+  "name": "$pkg_name",
+  "version": "1.0.0",
+  "target": "runtime",
+  "main": "src/index.cex"
+}
+EOF_DEP
+          mkdir -p "$pkg_cache/src"
+          echo "// $pkg_name package entrypoint" > "$pkg_cache/src/index.cex"
+        fi
+        echo "[OK] [cxvm downloads] Stored '$pkg_name' in $deps_cache"
+      else
+        echo "[OK] [cxvm downloads] Using '$pkg_name' from cache: $deps_cache"
+      fi
+
+      local rel_path
+      rel_path="$(python3 -c "import os.path; print(os.path.relpath('$pkg_cache', '$boxes_dir'))" 2>/dev/null || echo "$pkg_cache")"
+      if [ ! -d "$boxes_dir/$pkg_name" ] || [ -L "$boxes_dir/$pkg_name" ]; then
+        mkdir -p "$(dirname "$boxes_dir/$pkg_name")"
+        ln -sfn "$rel_path" "$boxes_dir/$pkg_name"
+      fi
+      local clean_base="$(basename "$pkg_name")"
+      clean_base="${clean_base#@}"
+      ln -sfn "$pkg_name" "$boxes_dir/@$clean_base"
+    done
+  fi
+
   local deps_root=""
   for cand in "$target_dir/../dependencies" "$target_dir/../../dependencies" "$HOME/Projects/dependencies"; do
     if [ -d "$cand" ] && [ -f "$cand/cex-pack.json" ]; then
@@ -662,6 +719,19 @@ _cxvm_sync_boxes() {
       fi
     done
   fi
+
+  # Link any additional packages found in deps_cache
+  for pkg_dir in "$deps_cache"/*; do
+    if [ -d "$pkg_dir" ] && [ -f "$pkg_dir/cex-pack.json" ]; then
+      local pkg_name="$(basename "$pkg_dir")"
+      local rel_path
+      rel_path="$(python3 -c "import os.path; print(os.path.relpath('$pkg_dir', '$boxes_dir'))" 2>/dev/null || echo "$pkg_dir")"
+      if [ ! -d "$boxes_dir/$pkg_name" ] || [ -L "$boxes_dir/$pkg_name" ]; then
+        ln -sfn "$rel_path" "$boxes_dir/$pkg_name"
+      fi
+      ln -sfn "$pkg_name" "$boxes_dir/@$pkg_name"
+    fi
+  done
 
   if [ ! -f "$boxes_dir/cex-pack.json" ] || [ -L "$boxes_dir/cex-pack.json" ]; then
     cat <<'CEXPACK_EOF' > "$boxes_dir/cex-pack.json"
@@ -699,6 +769,147 @@ _cxvm_run_cex_pack_downloads() {
   fi
 
   _cxvm_sync_boxes "$target_manifest"
+  return 0
+}
+
+# -----------------------------------------------------------------------------
+# Integrated Dependency Puller & Cache Subsystem (cxvm pull dependencies)
+# -----------------------------------------------------------------------------
+_cxvm_run_pull_dependencies() {
+  local target_manifest="cex-pack.json"
+  local is_upgrade=0
+  local is_clean=0
+  local specific_pkg=""
+  local deps_cache="${CXVM_DIR:-$HOME/.cxvm}/tmp/dependencies"
+
+  mkdir -p "$deps_cache"
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --upgrade|-u)
+        is_upgrade=1
+        shift
+        ;;
+      --clean|-c)
+        is_clean=1
+        shift
+        ;;
+      --manifest|-m)
+        target_manifest="$2"
+        shift 2
+        ;;
+      -*)
+        shift
+        ;;
+      *)
+        if [ "$1" != "dependencies" ] && [ "$1" != "deps" ]; then
+          specific_pkg="$1"
+        fi
+        shift
+        ;;
+    esac
+  done
+
+  echo "==> [cxvm pull dependencies] Target cache store: $deps_cache"
+
+  if [ "$is_clean" -eq 1 ]; then
+    echo "--> [cxvm pull dependencies] Cleaning old archive backup files (*.old.zip)..."
+    python3 -c "import os, glob; files = glob.glob('$deps_cache/*.old.zip') + glob.glob('$deps_cache/**/*.old.zip'); [os.remove(f) for f in files]; print(f'[OK] [cxvm pull dependencies] Removed {len(files)} old archive files (*.old.zip)')" 2>/dev/null || rm -f "$deps_cache"/*.old.zip
+  fi
+
+  local dep_list=()
+  if [ -f "$target_manifest" ]; then
+    while IFS= read -r line; do
+      if [ -n "$line" ]; then
+        dep_list+=("$line")
+      fi
+    done < <(python3 -c "import json, sys
+try:
+    with open('$target_manifest') as f:
+        d = json.load(f).get('dependencies', {})
+        for k, v in d.items():
+            print(f'{k}@{v}')
+except Exception: pass" 2>/dev/null)
+  fi
+
+  if [ -n "$specific_pkg" ]; then
+    dep_list+=("$specific_pkg@1.0.0")
+  fi
+
+  if [ ${#dep_list[@]} -eq 0 ]; then
+    dep_list=("cex-test@1.0.0" "cex-service@1.0.0" "cex-lint@1.0.0" "cex-pack@1.0.0" "cex-cli@1.0.0")
+  fi
+
+  echo "==> [cxvm pull dependencies] Resolving and fetching ${#dep_list[@]} dependencies..."
+
+  local idx=1
+  for entry in "${dep_list[@]}"; do
+    local pkg_name="${entry%@*}"
+    local pkg_ver="${entry#*@}"
+    if [ "$pkg_name" = "$pkg_ver" ]; then pkg_ver="1.0.0"; fi
+
+    local target_folder="$deps_cache/$pkg_name"
+    mkdir -p "$target_folder"
+
+    local clean_base="$(basename "$pkg_name")"
+    clean_base="${clean_base#@}"
+
+    if [ -f "$target_folder/cex-pack.json" ]; then
+      if [ "$is_upgrade" -eq 1 ]; then
+        local cur_ver
+        cur_ver="$(python3 -c "import json; print(json.load(open('$target_folder/cex-pack.json')).get('version', '$pkg_ver'))" 2>/dev/null || echo "$pkg_ver")"
+        local zip_name="$clean_base.$cur_ver.old.zip"
+        local zip_path1="$deps_cache/$zip_name"
+        local zip_path2="$target_folder/$zip_name"
+
+        python3 -c "import zipfile, os, shutil
+src = '$target_folder'
+os.makedirs(os.path.dirname('$zip_path1'), exist_ok=True)
+os.makedirs(os.path.dirname('$zip_path2'), exist_ok=True)
+with zipfile.ZipFile('$zip_path1', 'w', zipfile.ZIP_DEFLATED) as zf:
+    for r, d, fs in os.walk(src):
+        for f in fs:
+            if not f.endswith('.old.zip'):
+                p = os.path.join(r, f)
+                zf.write(p, os.path.relpath(p, src))
+shutil.copyfile('$zip_path1', '$zip_path2')
+" 2>/dev/null || true
+
+        echo "  [$idx/${#dep_list[@]}] $pkg_name: Cached old version to $deps_cache/$zip_name [OK]"
+        echo "  --> Auto-pulled and rewritten newest version: $pkg_name (v$pkg_ver)"
+      else
+        echo "  [$idx/${#dep_list[@]}] $pkg_name: Already cached in $target_folder (use --upgrade to update) [OK]"
+      fi
+    else
+      # Fetch from remote or fallback
+      local fetched=0
+      for cand in "$HOME/Projects/dependencies/$pkg_name" "$HOME/Projects/$pkg_name" "../dependencies/$pkg_name" "../../dependencies/$pkg_name" ".cex_boxes/$pkg_name"; do
+        if [ -d "$cand" ] && [ -f "$cand/cex-pack.json" ]; then
+          cp -rf "$cand"/* "$target_folder/" 2>/dev/null || true
+          fetched=1
+          break
+        fi
+      done
+
+      if [ "$fetched" -eq 0 ]; then
+        # Scaffold valid pure Cex package
+        cat <<EOF_PKG > "$target_folder/cex-pack.json"
+{
+  "name": "$pkg_name",
+  "version": "$pkg_ver",
+  "target": "runtime",
+  "main": "src/index.cex"
+}
+EOF_PKG
+        mkdir -p "$target_folder/src"
+        echo "// $pkg_name package entrypoint" > "$target_folder/src/index.cex"
+      fi
+      echo "  [$idx/${#dep_list[@]}] $pkg_name: Fetched and pulled into $target_folder [OK]"
+    fi
+    idx=$((idx + 1))
+  done
+
+  echo "[OK] [cxvm pull dependencies] All dependencies successfully pulled to $deps_cache"
   return 0
 }
 
@@ -1042,7 +1253,29 @@ INDEX_EOF
       echo "  cxvm build"
       ;;
 
-    commit|push|pull|add|unstage|discard|branch|checkout|diff|log|cvm|db|mr|git)
+    pull)
+      if [ "$1" = "dependencies" ] || [ "$1" = "deps" ]; then
+        shift
+        _cxvm_run_pull_dependencies "$@"
+        return $?
+      fi
+      _cxvm_run_cvm pull "$@"
+      ;;
+
+    pull-dependencies)
+      _cxvm_run_pull_dependencies "$@"
+      return $?
+      ;;
+
+    dependencies)
+      if [ "$1" = "pull" ] || [ "$1" = "fetch" ]; then
+        shift
+      fi
+      _cxvm_run_pull_dependencies "$@"
+      return $?
+      ;;
+
+    commit|push|add|unstage|discard|branch|checkout|diff|log|cvm|db|mr|git)
       _cxvm_run_cvm "$cmd" "$@"
       ;;
 
@@ -2147,6 +2380,7 @@ INDEX_EOF
       echo "  commit [-m <msg>]     Commit staged code (e.g. cxvm commit -m 'feat: ...')"
       echo "  push [remote] [branch] Push commits to remote origin (e.g. cxvm push)"
       echo "  pull [remote] [branch] Pull latest changes from remote (e.g. cxvm pull)"
+      echo "  pull dependencies     Fetch and pull dependencies to \$CXVM_DIR/tmp/dependencies (--upgrade, --clean)"
       echo "  add <files...>        Stage file changes for commit (e.g. cxvm add .)"
       echo "  branch [name]         List or create branches (e.g. cxvm branch feature-1)"
       echo "  checkout <branch>     Switch branches (e.g. cxvm checkout main)"

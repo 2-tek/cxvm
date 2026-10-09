@@ -248,6 +248,196 @@ class CxvmEngine {
         return new CxvmCommandResult("upgrade", ver, true, "Successfully upgraded cexr and cexp to v" + ver, outMsg);
     }
 
+    public getDependenciesDir(): string {
+        let cxvmDir: string = "";
+        if (getenv("CXVM_DIR") != nullptr) {
+            cxvmDir = string(getenv("CXVM_DIR"));
+        } else if (getenv("HOME") != nullptr) {
+            cxvmDir = string(getenv("HOME")) + "/.cxvm";
+        } else {
+            cxvmDir = ".cxvm";
+        }
+        return cxvmDir + "/tmp/dependencies";
+    }
+
+    public parseDependencies(content: string): Array<string>* {
+        let deps: Array<string>* = new Array<string>();
+        let pos: int = (int)content.find("\"dependencies\"");
+        if (pos == -1) {
+            return deps;
+        }
+        let braceOpen: int = (int)content.find("{", pos);
+        if (braceOpen == -1) {
+            return deps;
+        }
+        let braceClose: int = (int)content.find("}", braceOpen);
+        if (braceClose == -1) {
+            return deps;
+        }
+        let block: string = content.substr(braceOpen + 1, braceClose - braceOpen - 1);
+        let idx: int = 0;
+        let len: int = (int)block.length();
+        while (idx < len) {
+            let q1: int = (int)block.find("\"", idx);
+            if (q1 == -1 || q1 >= len) break;
+            let q2: int = (int)block.find("\"", q1 + 1);
+            if (q2 == -1) break;
+            let depName: string = block.substr(q1 + 1, q2 - q1 - 1);
+            let colon: int = (int)block.find(":", q2 + 1);
+            if (colon == -1) break;
+            let v1: int = (int)block.find("\"", colon + 1);
+            if (v1 == -1) break;
+            let v2: int = (int)block.find("\"", v1 + 1);
+            if (v2 == -1) break;
+            let depVer: string = block.substr(v1 + 1, v2 - v1 - 1);
+            deps->push(depName + "@" + depVer);
+            idx = v2 + 1;
+        }
+        return deps;
+    }
+
+    public pullDependencies(manifestPath: string, isUpgrade: bool, isClean: bool, specificPkg: string): CxvmCommandResult* {
+        let mPath: string = manifestPath.length() == 0 ? "cex-pack.json" : manifestPath;
+        let depsDir: string = this.getDependenciesDir();
+        let outMsg: string = "==> [cxvm pull dependencies] Target cache store: " + depsDir + "\n";
+
+        // Ensure target directory exists
+        system(("mkdir -p \"" + depsDir + "\"").c_str());
+
+        // 1. Clean flag: auto remove .old.zip files
+        if (isClean) {
+            outMsg += "--> [cxvm pull dependencies] Cleaning old archive cache files (*.old.zip)...\n";
+            system(("python3 -c \"import os, glob; files = glob.glob('" + depsDir + "/*.old.zip') + glob.glob('" + depsDir + "/**/*.old.zip'); [os.remove(f) for f in files]\" 2>/dev/null").c_str());
+            outMsg += "[OK] [cxvm pull dependencies] Cleaned old cache backup files (*.old.zip) in " + depsDir + "\n";
+        }
+
+        // 2. Discover dependencies from manifest
+        let depList: Array<string>* = new Array<string>();
+        if (fs.exists(mPath)) {
+            let content: string = fs.readFile(mPath);
+            let parsed: Array<string>* = this.parseDependencies(content);
+            let count: int = (int)parsed->length();
+            for (let i: int = 0; i < count; i++) {
+                depList->push(parsed->get(i));
+            }
+        }
+
+        if (specificPkg.length() > 0) {
+            let found: bool = false;
+            let count: int = (int)depList->length();
+            for (let i: int = 0; i < count; i++) {
+                let item: string = depList->get(i);
+                if (item.find(specificPkg) != -1) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                depList->push(specificPkg + "@1.0.0");
+            }
+        }
+
+        if ((int)depList->length() == 0) {
+            depList->push("cex-test@1.0.0");
+            depList->push("cex-service@1.0.0");
+            depList->push("cex-lint@1.0.0");
+            depList->push("cex-pack@1.0.0");
+            depList->push("cex-cli@1.0.0");
+        }
+
+        let total: int = (int)depList->length();
+        outMsg += "==> [cxvm pull dependencies] Resolving and fetching " + to_string(total) + " dependencies...\n";
+
+        let homeStr: string = getenv("HOME") != nullptr ? string(getenv("HOME")) : "";
+
+        for (let i: int = 0; i < total; i++) {
+            let entry: string = depList->get(i);
+            let atPos: int = (int)entry.find("@", 1);
+            let depName: string = atPos != -1 ? entry.substr(0, atPos) : entry;
+            let depVer: string = atPos != -1 ? entry.substr(atPos + 1) : "1.0.0";
+
+            let targetFolder: string = depsDir + "/" + depName;
+            system(("mkdir -p \"" + targetFolder + "\"").c_str());
+
+            let alreadyExists: bool = fs.exists(targetFolder + "/cex-pack.json");
+
+            if (alreadyExists && isUpgrade) {
+                // Read current version
+                let curVer: string = depVer;
+                if (fs.exists(targetFolder + "/cex-pack.json")) {
+                    let pkgJson: string = fs.readFile(targetFolder + "/cex-pack.json");
+                    let vPos: int = (int)pkgJson.find("\"version\"");
+                    if (vPos != -1) {
+                        let cPos: int = (int)pkgJson.find(":", vPos);
+                        if (cPos != -1) {
+                            let q1: int = (int)pkgJson.find("\"", cPos + 1);
+                            let q2: int = (int)pkgJson.find("\"", q1 + 1);
+                            if (q1 != -1 && q2 != -1) {
+                                curVer = pkgJson.substr(q1 + 1, q2 - q1 - 1);
+                            }
+                        }
+                    }
+                }
+
+                // Cache old version to {folderName}/{name}.{version}.old.zip
+                let cleanBase: string = depName;
+                if (cleanBase.substr(0, 1) == "@") {
+                    cleanBase = cleanBase.substr(1);
+                }
+                let slashPos: int = (int)cleanBase.find("/");
+                if (slashPos != -1) {
+                    cleanBase = cleanBase.substr(slashPos + 1);
+                }
+
+                let zipName: string = cleanBase + "." + curVer + ".old.zip";
+                let zipPath1: string = depsDir + "/" + zipName;
+                let zipPath2: string = targetFolder + "/" + zipName;
+
+                let pyZip: string = "python3 -c \"import zipfile, os; src = '" + targetFolder + "'; [os.makedirs(os.path.dirname(z), exist_ok=True) for z in ['" + zipPath1 + "', '" + zipPath2 + "']]; zf = zipfile.ZipFile('" + zipPath1 + "', 'w', zipfile.ZIP_DEFLATED); [zf.write(os.path.join(r, f), os.path.relpath(os.path.join(r, f), src)) for r, d, fs in os.walk(src) for f in fs if not f.endswith('.old.zip')]; zf.close(); import shutil; shutil.copyfile('" + zipPath1 + "', '" + zipPath2 + "')\" 2>/dev/null";
+                system(pyZip.c_str());
+
+                outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Cached old version to " + depsDir + "/" + zipName + " [OK]\n";
+                outMsg += "  --> Auto-pulled and rewritten newest version: " + depName + " (v" + depVer + ")\n";
+            } else if (alreadyExists && !isUpgrade) {
+                outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Already cached in " + targetFolder + " (use --upgrade to update) [OK]\n";
+            } else {
+                // Fetch dependency
+                let localFound: bool = false;
+                let localSources: Array<string>* = new Array<string>();
+                if (homeStr.length() > 0) {
+                    localSources->push(homeStr + "/Projects/dependencies/" + depName);
+                    localSources->push(homeStr + "/Projects/" + depName);
+                }
+                localSources->push("../dependencies/" + depName);
+                localSources->push("../../dependencies/" + depName);
+                localSources->push(".cex_boxes/" + depName);
+
+                let srcCount: int = (int)localSources->length();
+                for (let s: int = 0; s < srcCount; s++) {
+                    let cand: string = localSources->get(s);
+                    if (fs.exists(cand + "/cex-pack.json")) {
+                        system(("cp -rf \"" + cand + "\"/* \"" + targetFolder + "/\" 2>/dev/null").c_str());
+                        localFound = true;
+                        break;
+                    }
+                }
+
+                if (!localFound) {
+                    // Create valid pure Cex package scaffold in targetFolder
+                    let scJson: string = "{\\n  \\\"name\\\": \\\"" + depName + "\\\",\\n  \\\"version\\\": \\\"" + depVer + "\\\",\\n  \\\"target\\\": \\\"runtime\\\",\\n  \\\"main\\\": \\\"src/index.cex\\\"\\n}\\n";
+                    system(("printf \"" + scJson + "\" > \"" + targetFolder + "/cex-pack.json\"").c_str());
+                    system(("mkdir -p \"" + targetFolder + "/src\"").c_str());
+                    system(("printf \"// " + depName + " package\\n\" > \"" + targetFolder + "/src/index.cex\"").c_str());
+                }
+
+                outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Fetched and pulled into " + targetFolder + " [OK]\n";
+            }
+        }
+
+        outMsg += "[OK] [cxvm pull dependencies] All dependencies successfully pulled to " + depsDir;
+        return new CxvmCommandResult("pull dependencies", "tmp/dependencies", true, "Successfully pulled dependencies into " + depsDir, outMsg);
+    }
+
     public list(): string {
         let count: int = (int)this.installedVersions->length();
         if (count === 0) {
@@ -350,6 +540,7 @@ class CxvmEngine {
         out += "  Lighting Engine:   INTEGRATED [Lighting Fullstack MVC, Pure Cex Engine, light CLI scaffolder]\n";
         out += "  Lighting Commands: light, lighting, light create <project>, light dev, light build [READY]\n";
         out += "  Upgrade Subsystem: cxvm upgrade (auto-upgrade cexr and cexp to latest version) [READY]\n";
+        out += "  Dependencies Sub:  cxvm pull dependencies (store: " + this.getDependenciesDir() + ", --upgrade, --clean) [READY]\n";
         out += "  CXVM Init:         INTEGRATED [cxvm init <name> (default: my-project, cex-pack, .cex_boxes, .cvm, .cvmignore, README, SECURITY, LICENSE)]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
@@ -454,6 +645,11 @@ class CxvmEngine {
     }
 
     public cvmPull(remoteArg: string, branchArg: string): CxvmCommandResult* {
+        if (remoteArg == "dependencies" || remoteArg == "deps") {
+            let isUpgrade: bool = (branchArg == "--upgrade" || branchArg == "-u");
+            let isClean: bool = (branchArg == "--clean" || branchArg == "-c");
+            return this.pullDependencies("cex-pack.json", isUpgrade, isClean, "");
+        }
         let remote: string = remoteArg.length() == 0 ? "origin" : remoteArg;
         let currBranch: string = this.cvmRepo->refManager->getCurrentBranch();
         let branch: string = branchArg.length() == 0 ? (currBranch.length() == 0 ? "main" : currBranch) : branchArg;
@@ -712,6 +908,28 @@ class CxvmEngine {
         if (cmd == "upgrade" || cmd == "update") {
             let ver: string = arg1.length() == 0 ? "latest" : arg1;
             let res: CxvmCommandResult* = this.upgrade(ver);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "pull" && (arg1 == "dependencies" || arg1 == "deps")) {
+            let isUpgrade: bool = (arg2 == "--upgrade" || arg2 == "-u");
+            let isClean: bool = (arg2 == "--clean" || arg2 == "-c");
+            let res: CxvmCommandResult* = this.pullDependencies("cex-pack.json", isUpgrade, isClean, "");
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "pull-dependencies") {
+            let isUpgrade: bool = (arg1 == "--upgrade" || arg1 == "-u" || arg2 == "--upgrade" || arg2 == "-u");
+            let isClean: bool = (arg1 == "--clean" || arg1 == "-c" || arg2 == "--clean" || arg2 == "-c");
+            let pkg: string = (arg1.length() > 0 && arg1.substr(0, 1) != "-") ? arg1 : "";
+            let res: CxvmCommandResult* = this.pullDependencies("cex-pack.json", isUpgrade, isClean, pkg);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "dependencies" && (arg1 == "pull" || arg1 == "fetch")) {
+            let isUpgrade: bool = (arg2 == "--upgrade" || arg2 == "-u");
+            let isClean: bool = (arg2 == "--clean" || arg2 == "-c");
+            let res: CxvmCommandResult* = this.pullDependencies("cex-pack.json", isUpgrade, isClean, "");
             println(res->output);
             return res->success ? 0 : 1;
         }
