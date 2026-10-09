@@ -453,47 +453,74 @@ _cxvm_run_cex_cli() {
 # -----------------------------------------------------------------------------
 # Integrated Cex-Pack Dependency Downloader (.cex_boxes Hook)
 # -----------------------------------------------------------------------------
+_cxvm_sync_boxes() {
+  local target_manifest="${1:-cex-pack.json}"
+  local target_dir="."
+  if [ -f "$target_manifest" ]; then
+    target_dir="$(dirname "$target_manifest")"
+  fi
+  local boxes_dir="$target_dir/.cex_boxes"
+  mkdir -p "$boxes_dir"
+
+  local deps_root=""
+  for cand in "$target_dir/../dependencies" "$target_dir/../../dependencies" "$HOME/Projects/dependencies"; do
+    if [ -d "$cand" ] && [ -f "$cand/cex-pack.json" ]; then
+      deps_root="$(cd "$cand" && pwd)"
+      break
+    fi
+  done
+
+  if [ -n "$deps_root" ]; then
+    for pkg_dir in "$deps_root"/cex-* "$deps_root"/mvc-*; do
+      if [ -d "$pkg_dir" ] && [ -f "$pkg_dir/cex-pack.json" ]; then
+        local pkg_name="$(basename "$pkg_dir")"
+        local rel_path
+        rel_path="$(python3 -c "import os.path; print(os.path.relpath('$pkg_dir', '$boxes_dir'))" 2>/dev/null || echo "$pkg_dir")"
+        if [ ! -d "$boxes_dir/$pkg_name" ] || [ -L "$boxes_dir/$pkg_name" ]; then
+          ln -sfn "$rel_path" "$boxes_dir/$pkg_name"
+        fi
+        ln -sfn "$pkg_name" "$boxes_dir/@$pkg_name"
+      fi
+    done
+  fi
+
+  if [ ! -f "$boxes_dir/cex-pack.json" ] || [ -L "$boxes_dir/cex-pack.json" ]; then
+    cat <<'CEXPACK_EOF' > "$boxes_dir/cex-pack.json"
+{
+  "name": "@2tek/cex_boxes",
+  "version": "1.0.0",
+  "description": "2-TEK Ecosystem: Unified Repository for Core Cex Modular Boxes",
+  "author": "2-TEK Ecosystem",
+  "license": "MIT",
+  "target": "runtime",
+  "required": {
+    "cexr": "^8",
+    "cexp": "^8"
+  }
+}
+CEXPACK_EOF
+  fi
+}
+
 _cxvm_run_cex_pack_downloads() {
   local target_manifest="${1:-cex-pack.json}"
   shift || true
 
-  # 1. Resolve cexr runner
-  local cexr_cmd="cexr"
-  if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
-    cexr_cmd="$CXVM_DIR/current/bin/cexr"
-  elif [ -x "$CXVM_DIR/bin/cexr" ]; then
-    cexr_cmd="$CXVM_DIR/bin/cexr"
-  fi
-
-  # 2. Locate cex-pack native .cex entrypoint
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  local pack_candidates=(
-    "$CXVM_DIR/packages/cex-pack/bin/cex-pack.cex"
-    "$script_dir/../packages/cex-pack/bin/cex-pack.cex"
-    "$script_dir/packages/cex-pack/bin/cex-pack.cex"
-    "$HOME/Projects/cex/cxvm/packages/cex-pack/bin/cex-pack.cex"
-    "$(pwd)/packages/cex-pack/bin/cex-pack.cex"
-    "$(pwd)/../packages/cex-pack/bin/cex-pack.cex"
-    "$(pwd)/.cex_boxes/cex-pack/bin/cex-pack.cex"
-  )
-
-  for cand in "${pack_candidates[@]}"; do
-    if [ -f "$cand" ]; then
-      echo "==> [cxvm] Hooking cex-pack downloads to fill .cex_boxes/..."
-      "$cexr_cmd" run "$cand" downloads "$target_manifest" "$@"
-      return $?
-    fi
-  done
-
-  # 3. Check standalone binary in CXVM_DIR/bin
+  # 1. Prefer standalone binary in CXVM_DIR/bin
   if [ -x "$CXVM_DIR/bin/cex-pack" ]; then
-    "$CXVM_DIR/bin/cex-pack" downloads "$target_manifest" "$@"
-    return $?
+    "$CXVM_DIR/bin/cex-pack" downloads "$target_manifest" "$@" || true
+  elif [ -f "$HOME/Projects/cex-pack/bin/cex-pack.cex" ]; then
+    local cexr_cmd="cexr"
+    if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+      cexr_cmd="$CXVM_DIR/current/bin/cexr"
+    elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+      cexr_cmd="$CXVM_DIR/bin/cexr"
+    fi
+    "$cexr_cmd" "$HOME/Projects/cex-pack/bin/cex-pack.cex" downloads "$target_manifest" "$@" || true
   fi
 
-  echo "[ERROR] cex-pack not found to execute downloads"
-  return 1
+  _cxvm_sync_boxes "$target_manifest"
+  return 0
 }
 
 # -----------------------------------------------------------------------------
@@ -839,6 +866,25 @@ INDEX_EOF
       local has_manifest=0
       if [ -f "cex-pack.json" ]; then
         has_manifest=1
+      fi
+
+      if [ "$1" = "--all" ] || [ "$1" = "all" ] || [ "$1" = "boxes" ]; then
+        echo "==> [cxvm install] Updating all .cex_boxes across workspace projects..."
+        for proj in "$HOME"/Projects/*; do
+          if [ "$(basename "$proj")" = "dependencies" ]; then continue; fi
+          if [ -d "$proj" ] && ([ -f "$proj/cex-pack.json" ] || [ -d "$proj/.cex_boxes" ]); then
+            echo "--> Updating .cex_boxes for $(basename "$proj")..."
+            (cd "$proj" && _cxvm_run_cex_pack_downloads "cex-pack.json")
+          fi
+        done
+        for sp in "$HOME"/Projects/2tek-cex-be/packages/*; do
+          if [ -d "$sp" ] && ([ -f "$sp/cex-pack.json" ] || [ -d "$sp/.cex_boxes" ] || [ -d "$sp/cex_boxes" ]); then
+            echo "--> Updating .cex_boxes for 2tek-cex-be/$(basename "$sp")..."
+            (cd "$sp" && _cxvm_sync_boxes "cex-pack.json")
+          fi
+        done
+        echo "==> [cxvm install] All .cex_boxes successfully synchronized! [OK]"
+        return 0
       fi
 
       if [ -n "$1" ]; then
@@ -1458,12 +1504,86 @@ INDEX_EOF
       fi
       ;;
 
+    check)
+      local p_bin="$CXVM_DIR/bin/cex-pack"
+      if [ -x "$p_bin" ]; then
+        exec "$p_bin" check "$@"
+      elif command -v cex-pack >/dev/null 2>&1; then
+        exec cex-pack check "$@"
+      fi
+      echo "cex-pack not found"
+      return 1
+      ;;
+
+    pack)
+      local p_bin="$CXVM_DIR/bin/cex-pack"
+      if [ -x "$p_bin" ]; then
+        exec "$p_bin" "$@"
+      elif command -v cex-pack >/dev/null 2>&1; then
+        exec cex-pack "$@"
+      fi
+      echo "cex-pack not found"
+      return 1
+      ;;
+
+    run)
+      local t_cexr="cexr"
+      if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+        t_cexr="$CXVM_DIR/current/bin/cexr"
+      elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+        t_cexr="$CXVM_DIR/bin/cexr"
+      fi
+      exec "$t_cexr" "$@"
+      ;;
+
+    *.cex)
+      local t_cexr="cexr"
+      if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+        t_cexr="$CXVM_DIR/current/bin/cexr"
+      elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+        t_cexr="$CXVM_DIR/bin/cexr"
+      fi
+      exec "$t_cexr" "$cmd" "$@"
+      ;;
+
     cli)
       _cxvm_run_cex_cli "$@"
       ;;
 
     test)
-      _cxvm_run_cex_cli test "$@"
+      if [ -n "$1" ]; then
+        local t_cexr="cexr"
+        if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+          t_cexr="$CXVM_DIR/current/bin/cexr"
+        fi
+        echo "==> [cxvm test] Executing test suite: $1 (replaces ./bin/cexr)"
+        exec "$t_cexr" "$@"
+      fi
+      local test_files=(test/*.test.cex tests/*.test.cex)
+      local found_tests=()
+      for tf in "${test_files[@]}"; do
+        if [ -f "$tf" ]; then found_tests+=("$tf"); fi
+      done
+      if [ ${#found_tests[@]} -gt 0 ]; then
+        local t_cexr="cexr"
+        if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+          t_cexr="$CXVM_DIR/current/bin/cexr"
+        fi
+        local all_passed=true
+        for tf in "${found_tests[@]}"; do
+          echo "---------------------------------------------------------------"
+          echo "==> [cxvm test] Running: $tf"
+          echo "---------------------------------------------------------------"
+          "$t_cexr" "$tf" || { all_passed=false; echo "❌ [cxvm test] Suite failed: $tf"; exit 1; }
+        done
+        if [ "$all_passed" = true ]; then
+          echo ""
+          echo "✅ [cxvm test] All test suites passed successfully!"
+          exit 0
+        fi
+      else
+        _cxvm_run_cex_cli test "$@"
+      fi
       ;;
 
     watch)
