@@ -498,6 +498,28 @@ fn main(): int {
 
     suite->addResult("test_auto_detect_main_on_build", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 11: Auto-Upgrade Cex Toolchain (cxvm upgrade)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 11: Auto-Upgrade Cex Toolchain (cxvm upgrade)]");
+    let upRes1: CxvmCommandResult* = cxvm->upgrade("latest");
+    Assert::isTrue(upRes1->success, "cxvm upgrade latest succeeds");
+    Assert::equalsString("8.0.0", upRes1->version, "cxvm upgrade latest targets v8.0.0");
+    Assert::isTrue(upRes1->output.find("cexr runtime engine upgraded") != -1, "Output confirms cexr runtime upgraded");
+    Assert::isTrue(upRes1->output.find("cexp direct machine compiler upgraded") != -1, "Output confirms cexp compiler upgraded");
+
+    let upExec1: int = cxvm->cvmExecute("upgrade", "", "");
+    Assert::equalsInt(0, upExec1, "cxvm cvmExecute upgrade returns exit code 0");
+
+    let upExec2: int = cxvm->cvmExecute("upgrade", "8.0.0", "");
+    Assert::equalsInt(0, upExec2, "cxvm cvmExecute upgrade 8.0.0 returns exit code 0");
+
+    let upResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/upgrade", "", "application/json");
+    Assert::equalsInt(200, upResp->statusCode, "GET /api/v1/upgrade returns 200 OK");
+    Assert::isTrue(upResp->body.find("\"success\":true") != -1, "Upgrade API reports success:true");
+
+    suite->addResult("test_auto_upgrade_toolchain", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

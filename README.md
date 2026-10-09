@@ -128,6 +128,7 @@ cxvm use 6.0.0
 | `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v8.0.0`) |
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
+| `cxvm upgrade [ver]` | — | Auto-detects latest release (or specified version) and upgrades `cexr` & `cexp` toolchains |
 | `cxvm start` | `npm start` | Auto-lints and starts project (auto-detects main entrypoint from `cex-pack.json`) |
 | `cxvm dev` | `npm run dev` | Auto-lints and starts development server (auto-detects main entrypoint from `cex-pack.json`) |
 | `cxvm build` | `npm run build` | Compiles project with `cexp` native compiler (auto-detects main entrypoint from `cex-pack.json`) |

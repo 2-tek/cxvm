@@ -285,6 +285,7 @@ class FactoryViews {
         content += "      <tr><td>List remote</td><td><code>nvm ls-remote</code></td><td><code style=\"color: #38bdf8;\">cxvm list-remote</code></td><td>Queries Factory catalog for upstream releases</td></tr>\n";
         content += "      <tr><td>Set default</td><td><code>nvm alias default 18</code></td><td><code style=\"color: #38bdf8;\">cxvm default 8.0.0</code></td><td>Sets default version for all new terminals</td></tr>\n";
         content += "      <tr><td>Current version</td><td><code>nvm current</code></td><td><code style=\"color: #38bdf8;\">cxvm current</code></td><td>Prints current active version (e.g. v8.0.0)</td></tr>\n";
+        content += "      <tr><td>Upgrade toolchain</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm upgrade [ver]</code></td><td>Auto-upgrades cexr runtime engine and cexp compiler to latest release</td></tr>\n";
         content += "      <tr><td>System doctor</td><td>—</td><td><code style=\"color: #38bdf8;\">cxvm doctor</code></td><td>Validates native cexr runtime, cexp compiler, paths &amp; diagnostics (zero C++ dependency)</td></tr>\n";
         content += "    </tbody>\n";
         content += "  </table>\n";

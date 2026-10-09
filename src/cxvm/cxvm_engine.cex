@@ -209,6 +209,45 @@ class CxvmEngine {
         return "v" + this.currentVersion;
     }
 
+    public getLatestVersion(): string {
+        let count: int = (int)this.availableVersions->length();
+        if (count > 0) {
+            return this.availableVersions->get(0)->version;
+        }
+        return "8.0.0";
+    }
+
+    public upgrade(targetVersion: string): CxvmCommandResult* {
+        let ver: string = targetVersion;
+        if (ver.length() == 0 || ver == "latest" || ver == "last") {
+            ver = this.getLatestVersion();
+        }
+
+        if (!this.isVersionAvailable(ver)) {
+            return new CxvmCommandResult("upgrade", ver, false, "Version v" + ver + " is not available in Factory catalog.", "[FAIL] [cxvm upgrade] Remote version v" + ver + " not found");
+        }
+
+        let curVer: string = this.current();
+        let outMsg: string = "==> [cxvm upgrade] Checking latest version of Cex toolchain...\n";
+        outMsg += "==> [cxvm upgrade] Current active version: " + curVer + "\n";
+        outMsg += "==> [cxvm upgrade] Target latest version: v" + ver + "\n";
+        outMsg += "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v" + ver + ")...\n";
+        outMsg += "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v" + ver + ")...\n";
+
+        if (!this.isVersionInstalled(ver)) {
+            this.install(ver);
+        }
+        this.use(ver);
+        this.setDefault(ver);
+
+        outMsg += "[OK] [cxvm upgrade] cexr runtime engine upgraded to v" + ver + "\n";
+        outMsg += "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v" + ver + "\n";
+        outMsg += "[OK] [cxvm upgrade] Dispatched active toolchain symlinks in " + this.cxvmHome + "/bin/\n";
+        outMsg += "[OK] [cxvm upgrade] Toolchain is now at the latest version (v" + ver + ")";
+
+        return new CxvmCommandResult("upgrade", ver, true, "Successfully upgraded cexr and cexp to v" + ver, outMsg);
+    }
+
     public list(): string {
         let count: int = (int)this.installedVersions->length();
         if (count === 0) {
@@ -310,6 +349,7 @@ class CxvmEngine {
         out += "  Thunder Daemon:    " + thunSrvStr + "\n";
         out += "  Lighting Engine:   INTEGRATED [Lighting Fullstack MVC, Pure Cex Engine, light CLI scaffolder]\n";
         out += "  Lighting Commands: light, lighting, light create <project>, light dev, light build [READY]\n";
+        out += "  Upgrade Subsystem: cxvm upgrade (auto-upgrade cexr and cexp to latest version) [READY]\n";
         out += "  CXVM Init:         INTEGRATED [cxvm init <name> (default: my-project, cex-pack, .cex_boxes, .cvm, .cvmignore, README, SECURITY, LICENSE)]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + std::to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
@@ -668,6 +708,12 @@ class CxvmEngine {
             println("==> [cxvm build] Compiling project (" + mainFile + ") with cexp native compiler...");
             println("[OK] [cxvm build] Production binary built successfully in bin/");
             return 0;
+        }
+        if (cmd == "upgrade" || cmd == "update") {
+            let ver: string = arg1.length() == 0 ? "latest" : arg1;
+            let res: CxvmCommandResult* = this.upgrade(ver);
+            println(res->output);
+            return res->success ? 0 : 1;
         }
         if (cmd == "thunder" || cmd == "docker") {
             return this.thunderExecute(arg1, arg2, "");

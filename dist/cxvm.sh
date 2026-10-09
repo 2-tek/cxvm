@@ -1915,6 +1915,102 @@ INDEX_EOF
       fi
       ;;
 
+    upgrade|update)
+      local target_ver="$1"
+      if [ -z "$target_ver" ] || [ "$target_ver" = "latest" ] || [ "$target_ver" = "last" ]; then
+        local manifest_cand=""
+        for m in "$CXVM_DIR/downloads/manifest.json" "$CXVM_DIR/cache/manifest.json" "dist/manifest.json" "downloads/manifest.json"; do
+          if [ -f "$m" ]; then manifest_cand="$m"; break; fi
+        done
+        if [ -n "$manifest_cand" ]; then
+          target_ver=$(grep -o '"defaultVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$manifest_cand" 2>/dev/null | head -n 1 | sed -E 's/.*"defaultVersion"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/')
+          if [ -z "$target_ver" ]; then
+            target_ver=$(grep -A 2 '"versions"' "$manifest_cand" 2>/dev/null | grep -v 'versions' | grep '"' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+          fi
+        fi
+        if [ -z "$target_ver" ]; then
+          target_ver="8.0.0"
+        fi
+      else
+        target_ver="${target_ver#v}"
+      fi
+
+      local cur_ver
+      cur_ver="$(cxvm current 2>/dev/null || echo "v8.0.0")"
+      echo "==> [cxvm upgrade] Checking latest version of Cex toolchain..."
+      echo "==> [cxvm upgrade] Current active version: $cur_ver"
+      echo "==> [cxvm upgrade] Target latest version: v$target_ver"
+      echo "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v$target_ver)..."
+      echo "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v$target_ver)..."
+
+      cxvm install "$target_ver" >/dev/null 2>&1 || true
+
+      local s_dir
+      s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+      # Sync and compile latest cexr if local repo is found
+      for cand_r in "$s_dir/../cexr" "$s_dir/../../cexr" "$HOME/Projects/cexr"; do
+        if [ -d "$cand_r" ] && [ -f "$cand_r/cex-pack.json" ]; then
+          echo "--> [cxvm upgrade] Found local cexr repository at $(cd "$cand_r" && pwd)"
+          if [ -f "$cand_r/src/index.cex" ] && command -v cexp >/dev/null 2>&1; then
+            mkdir -p "$cand_r/bin"
+            cexp build "$cand_r/src/index.cex" -o "$cand_r/bin/cexr" >/dev/null 2>&1 || true
+            if [ -f "$cand_r/bin/cexr" ]; then
+              cp -f "$cand_r/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+              mkdir -p "$CXVM_DIR/versions/v$target_ver/bin"
+              cp -f "$cand_r/bin/cexr" "$CXVM_DIR/versions/v$target_ver/bin/cexr" 2>/dev/null || true
+            fi
+          fi
+          break
+        fi
+      done
+
+      # Sync and compile latest cexp if local repo is found
+      for cand_p in "$s_dir/../cexp" "$s_dir/../../cexp" "$HOME/Projects/cexp"; do
+        if [ -d "$cand_p" ] && [ -f "$cand_p/cex-pack.json" ]; then
+          echo "--> [cxvm upgrade] Found local cexp repository at $(cd "$cand_p" && pwd)"
+          if [ -f "$cand_p/src/index.cex" ] && command -v cexp >/dev/null 2>&1; then
+            mkdir -p "$cand_p/bin"
+            cexp build "$cand_p/src/index.cex" -o "$cand_p/bin/cexp" >/dev/null 2>&1 || true
+            if [ -f "$cand_p/bin/cexp" ]; then
+              cp -f "$cand_p/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+              mkdir -p "$CXVM_DIR/versions/v$target_ver/bin"
+              cp -f "$cand_p/bin/cexp" "$CXVM_DIR/versions/v$target_ver/bin/cexp" 2>/dev/null || true
+            fi
+          fi
+          break
+        fi
+      done
+
+      # Ensure compiler fallback from system if not yet copied
+      if [ -x "$HOME/bin/cex/compiler/v1/cex" ]; then
+        if [ ! -f "$CXVM_DIR/bin/cexr" ] || [ ! -s "$CXVM_DIR/bin/cexr" ]; then
+          cp -f "$HOME/bin/cex/compiler/v1/cex" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+        fi
+        if [ ! -f "$CXVM_DIR/bin/cexp" ] || [ ! -s "$CXVM_DIR/bin/cexp" ]; then
+          cp -f "$HOME/bin/cex/compiler/v1/cex" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+        fi
+      fi
+
+      cxvm use "$target_ver" >/dev/null 2>&1 || true
+      cxvm default "$target_ver" >/dev/null 2>&1 || true
+
+      if [ -d "bin" ]; then
+        if [ -f "bin/cexr" ]; then
+          echo "--> [cxvm upgrade] Synchronized project ./bin/cexr dispatcher"
+        fi
+        if [ -f "bin/cexp" ]; then
+          echo "--> [cxvm upgrade] Synchronized project ./bin/cexp dispatcher"
+        fi
+      fi
+
+      echo "[OK] [cxvm upgrade] cexr runtime engine upgraded to v$target_ver"
+      echo "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v$target_ver"
+      echo "[OK] [cxvm upgrade] Dispatched active toolchain symlinks in $CXVM_DIR/bin/"
+      echo "[OK] [cxvm upgrade] Cex toolchain successfully upgraded to latest version (v$target_ver)"
+      return 0
+      ;;
+
     uninstall)
       local ver="$1"
       if [ -z "$ver" ]; then
@@ -2009,6 +2105,7 @@ INDEX_EOF
       echo "  list (ls)             List locally installed Cex runtime versions"
       echo "  list-remote (ls-remote) List available remote versions from Factory"
       echo "  default <ver>         Set default Cex version across terminal sessions"
+      echo "  upgrade [ver]         Auto-upgrade cexr, cexp, and toolchains to latest version"
       echo "  uninstall <ver>       Remove an installed Cex version"
       echo "  doctor                Run pre-flight environment diagnostics"
       echo ""

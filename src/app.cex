@@ -79,6 +79,8 @@ class FactoryApp {
         this.router->get("/api/v1/thunder/images", "factory.apiThunderImages");
         this.router->get("/api/v1/light/status", "factory.apiLightStatus");
         this.router->post("/api/v1/light/create", "factory.apiLightCreate");
+        this.router->get("/api/v1/upgrade", "factory.apiUpgrade");
+        this.router->post("/api/v1/upgrade", "factory.apiUpgrade");
     }
 
     public start(): void {
@@ -184,6 +186,10 @@ class FactoryApp {
 
         if (route->handlerId === "factory.build") {
             return this.controller->apiBuild(req, this.builder);
+        }
+
+        if (route->handlerId === "factory.apiUpgrade") {
+            return this.controller->apiUpgrade(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.apiCvmStatus") {

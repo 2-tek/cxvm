@@ -669,6 +669,25 @@ echo CexR Windows Runner ready.
         & $PSCommandPath -Command "use" -Version $Version
         Write-Host "==> [cxvm] Default Cex version set to v$Version" -ForegroundColor Green
     }
+    "upgrade" {
+        $targetVer = if ($Version -and $Version -ne "latest" -and $Version -ne "last") { $Version.TrimStart('v') } else { "8.0.0" }
+        $curVer = (Get-Content (Join-Path $cxvmHome "default") -ErrorAction SilentlyContinue)
+        if (-not $curVer) { $curVer = "8.0.0" }
+        Write-Host "==> [cxvm upgrade] Checking latest version of Cex toolchain..." -ForegroundColor Cyan
+        Write-Host "==> [cxvm upgrade] Current active version: v$curVer"
+        Write-Host "==> [cxvm upgrade] Target latest version: v$targetVer"
+        Write-Host "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v$targetVer)..."
+        Write-Host "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v$targetVer)..."
+
+        & $PSCommandPath -Command "install" -Version $targetVer
+        & $PSCommandPath -Command "use" -Version $targetVer
+        & $PSCommandPath -Command "default" -Version $targetVer
+
+        Write-Host "[OK] [cxvm upgrade] cexr runtime engine upgraded to v$targetVer" -ForegroundColor Green
+        Write-Host "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v$targetVer" -ForegroundColor Green
+        Write-Host "[OK] [cxvm upgrade] Dispatched active toolchain symlinks in $cxvmHome\bin\" -ForegroundColor Green
+        Write-Host "[OK] [cxvm upgrade] Cex toolchain successfully upgraded to latest version (v$targetVer)" -ForegroundColor Green
+    }
     "uninstall" {
         if (-not $Version) { Write-Host "Usage: cxvm uninstall <version>" -ForegroundColor Red; return }
         $targetDir = Join-Path $cxvmHome "versions\v$Version"

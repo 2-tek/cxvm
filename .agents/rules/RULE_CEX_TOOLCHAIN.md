@@ -33,6 +33,7 @@ trigger: always_on
 | **Environment Doctor** | `./bin/cex doctor` \| `./bin/cxvm doctor` | Inspect environment, paths, active runtime, and toolchains |
 | **Switch Active Runtime** | `cxvm use <version>` \| `./bin/cxvm use <version>` | Update active runtime symlink and session PATH |
 | **Install Version** | `cxvm install <version>` | Download and install pre-built runtime package |
+| **Upgrade Toolchain** | `cxvm upgrade [version]` \| `cxvm update` | Auto-detect latest release and upgrade `cexr` & `cexp` |
 
 ---
 

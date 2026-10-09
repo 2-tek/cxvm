@@ -100,6 +100,16 @@ class FactoryController extends BaseController {
         return this.json(doc);
     }
 
+    public apiUpgrade(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->upgrade("latest");
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "version", res->version);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
     public serveInstallSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
         let filePath: string = downloadsDir + "/install.sh";
         if (fs.exists(filePath)) {
