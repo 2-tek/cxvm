@@ -1,0 +1,161 @@
+// 2-TEK Cex Promise & Async/Await Test Suite
+// Verification of Single Process and Multi Real CPU Process Execution
+// Complies with Rule 29 (EOF Integrity), Rule 72 (Dynamic Paths), Rule (No Symbols)
+
+import "@cex-test/src/assert.cex";
+import "@cex-test/src/runner.cex";
+
+async fn asyncCompute(baseVal: int): Promise<int>* {
+    return Promise<int>::process([=]() {
+        let acc: int = 0;
+        for (int i = 1; i <= baseVal; i++) {
+            acc += i;
+        }
+        return acc;
+    });
+}
+
+class AsyncCalculator {
+    public async computeCpu(multiplier: int): Promise<int>* {
+        return Promise<int>::process([=]() {
+            return multiplier * 10;
+        });
+    }
+
+    public async computeThread(multiplier: int): Promise<int>* {
+        return Promise<int>::single([=]() {
+            return multiplier * 5;
+        });
+    }
+}
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK Cex Promise & Async/Await Verification Test Suite                 ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("Promise and Async/Await Tests");
+
+    // -------------------------------------------------------------
+    // Test 1: Promise Resolve, Reject & State Lifecycle
+    // -------------------------------------------------------------
+    println("\n[Test Suite 1: Promise Lifecycle & Resolution]");
+    let pResolve: Promise<int>* = Promise<int>::resolve(100);
+    Assert::isTrue(pResolve->isFulfilled(), "Promise::resolve marks state fulfilled");
+    Assert::isFalse(pResolve->isPending(), "Promise::resolve is not pending");
+    Assert::isFalse(pResolve->isRejected(), "Promise::resolve is not rejected");
+    let resolveVal: int = await pResolve;
+    Assert::equalsInt(100, resolveVal, "await resolves immediate value correctly");
+
+    let pReject: Promise<int>* = Promise<int>::reject("Intentional test rejection");
+    Assert::isTrue(pReject->isRejected(), "Promise::reject marks state rejected");
+    let caughtError: bool = false;
+    pReject->catchError([&caughtError](string err) {
+        if (err.find("Intentional test rejection") != -1) {
+            caughtError = true;
+        }
+    });
+    Assert::isTrue(caughtError, "catchError handles rejected promise");
+    suite->addResult("test_promise_lifecycle", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 2: Single Process Asynchronous Promise (In-Process Worker)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 2: Single Process In-Process Worker Execution]");
+    let pSingle: Promise<int>* = Promise<int>::single([]() {
+        return 42;
+    });
+    Assert::isTrue(pSingle->getMode() == PromiseMode::SingleProcess, "Single process mode identified");
+    let singleRes: int = await pSingle;
+    Assert::equalsInt(42, singleRes, "Single process promise executes and returns 42");
+
+    let pSingleStr: Promise<string>* = Promise<string>::single([]() {
+        return string("Single Process Worker Thread");
+    });
+    let singleStrRes: string = await pSingleStr;
+    Assert::isTrue(singleStrRes == "Single Process Worker Thread", "Single process string result returned");
+    suite->addResult("test_single_process_promise", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 3: Multi Real CPU Process Parallel Execution (fork IPC)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 3: Multi Real CPU Process Execution]");
+    int parentPid = (int)getpid();
+    let pCpu: Promise<string>* = Promise<string>::process([]() {
+        int childPid = (int)getpid();
+        return string("WORKER_PID:") + std::to_string(childPid);
+    });
+    Assert::isTrue(pCpu->getMode() == PromiseMode::MultiProcess, "Multi process mode identified");
+    let cpuResStr: string = await pCpu;
+    Assert::isTrue(cpuResStr.find("WORKER_PID:") == 0, "Child CPU process returned worker message");
+
+    let childPidStr: string = cpuResStr.substr(11);
+    let childPid: int = std::stoi(childPidStr);
+    Assert::isTrue(childPid != parentPid, "Child CPU process executed under separate OS PID");
+    Assert::isTrue(childPid > 0, "Valid child OS PID reported");
+
+    // Real CPU heavy task across processes
+    let pSum: Promise<int>* = Promise<int>::process([]() {
+        int s = 0;
+        for (int i = 1; i <= 1000; i++) {
+            s += i;
+        }
+        return s;
+    });
+    let sumRes: int = await pSum;
+    Assert::equalsInt(500500, sumRes, "Multi real CPU process computes 1..1000 sum correctly (500500)");
+    suite->addResult("test_multi_real_cpu_process", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 4: Async Function & Class Async Methods
+    // -------------------------------------------------------------
+    println("\n[Test Suite 4: Async Function & Class Async Methods]");
+    let fnRes: int = await asyncCompute(10);
+    Assert::equalsInt(55, fnRes, "async fn with await computes 1..10 sum (55)");
+
+    let calc: AsyncCalculator* = new AsyncCalculator();
+    let cpuCalcRes: int = await calc->computeCpu(7);
+    Assert::equalsInt(70, cpuCalcRes, "Class async method on multi CPU process returns 70");
+
+    let threadCalcRes: int = await calc->computeThread(9);
+    Assert::equalsInt(45, threadCalcRes, "Class async method on single process returns 45");
+    suite->addResult("test_async_methods", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 5: Promise::all Across Single & Multi Real CPU Processes
+    // -------------------------------------------------------------
+    println("\n[Test Suite 5: Promise::all Parallel Aggregation]");
+    let pa1: Promise<int>* = Promise<int>::single([]() { return 10; });
+    let pa2: Promise<int>* = Promise<int>::process([]() { return 20; });
+    let pa3: Promise<int>* = Promise<int>::resolve(30);
+    let pAll: Promise<std::vector<int>>* = Promise<int>::all({pa1, pa2, pa3});
+    let allVals: std::vector<int> = await pAll;
+    Assert::equalsInt(3, (int)allVals.size(), "Promise::all collects all 3 promises");
+    Assert::equalsInt(10, allVals[0], "First promise result matches");
+    Assert::equalsInt(20, allVals[1], "Second promise result matches");
+    Assert::equalsInt(30, allVals[2], "Third promise result matches");
+    suite->addResult("test_promise_all", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 6: Promise<void> Execution
+    // -------------------------------------------------------------
+    println("\n[Test Suite 6: Promise<void> Execution]");
+    bool voidSingleExecuted = false;
+    let pvSingle: Promise<void>* = Promise<void>::single([&voidSingleExecuted]() {
+        voidSingleExecuted = true;
+    });
+    await pvSingle;
+    Assert::isTrue(voidSingleExecuted, "Promise<void> single process executed");
+
+    let pvCpu: Promise<void>* = Promise<void>::process([]() {
+        int cPid = (int)getpid();
+        (void)cPid;
+    });
+    await pvCpu;
+    Assert::isTrue(pvCpu->isFulfilled(), "Promise<void> multi real CPU process completed");
+    suite->addResult("test_promise_void", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}
