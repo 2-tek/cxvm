@@ -1,13 +1,13 @@
 // 2-TEK Factory: Package Entrypoint & Live Demonstration (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-import "./types.cex";
-import "./models/platform_model.cex";
-import "./models/version_model.cex";
-import "./models/artifact_model.cex";
-import "./builder/dist_builder.cex";
-import "./cxvm/cxvm_engine.cex";
-import "./app.cex";
+import "@/src/types.cex";
+import "@/src/models/platform_model.cex";
+import "@/src/models/version_model.cex";
+import "@/src/models/artifact_model.cex";
+import "@/src/builder/dist_builder.cex";
+import "@/src/cxvm/cxvm_engine.cex";
+import "@/src/app.cex";
 
 fn main(): int {
     println("===============================================================================");
@@ -44,87 +44,87 @@ fn main(): int {
     print("  Current Active Version: "); println(app->cxvm->current());
     println("  " + app->cxvm->list());
 
-    println("  ▶ Simulating: cxvm install 2.0.0");
+    println("  --> Simulating: cxvm install 2.0.0");
     let instRes: CxvmCommandResult* = app->cxvm->install("2.0.0");
     print("    Result: "); println(instRes->success ? "PASSED [OK]" : "FAILED");
 
-    println("  ▶ Simulating: cxvm use 2.0.0");
+    println("  --> Simulating: cxvm use 2.0.0");
     let useRes: CxvmCommandResult* = app->cxvm->use("2.0.0");
     print("    Result: "); println(useRes->success ? "PASSED [OK]" : "FAILED");
     print("    Active Version now: "); println(app->cxvm->current());
 
-    println("\n  ▶ Simulating: cxvm init (default init project with cex-pack, my-project, .cex_boxes, .cvm)");
+    println("\n  --> Simulating: cxvm init (default init project with cex-pack, my-project, .cex_boxes, .cvm)");
     let initRes: CxvmCommandResult* = app->cxvm->cxvmInit("my-project", ".");
     print("    Result: "); println(initRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(initRes->output);
 
-    println("\n  ▶ Simulating: cxvm doctor");
+    println("\n  --> Simulating: cxvm doctor");
     println(app->cxvm->doctor());
 
     // 3b. Testing Integrated CVM (CodeVersionManager) Commands
     println("\n[3b. Testing Integrated CVM Commands (cxvm commit, cxvm push, cxvm status)]");
-    println("  ▶ Simulating: cxvm status");
+    println("  --> Simulating: cxvm status");
     let stRes: CxvmCommandResult* = app->cxvm->cvmStatus();
     println("    " + stRes->output);
 
-    println("  ▶ Simulating: cxvm add src/app.cex");
+    println("  --> Simulating: cxvm add src/app.cex");
     let addRes: CxvmCommandResult* = app->cxvm->cvmAdd("src/app.cex", "// app content\n");
     print("    Result: "); println(addRes->success ? "PASSED [OK]" : "FAILED");
 
-    println("  ▶ Simulating: cxvm commit -m \"feat(cxvm): integrate cvm into cxvm\"");
+    println("  --> Simulating: cxvm commit -m \"feat(cxvm): integrate cvm into cxvm\"");
     let comRes: CxvmCommandResult* = app->cxvm->cvmCommit("feat(cxvm): integrate cvm into cxvm", "2-TEK Lead", "lead@2tek.local");
     print("    Result: "); println(comRes->success ? "PASSED [OK]" : "FAILED");
     print("    Commit: "); println(comRes->output);
 
-    println("  ▶ Simulating: cxvm push origin main");
+    println("  --> Simulating: cxvm push origin main");
     let pushRes: CxvmCommandResult* = app->cxvm->cvmPush("origin", "main");
     print("    Result: "); println(pushRes->success ? "PASSED [OK]" : "FAILED");
     print("    Push output:\n    "); println(pushRes->output);
 
-    println("\n  ▶ Simulating: cxvm start cvm (standalone single process)");
+    println("\n  --> Simulating: cxvm start cvm (standalone single process)");
     let srvStartRes: CxvmCommandResult* = app->cxvm->startCvm(4000, true);
     print("    Result: "); println(srvStartRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(srvStartRes->output);
 
-    println("  ▶ Simulating: cxvm status cvm");
+    println("  --> Simulating: cxvm status cvm");
     let srvStatRes: CxvmCommandResult* = app->cxvm->statusCvm();
     println("    " + srvStatRes->output);
 
-    println("  ▶ Simulating: cxvm stop cvm");
+    println("  --> Simulating: cxvm stop cvm");
     let srvStopRes: CxvmCommandResult* = app->cxvm->stopCvm();
     print("    Result: "); println(srvStopRes->success ? "PASSED [OK]" : "FAILED");
 
     // 3c. Testing Integrated Thunder Container Engine Commands
     println("\n[3c. Testing Integrated Thunder Engine (cxvm thunder, cxvm docker, cxvm start thunder)]");
-    println("  ▶ Simulating: cxvm start thunder (standalone single process)");
+    println("  --> Simulating: cxvm start thunder (standalone single process)");
     let thStartRes: CxvmCommandResult* = app->cxvm->startThunder(3050, true);
     print("    Result: "); println(thStartRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(thStartRes->output);
 
-    println("  ▶ Simulating: cxvm status thunder");
+    println("  --> Simulating: cxvm status thunder");
     let thStatRes: CxvmCommandResult* = app->cxvm->statusThunder();
     println("    " + thStatRes->output);
 
-    println("  ▶ Simulating: cxvm thunder ps");
+    println("  --> Simulating: cxvm thunder ps");
     let thPsCode: int = app->cxvm->thunderExecute("ps", "", "");
     print("    Result: "); println(thPsCode == 0 ? "PASSED [OK]" : "FAILED");
 
-    println("  ▶ Simulating: cxvm stop thunder");
+    println("  --> Simulating: cxvm stop thunder");
     let thStopRes: CxvmCommandResult* = app->cxvm->stopThunder();
     print("    Result: "); println(thStopRes->success ? "PASSED [OK]" : "FAILED");
 
     // 3d. Testing Integrated Lighting Fullstack MVC Engine (cxvm light, cxvm light create)
     println("\n[3d. Testing Integrated Lighting Engine (cxvm light create, cxvm light dev, cxvm light build)]");
-    println("  ▶ Simulating: cxvm light create sample-service");
+    println("  --> Simulating: cxvm light create sample-service");
     let lightCreateRes: CxvmCommandResult* = app->cxvm->lightCreate("sample-service", ".");
     print("    Result: "); println(lightCreateRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(lightCreateRes->output);
 
-    println("  ▶ Simulating: cxvm light dev");
+    println("  --> Simulating: cxvm light dev");
     let lightDevCode: int = app->cxvm->lightExecute("dev", "", "");
     print("    Result: "); println(lightDevCode == 0 ? "PASSED [OK]" : "FAILED");
 
-    println("  ▶ Simulating: cxvm light doctor");
+    println("  --> Simulating: cxvm light doctor");
     let lightDocCode: int = app->cxvm->lightExecute("doctor", "", "");
     print("    Result: "); println(lightDocCode == 0 ? "PASSED [OK]" : "FAILED");
 
@@ -208,7 +208,7 @@ fn main(): int {
 
     app->stop();
     println("\n===============================================================================");
-    println("      ✓ 2-TEK Cex Factory Fullstack Pipeline Executed Successfully!           ");
+    println("      [OK] 2-TEK Cex Factory Fullstack Pipeline Executed Successfully!           ");
     println("===============================================================================");
 
     return 0;

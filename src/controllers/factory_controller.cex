@@ -2,14 +2,14 @@
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
 import fs from "fs";
-import "../lighting_mvc.cex";
-import "../types.cex";
-import "../models/platform_model.cex";
-import "../models/version_model.cex";
-import "../models/artifact_model.cex";
-import "../builder/dist_builder.cex";
-import "../cxvm/cxvm_engine.cex";
-import "../views/factory_views.cex";
+import "@/src/lighting_mvc.cex";
+import "@/src/types.cex";
+import "@/src/models/platform_model.cex";
+import "@/src/models/version_model.cex";
+import "@/src/models/artifact_model.cex";
+import "@/src/builder/dist_builder.cex";
+import "@/src/cxvm/cxvm_engine.cex";
+import "@/src/views/factory_views.cex";
 
 class FactoryController extends BaseController {
     public constructor() {
@@ -116,7 +116,7 @@ class FactoryController extends BaseController {
             let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/x-shellscript");
         }
-        let pStr: string = std::to_string(port);
+        let pStr: string = to_string(port);
         let script: string = "#!/usr/bin/env bash\n";
         script += "# 2-TEK Cex Factory: Cross-Platform Quick Installer\n";
         script += "set -e\n";
@@ -132,7 +132,7 @@ class FactoryController extends BaseController {
         script += "  cxvm install \"$DEFAULT_VER\"\n";
         script += "  cxvm use \"$DEFAULT_VER\"\n";
         script += "fi\n";
-        script += "echo \"✓ Cex Toolchain setup complete! Run 'cxvm --help'\"\n";
+        script += "echo \"[OK] Cex Toolchain setup complete! Run 'cxvm --help'\"\n";
         return HttpResponse::ok(script, "text/x-shellscript");
     }
 
@@ -142,7 +142,7 @@ class FactoryController extends BaseController {
             let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/plain");
         }
-        let pStr: string = std::to_string(port);
+        let pStr: string = to_string(port);
         let script: string = "# 2-TEK Cex Factory: Windows PowerShell Quick Installer\n";
         script += "$ErrorActionPreference = \"Stop\"\n";
         script += "$cxvmDir = Join-Path $HOME \".cxvm\"\n";
@@ -151,7 +151,7 @@ class FactoryController extends BaseController {
         script += "Write-Host \"==> Installing Cex cxvm toolchain...\" -ForegroundColor Cyan\n";
         script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"bin\") | Out-Null\n";
         script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"versions\") | Out-Null\n";
-        script += "Write-Host \"✓ Cex Toolchain setup complete!\" -ForegroundColor Green\n";
+        script += "Write-Host \"[OK] Cex Toolchain setup complete!\" -ForegroundColor Green\n";
         return HttpResponse::ok(script, "text/plain");
     }
 

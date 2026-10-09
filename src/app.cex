@@ -1,14 +1,14 @@
 // 2-TEK Factory: Application Kernel & Lighting MVC Dispatcher (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-import "./lighting_mvc.cex";
-import "./types.cex";
-import "./models/platform_model.cex";
-import "./models/version_model.cex";
-import "./models/artifact_model.cex";
-import "./builder/dist_builder.cex";
-import "./cxvm/cxvm_engine.cex";
-import "./controllers/factory_controller.cex";
+import "@/src/lighting_mvc.cex";
+import "@/src/types.cex";
+import "@/src/models/platform_model.cex";
+import "@/src/models/version_model.cex";
+import "@/src/models/artifact_model.cex";
+import "@/src/builder/dist_builder.cex";
+import "@/src/cxvm/cxvm_engine.cex";
+import "@/src/controllers/factory_controller.cex";
 
 class FactoryApp {
     public appName: string;
@@ -257,11 +257,11 @@ class FactoryApp {
     }
 
     public displayRoutes(): void {
-        println("╔═══════════════════════════════════════════════════════════════╗");
-        println("║             2-TEK Cex Factory Route Registry Table            ║");
-        println("╚═══════════════════════════════════════════════════════════════╝");
+        println("+---------------------------------------------------------------+");
+        println("|             2-TEK Cex Factory Route Registry Table            |");
+        println("+---------------------------------------------------------------+");
         println("  METHOD  ROUTE PATTERN               HANDLER ACTION");
-        println("  ─────────────────────────────────────────────────────────────");
+        println("  -------------------------------------------------------------");
         let count: int = this.router->getRouteCount();
         for (let i: int = 0; i < count; i++) {
             let r: RouteEntry* = this.router->routes->get(i);
@@ -271,6 +271,6 @@ class FactoryApp {
             for (let s: int = (int)r->pattern.length(); s < 28; s++) print(" ");
             println(r->handlerId);
         }
-        println("─────────────────────────────────────────────────────────────");
+        println("-----------------------------------------------------------------");
     }
 }

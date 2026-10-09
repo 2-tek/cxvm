@@ -3,10 +3,10 @@
 
 import child_process from "child_process";
 import fs from "fs";
-import "../types.cex";
-import "../models/platform_model.cex";
-import "../models/version_model.cex";
-import "../models/artifact_model.cex";
+import "@/src/types.cex";
+import "@/src/models/platform_model.cex";
+import "@/src/models/version_model.cex";
+import "@/src/models/artifact_model.cex";
 
 class DistBuilder {
     public platforms: Array<PlatformModel*>*;

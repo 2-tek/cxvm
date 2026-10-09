@@ -17,6 +17,10 @@
     "cexr": "^8",
     "cexp": "^8"
   },
+  "alias": {
+    "@": ".",
+    "@/src": "./src"
+  },
   "scripts": {
     "install": "cex-pack downloads",
     "downloads": "cex-pack downloads",

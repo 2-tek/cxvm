@@ -130,7 +130,7 @@ class CvmCLI {
         }
         print("==> [CVM] Pushing commits to remote "); print(remote); print("/"); println(branch);
         print("--> Upstream synced commit: "); println(head.substr(0, 7));
-        println("✓ [CVM] Successfully pushed branch to " + remote + "/" + branch + " [OK]");
+        println("[OK] [CVM] Successfully pushed branch to " + remote + "/" + branch + " [OK]");
         return 0;
     }
 
@@ -139,7 +139,7 @@ class CvmCLI {
         let currBranch: string = this.repo->refManager->getCurrentBranch();
         let branch: string = branchArg != "" ? branchArg : (currBranch != "" ? currBranch : "main");
         print("==> [CVM] Pulling latest changes from remote "); print(remote); print("/"); println(branch);
-        println("✓ [CVM] Already up to date (branch: " + branch + ")");
+        println("[OK] [CVM] Already up to date (branch: " + branch + ")");
         return 0;
     }
 
@@ -234,7 +234,7 @@ class CvmCLI {
             println("Merge Requests:");
             for (let i: int = 0; i < count; i++) {
                 let mr: MergeRequest* = mrs->get(i);
-                print("  • "); print(mr->id); print(" ["); print(mr->status); print("]: ");
+                print("  * "); print(mr->id); print(" ["); print(mr->status); print("]: ");
                 print(mr->title); print(" ("); print(mr->sourceBranch); print(" -> "); print(mr->targetBranch); println(")");
             }
             return 0;

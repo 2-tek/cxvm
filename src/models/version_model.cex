@@ -1,23 +1,25 @@
 // 2-TEK Factory: Runtime Version Model (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-import "../lighting_mvc.cex";
-import "../types.cex";
+import "@/src/lighting_mvc.cex";
+import "@/src/types.cex";
 
 class VersionModel extends BaseModel {
     public version: string;
     public channel: string;
     public releaseDate: string;
+    public runtimeEngine: string;
     public minCpp: string;
     public description: string;
     public isDefault: bool;
 
-    public constructor(ver: string, chan: string, date: string, cpp: string, desc: string, isDef: bool) {
+    public constructor(ver: string, chan: string, date: string, engine: string, desc: string, isDef: bool) {
         super("v" + ver);
         this.version = ver;
         this.channel = chan;
         this.releaseDate = date;
-        this.minCpp = cpp;
+        this.runtimeEngine = engine;
+        this.minCpp = engine;
         this.description = desc;
         this.isDefault = isDef;
     }

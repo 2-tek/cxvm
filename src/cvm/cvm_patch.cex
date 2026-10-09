@@ -152,17 +152,17 @@ class CvmPatchEngine {
 
     // 4. Preview Change Record
     public static preview(patch: CvmPatch*): void {
-        println("╔═══════════════════════════════════════════════════════════════╗");
-        println("║         ⚡ CODE VERSION MANAGER CHANGE RECORD PREVIEW ⚡       ║");
-        println("╚═══════════════════════════════════════════════════════════════╝");
-        print("  • Record ID:   "); println(patch->id);
-        print("  • Author:      "); println(patch->author->formatAuthorLine());
-        print("  • Date:        "); println(patch->date);
-        print("  • Branch:      "); println(patch->branch);
-        print("  • Message:     "); println(patch->message);
-        print("  • Stats:       +"); print(to_string(patch->additions)); print(", -"); print(to_string(patch->deletions));
+        println("+---------------------------------------------------------------+");
+        println("|         [CVM] CODE VERSION MANAGER CHANGE RECORD PREVIEW      |");
+        println("+---------------------------------------------------------------+");
+        print("  * Record ID:   "); println(patch->id);
+        print("  * Author:      "); println(patch->author->formatAuthorLine());
+        print("  * Date:        "); println(patch->date);
+        print("  * Branch:      "); println(patch->branch);
+        print("  * Message:     "); println(patch->message);
+        print("  * Stats:       +"); print(to_string(patch->additions)); print(", -"); print(to_string(patch->deletions));
         print(" across "); print(to_string(patch->filesCount)); println(" file(s)");
-        println("─────────────────────────────────────────────────────────────────");
+        println("-----------------------------------------------------------------");
 
         let count: int = (int)patch->files->length();
         for (let i: int = 0; i < count; i++) {
@@ -173,6 +173,6 @@ class CvmPatchEngine {
                 println(f->rawUnified);
             }
         }
-        println("─────────────────────────────────────────────────────────────────");
+        println("-----------------------------------------------------------------");
     }
 }

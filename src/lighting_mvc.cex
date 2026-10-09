@@ -186,24 +186,24 @@ class HttpResponse {
         print(" ");
         println(this.statusMessage);
         println("Content-Type: " + this.contentType);
-        println("Content-Length: " + std::to_string((int)this.body.length()));
+        println("Content-Length: " + to_string((int)this.body.length()));
         println("");
         println(this.body);
     }
 
     public displayCurl(method: string, url: string): void {
-        println("─── Simulated cURL Request ────────────────────────────────────");
+        println("--- Simulated cURL Request ------------------------------------");
         println("> " + method + " " + url + " HTTP/1.1");
-        println("< HTTP/1.1 " + std::to_string(this.statusCode) + " " + this.statusMessage);
+        println("< HTTP/1.1 " + to_string(this.statusCode) + " " + this.statusMessage);
         println("< Content-Type: " + this.contentType);
-        println("< Content-Length: " + std::to_string((int)this.body.length()));
+        println("< Content-Length: " + to_string((int)this.body.length()));
         println("<");
         if (this.body.length() > 200) {
             println(this.body.substr(0, 200) + "\n... [truncated]");
         } else {
             println(this.body);
         }
-        println("───────────────────────────────────────────────────────────────");
+        println("---------------------------------------------------------------");
     }
 }
 
