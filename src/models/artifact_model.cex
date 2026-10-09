@@ -4,7 +4,7 @@
 import "../lighting_mvc.cex";
 import "../types.cex";
 
-class ArtifactModel : public BaseModel {
+class ArtifactModel extends BaseModel {
     public filename: string;
     public version: string;
     public platform: string;

@@ -11,7 +11,7 @@ import "../builder/dist_builder.cex";
 import "../cxvm/cxvm_engine.cex";
 import "../views/factory_views.cex";
 
-class FactoryController : public BaseController {
+class FactoryController extends BaseController {
     public constructor() {
         super();
     }

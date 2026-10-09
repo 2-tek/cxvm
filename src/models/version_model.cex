@@ -4,7 +4,7 @@
 import "../lighting_mvc.cex";
 import "../types.cex";
 
-class VersionModel : public BaseModel {
+class VersionModel extends BaseModel {
     public version: string;
     public channel: string;
     public releaseDate: string;
