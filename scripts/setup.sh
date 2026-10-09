@@ -102,11 +102,13 @@ if [ ! -s "$CXVM_DIR/bin/cxvm" ]; then
   fetch_file "cxvm" "$CXVM_DIR/bin/cxvm"
 fi
 fetch_file "dist/cxvm.sh" "$CXVM_DIR/bin/cxvm.sh"
+fetch_file "dist/cex-pack" "$CXVM_DIR/bin/cex-pack"
+fetch_file "dist/cex-cli" "$CXVM_DIR/bin/cex-cli"
 fetch_file "dist/cvm-server" "$CXVM_DIR/bin/cvm-server"
 fetch_file "dist/thunder-server" "$CXVM_DIR/bin/thunder-server"
 
-chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
-echo "[OK] cxvm binary installed in $CXVM_DIR/bin/cxvm"
+chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cex-"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
+echo "[OK] cxvm, cex-pack, and cex-cli installed in $CXVM_DIR/bin"
 
 # ------------------------------------------------------------------------------
 # 4. Environment Variables & PATH Configuration
@@ -147,10 +149,14 @@ export PATH="$CXVM_DIR/bin:$CXVM_DIR/current/bin:$PATH"
 # Symlink to /usr/local/bin or ~/.local/bin for immediate invocation without reload
 if [ -w "/usr/local/bin" ] 2>/dev/null; then
   ln -sf "$CXVM_DIR/bin/cxvm" "/usr/local/bin/cxvm" 2>/dev/null || true
-  echo "[OK] Symlinked cxvm to /usr/local/bin/cxvm"
+  ln -sf "$CXVM_DIR/bin/cex-pack" "/usr/local/bin/cex-pack" 2>/dev/null || true
+  ln -sf "$CXVM_DIR/bin/cex-cli" "/usr/local/bin/cex-cli" 2>/dev/null || true
+  echo "[OK] Symlinked cxvm, cex-pack, cex-cli to /usr/local/bin"
 fi
 mkdir -p "$HOME/.local/bin"
 ln -sf "$CXVM_DIR/bin/cxvm" "$HOME/.local/bin/cxvm" 2>/dev/null || true
+ln -sf "$CXVM_DIR/bin/cex-pack" "$HOME/.local/bin/cex-pack" 2>/dev/null || true
+ln -sf "$CXVM_DIR/bin/cex-cli" "$HOME/.local/bin/cex-cli" 2>/dev/null || true
 
 # ------------------------------------------------------------------------------
 # 5. Install Default Runtime Version (v8.0.0 & v6.0.0)
@@ -262,6 +268,8 @@ COMPILER_SCRIPT
   # Create cex alias
   ln -sf "$target_ver_dir/bin/cexr" "$target_ver_dir/bin/cex" 2>/dev/null || true
   cp -f "$CXVM_DIR/bin/cxvm" "$target_ver_dir/bin/cxvm" 2>/dev/null || true
+  cp -f "$CXVM_DIR/bin/cex-pack" "$target_ver_dir/bin/cex-pack" 2>/dev/null || true
+  cp -f "$CXVM_DIR/bin/cex-cli" "$target_ver_dir/bin/cex-cli" 2>/dev/null || true
   echo "[OK] Cex runtime v${ver} configured in $target_ver_dir"
 }
 

@@ -303,10 +303,10 @@ EOF
 import "./controllers/home_controller.cex";
 
 void main() {
-    println("╔═══════════════════════════════════════════════════════════════╗");
-    println("║        Lighting Fullstack MVC: $proj_name                     ║");
-    println("╚═══════════════════════════════════════════════════════════════╝");
-    println("✓ Lighting server listening at http://localhost:3080");
+    println("+---------------------------------------------------------------+");
+    println("|        Lighting Fullstack MVC: $proj_name                     |");
+    println("+---------------------------------------------------------------+");
+    println("[OK] Lighting server listening at http://localhost:3080");
 }
 EOF
 
@@ -339,12 +339,12 @@ EOF
 *.log
 EOF
 
-    echo "✓ [cxvm light] Created project directory: $proj_name"
-    echo "✓ [cxvm light] Initialized Lighting MVC project structure (src/controllers, src/models, src/views)"
-    echo "✓ [cxvm light] Generated cex-pack.json with Lighting MVC dependencies"
-    echo "✓ [cxvm light] Created application entrypoint (src/index.cex)"
-    echo "✓ [cxvm light] Created HomeController & standard routes"
-    echo "✓ [cxvm light] Configured local './bin/light' dispatcher"
+    echo "[OK] [cxvm light] Created project directory: $proj_name"
+    echo "[OK] [cxvm light] Initialized Lighting MVC project structure (src/controllers, src/models, src/views)"
+    echo "[OK] [cxvm light] Generated cex-pack.json with Lighting MVC dependencies"
+    echo "[OK] [cxvm light] Created application entrypoint (src/index.cex)"
+    echo "[OK] [cxvm light] Created HomeController & standard routes"
+    echo "[OK] [cxvm light] Configured local './bin/light' dispatcher"
     echo "==> Project '$proj_name' created successfully!"
     echo "To get started:"
     echo "  cd $proj_name"
@@ -358,7 +358,7 @@ EOF
     if [ -f "src/index.cex" ] && command -v cexr >/dev/null 2>&1; then
       cexr run src/index.cex
     else
-      echo "✓ [cxvm light] Server running at http://localhost:3080"
+      echo "[OK] [cxvm light] Server running at http://localhost:3080"
     fi
     return 0
   fi
@@ -368,7 +368,7 @@ EOF
     if [ -f "src/index.cex" ] && command -v cex >/dev/null 2>&1; then
       cex build src/index.cex -o bin/server
     else
-      echo "✓ [cxvm light] Production binary built successfully in bin/"
+      echo "[OK] [cxvm light] Production binary built successfully in bin/"
     fi
     return 0
   fi
@@ -393,6 +393,107 @@ EOF
   echo "  build                  Compile project with cexp native compiler"
   echo "  doctor                 Run Lighting engine diagnostic"
   return 0
+}
+
+# -----------------------------------------------------------------------------
+# Integrated Cex-CLI Build Runner & Task Dispatcher (cxvm cli ...)
+# -----------------------------------------------------------------------------
+_cxvm_run_cex_cli() {
+  local cli_cmd="${1:-build}"
+  shift || true
+
+  # 1. Resolve cexr runner
+  local cexr_cmd="cexr"
+  if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+    cexr_cmd="$CXVM_DIR/current/bin/cexr"
+  elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+    cexr_cmd="$CXVM_DIR/bin/cexr"
+  fi
+
+  # 2. Locate cex-cli native .cex entrypoint
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local cli_candidates=(
+    "$CXVM_DIR/packages/cex-cli/bin/cex-cli.cex"
+    "$CXVM_DIR/packages/cex-cli/src/index.cex"
+    "$script_dir/../packages/cex-cli/bin/cex-cli.cex"
+    "$script_dir/../packages/cex-cli/src/index.cex"
+    "$script_dir/packages/cex-cli/bin/cex-cli.cex"
+    "$script_dir/packages/cex-cli/src/index.cex"
+    "$HOME/Projects/cex/cxvm/packages/cex-cli/bin/cex-cli.cex"
+    "$HOME/Projects/cex/cxvm/packages/cex-cli/src/index.cex"
+    "$(pwd)/packages/cex-cli/bin/cex-cli.cex"
+    "$(pwd)/packages/cex-cli/src/index.cex"
+    "$(pwd)/../packages/cex-cli/bin/cex-cli.cex"
+    "$(pwd)/../packages/cex-cli/src/index.cex"
+    "$(pwd)/.cex_boxes/cex-cli/src/index.cex"
+  )
+
+  for cand in "${cli_candidates[@]}"; do
+    if [ -f "$cand" ]; then
+      echo "==> [cxvm] Dispatching to cex-cli ($cli_cmd)..."
+      "$cexr_cmd" run "$cand" "$cli_cmd" "$@"
+      return $?
+    fi
+  done
+
+  # 3. Check standalone binary in CXVM_DIR/bin or PATH
+  if [ -x "$CXVM_DIR/bin/cex-cli" ]; then
+    "$CXVM_DIR/bin/cex-cli" "$cli_cmd" "$@"
+    return $?
+  elif command -v cex-cli >/dev/null 2>&1; then
+    cex-cli "$cli_cmd" "$@"
+    return $?
+  fi
+
+  echo "[ERROR] cex-cli not found to handle command '$cli_cmd'"
+  return 1
+}
+
+# -----------------------------------------------------------------------------
+# Integrated Cex-Pack Dependency Downloader (.cex_boxes Hook)
+# -----------------------------------------------------------------------------
+_cxvm_run_cex_pack_downloads() {
+  local target_manifest="${1:-cex-pack.json}"
+  shift || true
+
+  # 1. Resolve cexr runner
+  local cexr_cmd="cexr"
+  if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+    cexr_cmd="$CXVM_DIR/current/bin/cexr"
+  elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+    cexr_cmd="$CXVM_DIR/bin/cexr"
+  fi
+
+  # 2. Locate cex-pack native .cex entrypoint
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local pack_candidates=(
+    "$CXVM_DIR/packages/cex-pack/bin/cex-pack.cex"
+    "$script_dir/../packages/cex-pack/bin/cex-pack.cex"
+    "$script_dir/packages/cex-pack/bin/cex-pack.cex"
+    "$HOME/Projects/cex/cxvm/packages/cex-pack/bin/cex-pack.cex"
+    "$(pwd)/packages/cex-pack/bin/cex-pack.cex"
+    "$(pwd)/../packages/cex-pack/bin/cex-pack.cex"
+    "$(pwd)/.cex_boxes/cex-pack/bin/cex-pack.cex"
+  )
+
+  for cand in "${pack_candidates[@]}"; do
+    if [ -f "$cand" ]; then
+      echo "==> [cxvm] Hooking cex-pack downloads to fill .cex_boxes/..."
+      "$cexr_cmd" run "$cand" downloads "$target_manifest" "$@"
+      return $?
+    fi
+  done
+
+  # 3. Check standalone binary in CXVM_DIR/bin
+  if [ -x "$CXVM_DIR/bin/cex-pack" ]; then
+    "$CXVM_DIR/bin/cex-pack" downloads "$target_manifest" "$@"
+    return $?
+  fi
+
+  echo "[ERROR] cex-pack not found to execute downloads"
+  return 1
 }
 
 # -----------------------------------------------------------------------------
@@ -683,24 +784,24 @@ fn main(): int {
     println("===============================================================================");
     println("                 Welcome to $proj_name (Powered by CXVM)                       ");
     println("===============================================================================");
-    println("✓ Project successfully initialized with default cex-pack configuration");
-    println("✓ Auto-pulled .cex_boxes dependency cache ready");
-    println("✓ CodeVersionManager (.cvm) initialized");
-    println("✓ Ready to run with 'cxvm start' and build with 'cxvm build'");
+    println("[OK] Project successfully initialized with default cex-pack configuration");
+    println("[OK] Auto-pulled .cex_boxes dependency cache ready");
+    println("[OK] CodeVersionManager (.cvm) initialized");
+    println("[OK] Ready to run with 'cxvm start' and build with 'cxvm build'");
     return 0;
 }
 INDEX_EOF
 
-      echo "✓ [cxvm init] Created project directory: $proj_dir"
-      echo "✓ [cxvm init] Generated default cex-pack.json configuration"
-      echo "✓ [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)"
-      echo "✓ [cxvm init] Initialized CodeVersionManager repository (.cvm/)"
-      echo "✓ [cxvm init] Generated .cvmignore file"
-      echo "✓ [cxvm init] Generated README.md documentation"
-      echo "✓ [cxvm init] Generated SECURITY.md policy"
-      echo "✓ [cxvm init] Generated LICENSE file"
-      echo "✓ [cxvm init] Created application entrypoint (src/index.cex)"
-      echo "✓ [cxvm init] Configured project start & build commands in scripts"
+      echo "[OK] [cxvm init] Created project directory: $proj_dir"
+      echo "[OK] [cxvm init] Generated default cex-pack.json configuration"
+      echo "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)"
+      echo "[OK] [cxvm init] Initialized CodeVersionManager repository (.cvm/)"
+      echo "[OK] [cxvm init] Generated .cvmignore file"
+      echo "[OK] [cxvm init] Generated README.md documentation"
+      echo "[OK] [cxvm init] Generated SECURITY.md policy"
+      echo "[OK] [cxvm init] Generated LICENSE file"
+      echo "[OK] [cxvm init] Created application entrypoint (src/index.cex)"
+      echo "[OK] [cxvm init] Configured project start & build commands in scripts"
       echo "==> Project '$proj_name' initialized successfully!"
       echo "To get started:"
       echo "  cd $proj_dir"
@@ -734,10 +835,36 @@ INDEX_EOF
       ;;
 
     install)
-      local ver="${1:-8.0.0}"
+      local ver=""
+      local has_manifest=0
+      if [ -f "cex-pack.json" ]; then
+        has_manifest=1
+      fi
+
+      if [ -n "$1" ]; then
+        if [[ "$1" =~ ^v?[0-9] ]]; then
+          ver="${1#v}"
+          shift
+        else
+          # Argument is a manifest or package, route to cex-pack downloads
+          _cxvm_run_cex_pack_downloads "$@"
+          return $?
+        fi
+      fi
+
+      # If no explicit version:
       if [ -z "$ver" ]; then
-        echo "Usage: cxvm install <version> (e.g. 8.0.0, 6.0.0, 5.0.0)"
-        return 1
+        if [ "$has_manifest" -eq 1 ]; then
+          if [ -d "$CXVM_DIR/current" ] && [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+            echo "==> [cxvm install] Active runtime ready ($(cxvm current 2>/dev/null || echo 'v8.0.0'))"
+            _cxvm_run_cex_pack_downloads "$@"
+            return $?
+          else
+            ver="8.0.0"
+          fi
+        else
+          ver="8.0.0"
+        fi
       fi
       local os arch ext
       case "$(uname -s)" in
@@ -946,33 +1073,41 @@ LIGHT_WRAP_EOF
       fi
 
       echo "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm, thunder, lighting..."
-      echo "  ✓ [auto-install] cexr v${ver} runtime engine installed"
-      echo "  ✓ [auto-install] cexp v${ver} direct machine compiler installed"
-      echo "  ✓ [auto-install] cvm CodeVersionManager engine installed"
-      echo "  ✓ [auto-install] thunder Container Engine & Virtual Microkernel installed"
-      echo "  ✓ [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed"
+      echo "  [OK] [auto-install] cexr v${ver} runtime engine installed"
+      echo "  [OK] [auto-install] cexp v${ver} direct machine compiler installed"
+      echo "  [OK] [auto-install] cvm CodeVersionManager engine installed"
+      echo "  [OK] [auto-install] thunder Container Engine & Virtual Microkernel installed"
+      echo "  [OK] [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed"
 
       echo "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm, thunder, lighting..."
-      echo "  ✓ [auto-start] cexr runtime engine active & ready"
-      echo "  ✓ [auto-start] cexp machine compiler active & ready"
+      echo "  [OK] [auto-start] cexr runtime engine active & ready"
+      echo "  [OK] [auto-start] cexp machine compiler active & ready"
 
       # Auto-start CVM as a server with single process (standalone) in background
       _cxvm_start_cvm_server start -p 4000 --daemon >/dev/null 2>&1 || true
       local cvm_pid
       cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
-      echo "  ✓ [auto-start] cvm server started (single process standalone, PID: $cvm_pid, port: 4000)"
+      echo "  [OK] [auto-start] cvm server started (single process standalone, PID: $cvm_pid, port: 4000)"
 
       # Auto-start Thunder as a server with single process (standalone) in background
       _cxvm_start_thunder_server start -p 3050 --daemon >/dev/null 2>&1 || true
       local thun_pid
       thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
-      echo "  ✓ [auto-start] thunder server started (single process standalone, PID: $thun_pid, port: 3050)"
+      echo "  [OK] [auto-start] thunder server started (single process standalone, PID: $thun_pid, port: 3050)"
 
-      echo "  ✓ [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)"
+      echo "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)"
 
       if [ ! -e "$CXVM_DIR/current" ]; then
         cxvm use "$ver"
       fi
+
+      if [ -f "cex-pack.json" ]; then
+        _cxvm_run_cex_pack_downloads "$@"
+      fi
+      ;;
+
+    downloads)
+      _cxvm_run_cex_pack_downloads "$@"
       ;;
 
     download)
@@ -1277,24 +1412,24 @@ fn main(): int {
     println("===============================================================================");
     println("                 Welcome to $proj_name (Powered by CXVM)                       ");
     println("===============================================================================");
-    println("✓ Project successfully initialized with default cex-pack configuration");
-    println("✓ Auto-pulled .cex_boxes dependency cache ready");
-    println("✓ CodeVersionManager (.cvm) initialized");
-    println("✓ Ready to run with 'cxvm start' and build with 'cxvm build'");
+    println("[OK] Project successfully initialized with default cex-pack configuration");
+    println("[OK] Auto-pulled .cex_boxes dependency cache ready");
+    println("[OK] CodeVersionManager (.cvm) initialized");
+    println("[OK] Ready to run with 'cxvm start' and build with 'cxvm build'");
     return 0;
 }
 INDEX_EOF
 
-      echo "✓ [cxvm init] Created project directory: $proj_dir"
-      echo "✓ [cxvm init] Generated default cex-pack.json configuration"
-      echo "✓ [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)"
-      echo "✓ [cxvm init] Initialized CodeVersionManager repository (.cvm/)"
-      echo "✓ [cxvm init] Generated .cvmignore file"
-      echo "✓ [cxvm init] Generated README.md documentation"
-      echo "✓ [cxvm init] Generated SECURITY.md policy"
-      echo "✓ [cxvm init] Generated LICENSE file"
-      echo "✓ [cxvm init] Created application entrypoint (src/index.cex)"
-      echo "✓ [cxvm init] Configured project start & build commands in scripts"
+      echo "[OK] [cxvm init] Created project directory: $proj_dir"
+      echo "[OK] [cxvm init] Generated default cex-pack.json configuration"
+      echo "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)"
+      echo "[OK] [cxvm init] Initialized CodeVersionManager repository (.cvm/)"
+      echo "[OK] [cxvm init] Generated .cvmignore file"
+      echo "[OK] [cxvm init] Generated README.md documentation"
+      echo "[OK] [cxvm init] Generated SECURITY.md policy"
+      echo "[OK] [cxvm init] Generated LICENSE file"
+      echo "[OK] [cxvm init] Created application entrypoint (src/index.cex)"
+      echo "[OK] [cxvm init] Configured project start & build commands in scripts"
       echo "==> Project '$proj_name' initialized successfully!"
       echo "To get started:"
       echo "  cd $proj_dir"
@@ -1315,17 +1450,35 @@ INDEX_EOF
           if command -v cexr >/dev/null 2>&1; then
             cexr run src/index.cex
           else
-            echo "✓ Project running at src/index.cex (cxvm v8 runtime)"
+            echo "[OK] Project running at src/index.cex (cxvm v8 runtime)"
           fi
         else
-          echo "✓ Project started via cxvm"
+          echo "[OK] Project started via cxvm"
         fi
       fi
+      ;;
+
+    cli)
+      _cxvm_run_cex_cli "$@"
+      ;;
+
+    test)
+      _cxvm_run_cex_cli test "$@"
+      ;;
+
+    watch)
+      _cxvm_run_cex_cli watch "$@"
+      ;;
+
+    agents)
+      _cxvm_run_cex_cli agents "$@"
       ;;
 
     build)
       if [ "$1" = "cvm" ] || [ "$1" = "thunder" ]; then
         echo "==> [cxvm build] Building $1 subsystem..."
+      elif [ -f "cex-pack.json" ]; then
+        _cxvm_run_cex_cli build "$@"
       else
         echo "==> [cxvm build] Compiling project with cexp native machine compiler..."
         mkdir -p bin dist
@@ -1333,9 +1486,9 @@ INDEX_EOF
           if command -v cexp >/dev/null 2>&1; then
             cexp build src/index.cex -o bin/app 2>/dev/null || true
           fi
-          echo "✓ Production binary built successfully in bin/"
+          echo "[OK] Production binary built successfully in bin/"
         else
-          echo "✓ Production build completed"
+          echo "[OK] Production build completed"
         fi
       fi
       ;;
@@ -1366,7 +1519,7 @@ INDEX_EOF
       fi
 
       echo "==============================================================="
-      echo "   ⚙️  CXVM Cross-Platform Setup Window                        "
+      echo "     CXVM Cross-Platform Setup Window                        "
       echo "==============================================================="
       echo "==> Configuring Environment & PATH for cxvm..."
       mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
@@ -1425,7 +1578,8 @@ INDEX_EOF
       echo ""
       echo "Runtime Management Commands:"
       echo "  setup                 Display setup window & configure PATH, env, and default runtimes"
-      echo "  install <ver>         Download and install a Cex runtime version (auto-installs & auto-starts cexr, cexp, cvm, thunder)"
+      echo "  install [ver]         Download and install a Cex runtime version (and fill .cex_boxes via cex-pack)"
+      echo "  downloads [manifest]  Download dependencies into .cex_boxes via cex-pack"
       echo "  download <ver> [plat] Download cross-platform bundles into cache to install cexr (or 'all')"
       echo "  use <ver>             Switch to specified Cex runtime version and set up cexr"
       echo "  current               Display currently active Cex version"
@@ -1434,6 +1588,13 @@ INDEX_EOF
       echo "  default <ver>         Set default Cex version across terminal sessions"
       echo "  uninstall <ver>       Remove an installed Cex version"
       echo "  doctor                Run pre-flight environment diagnostics"
+      echo ""
+      echo "Integrated Cex-CLI Build Runner & Task Automation Commands:"
+      echo "  cli <args...>         Run commands via integrated @2tek/cli dispatcher"
+      echo "  build                 Compile application or trigger cex-cli build pipeline"
+      echo "  test                  Run test suites via cex-cli runner"
+      echo "  watch                 Watch source directories for changes via cex-cli"
+      echo "  agents                Inspect .agents rule compliance via cex-cli"
       echo ""
       echo "Integrated Lighting Fullstack MVC Engine Commands:"
       echo "  light create <name>   Create a new Lighting Fullstack MVC project with MVC structure"

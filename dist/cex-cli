@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# 2-TEK Cex-CLI Toolchain Dispatcher
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), RULE_PURE_CEX_BIN
+
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+
+# Resolve cexr runner
+CEXR_BIN="cexr"
+if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+  CEXR_BIN="$CXVM_DIR/current/bin/cexr"
+elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+  CEXR_BIN="$CXVM_DIR/bin/cexr"
+fi
+
+# Locate cex-cli.cex source entrypoint
+CEX_CLI_SRC=""
+for cand in \
+  "$CXVM_DIR/packages/cex-cli/bin/cex-cli.cex" \
+  "$CXVM_DIR/packages/cex-cli/src/index.cex" \
+  "$HOME/Projects/cex/cxvm/packages/cex-cli/bin/cex-cli.cex" \
+  "$HOME/Projects/cex/cxvm/packages/cex-cli/src/index.cex" \
+  "$(pwd)/packages/cex-cli/bin/cex-cli.cex" \
+  "$(pwd)/packages/cex-cli/src/index.cex" \
+  "$(pwd)/../packages/cex-cli/bin/cex-cli.cex" \
+  "$(pwd)/../packages/cex-cli/src/index.cex" \
+  "$(pwd)/.cex_boxes/cex-cli/src/index.cex"; do
+  if [ -f "$cand" ]; then
+    CEX_CLI_SRC="$cand"
+    break
+  fi
+done
+
+if [ -n "$CEX_CLI_SRC" ]; then
+  exec "$CEXR_BIN" run "$CEX_CLI_SRC" "$@"
+fi
+
+echo "[ERROR] cex-cli.cex not found"
+exit 1

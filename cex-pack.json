@@ -28,7 +28,8 @@
     "cex-test": "1.0.0",
     "cex-service": "1.0.0",
     "cex-lint": "1.0.0",
-    "cex-pack": "1.0.0"
+    "cex-pack": "1.0.0",
+    "cex-cli": "1.0.0"
   },
   "includeDirs": [
     "./src"

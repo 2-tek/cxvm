@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# 2-TEK Cex-Pack Toolchain Dispatcher
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), RULE_PURE_CEX_BIN
+
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+
+# Resolve cexr runner
+CEXR_BIN="cexr"
+if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+  CEXR_BIN="$CXVM_DIR/current/bin/cexr"
+elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+  CEXR_BIN="$CXVM_DIR/bin/cexr"
+fi
+
+# Locate cex-pack.cex source entrypoint
+CEX_PACK_SRC=""
+for cand in \
+  "$CXVM_DIR/packages/cex-pack/bin/cex-pack.cex" \
+  "$HOME/Projects/cex/cxvm/packages/cex-pack/bin/cex-pack.cex" \
+  "$(pwd)/packages/cex-pack/bin/cex-pack.cex" \
+  "$(pwd)/../packages/cex-pack/bin/cex-pack.cex" \
+  "$(pwd)/.cex_boxes/cex-pack/bin/cex-pack.cex"; do
+  if [ -f "$cand" ]; then
+    CEX_PACK_SRC="$cand"
+    break
+  fi
+done
+
+if [ -n "$CEX_PACK_SRC" ]; then
+  exec "$CEXR_BIN" run "$CEX_PACK_SRC" "$@"
+fi
+
+echo "[ERROR] cex-pack.cex not found"
+exit 1
