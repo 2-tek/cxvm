@@ -1,0 +1,31 @@
+{
+  "name": "@2tek/cxvm",
+  "version": "2.0.0",
+  "lockfileVersion": 1,
+  "encryption": {
+    "algorithm": "aes-256-cbc",
+    "scope": "project"
+  },
+  "dependencies": {
+    "cex-test": {
+      "version": "1.0.0",
+      "url": "cex-enc:b1cbd2487166f02290098f374eff4056:669e589bb8900652764114a0855966d037202cdc42f67a3152943ec5a72d19051af0c327cba087617f6c0c5a693324d0",
+      "updatedAt": "2026-10-09T04:22:53.605Z"
+    },
+    "cex-service": {
+      "version": "1.0.0",
+      "url": "cex-enc:9903b14cea418243bfc0d655300fda07:94c8cae52c1779a41a5db00a7a890c6b5143312526f3da05feead103e0af9cc1da29c374c205ed46881cc36fe51f6f85dd7daa302a50532e027dd50ffcfb8205",
+      "updatedAt": "2026-10-09T04:22:55.881Z"
+    },
+    "cex-lint": {
+      "version": "1.0.0",
+      "url": "cex-enc:f666cd3261c4d37e0890d3cfc5a8996d:07c9ee908bec7712d633d7aab2ccd68011111368334985ca7d2bacef1d70624b82978b0b43e230ec8a171c3cfc94cb6cbbdadac6479299e08f428a3234121e9c",
+      "updatedAt": "2026-10-09T04:22:56.015Z"
+    },
+    "cex-pack": {
+      "version": "1.0.0",
+      "url": "cex-enc:4490df244a4c89320f03742ebaff6c05:1723d44f557a632385dce48593ece6a729a863ebe18e3f31bcc440abcb5c12878bb0e86ac3fdb14b9a3bd60f5186d172af3f2918e6e953d3fd048ceaa5d68220",
+      "updatedAt": "2026-10-09T04:22:56.143Z"
+    }
+  }
+}
