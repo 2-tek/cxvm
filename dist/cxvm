@@ -569,42 +569,7 @@ _cxvm_run_cex_cli() {
   local cli_cmd="${1:-build}"
   shift || true
 
-  # 1. Resolve cexr runner
-  local cexr_cmd="cexr"
-  if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
-    cexr_cmd="$CXVM_DIR/current/bin/cexr"
-  elif [ -x "$CXVM_DIR/bin/cexr" ]; then
-    cexr_cmd="$CXVM_DIR/bin/cexr"
-  fi
-
-  # 2. Locate cex-cli native .cex entrypoint
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  local cli_candidates=(
-    "$CXVM_DIR/packages/cex-cli/bin/cex-cli.cex"
-    "$CXVM_DIR/packages/cex-cli/src/index.cex"
-    "$script_dir/../packages/cex-cli/bin/cex-cli.cex"
-    "$script_dir/../packages/cex-cli/src/index.cex"
-    "$script_dir/packages/cex-cli/bin/cex-cli.cex"
-    "$script_dir/packages/cex-cli/src/index.cex"
-    "$HOME/Projects/cex/cxvm/packages/cex-cli/bin/cex-cli.cex"
-    "$HOME/Projects/cex/cxvm/packages/cex-cli/src/index.cex"
-    "$(pwd)/packages/cex-cli/bin/cex-cli.cex"
-    "$(pwd)/packages/cex-cli/src/index.cex"
-    "$(pwd)/../packages/cex-cli/bin/cex-cli.cex"
-    "$(pwd)/../packages/cex-cli/src/index.cex"
-    "$(pwd)/.cex_boxes/cex-cli/src/index.cex"
-  )
-
-  for cand in "${cli_candidates[@]}"; do
-    if [ -f "$cand" ]; then
-      echo "==> [cxvm] Dispatching to cex-cli ($cli_cmd)..."
-      "$cexr_cmd" run "$cand" "$cli_cmd" "$@"
-      return $?
-    fi
-  done
-
-  # 3. Check standalone binary in CXVM_DIR/bin or PATH
+  # 1. Prefer compiled standalone binary
   if [ -x "$CXVM_DIR/bin/cex-cli" ]; then
     "$CXVM_DIR/bin/cex-cli" "$cli_cmd" "$@"
     return $?
@@ -612,6 +577,53 @@ _cxvm_run_cex_cli() {
     cex-cli "$cli_cmd" "$@"
     return $?
   fi
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  for b_cand in \
+    "$script_dir/../cex-cli/bin/cex-cli" \
+    "$script_dir/../../cex-cli/bin/cex-cli" \
+    "$(pwd)/../cex-cli/bin/cex-cli" \
+    "$(pwd)/bin/cex-cli"; do
+    if [ -x "$b_cand" ]; then
+      "$b_cand" "$cli_cmd" "$@"
+      return $?
+    fi
+  done
+
+  # 2. Resolve cexr runner
+  local cexr_cmd="cexr"
+  if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+    cexr_cmd="$CXVM_DIR/current/bin/cexr"
+  elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+    cexr_cmd="$CXVM_DIR/bin/cexr"
+  fi
+
+  # 3. Locate cex-cli native .cex entrypoint
+  local cli_candidates=(
+    "$CXVM_DIR/packages/cex-cli/bin/cex-cli.cex"
+    "$CXVM_DIR/packages/cex-cli/src/index.cex"
+    "$script_dir/../packages/cex-cli/bin/cex-cli.cex"
+    "$script_dir/../packages/cex-cli/src/index.cex"
+    "$script_dir/packages/cex-cli/bin/cex-cli.cex"
+    "$script_dir/packages/cex-cli/src/index.cex"
+    "$script_dir/../cex-cli/src/index.cex"
+    "$script_dir/../../cex-cli/src/index.cex"
+    "$(pwd)/packages/cex-cli/bin/cex-cli.cex"
+    "$(pwd)/packages/cex-cli/src/index.cex"
+    "$(pwd)/../packages/cex-cli/bin/cex-cli.cex"
+    "$(pwd)/../packages/cex-cli/src/index.cex"
+    "$(pwd)/../cex-cli/src/index.cex"
+    "$(pwd)/.cex_boxes/cex-cli/src/index.cex"
+  )
+
+  for cand in "${cli_candidates[@]}"; do
+    if [ -f "$cand" ]; then
+      echo "==> [cxvm] Dispatching to cex-cli ($cli_cmd)..."
+      "$cexr_cmd" "$cand" "$cli_cmd" "$@"
+      return $?
+    fi
+  done
 
   echo "[ERROR] cex-cli not found to handle command '$cli_cmd'"
   return 1

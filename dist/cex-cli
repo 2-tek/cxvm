@@ -4,7 +4,23 @@
 
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 
-# Resolve cexr runner
+# 1. Prefer compiled native binary
+if [ -x "$CXVM_DIR/bin/cex-cli" ]; then
+  exec "$CXVM_DIR/bin/cex-cli" "$@"
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for b_cand in \
+  "$SCRIPT_DIR/../cex-cli/bin/cex-cli" \
+  "$SCRIPT_DIR/../../cex-cli/bin/cex-cli" \
+  "$(pwd)/../cex-cli/bin/cex-cli" \
+  "$(pwd)/bin/cex-cli"; do
+  if [ -x "$b_cand" ]; then
+    exec "$b_cand" "$@"
+  fi
+done
+
+# 2. Resolve cexr runner
 CEXR_BIN="cexr"
 if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
   CEXR_BIN="$CXVM_DIR/current/bin/cexr"
@@ -12,17 +28,18 @@ elif [ -x "$CXVM_DIR/bin/cexr" ]; then
   CEXR_BIN="$CXVM_DIR/bin/cexr"
 fi
 
-# Locate cex-cli.cex source entrypoint
+# 3. Locate cex-cli native .cex entrypoint
 CEX_CLI_SRC=""
 for cand in \
   "$CXVM_DIR/packages/cex-cli/bin/cex-cli.cex" \
   "$CXVM_DIR/packages/cex-cli/src/index.cex" \
-  "$HOME/Projects/cex/cxvm/packages/cex-cli/bin/cex-cli.cex" \
-  "$HOME/Projects/cex/cxvm/packages/cex-cli/src/index.cex" \
+  "$SCRIPT_DIR/../cex-cli/src/index.cex" \
+  "$SCRIPT_DIR/../../cex-cli/src/index.cex" \
   "$(pwd)/packages/cex-cli/bin/cex-cli.cex" \
   "$(pwd)/packages/cex-cli/src/index.cex" \
   "$(pwd)/../packages/cex-cli/bin/cex-cli.cex" \
   "$(pwd)/../packages/cex-cli/src/index.cex" \
+  "$(pwd)/../cex-cli/src/index.cex" \
   "$(pwd)/.cex_boxes/cex-cli/src/index.cex"; do
   if [ -f "$cand" ]; then
     CEX_CLI_SRC="$cand"
@@ -31,8 +48,9 @@ for cand in \
 done
 
 if [ -n "$CEX_CLI_SRC" ]; then
-  exec "$CEXR_BIN" run "$CEX_CLI_SRC" "$@"
+  exec "$CEXR_BIN" "$CEX_CLI_SRC" "$@"
 fi
 
-echo "[ERROR] cex-cli.cex not found"
+echo "[ERROR] cex-cli binary or source entrypoint not found"
 exit 1
+
