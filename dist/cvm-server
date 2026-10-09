@@ -181,7 +181,7 @@ class CvmHttpHandler(BaseHTTPRequestHandler):
 <body>
   <div class="header">
     <div class="title">
-      <span>🚀 2-TEK CodeVersionManager</span>
+      <span>2-TEK CodeVersionManager</span>
       <span class="badge badge-green">Single Process: Standalone</span>
       <span class="badge">PID: {os.getpid()}</span>
     </div>
@@ -355,7 +355,7 @@ def start_server(port, foreground=False, pidfile=None, logfile=None):
                 f.write(str(port) + "\n")
 
             print(f"==> [cxvm] Starting CVM as a server with single process (standalone)...")
-            print(f"✓ [cxvm] CVM server started successfully (single process standalone)")
+            print(f"[OK] [cxvm] CVM server started successfully (single process standalone)")
             print(f"  - Process ID: {pid}")
             print(f"  - Port:       {port}")
             print(f"  - Mode:       standalone (single process)")
@@ -414,7 +414,7 @@ def stop_server(pidfile=None):
         time.sleep(0.3)
         if os.path.exists(pidfile):
             os.remove(pidfile)
-        print(f"✓ [cxvm] CVM server (PID: {pid}) stopped.")
+        print(f"[OK] [cxvm] CVM server (PID: {pid}) stopped.")
         return 0
     except OSError as e:
         print(f"[cxvm] Could not stop CVM server: {e}")
@@ -441,7 +441,7 @@ def status_server(pidfile=None):
             with open(pidfile, "r") as f:
                 pid = int(f.read().strip())
             os.kill(pid, 0)
-            print(f"✓ [cxvm] CVM server is running (single process standalone, PID: {pid}, port: {port})")
+            print(f"[OK] [cxvm] CVM server is running (single process standalone, PID: {pid}, port: {port})")
             print(f"  - Web Studio: http://localhost:{port}")
             print(f"  - Health API: http://localhost:{port}/health")
             return 0

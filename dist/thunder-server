@@ -217,7 +217,7 @@ def render_dashboard_html(port):
     <div class="header">
         <div>
             <h1 style="font-size: 22px; display: flex; align-items: center; gap: 10px;">
-                ⚡ 2-TEK Thunder Container Engine & Virtual Linux Microkernel
+                2-TEK Thunder Container Engine & Virtual Linux Microkernel
             </h1>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
                 Integrated Single-Process Container Supervisor & Auto-Scaler for Cex & CXVM
@@ -486,7 +486,7 @@ def start_server(port, foreground=False, pidfile="", logfile=""):
 
             time.sleep(0.3)
             print("==> [cxvm] Starting Thunder as a server with single process (standalone)...")
-            print("✓ [cxvm] Thunder server started successfully (single process standalone)")
+            print("[OK] [cxvm] Thunder server started successfully (single process standalone)")
             print(f"  - Process ID: {child_pid}")
             print(f"  - Port:       {port}")
             print("  - Mode:       standalone (single process)")
@@ -570,7 +570,7 @@ def stop_server(pidfile=""):
             os.kill(pid, signal.SIGKILL)
         except OSError:
             pass
-        print(f"✓ [cxvm] Thunder server (PID: {pid}) stopped.")
+        print(f"[OK] [cxvm] Thunder server (PID: {pid}) stopped.")
     except OSError as e:
         print(f"[cxvm] Process {pid} was not running: {e}")
 
@@ -597,7 +597,7 @@ def status_server(pidfile=""):
             if os.path.exists(portfile):
                 with open(portfile, "r") as f:
                     port = int(f.read().strip())
-            print(f"✓ [cxvm] Thunder server is running (single process standalone, PID: {pid}, port: {port})")
+            print(f"[OK] [cxvm] Thunder server is running (single process standalone, PID: {pid}, port: {port})")
             print(f"  - Dashboard:  http://localhost:{port}")
             print(f"  - Health API: http://localhost:{port}/health")
             return 0

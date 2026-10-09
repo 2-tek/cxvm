@@ -52,7 +52,7 @@ if (Test-Path (Join-Path $downloadsDir "cvm-server")) {
 if (Test-Path (Join-Path $downloadsDir "thunder-server")) {
   Copy-Item -Force (Join-Path $downloadsDir "thunder-server") (Join-Path $binDir "thunder-server")
 }
-Write-Host "  ✓ CXVM core hierarchy established in $CxvmDir" -ForegroundColor Green
+Write-Host "  [OK] CXVM core hierarchy established in $CxvmDir" -ForegroundColor Green
 
 # Step 2: Environment Variables & PATH Persistence
 Write-Host "`n[2/5] Configuring Windows Environment Variables & User PATH..." -ForegroundColor White
@@ -74,7 +74,7 @@ foreach ($p in $pathsToAdd) {
 
 if ($pathModified) {
   [Environment]::SetEnvironmentVariable("PATH", $userPath, "User")
-  Write-Host "  ✓ Added CXVM bin and current\bin to Windows User PATH" -ForegroundColor Green
+  Write-Host "  [OK] Added CXVM bin and current\bin to Windows User PATH" -ForegroundColor Green
 } else {
   Write-Host "  ℹ CXVM already present in Windows User PATH" -ForegroundColor Yellow
 }
@@ -86,7 +86,7 @@ try {
     $profileContent = Get-Content $PROFILE -Raw
     if ($profileContent -notmatch "CXVM_DIR") {
       Add-Content $PROFILE "`n# cxvm: Cex Version Manager`n`$env:CXVM_DIR = `"$CxvmDir`"`n`$env:PATH = `"`$env:CXVM_DIR\bin;`$env:CXVM_DIR\current\bin;`$env:PATH`""
-      Write-Host "  ✓ Configured CXVM PATH in `$PROFILE" -ForegroundColor Green
+      Write-Host "  [OK] Configured CXVM PATH in `$PROFILE" -ForegroundColor Green
     }
   }
 } catch {
@@ -99,27 +99,27 @@ $cxvmScript = Join-Path $binDir "cxvm.ps1"
 if (Test-Path $cxvmScript) {
   Write-Host "  --> Installing Cex v$DefaultVersion (Pure Cex Native Engine)..." -ForegroundColor Gray
   & $cxvmScript install $DefaultVersion | Out-Null
-  Write-Host "  ✓ CexR v$DefaultVersion installed." -ForegroundColor Green
+  Write-Host "  [OK] CexR v$DefaultVersion installed." -ForegroundColor Green
 
   Write-Host "  --> Installing Cex v$SecondaryVersion (LTS High-Performance Engine)..." -ForegroundColor Gray
   & $cxvmScript install $SecondaryVersion | Out-Null
-  Write-Host "  ✓ CexR v$SecondaryVersion installed." -ForegroundColor Green
+  Write-Host "  [OK] CexR v$SecondaryVersion installed." -ForegroundColor Green
 
   & $cxvmScript default $DefaultVersion | Out-Null
   & $cxvmScript use $DefaultVersion | Out-Null
-  Write-Host "  ✓ Active default version set to v$DefaultVersion" -ForegroundColor Green
+  Write-Host "  [OK] Active default version set to v$DefaultVersion" -ForegroundColor Green
 
   if (-not (& $cxvmScript status cvm | Out-Null)) {
     & $cxvmScript start cvm -p 4000 --daemon | Out-Null
   }
   $cvmPid = if (Test-Path (Join-Path $CxvmDir "cvm_server.pid")) { (Get-Content (Join-Path $CxvmDir "cvm_server.pid") -Raw).Trim() } else { "$PID" }
-  Write-Host "  ✓ CVM Standalone Server auto-started (single process, PID: $cvmPid, port: 4000)" -ForegroundColor Green
+  Write-Host "  [OK] CVM Standalone Server auto-started (single process, PID: $cvmPid, port: 4000)" -ForegroundColor Green
 
   if (-not (& $cxvmScript status thunder | Out-Null)) {
     & $cxvmScript start thunder -p 3050 --daemon | Out-Null
   }
   $thPid = if (Test-Path (Join-Path $CxvmDir "thunder_server.pid")) { (Get-Content (Join-Path $CxvmDir "thunder_server.pid") -Raw).Trim() } else { "$PID" }
-  Write-Host "  ✓ Thunder Standalone Server auto-started (single process, PID: $thPid, port: 3050)" -ForegroundColor Green
+  Write-Host "  [OK] Thunder Standalone Server auto-started (single process, PID: $thPid, port: 3050)" -ForegroundColor Green
 }
 
 # Setup Lighting (Lighting Fullstack MVC engine, light CLI) integration in cxvm
@@ -127,7 +127,7 @@ $lightBin = Join-Path $CxvmDir "bin\light.cmd"
 if (-not (Test-Path $lightBin)) {
   "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" light %*" | Set-Content -Path $lightBin -Encoding ASCII
 }
-Write-Host "  ✓ Integrated Lighting (light create, light dev, light build) configured in $(Join-Path $CxvmDir 'bin')" -ForegroundColor Green
+Write-Host "  [OK] Integrated Lighting (light create, light dev, light build) configured in $(Join-Path $CxvmDir 'bin')" -ForegroundColor Green
 
 # Step 4: Configure Project ./bin/ Dispatchers
 Write-Host "`n[4/5] Configuring Project ./bin/cexr & ./bin/cex for Default Run cxvm..." -ForegroundColor White
@@ -219,7 +219,7 @@ if (Test-Path `$InstalledCxvm) {
 }
 "@ | Set-Content -Path $cxvmPs1 -Encoding UTF8
 
-Write-Host "  ✓ Windows executables (cexr.cmd, cex.cmd, cxvm.cmd, cexr.ps1, cex.ps1, cxvm.ps1) generated in $targetBin" -ForegroundColor Green
+Write-Host "  [OK] Windows executables (cexr.cmd, cex.cmd, cxvm.cmd, cexr.ps1, cex.ps1, cxvm.ps1) generated in $targetBin" -ForegroundColor Green
 
 # Step 5: Verification & Doctor
 Write-Host "`n[5/5] Running System Diagnostic Verification..." -ForegroundColor White
@@ -234,7 +234,7 @@ if (Test-Path $cxvmScript) {
 }
 
 Write-Host "`n═══════════════════════════════════════════════════════════════════════════════" -ForegroundColor Green
-Write-Host "  ✓ CXVM Environment, PATH, and Default Runtimes Setup Successfully!" -ForegroundColor Green
+Write-Host "  [OK] CXVM Environment, PATH, and Default Runtimes Setup Successfully!" -ForegroundColor Green
 Write-Host "═══════════════════════════════════════════════════════════════════════════════" -ForegroundColor Green
 Write-Host "`nTo activate in your current PowerShell session, run:" -ForegroundColor White
 Write-Host "  `$env:CXVM_DIR = `"$CxvmDir`"" -ForegroundColor Cyan

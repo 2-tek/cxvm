@@ -51,7 +51,7 @@ fi
 
 echo ""
 echo "==============================================================="
-echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v8) installed via cxvm!    "
+echo "  [OK] Cex Runtime v$DEFAULT_VER (CexR v8) installed via cxvm!    "
 echo "==============================================================="
 echo ""
 echo "Activate in current terminal:"

@@ -175,16 +175,16 @@ class CxvmEngine {
         let outMsg: string = "==> Installing Cex v" + version + " (Pure Cex Native Engine)...\n";
         outMsg += "--> Verified checksum: PASSED [OK]\n";
         outMsg += "--> Extracted into " + this.cxvmHome + "/versions/v" + version + "\n";
-        outMsg += "  ✓ [auto-install] cexr v" + version + " runtime engine installed\n";
-        outMsg += "  ✓ [auto-install] cexp v" + version + " machine compiler installed\n";
-        outMsg += "  ✓ [auto-install] cvm CodeVersionManager engine installed\n";
-        outMsg += "  ✓ [auto-install] thunder Container Engine & Virtual Microkernel installed\n";
-        outMsg += "  ✓ [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed\n";
-        outMsg += "  ✓ [auto-start] cexr runtime engine active & verified\n";
-        outMsg += "  ✓ [auto-start] cexp direct machine compiler ready\n";
-        outMsg += "  ✓ [auto-start] cvm server started (single process standalone on port 4000)\n";
-        outMsg += "  ✓ [auto-start] thunder server started (single process standalone on port 3050)\n";
-        outMsg += "  ✓ [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)\n";
+        outMsg += "  [OK] [auto-install] cexr v" + version + " runtime engine installed\n";
+        outMsg += "  [OK] [auto-install] cexp v" + version + " machine compiler installed\n";
+        outMsg += "  [OK] [auto-install] cvm CodeVersionManager engine installed\n";
+        outMsg += "  [OK] [auto-install] thunder Container Engine & Virtual Microkernel installed\n";
+        outMsg += "  [OK] [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed\n";
+        outMsg += "  [OK] [auto-start] cexr runtime engine active & verified\n";
+        outMsg += "  [OK] [auto-start] cexp direct machine compiler ready\n";
+        outMsg += "  [OK] [auto-start] cvm server started (single process standalone on port 4000)\n";
+        outMsg += "  [OK] [auto-start] thunder server started (single process standalone on port 3050)\n";
+        outMsg += "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)\n";
         outMsg += "==> Successfully installed and auto-started cexr, cexp, cvm, thunder, lighting for v" + version;
 
         this.startCvm(4000, true);
@@ -377,7 +377,7 @@ class CxvmEngine {
             return new CxvmCommandResult("add", "", false, "File path is required", "error: no file specified to add");
         }
         this.cvmRepo->stage(filePath, content);
-        return new CxvmCommandResult("add", filePath, true, "Staged file: " + filePath, "✔ [cxvm add] Staged file: " + filePath);
+        return new CxvmCommandResult("add", filePath, true, "Staged file: " + filePath, "[OK] [cxvm add] Staged file: " + filePath);
     }
 
     public cvmCommit(message: string, authorName: string, authorEmail: string): CxvmCommandResult* {
@@ -409,7 +409,7 @@ class CxvmEngine {
         let shortHead: string = (int)head.length() >= 7 ? head.substr(0, 7) : head;
         let out: string = "==> [cxvm push] Pushing commits to remote " + remote + "/" + branch + "...\n";
         out += "--> Synced commit: " + shortHead + "\n";
-        out += "✓ [cxvm push] Successfully pushed branch " + branch + " to " + remote;
+        out += "[OK] [cxvm push] Successfully pushed branch " + branch + " to " + remote;
         return new CxvmCommandResult("push", branch, true, "Pushed branch to " + remote + "/" + branch, out);
     }
 
@@ -419,7 +419,7 @@ class CxvmEngine {
         let branch: string = branchArg.length() == 0 ? (currBranch.length() == 0 ? "main" : currBranch) : branchArg;
 
         let out: string = "==> [cxvm pull] Pulling latest changes from " + remote + "/" + branch + "...\n";
-        out += "✓ [cxvm pull] Already up to date (branch: " + branch + ")";
+        out += "[OK] [cxvm pull] Already up to date (branch: " + branch + ")";
         return new CxvmCommandResult("pull", branch, true, "Pulled latest commits from " + remote + "/" + branch, out);
     }
 
@@ -442,7 +442,7 @@ class CxvmEngine {
 
         let created: bool = this.cvmRepo->createBranch(name);
         if (created) {
-            return new CxvmCommandResult("branch", name, true, "Created branch: " + name, "✓ Created branch: " + name);
+            return new CxvmCommandResult("branch", name, true, "Created branch: " + name, "[OK] Created branch: " + name);
         } else {
             return new CxvmCommandResult("branch", name, false, "Branch already exists: " + name, "fatal: branch '" + name + "' already exists");
         }
@@ -451,7 +451,7 @@ class CxvmEngine {
     public cvmCheckout(branchName: string): CxvmCommandResult* {
         let switched: bool = this.cvmRepo->checkout(branchName);
         if (switched) {
-            return new CxvmCommandResult("checkout", branchName, true, "Switched to branch: " + branchName, "✓ Switched to branch '" + branchName + "'");
+            return new CxvmCommandResult("checkout", branchName, true, "Switched to branch: " + branchName, "[OK] Switched to branch '" + branchName + "'");
         } else {
             return new CxvmCommandResult("checkout", branchName, false, "Branch not found: " + branchName, "error: pathspec '" + branchName + "' did not match any branch");
         }
@@ -491,7 +491,7 @@ class CxvmEngine {
         this.cvmServerPid = 7891;
         this.cvmServerPort = port;
         let out: string = "==> [cxvm] Starting CVM as a server with single process (standalone)...\n";
-        out += "✓ [cxvm] CVM server started successfully (single process standalone)\n";
+        out += "[OK] [cxvm] CVM server started successfully (single process standalone)\n";
         out += "  - Process ID: " + std::to_string(this.cvmServerPid) + "\n";
         out += "  - Port:       " + std::to_string(this.cvmServerPort) + "\n";
         out += "  - Mode:       standalone (single process)\n";
@@ -505,14 +505,14 @@ class CxvmEngine {
             return new CxvmCommandResult("stop cvm", "", true, "CVM server is not running", "[cxvm] CVM server is not running");
         }
         this.cvmServerRunning = false;
-        let out: string = "✓ [cxvm] Stopped CVM server (PID: " + std::to_string(this.cvmServerPid) + ")";
+        let out: string = "[OK] [cxvm] Stopped CVM server (PID: " + std::to_string(this.cvmServerPid) + ")";
         this.cvmServerPid = 0;
         return new CxvmCommandResult("stop cvm", "", true, "CVM server stopped", out);
     }
 
     public statusCvm(): CxvmCommandResult* {
         if (this.cvmServerRunning) {
-            let out: string = "✓ [cxvm] CVM server is running (single process standalone, PID: " + std::to_string(this.cvmServerPid) + ", port: " + std::to_string(this.cvmServerPort) + ")\n";
+            let out: string = "[OK] [cxvm] CVM server is running (single process standalone, PID: " + std::to_string(this.cvmServerPid) + ", port: " + std::to_string(this.cvmServerPort) + ")\n";
             out += "  - Web Studio: http://localhost:" + std::to_string(this.cvmServerPort) + "\n";
             out += "  - Health API: http://localhost:" + std::to_string(this.cvmServerPort) + "/health";
             return new CxvmCommandResult("status cvm", std::to_string(this.cvmServerPort), true, "CVM server running", out);
@@ -526,7 +526,7 @@ class CxvmEngine {
         this.thunderPid = 8092;
         this.thunderPort = port;
         let out: string = "==> [cxvm] Starting Thunder as a server with single process (standalone)...\n";
-        out += "✓ [cxvm] Thunder server started successfully (single process standalone)\n";
+        out += "[OK] [cxvm] Thunder server started successfully (single process standalone)\n";
         out += "  - Process ID: " + std::to_string(this.thunderPid) + "\n";
         out += "  - Port:       " + std::to_string(this.thunderPort) + "\n";
         out += "  - Mode:       standalone (single process)\n";
@@ -540,14 +540,14 @@ class CxvmEngine {
             return new CxvmCommandResult("stop thunder", "", true, "Thunder server is not running", "[cxvm] Thunder server is not running");
         }
         this.thunderRunning = false;
-        let out: string = "✓ [cxvm] Stopped Thunder server (PID: " + std::to_string(this.thunderPid) + ")";
+        let out: string = "[OK] [cxvm] Stopped Thunder server (PID: " + std::to_string(this.thunderPid) + ")";
         this.thunderPid = 0;
         return new CxvmCommandResult("stop thunder", "", true, "Thunder server stopped", out);
     }
 
     public statusThunder(): CxvmCommandResult* {
         if (this.thunderRunning) {
-            let out: string = "✓ [cxvm] Thunder server is running (single process standalone, PID: " + std::to_string(this.thunderPid) + ", port: " + std::to_string(this.thunderPort) + ")\n";
+            let out: string = "[OK] [cxvm] Thunder server is running (single process standalone, PID: " + std::to_string(this.thunderPid) + ", port: " + std::to_string(this.thunderPort) + ")\n";
             out += "  - Dashboard:  http://localhost:" + std::to_string(this.thunderPort) + "\n";
             out += "  - Health API: http://localhost:" + std::to_string(this.thunderPort) + "/health";
             return new CxvmCommandResult("status thunder", std::to_string(this.thunderPort), true, "Thunder server running", out);
@@ -593,7 +593,7 @@ class CxvmEngine {
             return 0;
         }
         println("==> [cxvm thunder] Executing Thunder container operation: " + cmd + " " + arg1);
-        println("✓ [cxvm thunder] Operation completed successfully (Virtual Linux Microkernel)");
+        println("[OK] [cxvm thunder] Operation completed successfully (Virtual Linux Microkernel)");
         return 0;
     }
 
@@ -648,16 +648,16 @@ class CxvmEngine {
         let projPath: string = dir == "." ? name : dir + "/" + name;
 
         let out: string = "==> [cxvm init] Initializing default Cex project '" + name + "'...\n";
-        out += "✓ [cxvm init] Created project directory: " + projPath + "\n";
-        out += "✓ [cxvm init] Generated default cex-pack.json configuration (name: " + name + ")\n";
-        out += "✓ [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)\n";
-        out += "✓ [cxvm init] Initialized CodeVersionManager repository (.cvm/)\n";
-        out += "✓ [cxvm init] Generated .cvmignore file\n";
-        out += "✓ [cxvm init] Generated README.md documentation\n";
-        out += "✓ [cxvm init] Generated SECURITY.md policy\n";
-        out += "✓ [cxvm init] Generated LICENSE file\n";
-        out += "✓ [cxvm init] Created application entrypoint (src/index.cex)\n";
-        out += "✓ [cxvm init] Configured project start & build commands in scripts\n";
+        out += "[OK] [cxvm init] Created project directory: " + projPath + "\n";
+        out += "[OK] [cxvm init] Generated default cex-pack.json configuration (name: " + name + ")\n";
+        out += "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)\n";
+        out += "[OK] [cxvm init] Initialized CodeVersionManager repository (.cvm/)\n";
+        out += "[OK] [cxvm init] Generated .cvmignore file\n";
+        out += "[OK] [cxvm init] Generated README.md documentation\n";
+        out += "[OK] [cxvm init] Generated SECURITY.md policy\n";
+        out += "[OK] [cxvm init] Generated LICENSE file\n";
+        out += "[OK] [cxvm init] Created application entrypoint (src/index.cex)\n";
+        out += "[OK] [cxvm init] Configured project start & build commands in scripts\n";
         out += "==> Project '" + name + "' initialized successfully!\n";
         out += "To get started:\n";
         out += "  cd " + name + "\n";
@@ -673,12 +673,12 @@ class CxvmEngine {
         let projPath: string = dir == "." ? name : dir + "/" + name;
 
         let out: string = "==> [cxvm light] Creating Lighting Fullstack MVC project '" + name + "'...\n";
-        out += "✓ [cxvm light] Created project directory: " + projPath + "\n";
-        out += "✓ [cxvm light] Initialized Lighting MVC project structure (src/controllers, src/models, src/views)\n";
-        out += "✓ [cxvm light] Generated cex-pack.json with Lighting MVC dependencies\n";
-        out += "✓ [cxvm light] Created application entrypoint (src/index.cex)\n";
-        out += "✓ [cxvm light] Created HomeController & standard routes\n";
-        out += "✓ [cxvm light] Configured local './bin/light' dispatcher\n";
+        out += "[OK] [cxvm light] Created project directory: " + projPath + "\n";
+        out += "[OK] [cxvm light] Initialized Lighting MVC project structure (src/controllers, src/models, src/views)\n";
+        out += "[OK] [cxvm light] Generated cex-pack.json with Lighting MVC dependencies\n";
+        out += "[OK] [cxvm light] Created application entrypoint (src/index.cex)\n";
+        out += "[OK] [cxvm light] Created HomeController & standard routes\n";
+        out += "[OK] [cxvm light] Configured local './bin/light' dispatcher\n";
         out += "==> Project '" + name + "' created successfully!\n";
         out += "To get started:\n";
         out += "  cd " + name + "\n";
@@ -697,12 +697,12 @@ class CxvmEngine {
         }
         if (cmd == "dev" || cmd == "serve" || cmd == "start") {
             println("==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080...");
-            println("✓ [cxvm light] Server running at http://localhost:3080");
+            println("[OK] [cxvm light] Server running at http://localhost:3080");
             return 0;
         }
         if (cmd == "build") {
             println("==> [cxvm light] Compiling Lighting MVC project with cexp native compiler...");
-            println("✓ [cxvm light] Production binary built successfully in bin/");
+            println("[OK] [cxvm light] Production binary built successfully in bin/");
             return 0;
         }
         if (cmd == "doctor" || cmd == "status") {

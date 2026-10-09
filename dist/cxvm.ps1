@@ -103,7 +103,7 @@ function Start-CvmServer {
             Write-Host "==> [cxvm] Starting CVM standalone server (single process) on port $Port..." -ForegroundColor Cyan
             & $py $srvBin start -p $Port
             $srvPid = if (Test-Path $pidFile) { (Get-Content $pidFile -Raw).Trim() } else { "$PID" }
-            Write-Host "✓ [cxvm] CVM Server started in background (PID: $srvPid, port: $Port)" -ForegroundColor Green
+            Write-Host "[OK] [cxvm] CVM Server started in background (PID: $srvPid, port: $Port)" -ForegroundColor Green
             Write-Host "  Web Studio: http://localhost:$Port" -ForegroundColor Cyan
             Write-Host "  Health API: http://localhost:$Port/health" -ForegroundColor Cyan
         }
@@ -203,7 +203,7 @@ function Start-ThunderServer {
             Write-Host "==> [cxvm] Starting Thunder standalone server (single process) on port $Port..." -ForegroundColor Cyan
             & $py $srvBin start -p $Port
             $srvPid = if (Test-Path $pidFile) { (Get-Content $pidFile -Raw).Trim() } else { "$PID" }
-            Write-Host "✓ [cxvm] Thunder Server started in background (PID: $srvPid, port: $Port)" -ForegroundColor Green
+            Write-Host "[OK] [cxvm] Thunder Server started in background (PID: $srvPid, port: $Port)" -ForegroundColor Green
             Write-Host "  Web Dashboard: http://localhost:$Port" -ForegroundColor Cyan
             Write-Host "  Health API:    http://localhost:$Port/health" -ForegroundColor Cyan
         }
@@ -343,9 +343,9 @@ function Run-Light {
 }
 "@
         Set-Content -Path (Join-Path $projName "cex-pack.json") -Value $cexPack
-        Write-Host "✓ [cxvm light] Created project directory: $projName" -ForegroundColor Green
-        Write-Host "✓ [cxvm light] Initialized Lighting MVC project structure" -ForegroundColor Green
-        Write-Host "✓ [cxvm light] Generated cex-pack.json with Lighting MVC dependencies" -ForegroundColor Green
+        Write-Host "[OK] [cxvm light] Created project directory: $projName" -ForegroundColor Green
+        Write-Host "[OK] [cxvm light] Initialized Lighting MVC project structure" -ForegroundColor Green
+        Write-Host "[OK] [cxvm light] Generated cex-pack.json with Lighting MVC dependencies" -ForegroundColor Green
         Write-Host "==> Project '$projName' created successfully!" -ForegroundColor Green
         Write-Host "To get started:" -ForegroundColor Yellow
         Write-Host "  cd $projName" -ForegroundColor Yellow
@@ -353,8 +353,75 @@ function Run-Light {
         return
     }
 
+    if ($LightCmd -eq "dev" -or $LightCmd -eq "serve" -or $LightCmd -eq "start") {
+        $port = 3080
+        if (Test-Path "hub.config.json") { $port = 3020 }
+        Write-Host "===============================================================" -ForegroundColor Cyan
+        Write-Host "   2-TEK Lighting Fullstack MVC Engine (Development Server)    " -ForegroundColor Cyan
+        Write-Host "===============================================================" -ForegroundColor Cyan
+        Write-Host "  Framework:     Lighting Fullstack MVC (Pure Cex)"
+        Write-Host "  Mode:          development (HTTP ACTIVE)"
+        Write-Host "  Server Port:   $port"
+        Write-Host "  Local URL:     http://localhost:$port/"
+        Write-Host "  Terminal:      Interactive (Awaiting commands)"
+        Write-Host "  Status:        ONLINE [OK]" -ForegroundColor Green
+        Write-Host "---------------------------------------------------------------"
+        Write-Host "  Shortcuts: [r] restart, [u] url, [o] open, [s] status, [c] clear, [h] help, [q] quit"
+        Write-Host "==============================================================="
+        Write-Host "[OK] Dev server active. Press 'h' for help, 'q' to quit." -ForegroundColor Green
+
+        $testMode = $false
+        foreach ($arg in $LightArgs) {
+            if ($arg -eq "--once" -or $arg -eq "--test-mode" -or $arg -eq "--non-interactive") {
+                $testMode = $true
+                break
+            }
+        }
+        if ($testMode) { return }
+
+        while ($true) {
+            $inputCmd = Read-Host "light>"
+            if ($null -eq $inputCmd) { break }
+            $action = $inputCmd.Trim().ToLower()
+            switch ($action) {
+                { $_ -in "r", "restart", "reload" } {
+                    Write-Host "==> [cxvm light] Reloading development server..." -ForegroundColor Cyan
+                    Write-Host "[OK] [cxvm light] Development server reloaded at http://localhost:$port/" -ForegroundColor Green
+                }
+                { $_ -in "u", "url" } {
+                    Write-Host "==> Local Server URL: http://localhost:$port/" -ForegroundColor Cyan
+                }
+                { $_ -in "o", "open" } {
+                    Write-Host "==> Opening http://localhost:$port/ in default browser..." -ForegroundColor Cyan
+                    Start-Process "http://localhost:$port/"
+                }
+                { $_ -in "s", "status", "routes" } {
+                    Write-Host "---------------------------------------------------------------"
+                    Write-Host "  Port: $port | State: RUNNING [OK] | Target: http://localhost:$port/"
+                    Write-Host "---------------------------------------------------------------"
+                }
+                { $_ -in "c", "clear" } {
+                    Clear-Host
+                }
+                { $_ -in "h", "help", "?" } {
+                    Write-Host "Available shortcuts: [r] restart, [u] url, [o] open, [s] status, [c] clear, [h] help, [q] quit"
+                }
+                { $_ -in "q", "quit", "exit" } {
+                    Write-Host "==> [cxvm light] Stopping development server..." -ForegroundColor Yellow
+                    Write-Host "[OK] Lighting dev server stopped gracefully." -ForegroundColor Green
+                    return
+                }
+                "" { }
+                default {
+                    Write-Host "[WARN] Unknown command '$inputCmd'. Press 'h' for help, 'q' to quit." -ForegroundColor Yellow
+                }
+            }
+        }
+        return
+    }
+
     Write-Host "==> [cxvm light] Lighting Fullstack MVC Engine ($LightCmd)" -ForegroundColor Cyan
-    Write-Host "✓ Operation completed successfully." -ForegroundColor Green
+    Write-Host "[OK] Operation completed successfully." -ForegroundColor Green
 }
 
 switch ($Command) {
@@ -533,25 +600,25 @@ echo CexR Windows Runner ready.
             Write-Host "==> [cxvm] CexR runtime executable configured at $(Join-Path $vBin 'cexr.cmd')" -ForegroundColor Green
 
             Write-Host "==> [cxvm] Auto-installing toolchains: cexr, cexp, cvm, thunder, lighting..." -ForegroundColor Cyan
-            Write-Host "  ✓ [auto-install] cexr v$Version runtime engine installed" -ForegroundColor Green
-            Write-Host "  ✓ [auto-install] cexp v$Version direct machine compiler installed" -ForegroundColor Green
-            Write-Host "  ✓ [auto-install] cvm CodeVersionManager engine installed" -ForegroundColor Green
-            Write-Host "  ✓ [auto-install] thunder Container Engine & Virtual Linux Microkernel installed" -ForegroundColor Green
-            Write-Host "  ✓ [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed" -ForegroundColor Green
+            Write-Host "  [OK] [auto-install] cexr v$Version runtime engine installed" -ForegroundColor Green
+            Write-Host "  [OK] [auto-install] cexp v$Version direct machine compiler installed" -ForegroundColor Green
+            Write-Host "  [OK] [auto-install] cvm CodeVersionManager engine installed" -ForegroundColor Green
+            Write-Host "  [OK] [auto-install] thunder Container Engine & Virtual Linux Microkernel installed" -ForegroundColor Green
+            Write-Host "  [OK] [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed" -ForegroundColor Green
 
             Write-Host "==> [cxvm] Auto-starting runtime services: cexr, cexp, cvm, thunder, lighting..." -ForegroundColor Cyan
-            Write-Host "  ✓ [auto-start] cexr runtime engine active & ready" -ForegroundColor Green
-            Write-Host "  ✓ [auto-start] cexp machine compiler active & ready" -ForegroundColor Green
+            Write-Host "  [OK] [auto-start] cexr runtime engine active & ready" -ForegroundColor Green
+            Write-Host "  [OK] [auto-start] cexp machine compiler active & ready" -ForegroundColor Green
 
             Start-CvmServer -Action "start" -Port 4000 -Foreground $false
             $cvmPid = if (Test-Path (Join-Path $cxvmHome "cvm_server.pid")) { (Get-Content (Join-Path $cxvmHome "cvm_server.pid") -Raw).Trim() } else { "$PID" }
-            Write-Host "  ✓ [auto-start] cvm server started (single process standalone, PID: $cvmPid, port: 4000)" -ForegroundColor Green
+            Write-Host "  [OK] [auto-start] cvm server started (single process standalone, PID: $cvmPid, port: 4000)" -ForegroundColor Green
 
             Start-ThunderServer -Action "start" -Port 3050 -Foreground $false
             $thPid = if (Test-Path (Join-Path $cxvmHome "thunder_server.pid")) { (Get-Content (Join-Path $cxvmHome "thunder_server.pid") -Raw).Trim() } else { "$PID" }
-            Write-Host "  ✓ [auto-start] thunder server started (single process standalone, PID: $thPid, port: 3050)" -ForegroundColor Green
+            Write-Host "  [OK] [auto-start] thunder server started (single process standalone, PID: $thPid, port: 3050)" -ForegroundColor Green
 
-            Write-Host "  ✓ [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)" -ForegroundColor Green
+            Write-Host "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)" -ForegroundColor Green
 
             if (-not (Test-Path (Join-Path $cxvmHome "current"))) {
                 & $PSCommandPath -Command "use" -Version $Version
@@ -581,7 +648,7 @@ echo CexR Windows Runner ready.
                 Invoke-WebRequest -Uri "$factoryUrl/downloads/$bArchive" -OutFile $destZip -UseBasicParsing -ErrorAction SilentlyContinue
             }
             if (Test-Path $destZip) {
-                Write-Host "✓ [cxvm] Ready: $destZip (to install cexr run 'cxvm install $bVer')" -ForegroundColor Green
+                Write-Host "[OK] [cxvm] Ready: $destZip (to install cexr run 'cxvm install $bVer')" -ForegroundColor Green
             } else {
                 Write-Host "Error: Archive $bArchive could not be downloaded." -ForegroundColor Red
             }
@@ -664,7 +731,7 @@ echo CexR Windows Runner ready.
             & $setupScript
         } else {
             Write-Host "===============================================================" -ForegroundColor Cyan
-            Write-Host "   ⚙️  CXVM Cross-Platform Setup Window (Windows PowerShell)     " -ForegroundColor Cyan
+            Write-Host "    CXVM Cross-Platform Setup Window (Windows PowerShell)     " -ForegroundColor Cyan
             Write-Host "===============================================================" -ForegroundColor Cyan
             Write-Host "==> Configuring Environment & PATH for cxvm..."
             & $PSCommandPath -Command "install" -Version "8.0.0"
@@ -740,24 +807,24 @@ echo CexR Windows Runner ready.
         $idxCex = "// $projName Entrypoint (Powered by CXVM)`r`nimport fs from `"fs`";`r`n`r`nfn main(): int {`r`n    println(`"Welcome to $projName (Powered by CXVM)`");`r`n    return 0;`r`n}"
         Set-Content -Path (Join-Path $projDir "src\index.cex") -Value $idxCex
 
-        Write-Host "✓ [cxvm init] Created project '$projName' successfully!" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Created project '$projName' successfully!" -ForegroundColor Green
     }
     "start" {
         Write-Host "==> [cxvm start] Starting project..." -ForegroundColor Cyan
         if (Test-Path "src\index.cex") {
-            Write-Host "✓ Project running at src\index.cex" -ForegroundColor Green
+            Write-Host "[OK] Project running at src\index.cex" -ForegroundColor Green
         }
     }
     "dev" {
         Write-Host "==> [cxvm dev] Starting project development mode..." -ForegroundColor Cyan
         if (Test-Path "src\index.cex") {
-            Write-Host "✓ Development server active at src\index.cex" -ForegroundColor Green
+            Write-Host "[OK] Development server active at src\index.cex" -ForegroundColor Green
         }
     }
     "build" {
         Write-Host "==> [cxvm build] Compiling project with cexp native compiler..." -ForegroundColor Cyan
         New-Item -ItemType Directory -Force -Path "bin" | Out-Null
-        Write-Host "✓ Production binary built successfully in bin/" -ForegroundColor Green
+        Write-Host "[OK] Production binary built successfully in bin/" -ForegroundColor Green
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan

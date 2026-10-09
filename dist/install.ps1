@@ -63,7 +63,7 @@ if ($env:PATH -notlike "*$binDir*") {
 
 Write-Host ""
 Write-Host "===============================================================" -ForegroundColor Green
-Write-Host "  ✓ Cex Runtime v$defaultVersion (CexR v8) installed via cxvm!    " -ForegroundColor Green
+Write-Host "  [OK] Cex Runtime v$defaultVersion (CexR v8) installed via cxvm!    " -ForegroundColor Green
 Write-Host "===============================================================" -ForegroundColor Green
 Write-Host "Activate in PowerShell session:" -ForegroundColor Yellow
 Write-Host "  `$env:CXVM_DIR = `"$cxvmDir`"" -ForegroundColor Yellow
