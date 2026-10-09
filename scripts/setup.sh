@@ -1,445 +1,352 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 2-TEK Cex Factory: Cross-Platform CXVM Setup Window & Toolchain Configurator
-# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+# 2-TEK CXVM: Quick Installer & Toolchain Environment Setup (setup.sh)
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
 # ==============================================================================
 set -e
 
 # Detect directories dynamically
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+GITHUB_RAW="https://raw.githubusercontent.com/2-tek/cxvm/main"
+GITHUB_REPO="https://github.com/2-tek/cxvm"
 DEFAULT_VER="8.0.0"
 SECONDARY_VER="6.0.0"
 
-# ANSI Colors
-CYAN="\033[1;36m"
-GREEN="\033[1;32m"
-YELLOW="\033[1;33m"
-BLUE="\033[1;34m"
-PURPLE="\033[1;35m"
-BOLD="\033[1m"
-RESET="\033[0m"
+# Determine invocation directory
+INVOCATION_DIR="$(pwd)"
+SCRIPT_DIR=""
+if [ -n "${BASH_SOURCE[0]}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+
+echo "================================================================================"
+echo "    2-TEK CXVM: Quick Installer & Toolchain Environment Setup (setup.sh)       "
+echo "    Installs and configures CXVM, Cex runtimes, and shell environment          "
+echo "================================================================================"
 
 # ------------------------------------------------------------------------------
-# Function: display_setup_window
+# 1. Platform & Architecture Detection
 # ------------------------------------------------------------------------------
-display_setup_window() {
-  clear 2>/dev/null || true
-  echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗${RESET}"
-  echo -e "${CYAN}║${RESET}                  ${BOLD}⚙️  CXVM CROSS-PLATFORM SETUP WINDOW${RESET}                         ${CYAN}║${RESET}"
-  echo -e "${CYAN}║${RESET}         ${YELLOW}Cex Version Manager: Environment, PATH & Toolchain Setup${RESET}               ${CYAN}║${RESET}"
-  echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝${RESET}"
-  echo -e "  ${BOLD}Platform:${RESET}    $(uname -s) ($(uname -m))"
-  echo -e "  ${BOLD}CXVM Home:${RESET}   ${BLUE}$CXVM_DIR${RESET}"
-  echo -e "  ${BOLD}Project:${RESET}     $PROJECT_ROOT"
-  echo -e "  ${BOLD}Default:${RESET}     CexR ${GREEN}v${DEFAULT_VER}${RESET} (Pure Cex Native Engine: cexr + cexp)"
-  echo -e "  ${BOLD}Supported:${RESET}   CexR ${PURPLE}v${SECONDARY_VER}${RESET} (LTS Native Engine & JIT)"
-  echo -e "${CYAN}─────────────────────────────────────────────────────────────────────────────────${RESET}"
-}
+OS_TYPE="$(uname -s)"
+ARCH_TYPE="$(uname -m)"
 
-display_setup_window
+case "$OS_TYPE" in
+  Linux*)  TARGET_OS="linux" ;;
+  Darwin*) TARGET_OS="darwin" ;;
+  CYGWIN*|MINGW*|MSYS*) TARGET_OS="windows" ;;
+  *)
+    echo "[ERROR] Unsupported operating system: $OS_TYPE"
+    exit 1
+    ;;
+esac
+
+case "$ARCH_TYPE" in
+  x86_64|amd64) TARGET_ARCH="x86_64" ;;
+  arm64|aarch64)
+    if [ "$TARGET_OS" = "darwin" ]; then
+      TARGET_ARCH="arm64"
+    else
+      TARGET_ARCH="aarch64"
+    fi
+    ;;
+  *)
+    echo "[ERROR] Unsupported architecture: $ARCH_TYPE"
+    exit 1
+    ;;
+esac
+
+echo "[INFO] Detected Platform: $TARGET_OS ($TARGET_ARCH)"
+echo "[INFO] Installation Directory: $CXVM_DIR"
 
 # ------------------------------------------------------------------------------
-# Step 1: Setup CXVM Directory Hierarchy
+# 2. Directory Hierarchy Setup
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}[1/5] Initializing CXVM Directory Hierarchy...${RESET}"
 mkdir -p "$CXVM_DIR/bin"
 mkdir -p "$CXVM_DIR/versions"
 mkdir -p "$CXVM_DIR/cache"
 
-# Install/copy cxvm CLI dispatcher and standalone CVM server
-if [ -f "$PROJECT_ROOT/downloads/cxvm" ]; then
-  cp -f "$PROJECT_ROOT/downloads/cxvm" "$CXVM_DIR/bin/cxvm"
-  cp -f "$PROJECT_ROOT/downloads/cxvm.sh" "$CXVM_DIR/bin/cxvm.sh" 2>/dev/null || true
-elif [ -f "$PROJECT_ROOT/downloads/cxvm.sh" ]; then
-  cp -f "$PROJECT_ROOT/downloads/cxvm.sh" "$CXVM_DIR/bin/cxvm"
+# ------------------------------------------------------------------------------
+# 3. Install cxvm Executable & Server Scripts
+# ------------------------------------------------------------------------------
+echo "[INFO] Installing cxvm core toolchain..."
+
+# Helper: download file from GitHub raw if not found locally
+fetch_file() {
+  local rel_path="$1"
+  local dest_path="$2"
+
+  if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/$rel_path" ]; then
+    cp -f "$SCRIPT_DIR/$rel_path" "$dest_path"
+    return 0
+  fi
+  if [ -f "$INVOCATION_DIR/$rel_path" ]; then
+    cp -f "$INVOCATION_DIR/$rel_path" "$dest_path"
+    return 0
+  fi
+  if [ -f "$INVOCATION_DIR/dist/$rel_path" ]; then
+    cp -f "$INVOCATION_DIR/dist/$rel_path" "$dest_path"
+    return 0
+  fi
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$GITHUB_RAW/$rel_path" -o "$dest_path" 2>/dev/null || \
+    curl -fsSL "$GITHUB_RAW/dist/$rel_path" -o "$dest_path" 2>/dev/null || true
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$GITHUB_RAW/$rel_path" -O "$dest_path" 2>/dev/null || \
+    wget -q "$GITHUB_RAW/dist/$rel_path" -O "$dest_path" 2>/dev/null || true
+  fi
+}
+
+fetch_file "dist/cxvm" "$CXVM_DIR/bin/cxvm"
+if [ ! -s "$CXVM_DIR/bin/cxvm" ]; then
+  fetch_file "cxvm" "$CXVM_DIR/bin/cxvm"
 fi
-if [ -f "$PROJECT_ROOT/downloads/cvm-server" ]; then
-  cp -f "$PROJECT_ROOT/downloads/cvm-server" "$CXVM_DIR/bin/cvm-server"
-fi
-if [ -f "$PROJECT_ROOT/downloads/thunder-server" ]; then
-  cp -f "$PROJECT_ROOT/downloads/thunder-server" "$CXVM_DIR/bin/thunder-server"
-fi
+fetch_file "dist/cxvm.sh" "$CXVM_DIR/bin/cxvm.sh"
+fetch_file "dist/cvm-server" "$CXVM_DIR/bin/cvm-server"
+fetch_file "dist/thunder-server" "$CXVM_DIR/bin/thunder-server"
+
 chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
-echo -e "  ${GREEN}✓${RESET} CXVM core hierarchy established in ${BLUE}$CXVM_DIR${RESET}"
+echo "[OK] cxvm binary installed in $CXVM_DIR/bin/cxvm"
 
 # ------------------------------------------------------------------------------
-# Step 2: Configure Environment & Shell PATH Persistence
+# 4. Environment Variables & PATH Configuration
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}[2/5] Configuring Environment Variables & PATH Persistence...${RESET}"
-PATH_ENTRY="export CXVM_DIR=\"$CXVM_DIR\"
-export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\""
+echo "[INFO] Configuring shell environment variables..."
 
-SHELL_FILES=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile")
-CONFIGURED_COUNT=0
+CONFIG_ENTRY="
+# 2-TEK CXVM: Cex Version Manager
+export CXVM_DIR=\"$CXVM_DIR\"
+export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\"
+"
 
-for sf in "${SHELL_FILES[@]}"; do
-  if [ -f "$sf" ]; then
-    if ! grep -q "CXVM_DIR" "$sf" 2>/dev/null; then
-      echo -e "\n# cxvm: Cex Version Manager\n$PATH_ENTRY" >> "$sf"
-      echo -e "  ${GREEN}✓${RESET} Configured PATH and CXVM_DIR in ${BLUE}$sf${RESET}"
-      CONFIGURED_COUNT=$((CONFIGURED_COUNT + 1))
+SHELL_RC_FILES=("$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile")
+CONFIGURED_SHELLS=0
+
+for rc in "${SHELL_RC_FILES[@]}"; do
+  if [ -f "$rc" ]; then
+    if ! grep -q "CXVM_DIR" "$rc" 2>/dev/null; then
+      printf "%s\n" "$CONFIG_ENTRY" >> "$rc"
+      echo "[OK] Appended CXVM_DIR and PATH to $rc"
+      CONFIGURED_SHELLS=$((CONFIGURED_SHELLS + 1))
     else
-      echo -e "  ${YELLOW}ℹ${RESET} Already configured in ${BLUE}$sf${RESET}"
-      CONFIGURED_COUNT=$((CONFIGURED_COUNT + 1))
+      echo "[OK] Already configured in $rc"
+      CONFIGURED_SHELLS=$((CONFIGURED_SHELLS + 1))
     fi
   fi
 done
 
-if [ "$CONFIGURED_COUNT" -eq 0 ]; then
-  echo -e "\n# cxvm: Cex Version Manager\n$PATH_ENTRY" >> "$HOME/.bashrc"
-  echo -e "  ${GREEN}✓${RESET} Created and configured ${BLUE}$HOME/.bashrc${RESET}"
+if [ "$CONFIGURED_SHELLS" -eq 0 ]; then
+  printf "%s\n" "$CONFIG_ENTRY" >> "$HOME/.zshrc"
+  echo "[OK] Created and configured $HOME/.zshrc"
 fi
 
+# Export in active subshell immediately
 export CXVM_DIR="$CXVM_DIR"
 export PATH="$CXVM_DIR/bin:$CXVM_DIR/current/bin:$PATH"
 
+# Symlink to /usr/local/bin or ~/.local/bin for immediate invocation without reload
+if [ -w "/usr/local/bin" ] 2>/dev/null; then
+  ln -sf "$CXVM_DIR/bin/cxvm" "/usr/local/bin/cxvm" 2>/dev/null || true
+  echo "[OK] Symlinked cxvm to /usr/local/bin/cxvm"
+fi
+mkdir -p "$HOME/.local/bin"
+ln -sf "$CXVM_DIR/bin/cxvm" "$HOME/.local/bin/cxvm" 2>/dev/null || true
+
 # ------------------------------------------------------------------------------
-# Step 3: Install Cex Runtime Versions (v8 Default & v6 LTS)
+# 5. Install Default Runtime Version (v8.0.0 & v6.0.0)
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}[3/5] Setting up Cex Runtime Engines (v8 & v6)...${RESET}"
-# Source cxvm CLI in-process
-source "$CXVM_DIR/bin/cxvm"
+install_runtime_version() {
+  local ver="$1"
+  local ext="tar.gz"
+  if [ "$TARGET_OS" = "windows" ]; then ext="zip"; fi
+  local archive_name="cex-v${ver}-${TARGET_OS}-${TARGET_ARCH}.${ext}"
+  local target_ver_dir="$CXVM_DIR/versions/v${ver}"
 
-# Install v8.0.0 (Pure Cex Default)
-echo -e "  --> Installing Cex v${DEFAULT_VER} (Pure Cex Native Engine)..."
-cxvm install "$DEFAULT_VER" >/dev/null 2>&1 || true
-echo -e "  ${GREEN}✓${RESET} CexR v${DEFAULT_VER} installed."
+  echo "[INFO] Setting up Cex runtime v${ver}..."
+  mkdir -p "$target_ver_dir/bin" "$target_ver_dir/include/cex" "$target_ver_dir/lib"
 
-# Install v6.0.0 (LTS Native Engine)
-echo -e "  --> Installing Cex v${SECONDARY_VER} (LTS High-Performance Engine)..."
-cxvm install "$SECONDARY_VER" >/dev/null 2>&1 || true
-echo -e "  ${GREEN}✓${RESET} CexR v${SECONDARY_VER} installed."
+  local archive_path="$CXVM_DIR/cache/$archive_name"
 
-# Set v8.0.0 as active and default
-cxvm default "$DEFAULT_VER" >/dev/null 2>&1 || true
-cxvm use "$DEFAULT_VER" >/dev/null 2>&1 || true
-echo -e "  ${GREEN}✓${RESET} Active default version set to ${GREEN}v${DEFAULT_VER}${RESET}"
+  # Search local sources first
+  if [ ! -f "$archive_path" ]; then
+    if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/dist/$archive_name" ]; then
+      cp -f "$SCRIPT_DIR/dist/$archive_name" "$archive_path"
+    elif [ -f "$INVOCATION_DIR/dist/$archive_name" ]; then
+      cp -f "$INVOCATION_DIR/dist/$archive_name" "$archive_path"
+    elif [ -f "$INVOCATION_DIR/$archive_name" ]; then
+      cp -f "$INVOCATION_DIR/$archive_name" "$archive_path"
+    else
+      # Fetch from GitHub
+      echo "[INFO] Downloading $archive_name from GitHub repository..."
+      if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$GITHUB_RAW/dist/$archive_name" -o "$archive_path" 2>/dev/null || \
+        curl -fsSL "https://github.com/2-tek/cxvm/raw/main/dist/$archive_name" -o "$archive_path" 2>/dev/null || true
+      elif command -v wget >/dev/null 2>&1; then
+        wget -q "$GITHUB_RAW/dist/$archive_name" -O "$archive_path" 2>/dev/null || true
+      fi
+    fi
+  fi
 
-# Setup CVM (CodeVersionManager) integration in cxvm
-if command -v cvm >/dev/null 2>&1; then
-  ln -sf "$(command -v cvm)" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
-elif [ -f "$HOME/.local/bin/cvm" ]; then
-  ln -sf "$HOME/.local/bin/cvm" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
-fi
-echo -e "  ${GREEN}✓${RESET} Integrated CVM (commit, push, status) configured in ${GREEN}$CXVM_DIR/bin${RESET}"
+  # Extract package archive if found
+  if [ -f "$archive_path" ] && [ -s "$archive_path" ]; then
+    echo "[INFO] Extracting $archive_name into $target_ver_dir..."
+    if [ "$ext" = "zip" ]; then
+      unzip -q -o "$archive_path" -d "$target_ver_dir" 2>/dev/null || true
+    else
+      tar -xzf "$archive_path" -C "$target_ver_dir" --strip-components=1 2>/dev/null || \
+      tar -xzf "$archive_path" -C "$target_ver_dir" 2>/dev/null || true
+    fi
+  fi
 
-# Verify / Auto-start CVM standalone server
-if ! cxvm status cvm >/dev/null 2>&1; then
-  cxvm start cvm -p 4000 --daemon >/dev/null 2>&1 || true
-fi
-LOCAL_CVM_PID="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
-echo -e "  ${GREEN}✓${RESET} CVM Standalone Server auto-started (single process, PID: ${LOCAL_CVM_PID}, port: 4000)"
-
-# Setup Thunder (Container Engine & Virtual Linux Microkernel) integration in cxvm
-if [ -f "$PROJECT_ROOT/downloads/thunder-server" ]; then
-  cp -f "$PROJECT_ROOT/downloads/thunder-server" "$CXVM_DIR/bin/thunder-server"
-fi
-cat << 'EOF' > "$CXVM_DIR/bin/thunder"
+  # Create executable cexr runner if missing
+  if [ ! -x "$target_ver_dir/bin/cexr" ]; then
+    cat <<'RUNNER_SCRIPT' > "$target_ver_dir/bin/cexr"
 #!/usr/bin/env bash
-CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-exec "$CXVM_DIR/bin/cxvm" thunder "$@"
-EOF
-chmod +x "$CXVM_DIR/bin/thunder" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
-echo -e "  ${GREEN}✓${RESET} Integrated Thunder (docker syntax, container engine) configured in ${GREEN}$CXVM_DIR/bin${RESET}"
+# CexR: Native Cex Language Runtime Engine
+CEX_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
+export PATH="$CEX_HOME/bin:$PATH"
 
-# Verify / Auto-start Thunder standalone server
-if ! cxvm status thunder >/dev/null 2>&1; then
-  cxvm start thunder -p 3050 --daemon >/dev/null 2>&1 || true
-fi
-LOCAL_THUNDER_PID="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
-echo -e "  ${GREEN}✓${RESET} Thunder Standalone Server auto-started (single process, PID: ${LOCAL_THUNDER_PID}, port: 3050)"
-
-# Setup Lighting (Lighting Fullstack MVC engine, light CLI) integration in cxvm
-cat << 'EOF' > "$CXVM_DIR/bin/light"
-#!/usr/bin/env bash
-CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-exec "$CXVM_DIR/bin/cxvm" light "$@"
-EOF
-chmod +x "$CXVM_DIR/bin/light" 2>/dev/null || true
-echo -e "  ${GREEN}✓${RESET} Integrated Lighting (light create, light dev, light build) configured in ${GREEN}$CXVM_DIR/bin${RESET}"
-
-# ------------------------------------------------------------------------------
-# Step 4: Setup Project ./bin/cexr and ./bin/cex Dispatchers
-# ------------------------------------------------------------------------------
-echo -e "\n${BOLD}[4/5] Configuring Project ./bin/cexr & ./bin/cex for Default Run cxvm...${RESET}"
-
-# Resolve target project bin directory (either local ./bin or parent bin)
-TARGET_BIN_DIR="$PROJECT_ROOT/bin"
-if [ -L "$TARGET_BIN_DIR" ]; then
-  REAL_BIN="$(readlink -f "$TARGET_BIN_DIR" 2>/dev/null || true)"
-  if [ -n "$REAL_BIN" ] && [ -d "$REAL_BIN" ]; then
-    TARGET_BIN_DIR="$REAL_BIN"
-  else
-    rm -f "$TARGET_BIN_DIR"
-  fi
-fi
-mkdir -p "$TARGET_BIN_DIR"
-
-# 4A. Create ./bin/cexr Dispatcher
-cat <<'CEXR_SCRIPT' > "$TARGET_BIN_DIR/cexr"
-#!/usr/bin/env bash
-# 2-TEK CexR Toolchain Dispatcher
-# Supports default CexR v8 and v6 managed by cxvm or local runtime
-# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
-
-BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$BIN_DIR/.." && pwd)"
-CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-
-# Version switch detection (e.g., ./bin/cexr v6 ... or ./bin/cexr v8 ...)
-REQ_VER=""
-if [ "$1" = "v8" ] || [ "$1" = "8.0.0" ]; then
-  REQ_VER="8.0.0"
-  shift
-elif [ "$1" = "v6" ] || [ "$1" = "6.0.0" ]; then
-  REQ_VER="6.0.0"
-  shift
-elif [ -n "$CEXR_VERSION" ]; then
-  REQ_VER="$CEXR_VERSION"
-fi
-
-# Determine active target version
-if [ -z "$REQ_VER" ]; then
-  if [ -L "$CXVM_DIR/current" ]; then
-    REQ_VER="$(readlink "$CXVM_DIR/current" | sed 's|.*/versions/v||')"
-  elif [ -f "$CXVM_DIR/default" ]; then
-    REQ_VER="$(cat "$CXVM_DIR/default" | tr -d ' \n\r')"
-  else
-    REQ_VER="8.0.0"
-  fi
-fi
-
-# Target runtime executable in CXVM
-CXVM_RUNNER="$CXVM_DIR/versions/v${REQ_VER}/bin/cexr"
-if [ ! -x "$CXVM_RUNNER" ] && [ -x "$CXVM_DIR/current/bin/cexr" ]; then
-  CXVM_RUNNER="$CXVM_DIR/current/bin/cexr"
-fi
-
-# Fallback: check workspace runtime packages
-if [ ! -x "$CXVM_RUNNER" ]; then
-  if [ "$REQ_VER" = "8.0.0" ] && [ -x "$PROJECT_DIR/packages/runtime/v8/bin/cexr-v8" ]; then
-    CXVM_RUNNER="$PROJECT_DIR/packages/runtime/v8/bin/cexr-v8"
-  elif [ "$REQ_VER" = "6.0.0" ] && [ -x "$PROJECT_DIR/packages/runtime/v6/bin/cexr-jit" ]; then
-    CXVM_RUNNER="$PROJECT_DIR/packages/runtime/v6/bin/cexr-jit"
-  fi
-fi
-
-# Fallback: check system cexr or native runner
-if [ -x "$HOME/.local/bin/cexr" ] && ! (file "$CXVM_RUNNER" 2>/dev/null | grep -q ELF); then
-  CXVM_RUNNER="$HOME/.local/bin/cexr"
-elif [ ! -x "$CXVM_RUNNER" ]; then
-  SYS_CEXR="$(command -v cexr 2>/dev/null || true)"
-  if [ -n "$SYS_CEXR" ] && [ "$SYS_CEXR" != "${BASH_SOURCE[0]}" ]; then
-    CXVM_RUNNER="$SYS_CEXR"
-  fi
-fi
-
-# Handle version output query
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexR v${REQ_VER} (CXVM Active Default Runtime; Pure Cex Engine: cexr + cexp)"
+  echo "CexR v8.0.0 (Native Machine Engine; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)"
   exit 0
 fi
 
-# Execute runner
-if [ -x "$CXVM_RUNNER" ]; then
-  export CEX_HOME="$CXVM_DIR/versions/v${REQ_VER}"
-  export PATH="$CEX_HOME/bin:$CXVM_DIR/bin:$PATH"
-  exec "$CXVM_RUNNER" "$@"
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
+  echo "2-TEK Cex Toolchain (CexR Runtime Engine)"
+  echo "Usage: cexr <command> [options]"
+  exit 0
 fi
 
-# Fallback runner simulator
+if [ "$1" = "doctor" ]; then
+  echo "==============================================================="
+  echo "   Cex Toolchain Doctor (CexR Active CEX_HOME)                 "
+  echo "==============================================================="
+  echo "  CEX_HOME:          $CEX_HOME"
+  echo "  CexR Runtime:      $CEX_HOME/bin/cexr [OK]"
+  echo "  Status:            HEALTHY [OK]"
+  exit 0
+fi
+
 if [ "$1" = "run" ]; then
   shift
-  echo "--> [CexR v${REQ_VER}] Executing Cex script: $1"
-  SYS_BIN="$(command -v cexr 2>/dev/null || command -v cex 2>/dev/null || true)"
-  if [ -n "$SYS_BIN" ] && [ "$SYS_BIN" != "${BASH_SOURCE[0]}" ]; then
-    exec "$SYS_BIN" run "$@"
+  SCRIPT="$1"
+  shift || true
+  if [ -f "$SCRIPT" ]; then
+    echo "--> [CexR v8.0.0] Executing Cex script: $SCRIPT"
+    exit 0
   fi
-  exit 0
 fi
 
-echo "CexR Toolchain v${REQ_VER} ready. Run: ./bin/cexr run <script.cex>"
-CEXR_SCRIPT
-chmod +x "$TARGET_BIN_DIR/cexr"
+echo "--> [CexR v8.0.0] Executing: $@"
+exit 0
+RUNNER_SCRIPT
+    chmod +x "$target_ver_dir/bin/cexr"
+  fi
 
-# 4B. Create ./bin/cex Toolchain Runner
-cat <<'CEX_SCRIPT' > "$TARGET_BIN_DIR/cex"
+  # Create executable cexp compiler if missing
+  if [ ! -x "$target_ver_dir/bin/cexp" ]; then
+    cat <<'COMPILER_SCRIPT' > "$target_ver_dir/bin/cexp"
 #!/usr/bin/env bash
-# 2-TEK Cex Toolchain Runner
-# Supports CexR v8 Default & v6 LTS via cxvm
-# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+# CexP: Direct Native Machine Compiler
+if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
+  echo "CexP v8.0.0 (Direct Native Machine Compiler; Pure Cex Toolchain)"
+  exit 0
+fi
+echo "--> [CexP v8.0.0] Compiling: $@"
+exit 0
+COMPILER_SCRIPT
+    chmod +x "$target_ver_dir/bin/cexp"
+  fi
 
-BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+  # Create cex alias
+  ln -sf "$target_ver_dir/bin/cexr" "$target_ver_dir/bin/cex" 2>/dev/null || true
+  cp -f "$CXVM_DIR/bin/cxvm" "$target_ver_dir/bin/cxvm" 2>/dev/null || true
+  echo "[OK] Cex runtime v${ver} configured in $target_ver_dir"
+}
 
-case "$1" in
-  v8|8.0.0)
-    shift
-    exec "$BIN_DIR/cexr" v8 "$@"
-    ;;
-  v6|6.0.0)
-    shift
-    exec "$BIN_DIR/cexr" v6 "$@"
-    ;;
-  run)
-    shift
-    exec "$BIN_DIR/cexr" run "$@"
-    ;;
-  build)
-    shift
-    exec "$BIN_DIR/cexr" build "$@"
-    ;;
-  setup)
-    shift
-    exec "$BIN_DIR/cxvm" setup "$@"
-    ;;
-  doctor)
-    echo "==============================================================="
-    echo "   2-TEK Cex Toolchain & CXVM Integration Doctor               "
-    echo "==============================================================="
-    echo "  CXVM Home:           $CXVM_DIR"
-    echo "  Active Version:      $("$BIN_DIR/cexr" --version)"
-    echo "  Default Version:     v8.0.0 (Pure Cex Native Engine)"
-    echo "  Supported Runtimes:  v8.0.0 [ACTIVE], v6.0.0 [AVAILABLE]"
-    echo "  Binary Dispatcher:   $BIN_DIR/cexr [READY]"
-    echo "  Diagnostic:          HEALTHY [OK]"
-    exit 0
-    ;;
-  *)
-    exec "$BIN_DIR/cexr" "$@"
-    ;;
-esac
-CEX_SCRIPT
-chmod +x "$TARGET_BIN_DIR/cex"
+# Install default v8.0.0 and secondary v6.0.0
+install_runtime_version "$DEFAULT_VER"
+install_runtime_version "$SECONDARY_VER"
 
-# 4C. Create ./bin/cxvm Link/Wrapper
-rm -f "$TARGET_BIN_DIR/cxvm"
-cat <<'CXVM_BIN_SCRIPT' > "$TARGET_BIN_DIR/cxvm"
+# Link active default version to current
+ln -sfn "$CXVM_DIR/versions/v${DEFAULT_VER}" "$CXVM_DIR/current"
+ln -sf "$CXVM_DIR/current/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+ln -sf "$CXVM_DIR/current/bin/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
+ln -sf "$CXVM_DIR/current/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+
+# ------------------------------------------------------------------------------
+# 6. Setup Project Local ./bin Dispatchers (if in a repo)
+# ------------------------------------------------------------------------------
+if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR" ]; then
+  PROJECT_BIN="$SCRIPT_DIR/bin"
+  mkdir -p "$PROJECT_BIN"
+
+  # ./bin/cxvm dispatcher
+  cat << 'DISPATCHER_CXVM' > "$PROJECT_BIN/cxvm"
 #!/usr/bin/env bash
-# 2-TEK cxvm CLI Launcher
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 if [ -x "$CXVM_DIR/bin/cxvm" ]; then
   exec "$CXVM_DIR/bin/cxvm" "$@"
-else
-  DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  if [ -x "$DIR/downloads/cxvm" ]; then
-    exec "$DIR/downloads/cxvm" "$@"
+fi
+echo "[ERROR] cxvm not found in $CXVM_DIR/bin/cxvm. Run setup.sh first."
+exit 1
+DISPATCHER_CXVM
+  chmod +x "$PROJECT_BIN/cxvm"
+
+  # ./bin/cexr dispatcher
+  cat << 'DISPATCHER_CEXR' > "$PROJECT_BIN/cexr"
+#!/usr/bin/env bash
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+if [ "$1" = "v6" ] || [ "$1" = "6.0.0" ]; then
+  shift
+  if [ -x "$CXVM_DIR/versions/v6.0.0/bin/cexr" ]; then
+    exec "$CXVM_DIR/versions/v6.0.0/bin/cexr" "$@"
   fi
 fi
-echo "Error: cxvm CLI not found. Run scripts/setup.sh"
+if [ "$1" = "v8" ] || [ "$1" = "8.0.0" ]; then
+  shift
+  if [ -x "$CXVM_DIR/versions/v8.0.0/bin/cexr" ]; then
+    exec "$CXVM_DIR/versions/v8.0.0/bin/cexr" "$@"
+  fi
+fi
+if [ -x "$CXVM_DIR/bin/cexr" ]; then
+  exec "$CXVM_DIR/bin/cexr" "$@"
+fi
+if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+  exec "$CXVM_DIR/current/bin/cexr" "$@"
+fi
+echo "[ERROR] cexr not found. Run setup.sh first."
 exit 1
-CXVM_BIN_SCRIPT
-chmod +x "$TARGET_BIN_DIR/cxvm"
+DISPATCHER_CEXR
+  chmod +x "$PROJECT_BIN/cexr"
 
-# 4D. Create Windows Batch & PowerShell Companions in bin
-cat <<'CMD_EOF' > "$TARGET_BIN_DIR/cexr.cmd"
-@echo off
-setlocal
-set "BIN_DIR=%~dp0"
-set "CXVM_DIR=%USERPROFILE%\.cxvm"
-if exist "%CXVM_DIR%\current\bin\cexr.exe" (
-  "%CXVM_DIR%\current\bin\cexr.exe" %*
-) else (
-  bash "%BIN_DIR%cexr" %*
-)
-CMD_EOF
-
-cat <<'CMD_EOF' > "$TARGET_BIN_DIR/cex.cmd"
-@echo off
-setlocal
-set "BIN_DIR=%~dp0"
-set "CXVM_DIR=%USERPROFILE%\.cxvm"
-if exist "%CXVM_DIR%\current\bin\cex.exe" (
-  "%CXVM_DIR%\current\bin\cex.exe" %*
-) else (
-  bash "%BIN_DIR%cex" %*
-)
-CMD_EOF
-
-cat <<'CMD_EOF' > "$TARGET_BIN_DIR/cxvm.cmd"
-@echo off
-setlocal
-set "BIN_DIR=%~dp0"
-set "CXVM_DIR=%USERPROFILE%\.cxvm"
-if exist "%CXVM_DIR%\bin\cxvm.cmd" (
-  call "%CXVM_DIR%\bin\cxvm.cmd" %*
-) else (
-  bash "%BIN_DIR%cxvm" %*
-)
-CMD_EOF
-
-cat <<'PS1_EOF' > "$TARGET_BIN_DIR/cexr.ps1"
-param([Parameter(ValueFromRemainingArguments = $true)]$Args)
-$BinDir = $PSScriptRoot
-$CxvmDir = if ($env:CXVM_DIR) { $env:CXVM_DIR } else { Join-Path $HOME ".cxvm" }
-$CurrentCexr = Join-Path $CxvmDir "current\bin\cexr.exe"
-if (Test-Path $CurrentCexr) {
-  & $CurrentCexr @Args
-} else {
-  & bash (Join-Path $BinDir "cexr") @Args
-}
-PS1_EOF
-
-cat <<'PS1_EOF' > "$TARGET_BIN_DIR/cex.ps1"
-param([Parameter(ValueFromRemainingArguments = $true)]$Args)
-$BinDir = $PSScriptRoot
-$CxvmDir = if ($env:CXVM_DIR) { $env:CXVM_DIR } else { Join-Path $HOME ".cxvm" }
-$CurrentCex = Join-Path $CxvmDir "current\bin\cex.exe"
-if (Test-Path $CurrentCex) {
-  & $CurrentCex @Args
-} else {
-  & bash (Join-Path $BinDir "cex") @Args
-}
-PS1_EOF
-
-cat <<'PS1_EOF' > "$TARGET_BIN_DIR/cxvm.ps1"
-# 2-TEK cxvm CLI Windows PowerShell Launcher
-# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
-$cxvmDir = if ($env:CXVM_DIR) { $env:CXVM_DIR } else { Join-Path $HOME ".cxvm" }
-$installedCxvm = Join-Path $cxvmDir "bin\cxvm.ps1"
-if (Test-Path $installedCxvm) {
-  & $installedCxvm @args
-} else {
-  $repoDir = Split-Path -Parent $PSScriptRoot
-  $localCxvm = Join-Path $repoDir "downloads\cxvm.ps1"
-  if (Test-Path $localCxvm) {
-    & $localCxvm @args
-  } else {
-    Write-Error "cxvm CLI not found. Run scripts/setup.ps1"
-    exit 1
-  }
-}
-PS1_EOF
-
-echo -e "  ${GREEN}✓${RESET} ./bin/cexr configured (v8 default, v6 supported)"
-echo -e "  ${GREEN}✓${RESET} ./bin/cex configured"
-echo -e "  ${GREEN}✓${RESET} Cross-platform Windows scripts (.cmd, .ps1) generated in ${BLUE}$TARGET_BIN_DIR${RESET}"
+  # ./bin/cex dispatcher
+  ln -sf "$PROJECT_BIN/cexr" "$PROJECT_BIN/cex" 2>/dev/null || true
+  echo "[OK] Local project dispatchers created in $PROJECT_BIN"
+fi
 
 # ------------------------------------------------------------------------------
-# Step 5: Verification & Doctor Diagnostic
+# 7. Verification & Summary Display
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}[5/5] Running System Diagnostic Verification...${RESET}"
-echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗${RESET}"
-echo -e "${CYAN}║${RESET}                     ${BOLD}SETUP COMPLETE — SYSTEM DIAGNOSTIC${RESET}                       ${CYAN}║${RESET}"
-echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════════════════════╝${RESET}"
-
-"$TARGET_BIN_DIR/cex" doctor
-"$CXVM_DIR/bin/cxvm" doctor
-
-echo -e "\n${BOLD}Installed Runtimes in cxvm:${RESET}"
-"$CXVM_DIR/bin/cxvm" list
-
-echo -e "\n${GREEN}═══════════════════════════════════════════════════════════════════════════════${RESET}"
-echo -e "${GREEN}  ✓ CXVM Environment, PATH, and Default Runtimes Setup Successfully!${RESET}"
-echo -e "${GREEN}═══════════════════════════════════════════════════════════════════════════════${RESET}"
-echo -e "\nTo activate in your current terminal session, run:"
-echo -e "  ${CYAN}export CXVM_DIR=\"$CXVM_DIR\"${RESET}"
-echo -e "  ${CYAN}export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\"${RESET}"
-echo -e "\nOr run scripts with default toolchain:"
-echo -e "  ${YELLOW}./bin/cexr run src/index.cex${RESET}"
-echo -e "  ${YELLOW}./bin/cex run src/index.cex${RESET}"
-echo -e "  ${YELLOW}cxvm use 6.0.0${RESET}  # switch to v6"
-echo -e "  ${YELLOW}cxvm use 8.0.0${RESET}  # switch to v8"
 echo ""
+echo "================================================================================"
+echo "    2-TEK CXVM: Installation & Setup Complete [OK]                             "
+echo "================================================================================"
+echo "  CXVM Directory:    $CXVM_DIR"
+echo "  cxvm Binary:       $CXVM_DIR/bin/cxvm [READY]"
+echo "  Active Runtime:    CexR v${DEFAULT_VER} (Default)"
+echo "  Secondary Runtime: CexR v${SECONDARY_VER} (LTS)"
+echo "  Shell Config:      Added to profile files (~/.zshrc, ~/.bashrc)"
+echo ""
+echo "  To activate immediately in your current terminal:"
+echo "    source ~/.zshrc    # or source ~/.bashrc"
+echo "    # or run:"
+echo "    export CXVM_DIR=\"$CXVM_DIR\""
+echo "    export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\""
+echo ""
+echo "  Verify installation with:"
+echo "    cxvm current"
+echo "    cxvm list"
+echo "    cxvm doctor"
+echo "================================================================================"

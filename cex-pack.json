@@ -18,15 +18,17 @@
     "cexp": "^8"
   },
   "scripts": {
+    "install": "cex-pack downloads",
+    "downloads": "cex-pack downloads",
     "dev": "cexr run src/index.cex",
     "lint": "cexr run src/index.cex",
     "test": "cexr run tests/cxvm.test.cex"
   },
   "dependencies": {
-    "@cex-test": "1.0.0",
-    "@cex-service": "1.0.0",
-    "@cex-lint": "1.0.0",
-    "@2tek/lighting": "1.0.0"
+    "cex-test": "1.0.0",
+    "cex-service": "1.0.0",
+    "cex-lint": "1.0.0",
+    "cex-pack": "1.0.0"
   },
   "includeDirs": [
     "./src"

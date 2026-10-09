@@ -1302,7 +1302,7 @@ INDEX_EOF
       echo "  cxvm build"
       ;;
 
-    start|dev)
+    start|dev|serve)
       if [ "$1" = "cvm" ]; then
         shift
         _cxvm_start_cvm_server start "$@"
