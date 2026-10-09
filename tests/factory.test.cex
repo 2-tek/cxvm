@@ -53,7 +53,7 @@ fn main(): int {
     // Test 2: Cross-Platform Build Engine & cxvm/downloads Directory
     // -------------------------------------------------------------
     println("\n[Test Suite 2: Cross-Platform Build Engine & cxvm/downloads/ Invariants]");
-    let downDir: string = fs.exists("cxvm/downloads") ? "cxvm/downloads" : (fs.exists("packages/cxvm/downloads") ? "packages/cxvm/downloads" : (fs.exists("downloads") ? "downloads" : "cxvm/downloads"));
+    let downDir: string = fs.exists("dist") ? "dist" : (fs.exists("cxvm/downloads") ? "cxvm/downloads" : (fs.exists("packages/cxvm/downloads") ? "packages/cxvm/downloads" : (fs.exists("downloads") ? "downloads" : "dist")));
     let builder: DistBuilder* = new DistBuilder(downDir);
     Assert::equalsInt(6, (int)builder->platforms->length(), "Factory supports 6 target architectures");
     Assert::equalsInt(6, (int)builder->versions->length(), "Factory tracks 6 release versions");

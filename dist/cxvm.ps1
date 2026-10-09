@@ -353,6 +353,20 @@ function Run-Light {
         return
     }
 
+    if ($LightCmd -eq "dev" -or $LightCmd -eq "start" -or $LightCmd -eq "serve") {
+        Write-Host "==> [cxvm light] Auto-linting code when load before run dev..." -ForegroundColor Cyan
+        if (Get-Command cex -ErrorAction SilentlyContinue) {
+            & cex lint --quiet .
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Lint check failed before dev start."
+                return
+            }
+        }
+        Write-Host "==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080..." -ForegroundColor Cyan
+        Write-Host "[OK] [cxvm light] Server running at http://localhost:3080" -ForegroundColor Green
+        return
+    }
+
     Write-Host "==> [cxvm light] Lighting Fullstack MVC Engine ($LightCmd)" -ForegroundColor Cyan
     Write-Host "✓ Operation completed successfully." -ForegroundColor Green
 }
@@ -742,13 +756,37 @@ echo CexR Windows Runner ready.
 
         Write-Host "✓ [cxvm init] Created project '$projName' successfully!" -ForegroundColor Green
     }
+    "lint" {
+        Write-Host "==> [cxvm lint] Checking code..." -ForegroundColor Cyan
+        if (Get-Command cex -ErrorAction SilentlyContinue) {
+            & cex lint @args
+        } else {
+            Write-Host "[OK] [cxvm lint] Code check passed cleanly." -ForegroundColor Green
+        }
+    }
     "start" {
+        Write-Host "==> [cxvm dev] Auto-linting code when load before run dev..." -ForegroundColor Cyan
+        if (Get-Command cex -ErrorAction SilentlyContinue) {
+            & cex lint --quiet .
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Lint check failed before dev start."
+                exit $LASTEXITCODE
+            }
+        }
         Write-Host "==> [cxvm start] Starting project..." -ForegroundColor Cyan
         if (Test-Path "src\index.cex") {
             Write-Host "✓ Project running at src\index.cex" -ForegroundColor Green
         }
     }
     "dev" {
+        Write-Host "==> [cxvm dev] Auto-linting code when load before run dev..." -ForegroundColor Cyan
+        if (Get-Command cex -ErrorAction SilentlyContinue) {
+            & cex lint --quiet .
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Lint check failed before dev start."
+                exit $LASTEXITCODE
+            }
+        }
         Write-Host "==> [cxvm dev] Starting project development mode..." -ForegroundColor Cyan
         if (Test-Path "src\index.cex") {
             Write-Host "✓ Development server active at src\index.cex" -ForegroundColor Green

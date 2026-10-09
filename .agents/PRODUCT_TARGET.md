@@ -61,6 +61,12 @@ The `cxvm` repository defines the official distribution hub and version manageme
 6. **Lighting Fullstack MVC Server (Port 3080)**:
    - Embedded web portal providing downloads catalog, setup window, documentation guide, REST JSON endpoints (`/api/v1/status`, `/api/v1/versions`, `/api/v1/platforms`, `/api/v1/downloads`, `/api/v1/manifest`, `/api/v1/setup`), and artifact streaming.
 
+7. **Integrated Code Linter & Auto-Lint on Load/Dev**:
+   - Integrated native **CexLint** validation engine.
+   - Automatically executes before `cxvm dev`, `cxvm start`, `cxvm light dev`, and `cxvm load`.
+   - Halts dev server startup on lint violations to prevent unvalidated code from running in development mode.
+   - Run `cxvm lint --fix` for automatic formatting repair.
+
 ---
 
 ## 2. Canonical Target & Package Invariants (Rule 69)

@@ -459,6 +459,39 @@ fn main(): int {
 
     suite->addResult("test_integrated_lighting_engine_and_scaffolder", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 9: Integrated CexLint Engine & Auto-Lint Before Run Dev
+    // -------------------------------------------------------------
+    println("\n[Test Suite 9: Integrated CexLint Engine & Auto-Lint Before Run Dev]");
+    let autoLintResult: bool = cxvm->autoLint(".");
+    Assert::isTrue(autoLintResult, "cxvm autoLint returns true on clean project");
+
+    let lintExecResult: int = cxvm->cvmExecute("lint", "", "");
+    Assert::equalsInt(0, lintExecResult, "cxvm cvmExecute lint returns exit code 0");
+
+    let devExecResult: int = cxvm->cvmExecute("dev", "", "");
+    Assert::equalsInt(0, devExecResult, "cxvm cvmExecute dev auto-lints and succeeds with code 0");
+
+    let loadExecResult: int = cxvm->cvmExecute("load", "", "");
+    Assert::equalsInt(0, loadExecResult, "cxvm cvmExecute load auto-lints and succeeds with code 0");
+
+    suite->addResult("test_auto_lint_before_run_dev", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 10: Auto-Detect Main Entrypoint from cex-pack.json on Build
+    // -------------------------------------------------------------
+    println("\n[Test Suite 10: Auto-Detect Main Entrypoint from cex-pack.json on Build]");
+    let detectedMain: string = cxvm->detectMainFile(".");
+    Assert::equalsString("src/index.cex", detectedMain, "cxvm auto-detects main entrypoint from cex-pack.json");
+
+    let buildExecResult: int = cxvm->cvmExecute("build", "", "");
+    Assert::equalsInt(0, buildExecResult, "cxvm cvmExecute build auto-detects main file and succeeds with exit code 0");
+
+    let lightBuildResult: int = cxvm->cvmExecute("light", "build", "");
+    Assert::equalsInt(0, lightBuildResult, "cxvm cvmExecute light build auto-detects main file and succeeds with exit code 0");
+
+    suite->addResult("test_auto_detect_main_on_build", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

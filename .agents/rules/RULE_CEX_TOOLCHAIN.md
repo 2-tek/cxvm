@@ -28,6 +28,8 @@ trigger: always_on
 | **Run Test Suites** | `cexr run tests/cxvm.test.cex` & `cexr run tests/factory.test.cex` | Execute full regression test suites |
 | **Generate Distributions** | `bash scripts/generate_distributions.sh` | Build and package 36 platform bundles into `downloads/` & `dist/` |
 | **Compile Native Binary** | `./bin/cex build src/index.cex -o bin/cxvm-server` | Compile Cex code directly via `cexp` |
+| **Auto-Lint & Dev Runner** | `cxvm dev` \| `cxvm light dev` | Automatically lints code with CexLint before launching dev server |
+| **Lint Codebase** | `cxvm lint [paths...]` \| `cxvm lint --fix` | Execute CexLint across include paths and auto-repair formatting |
 | **Environment Doctor** | `./bin/cex doctor` \| `./bin/cxvm doctor` | Inspect environment, paths, active runtime, and toolchains |
 | **Switch Active Runtime** | `cxvm use <version>` \| `./bin/cxvm use <version>` | Update active runtime symlink and session PATH |
 | **Install Version** | `cxvm install <version>` | Download and install pre-built runtime package |
@@ -40,3 +42,4 @@ trigger: always_on
 2. **Dual Dispatcher Support**: `./bin/cexr` and `./bin/cex` must run out-of-the-box on POSIX and Windows (`.cmd`, `.ps1`).
 3. **Distribution Retention**: `dist/` contains all cross-platform pre-built archives and must never be stripped or ignored.
 4. **Rule (No Symbols)**: All scripts, outputs, and documentation must be pure ASCII without emojis or non-standard Unicode symbols.
+5. **Auto-Lint Before Dev**: Development runners (`cxvm dev`, `cxvm light dev`, `cxvm load`) automatically validate codebase via CexLint before launching the dev server.

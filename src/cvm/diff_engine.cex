@@ -16,10 +16,10 @@ class DiffEngine {
         let curr: string = "";
         for (let i: int = 0; i < len; i++) {
             let c: char = text[i];
-            if (c == '\r') {
+            if (c == "\r"[0]) {
                 continue;
             }
-            if (c == '\n') {
+            if (c == "\n"[0]) {
                 lines->push(curr);
                 curr = "";
             } else {

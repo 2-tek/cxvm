@@ -128,9 +128,12 @@ cxvm use 6.0.0
 | `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v8.0.0`) |
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
-| `cxvm doctor` | — | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
+| `cxvm dev` | `npm run dev` | Auto-lints code when load with CexLint and starts local development server |
+| `cxvm lint [paths...]` | `npm run lint` | Runs native CexLint code validator (`--fix` to auto-repair formatting) |
+| `cxvm test [test.cex]` | `npm test` | Runs non-blocking automated test suites via active CexR runtime |
+| `cxvm doctor` | - | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, linter, and host environment |
 | `cxvm light create <name>` | `nest new` | Hooks project creation logic in lighting to scaffold new Fullstack MVC project |
-| `cxvm light dev` | `npm run dev` | Starts local Lighting MVC development server on port 3080 |
+| `cxvm light dev` | `npm run dev` | Auto-lints code and starts local Lighting MVC development server on port 3080 |
 | `cxvm light build` | `npm run build` | Compiles Lighting project with `cexp` direct machine compiler |
 | `cxvm light doctor` | — | Runs Lighting engine diagnostic and verification |
 | `cxvm thunder <cmd>` | Docker CLI (`docker`) | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`) |

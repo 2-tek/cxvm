@@ -168,7 +168,7 @@ class Base64 {
         let clean: string = "";
         for (let i: int = 0; i < len; i++) {
             let ch: char = b64[i];
-            if (ch != '\r' && ch != '\n' && ch != ' ') {
+            if (ch != "\r"[0] && ch != "\n"[0] && ch != " "[0]) {
                 clean = clean + ch;
             }
         }
@@ -177,10 +177,10 @@ class Base64 {
         for (let i: int = 0; i < cleanLen; i += 4) {
             if (i + 3 >= cleanLen) break;
 
-            let c0: int = (int)table.find(clean[i]);
-            let c1: int = (int)table.find(clean[i + 1]);
-            let c2: int = clean[i + 2] == '=' ? 0 : (int)table.find(clean[i + 2]);
-            let c3: int = clean[i + 3] == '=' ? 0 : (int)table.find(clean[i + 3]);
+            let c0: int = (int)table.find(clean.substr(i, 1));
+            let c1: int = (int)table.find(clean.substr(i + 1, 1));
+            let c2: int = clean.substr(i + 2, 1) == "=" ? 0 : (int)table.find(clean.substr(i + 2, 1));
+            let c3: int = clean.substr(i + 3, 1) == "=" ? 0 : (int)table.find(clean.substr(i + 3, 1));
 
             if (c0 < 0 || c1 < 0) break;
 
@@ -189,11 +189,11 @@ class Base64 {
             let char1: char = (char)((triplet >> 16) & 255);
             out = out + char1;
 
-            if (clean[i + 2] != '=') {
+            if (clean.substr(i + 2, 1) != "=") {
                 let char2: char = (char)((triplet >> 8) & 255);
                 out = out + char2;
             }
-            if (clean[i + 3] != '=') {
+            if (clean.substr(i + 3, 1) != "=") {
                 let char3: char = (char)(triplet & 255);
                 out = out + char3;
             }

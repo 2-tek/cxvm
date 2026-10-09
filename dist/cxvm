@@ -218,6 +218,153 @@ _cxvm_run_thunder() {
 }
 
 # -----------------------------------------------------------------------------
+# Runtime Engine Runner Resolver
+# -----------------------------------------------------------------------------
+_cxvm_get_runner() {
+  if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+    echo "$CXVM_DIR/current/bin/cexr"
+  elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+    echo "$CXVM_DIR/bin/cexr"
+  elif command -v cexr >/dev/null 2>&1; then
+    command -v cexr
+  else
+    echo "cexr"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Integrated CexLint Runner (cxvm lint & auto-lint before run dev)
+# -----------------------------------------------------------------------------
+_cxvm_run_lint() {
+  local target_dir="${1:-.}"
+  if [ "$#" -gt 0 ]; then
+    shift
+  fi
+
+  # Check if CEX_LINT is explicitly disabled
+  if [ "${CEX_LINT:-}" = "0" ] || [ "${CEX_LINT:-}" = "off" ]; then
+    return 0
+  fi
+
+  # Check if cex-pack.json exists and has a lint block (or default)
+  if [ -f "$target_dir/cex-pack.json" ]; then
+    local lint_cmd=""
+    if command -v cex >/dev/null 2>&1; then
+      lint_cmd="cex"
+    elif [ -x "$CXVM_DIR/bin/cex" ]; then
+      lint_cmd="$CXVM_DIR/bin/cex"
+    elif [ -x "$CXVM_DIR/current/bin/cex" ]; then
+      lint_cmd="$CXVM_DIR/current/bin/cex"
+    fi
+
+    if [ -n "$lint_cmd" ]; then
+      echo "==> [cxvm lint] Checking code before dev ($target_dir)..."
+      "$lint_cmd" lint "$target_dir" "$@"
+      local exit_code=$?
+      if [ $exit_code -ne 0 ]; then
+        echo "[FAIL] [cxvm lint] Lint check failed with exit code $exit_code."
+        echo "    Run 'cxvm lint --fix' to auto-repair formatting, or set CEX_LINT=0 to bypass."
+        return $exit_code
+      fi
+      echo "[OK] [cxvm lint] Code check passed cleanly."
+      return 0
+    fi
+
+    # Fallback to direct CexLint script via cexr
+    local s_dir
+    s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local lint_script=""
+    for cand in \
+      "$s_dir/../dependencies/cex-lint/src/index.cex" \
+      "$s_dir/../../dependencies/cex-lint/src/index.cex" \
+      "$HOME/Projects/dependencies/cex-lint/src/index.cex" \
+      "$target_dir/.cex_boxes/cex-lint/src/index.cex" \
+      "$target_dir/.cex_boxes/@cex-lint/src/index.cex"; do
+      if [ -f "$cand" ]; then
+        lint_script="$cand"
+        break
+      fi
+    done
+
+    if [ -n "$lint_script" ]; then
+      echo "==> [cxvm lint] Checking code before dev with CexLint ($target_dir)..."
+      local t_cexr
+      t_cexr="$(_cxvm_get_runner)"
+      "$t_cexr" "$lint_script" "$target_dir" "$@"
+      local exit_code=$?
+      if [ $exit_code -ne 0 ]; then
+        echo "[FAIL] [cxvm lint] Lint check failed with exit code $exit_code."
+        echo "    Run 'cxvm lint --fix' to auto-repair formatting, or set CEX_LINT=0 to bypass."
+        return $exit_code
+      fi
+      echo "[OK] [cxvm lint] Code check passed cleanly."
+      return 0
+    fi
+  fi
+  return 0
+}
+
+# -----------------------------------------------------------------------------
+# Manifest & Main Entrypoint Auto-Detector (from cex-pack.json)
+# -----------------------------------------------------------------------------
+_cxvm_detect_main_file() {
+  local target_dir="${1:-.}"
+  local manifest="$target_dir/cex-pack.json"
+  local main_file=""
+
+  if [ -f "$manifest" ]; then
+    main_file=$(grep -o '"main"[[:space:]]*:[[:space:]]*"[^"]*"' "$manifest" 2>/dev/null | head -n 1 | sed -E 's/.*"main"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/')
+    if [ -n "$main_file" ] && [ -f "$target_dir/$main_file" ]; then
+      echo "$main_file"
+      return 0
+    fi
+  fi
+
+  for cand in "src/index.cex" "src/main.cex" "index.cex" "main.cex"; do
+    if [ -f "$target_dir/$cand" ]; then
+      echo "$cand"
+      return 0
+    fi
+  done
+
+  echo ""
+  return 1
+}
+
+_cxvm_detect_package_name() {
+  local target_dir="${1:-.}"
+  local manifest="$target_dir/cex-pack.json"
+  local pkg_name=""
+
+  if [ -f "$manifest" ]; then
+    pkg_name=$(grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' "$manifest" 2>/dev/null | head -n 1 | sed -E 's/.*"name"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/' | sed 's|.*/||')
+    if [ -n "$pkg_name" ]; then
+      echo "$pkg_name"
+      return 0
+    fi
+  fi
+  echo "app"
+}
+
+_cxvm_get_compiler() {
+  if [ -x "$CXVM_DIR/current/bin/cex" ]; then
+    echo "$CXVM_DIR/current/bin/cex"
+  elif [ -x "$CXVM_DIR/bin/cex" ]; then
+    echo "$CXVM_DIR/bin/cex"
+  elif [ -x "$CXVM_DIR/current/bin/cexp" ]; then
+    echo "$CXVM_DIR/current/bin/cexp"
+  elif [ -x "$CXVM_DIR/bin/cexp" ]; then
+    echo "$CXVM_DIR/bin/cexp"
+  elif command -v cex >/dev/null 2>&1; then
+    command -v cex
+  elif command -v cexp >/dev/null 2>&1; then
+    command -v cexp
+  else
+    echo "cex"
+  fi
+}
+
+# -----------------------------------------------------------------------------
 # Integrated Lighting Fullstack MVC Engine Runner (cxvm light ...)
 # -----------------------------------------------------------------------------
 _cxvm_run_light() {
@@ -354,9 +501,13 @@ EOF
   fi
 
   if [ "$light_cmd" = "dev" ] || [ "$light_cmd" = "start" ] || [ "$light_cmd" = "serve" ]; then
+    echo "==> [cxvm light] Auto-linting code when load before run dev..."
+    _cxvm_run_lint . || return 1
     echo "==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080..."
-    if [ -f "src/index.cex" ] && command -v cexr >/dev/null 2>&1; then
-      cexr run src/index.cex
+    if [ -f "src/index.cex" ]; then
+      local t_cexr
+      t_cexr="$(_cxvm_get_runner)"
+      "$t_cexr" src/index.cex
     else
       echo "[OK] [cxvm light] Server running at http://localhost:3080"
     fi
@@ -364,9 +515,16 @@ EOF
   fi
 
   if [ "$light_cmd" = "build" ]; then
+    _cxvm_run_lint . || return 1
+    local main_file="$(_cxvm_detect_main_file .)"
+    if [ -z "$main_file" ]; then main_file="src/index.cex"; fi
     echo "==> [cxvm light] Compiling Lighting MVC project with cexp native compiler..."
-    if [ -f "src/index.cex" ] && command -v cex >/dev/null 2>&1; then
-      cex build src/index.cex -o bin/server
+    echo "==> [cxvm light] Auto-detected main file from cex-pack.json: $main_file"
+    mkdir -p bin
+    local c_compiler
+    c_compiler="$(_cxvm_get_compiler)"
+    if [ -f "$main_file" ]; then
+      "$c_compiler" build "$main_file" -o bin/server "$@"
     else
       echo "[OK] [cxvm light] Production binary built successfully in bin/"
     fi
@@ -1483,6 +1641,18 @@ INDEX_EOF
       echo "  cxvm build"
       ;;
 
+    lint)
+      _cxvm_run_lint "$@"
+      exit $?
+      ;;
+
+    load)
+      echo "==> [cxvm load] Auto-linting code when load before run dev..."
+      _cxvm_run_lint . || exit 1
+      echo "==> [cxvm load] Loading dependencies for project..."
+      _cxvm_run_cex_pack_downloads "$@"
+      ;;
+
     start|dev|serve)
       if [ "$1" = "cvm" ]; then
         shift
@@ -1491,13 +1661,13 @@ INDEX_EOF
         shift
         _cxvm_start_thunder_server start "$@"
       else
+        echo "==> [cxvm dev] Auto-linting code when load before run dev..."
+        _cxvm_run_lint . || exit 1
         echo "==> [cxvm start] Starting project..."
         if [ -f "src/index.cex" ]; then
-          if command -v cexr >/dev/null 2>&1; then
-            cexr run src/index.cex
-          else
-            echo "[OK] Project running at src/index.cex (cxvm v8 runtime)"
-          fi
+          local t_cexr
+          t_cexr="$(_cxvm_get_runner)"
+          "$t_cexr" src/index.cex
         else
           echo "[OK] Project started via cxvm"
         fi
@@ -1557,12 +1727,22 @@ INDEX_EOF
       ;;
 
     run)
-      local t_cexr="cexr"
-      if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
-        t_cexr="$CXVM_DIR/current/bin/cexr"
-      elif [ -x "$CXVM_DIR/bin/cexr" ]; then
-        t_cexr="$CXVM_DIR/bin/cexr"
+      if [ "$1" = "dev" ] || [ "$1" = "start" ] || [ "$1" = "serve" ]; then
+        shift
+        echo "==> [cxvm run dev] Auto-linting code when load before run dev..."
+        _cxvm_run_lint . || exit 1
+        echo "==> [cxvm start] Starting project..."
+        if [ -f "src/index.cex" ]; then
+          local t_cexr
+          t_cexr="$(_cxvm_get_runner)"
+          exec "$t_cexr" src/index.cex "$@"
+        else
+          echo "[OK] Project started via cxvm"
+          exit 0
+        fi
       fi
+      local t_cexr
+      t_cexr="$(_cxvm_get_runner)"
       exec "$t_cexr" "$@"
       ;;
 
@@ -1604,11 +1784,11 @@ INDEX_EOF
           echo "---------------------------------------------------------------"
           echo "==> [cxvm test] Running: $tf"
           echo "---------------------------------------------------------------"
-          "$t_cexr" "$tf" || { all_passed=false; echo "❌ [cxvm test] Suite failed: $tf"; exit 1; }
+          "$t_cexr" "$tf" || { all_passed=false; echo "[FAIL] [cxvm test] Suite failed: $tf"; exit 1; }
         done
         if [ "$all_passed" = true ]; then
           echo ""
-          echo "✅ [cxvm test] All test suites passed successfully!"
+          echo "[OK] [cxvm test] All test suites passed successfully!"
           exit 0
         fi
       else
@@ -1627,19 +1807,78 @@ INDEX_EOF
     build)
       if [ "$1" = "cvm" ] || [ "$1" = "thunder" ]; then
         echo "==> [cxvm build] Building $1 subsystem..."
-      elif [ -f "cex-pack.json" ]; then
-        _cxvm_run_cex_cli build "$@"
-      else
-        echo "==> [cxvm build] Compiling project with cexp native machine compiler..."
-        mkdir -p bin dist
-        if [ -f "src/index.cex" ]; then
-          if command -v cexp >/dev/null 2>&1; then
-            cexp build src/index.cex -o bin/app 2>/dev/null || true
-          fi
-          echo "[OK] Production binary built successfully in bin/"
-        else
-          echo "[OK] Production build completed"
+        return 0
+      fi
+
+      _cxvm_run_lint . || exit 1
+
+      local main_file=""
+      local out_bin=""
+      local extra_build_args=()
+
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          -o|--output)
+            out_bin="$2"
+            shift 2
+            ;;
+          *.cex)
+            if [ -z "$main_file" ]; then
+              main_file="$1"
+            else
+              extra_build_args+=("$1")
+            fi
+            shift
+            ;;
+          *)
+            extra_build_args+=("$1")
+            shift
+            ;;
+        esac
+      done
+
+      # Auto-select main file from cex-pack.json (not need to manually specify src/index.cex)
+      if [ -z "$main_file" ]; then
+        main_file="$(_cxvm_detect_main_file .)"
+        if [ -n "$main_file" ]; then
+          echo "==> [cxvm build] Auto-detected main file from cex-pack.json: $main_file"
         fi
+      fi
+
+      if [ -z "$main_file" ]; then
+        echo "[ERROR] [cxvm build] No entrypoint found. Define \"main\": \"src/index.cex\" in cex-pack.json or provide a .cex file."
+        return 1
+      fi
+
+      if [ -z "$out_bin" ]; then
+        local pkg_name
+        pkg_name="$(_cxvm_detect_package_name .)"
+        if [ -z "$pkg_name" ]; then pkg_name="app"; fi
+        mkdir -p bin
+        if [ "$pkg_name" = "cxvm" ]; then
+          out_bin="bin/cxvm-server"
+        else
+          out_bin="bin/$pkg_name"
+        fi
+      fi
+
+      echo "==> [cxvm build] Compiling $main_file -> $out_bin with native Cex compiler..."
+      mkdir -p "$(dirname "$out_bin")"
+      local c_compiler
+      c_compiler="$(_cxvm_get_compiler)"
+      if [ -f "$main_file" ]; then
+        "$c_compiler" build "$main_file" -o "$out_bin" "${extra_build_args[@]}"
+        local b_code=$?
+        if [ $b_code -eq 0 ]; then
+          echo "[OK] [cxvm build] Production binary built successfully: $out_bin"
+          return 0
+        else
+          echo "[FAIL] [cxvm build] Compilation failed with exit code $b_code"
+          return $b_code
+        fi
+      else
+        echo "[ERROR] [cxvm build] Target main file not found: $main_file"
+        return 1
       fi
       ;;
 
@@ -1716,6 +1955,7 @@ INDEX_EOF
       fi
       echo "  Lighting Engine:     $light_status"
       echo "  Lighting Commands:   light, lighting, light create <project>, light dev, light build [READY]"
+      echo "  Code Linter:         $([ -x "$CXVM_DIR/current/bin/cex" ] || command -v cex >/dev/null 2>&1 && echo "CexLint [Auto-lint on load/dev ENABLED]" || echo "CexLint v1.0.0 [READY]")"
       echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
       echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
       echo "  Supported Targets:   6 architectures (download & install ready)"
@@ -1738,6 +1978,14 @@ INDEX_EOF
       echo "  default <ver>         Set default Cex version across terminal sessions"
       echo "  uninstall <ver>       Remove an installed Cex version"
       echo "  doctor                Run pre-flight environment diagnostics"
+      echo ""
+      echo "Execution, Dev & Testing Commands (replaces legacy ./bin/cexr):"
+      echo "  <file.cex>            Directly execute any .cex file with active CexR runtime"
+      echo "  dev                   Auto-lint code when load and start local development server"
+      echo "  lint [paths...]       Lint code using integrated CexLint (pass --fix to auto-repair)"
+      echo "  test [suite.test.cex] Execute test suite (auto-discovers test/*.test.cex)"
+      echo "  v8 <file.cex>         Execute using CexR v8 runtime engine"
+      echo "  v6 <file.cex>         Execute using CexR v6 runtime engine"
       echo ""
       echo "Integrated Cex-CLI Build Runner & Task Automation Commands:"
       echo "  cli <args...>         Run commands via integrated @2tek/cli dispatcher"

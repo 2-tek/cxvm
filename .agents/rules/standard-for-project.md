@@ -40,6 +40,8 @@ trigger: always_on
    - Across `cxvm` and packages, `bin/` directories must contain exclusively `.cex` files. Absolutely no `.js` files or JavaScript/Node.js scripts are permitted.
 10. **Rule (Documents Update - RULE_DOCUMENTS_UPDATE)**:
     - Whenever a new feature, command, API, or architectural change is introduced in any project (`cxvm`, `cexp`, `cexr`, or packages), update the central documentation book at `documents/` under `../{projectName}`.
+11. **Rule (Auto-Lint on Load Before Run Dev)**:
+    - Whenever `cxvm dev`, `cxvm start`, `cxvm light dev`, or `cxvm load` is invoked, the native linter (`CexLint` / `cex lint`) MUST automatically validate all source files in the project before the development server boots. If lint checks fail, execution aborts to prevent running unvalidated code. Use `cxvm lint --fix` to auto-repair.
 
 ---
 
