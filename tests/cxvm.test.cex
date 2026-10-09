@@ -472,15 +472,21 @@ fn main(): int {
     let devExecResult: int = cxvm->cvmExecute("dev", "", "");
     Assert::equalsInt(0, devExecResult, "cxvm cvmExecute dev auto-lints and succeeds with code 0");
 
+    let startExecResult: int = cxvm->cvmExecute("start", "", "");
+    Assert::equalsInt(0, startExecResult, "cxvm cvmExecute start auto-lints and succeeds with code 0");
+
+    let lightStartResult: int = cxvm->cvmExecute("light", "start", "");
+    Assert::equalsInt(0, lightStartResult, "cxvm cvmExecute light start auto-lints and succeeds with code 0");
+
     let loadExecResult: int = cxvm->cvmExecute("load", "", "");
     Assert::equalsInt(0, loadExecResult, "cxvm cvmExecute load auto-lints and succeeds with code 0");
 
     suite->addResult("test_auto_lint_before_run_dev", true, "", 1);
 
     // -------------------------------------------------------------
-    // Test 10: Auto-Detect Main Entrypoint from cex-pack.json on Build
+    // Test 10: Auto-Detect Main Entrypoint from cex-pack.json on Build, Dev, and Start
     // -------------------------------------------------------------
-    println("\n[Test Suite 10: Auto-Detect Main Entrypoint from cex-pack.json on Build]");
+    println("\n[Test Suite 10: Auto-Detect Main Entrypoint from cex-pack.json on Build, Dev, and Start]");
     let detectedMain: string = cxvm->detectMainFile(".");
     Assert::equalsString("src/index.cex", detectedMain, "cxvm auto-detects main entrypoint from cex-pack.json");
 

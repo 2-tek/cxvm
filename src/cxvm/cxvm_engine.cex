@@ -598,7 +598,7 @@ class CxvmEngine {
     }
 
     public cvmExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "start" && (arg1 == "cvm" || arg1.length() == 0)) {
+        if (cmd == "start" && arg1 == "cvm") {
             let res: CxvmCommandResult* = this.startCvm(4000, true);
             println(res->output);
             return 0;
@@ -633,14 +633,16 @@ class CxvmEngine {
             return this.lintExecute(target, arg2);
         }
         if (cmd == "dev" || cmd == "start" || cmd == "serve") {
-            println("==> [cxvm dev] Auto-linting code when load before run dev...");
+            println("==> [cxvm " + cmd + "] Auto-linting code when load before run " + cmd + "...");
             let lintOk: bool = this.autoLint(".");
             if (!lintOk) {
-                println("[FAIL] [cxvm dev] Lint check failed. Dev server aborted.");
+                println("[FAIL] [cxvm " + cmd + "] Lint check failed. Dev server aborted.");
                 return 1;
             }
-            println("[OK] [cxvm dev] Code passed lint checks.");
-            println("==> [cxvm dev] Starting development server...");
+            println("[OK] [cxvm " + cmd + "] Code passed lint checks.");
+            let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
+            println("==> [cxvm " + cmd + "] Auto-detected main file from cex-pack.json: " + mainFile);
+            println("==> [cxvm " + cmd + "] Starting project (" + mainFile + ")...");
             return 0;
         }
         if (cmd == "load") {
@@ -792,21 +794,23 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "dev" || cmd == "serve" || cmd == "start") {
-            println("==> [cxvm light] Auto-linting code when load before run dev...");
+            println("==> [cxvm light] Auto-linting code when load before run " + cmd + "...");
             let lintOk: bool = this.autoLint(".");
             if (!lintOk) {
                 println("[FAIL] [cxvm light] Lint check failed. Dev server aborted.");
                 return 1;
             }
             println("[OK] [cxvm light] Code passed lint checks.");
-            println("==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080...");
+            let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
+            println("==> [cxvm light] Auto-detected main file from cex-pack.json: " + mainFile);
+            println("==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080 (" + mainFile + ")...");
             println("[OK] [cxvm light] Server running at http://localhost:3080");
             return 0;
         }
         if (cmd == "build") {
-            let mainFile: string = this.detectMainFile(".");
+            let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
             println("==> [cxvm light] Auto-detected main file from cex-pack.json: " + mainFile);
-            println("==> [cxvm light] Compiling Lighting MVC project with cexp native compiler...");
+            println("==> [cxvm light] Compiling Lighting MVC project with cexp native compiler (" + mainFile + ")...");
             println("[OK] [cxvm light] Production binary built successfully in bin/");
             return 0;
         }

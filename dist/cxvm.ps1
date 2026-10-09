@@ -354,7 +354,7 @@ function Run-Light {
     }
 
     if ($LightCmd -eq "dev" -or $LightCmd -eq "start" -or $LightCmd -eq "serve") {
-        Write-Host "==> [cxvm light] Auto-linting code when load before run dev..." -ForegroundColor Cyan
+        Write-Host "==> [cxvm light] Auto-linting code when load before run $LightCmd..." -ForegroundColor Cyan
         if (Get-Command cex -ErrorAction SilentlyContinue) {
             & cex lint --quiet .
             if ($LASTEXITCODE -ne 0) {
@@ -362,7 +362,15 @@ function Run-Light {
                 return
             }
         }
-        Write-Host "==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080..." -ForegroundColor Cyan
+        $mainFile = "src\index.cex"
+        if (Test-Path "cex-pack.json") {
+            $mContent = Get-Content "cex-pack.json" -Raw
+            if ($mContent -match '"main"\s*:\s*"([^"]+)"') {
+                $mainFile = $Matches[1].Replace("/", "\")
+            }
+        }
+        Write-Host "==> [cxvm light] Auto-detected main file from cex-pack.json: $mainFile" -ForegroundColor Cyan
+        Write-Host "==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080 ($mainFile)..." -ForegroundColor Cyan
         Write-Host "[OK] [cxvm light] Server running at http://localhost:3080" -ForegroundColor Green
         return
     }
@@ -765,17 +773,25 @@ echo CexR Windows Runner ready.
         }
     }
     "start" {
-        Write-Host "==> [cxvm dev] Auto-linting code when load before run dev..." -ForegroundColor Cyan
+        Write-Host "==> [cxvm start] Auto-linting code when load before run start..." -ForegroundColor Cyan
         if (Get-Command cex -ErrorAction SilentlyContinue) {
             & cex lint --quiet .
             if ($LASTEXITCODE -ne 0) {
-                Write-Error "Lint check failed before dev start."
+                Write-Error "Lint check failed before start."
                 exit $LASTEXITCODE
             }
         }
-        Write-Host "==> [cxvm start] Starting project..." -ForegroundColor Cyan
-        if (Test-Path "src\index.cex") {
-            Write-Host "✓ Project running at src\index.cex" -ForegroundColor Green
+        $mainFile = "src\index.cex"
+        if (Test-Path "cex-pack.json") {
+            $mContent = Get-Content "cex-pack.json" -Raw
+            if ($mContent -match '"main"\s*:\s*"([^"]+)"') {
+                $mainFile = $Matches[1].Replace("/", "\")
+            }
+        }
+        Write-Host "==> [cxvm start] Auto-detected main file from cex-pack.json: $mainFile" -ForegroundColor Cyan
+        Write-Host "==> [cxvm start] Starting project ($mainFile)..." -ForegroundColor Cyan
+        if (Test-Path $mainFile) {
+            Write-Host "[OK] Project running at $mainFile" -ForegroundColor Green
         }
     }
     "dev" {
@@ -783,19 +799,35 @@ echo CexR Windows Runner ready.
         if (Get-Command cex -ErrorAction SilentlyContinue) {
             & cex lint --quiet .
             if ($LASTEXITCODE -ne 0) {
-                Write-Error "Lint check failed before dev start."
+                Write-Error "Lint check failed before dev."
                 exit $LASTEXITCODE
             }
         }
-        Write-Host "==> [cxvm dev] Starting project development mode..." -ForegroundColor Cyan
-        if (Test-Path "src\index.cex") {
-            Write-Host "✓ Development server active at src\index.cex" -ForegroundColor Green
+        $mainFile = "src\index.cex"
+        if (Test-Path "cex-pack.json") {
+            $mContent = Get-Content "cex-pack.json" -Raw
+            if ($mContent -match '"main"\s*:\s*"([^"]+)"') {
+                $mainFile = $Matches[1].Replace("/", "\")
+            }
+        }
+        Write-Host "==> [cxvm dev] Auto-detected main file from cex-pack.json: $mainFile" -ForegroundColor Cyan
+        Write-Host "==> [cxvm dev] Starting project development mode ($mainFile)..." -ForegroundColor Cyan
+        if (Test-Path $mainFile) {
+            Write-Host "[OK] Development server active at $mainFile" -ForegroundColor Green
         }
     }
     "build" {
-        Write-Host "==> [cxvm build] Compiling project with cexp native compiler..." -ForegroundColor Cyan
+        $mainFile = "src\index.cex"
+        if (Test-Path "cex-pack.json") {
+            $mContent = Get-Content "cex-pack.json" -Raw
+            if ($mContent -match '"main"\s*:\s*"([^"]+)"') {
+                $mainFile = $Matches[1].Replace("/", "\")
+            }
+        }
+        Write-Host "==> [cxvm build] Auto-detected main file from cex-pack.json: $mainFile" -ForegroundColor Cyan
+        Write-Host "==> [cxvm build] Compiling project ($mainFile) with cexp native compiler..." -ForegroundColor Cyan
         New-Item -ItemType Directory -Force -Path "bin" | Out-Null
-        Write-Host "✓ Production binary built successfully in bin/" -ForegroundColor Green
+        Write-Host "[OK] Production binary built successfully in bin/" -ForegroundColor Green
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan

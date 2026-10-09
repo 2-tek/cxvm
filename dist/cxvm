@@ -501,13 +501,22 @@ EOF
   fi
 
   if [ "$light_cmd" = "dev" ] || [ "$light_cmd" = "start" ] || [ "$light_cmd" = "serve" ]; then
-    echo "==> [cxvm light] Auto-linting code when load before run dev..."
+    echo "==> [cxvm light] Auto-linting code when load before run $light_cmd..."
     _cxvm_run_lint . || return 1
-    echo "==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080..."
-    if [ -f "src/index.cex" ]; then
+    local main_file=""
+    if [ $# -gt 0 ] && [[ "$1" == *.cex ]]; then
+      main_file="$1"
+      shift
+    else
+      main_file="$(_cxvm_detect_main_file .)"
+      if [ -z "$main_file" ]; then main_file="src/index.cex"; fi
+    fi
+    echo "==> [cxvm light] Auto-detected main file from cex-pack.json: $main_file"
+    echo "==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080 ($main_file)..."
+    if [ -f "$main_file" ]; then
       local t_cexr
       t_cexr="$(_cxvm_get_runner)"
-      "$t_cexr" src/index.cex
+      "$t_cexr" "$main_file" "$@"
     else
       echo "[OK] [cxvm light] Server running at http://localhost:3080"
     fi
@@ -794,24 +803,51 @@ cxvm() {
   shift || true
 
   case "$cmd" in
-    start)
-      local sub="$1"
-      if [ "$sub" = "cvm" ]; then
-        shift || true
+    start|dev|serve)
+      if [ "$1" = "cvm" ]; then
+        shift
         _cxvm_start_cvm_server start "$@"
         return $?
-      elif [ "$sub" = "thunder" ] || [ "$sub" = "daemon" ]; then
-        shift || true
+      elif [ "$1" = "thunder" ] || [ "$1" = "daemon" ]; then
+        shift
         _cxvm_start_thunder_server start "$@"
         return $?
-      elif [ -z "$sub" ] || [ "${sub#-}" != "$sub" ]; then
+      elif [ "$1" = "servers" ] || [ "$1" = "all" ]; then
+        shift
         _cxvm_start_cvm_server start "$@"
         _cxvm_start_thunder_server start "$@"
         return 0
-      else
-        _cxvm_run_cvm "$cmd" "$sub" "$@"
-        return $?
       fi
+
+      echo "==> [cxvm $cmd] Auto-linting code when load before run $cmd..."
+      _cxvm_run_lint . || exit 1
+
+      local main_file=""
+      if [ $# -gt 0 ] && [[ "$1" == *.cex ]]; then
+        main_file="$1"
+        shift
+      else
+        main_file="$(_cxvm_detect_main_file .)"
+      fi
+
+      if [ -n "$main_file" ]; then
+        echo "==> [cxvm $cmd] Auto-detected main file from cex-pack.json: $main_file"
+      fi
+
+      if [ -z "$main_file" ]; then
+        if [ "$cmd" = "start" ] && [ ! -f "cex-pack.json" ]; then
+          _cxvm_start_cvm_server start "$@"
+          _cxvm_start_thunder_server start "$@"
+          return 0
+        fi
+        echo "[ERROR] [cxvm $cmd] No entrypoint found. Define \"main\": \"src/index.cex\" in cex-pack.json or provide a .cex file."
+        exit 1
+      fi
+
+      echo "==> [cxvm $cmd] Starting project ($main_file)..."
+      local t_cexr
+      t_cexr="$(_cxvm_get_runner)"
+      "$t_cexr" "$main_file" "$@"
       ;;
 
     stop)
@@ -1653,27 +1689,6 @@ INDEX_EOF
       _cxvm_run_cex_pack_downloads "$@"
       ;;
 
-    start|dev|serve)
-      if [ "$1" = "cvm" ]; then
-        shift
-        _cxvm_start_cvm_server start "$@"
-      elif [ "$1" = "thunder" ]; then
-        shift
-        _cxvm_start_thunder_server start "$@"
-      else
-        echo "==> [cxvm dev] Auto-linting code when load before run dev..."
-        _cxvm_run_lint . || exit 1
-        echo "==> [cxvm start] Starting project..."
-        if [ -f "src/index.cex" ]; then
-          local t_cexr
-          t_cexr="$(_cxvm_get_runner)"
-          "$t_cexr" src/index.cex
-        else
-          echo "[OK] Project started via cxvm"
-        fi
-      fi
-      ;;
-
     compile)
       local c_bin="cex"
       if [ -x "$CXVM_DIR/bin/cex" ]; then
@@ -1728,18 +1743,28 @@ INDEX_EOF
 
     run)
       if [ "$1" = "dev" ] || [ "$1" = "start" ] || [ "$1" = "serve" ]; then
+        local run_mode="$1"
         shift
-        echo "==> [cxvm run dev] Auto-linting code when load before run dev..."
+        echo "==> [cxvm run $run_mode] Auto-linting code when load before run $run_mode..."
         _cxvm_run_lint . || exit 1
-        echo "==> [cxvm start] Starting project..."
-        if [ -f "src/index.cex" ]; then
-          local t_cexr
-          t_cexr="$(_cxvm_get_runner)"
-          exec "$t_cexr" src/index.cex "$@"
+        local main_file=""
+        if [ $# -gt 0 ] && [[ "$1" == *.cex ]]; then
+          main_file="$1"
+          shift
         else
-          echo "[OK] Project started via cxvm"
-          exit 0
+          main_file="$(_cxvm_detect_main_file .)"
         fi
+        if [ -n "$main_file" ]; then
+          echo "==> [cxvm run $run_mode] Auto-detected main file from cex-pack.json: $main_file"
+        fi
+        if [ -z "$main_file" ]; then
+          echo "[ERROR] [cxvm run $run_mode] No entrypoint found. Define \"main\": \"src/index.cex\" in cex-pack.json or provide a .cex file."
+          exit 1
+        fi
+        echo "==> [cxvm run $run_mode] Starting project ($main_file)..."
+        local t_cexr
+        t_cexr="$(_cxvm_get_runner)"
+        exec "$t_cexr" "$main_file" "$@"
       fi
       local t_cexr
       t_cexr="$(_cxvm_get_runner)"
@@ -1762,10 +1787,8 @@ INDEX_EOF
 
     test)
       if [ -n "$1" ]; then
-        local t_cexr="cexr"
-        if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
-          t_cexr="$CXVM_DIR/current/bin/cexr"
-        fi
+        local t_cexr
+        t_cexr="$(_cxvm_get_runner)"
         echo "==> [cxvm test] Executing test suite: $1 (replaces ./bin/cexr)"
         exec "$t_cexr" "$@"
       fi
@@ -1775,16 +1798,14 @@ INDEX_EOF
         if [ -f "$tf" ]; then found_tests+=("$tf"); fi
       done
       if [ ${#found_tests[@]} -gt 0 ]; then
-        local t_cexr="cexr"
-        if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
-          t_cexr="$CXVM_DIR/current/bin/cexr"
-        fi
         local all_passed=true
         for tf in "${found_tests[@]}"; do
           echo "---------------------------------------------------------------"
           echo "==> [cxvm test] Running: $tf"
           echo "---------------------------------------------------------------"
-          "$t_cexr" "$tf" || { all_passed=false; echo "[FAIL] [cxvm test] Suite failed: $tf"; exit 1; }
+          local t_runner
+          t_runner="$(_cxvm_get_runner)"
+          "$t_runner" "$tf" || { all_passed=false; echo "[FAIL] [cxvm test] Suite failed: $tf"; exit 1; }
         done
         if [ "$all_passed" = true ]; then
           echo ""
