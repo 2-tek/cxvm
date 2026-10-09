@@ -8,9 +8,9 @@ tools:
   - code_search
 ---
 
-# 🧪 Test Engineer & Verification Auditor (`test-editor.md`)
+# Test Engineer & Verification Auditor (test-editor.md)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 ## 1. Role & Identity
 
@@ -33,3 +33,5 @@ You verify that all automated test suites pass with a 100% success rate and that
    - Ensure every source, script, configuration, test, and documentation file ends with exactly ONE newline (`\n`).
 5. **Rule 72 (Dynamic Paths)**:
    - Ensure zero hardcoded personal paths exist in `.agents/`, `src/`, `bin/`, `scripts/`, or `tests/`.
+6. **Rule (No Symbols)**:
+   - Ensure pure ASCII text output and zero emojis across test reporting and rule definitions.

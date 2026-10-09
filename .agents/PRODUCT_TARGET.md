@@ -1,7 +1,7 @@
 # 2-TEK cxvm: Cross-Platform Cex Distribution Engine & Runtime Version Manager Specification
 
 <!-- Standard Specification: .agents/PRODUCT_TARGET.md -->
-<!-- Rule Conformance: Rule 69 (Keep Target of Project), Rule 29 (EOF Integrity), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Keep Target of Project), Rule 29 (EOF Integrity), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 > **Canonical Target of cxvm (`@2tek/cxvm`)**:
 > **`cxvm` is the canonical cross-platform Cex distribution builder and runtime version manager engine, powered natively by Lighting Fullstack MVC.**
@@ -50,8 +50,8 @@ The `cxvm` repository defines the official distribution hub and version manageme
      - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr` runtime, `cexp` compiler, and Pure Cex toolchain status.
 
 4. **Cross-Platform Setup Window**:
-   - **Terminal Setup Window (CLI)**: Visual ASCII/Unicode framed application window (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), and project `./bin/` integration.
-   - **Web Setup Window (Lighting MVC)**: Full-featured desktop application window UI on route `/setup` with macOS/Windows titlebar controls (`🔴 🟡 🟢`), tabbed OS quick installers, environment status cards, runtime selector, and live `cxvm doctor` console.
+   - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), and project `./bin/` integration.
+   - **Web Setup Window (Lighting MVC)**: Full-featured desktop application window UI on route `/setup` with macOS/Windows titlebar controls (`[RED] [YELLOW] [GREEN]`), tabbed OS quick installers, environment status cards, runtime selector, and live `cxvm doctor` console.
 
 5. **Project `./bin/` Toolchain Dispatchers**:
    - `./bin/cexr`: Smart runtime dispatcher defaulting to **CexR v8.0.0** with instant version switching to **v6.0.0** (`./bin/cexr v6 ...`).
@@ -81,29 +81,29 @@ The `cxvm` repository defines the official distribution hub and version manageme
 
 ```text
 cxvm/
-├── .agents/                      # Agent specifications, targets, and rules
-│   ├── PRODUCT_TARGET.md         # Canonical target specification
-│   ├── rules/                    # Enforced coding & architectural rules
-│   └── standards/                # Architectural & setup standards
-├── bin/                          # Project toolchain dispatchers (cexr, cex, cxvm, .cmd, .ps1)
-├── dist/                         # Cross-platform distribution bundles (Rule 69: NOT ignored)
-├── downloads/                    # Cross-platform distribution download store
-├── scripts/                      # Build pipeline & setup automation scripts
-│   ├── generate_distributions.sh # Multi-platform package builder & dist sync
-│   ├── setup.sh                  # POSIX cross-platform setup window script
-│   └── setup.ps1                 # Windows PowerShell setup window script
-├── src/                          # Lighting MVC fullstack application kernel
-│   ├── app.cex                   # Application kernel & route registry
-│   ├── builder/                  # Distribution builder logic
-│   ├── controllers/              # MVC controllers (FactoryController)
-│   ├── cxvm/                     # CXVM version manager engine core
-│   ├── models/                   # Validated entities (Platform, Version, Artifact)
-│   ├── views/                    # SSR HTML views & Setup Window (FactoryViews)
-│   ├── index.cex                 # Package entrypoint & live verification
-│   └── lighting_mvc.cex          # Lighting MVC framework integration
-├── tests/                        # Comprehensive test suites
-│   ├── cxvm.test.cex             # CXVM engine & endpoint verification
-│   └── factory.test.cex          # Factory architecture & model validation
-├── cex-pack.json                 # Package manifest (target: runtime, cexp: ^8, cexr: ^8)
-└── README.md                     # Complete cross-platform documentation
++-- .agents/                      # Agent specifications, targets, and rules
+|   +-- PRODUCT_TARGET.md         # Canonical target specification
+|   +-- rules/                    # Enforced coding & architectural rules
+|   +-- standards/                # Architectural & setup standards
++-- bin/                          # Project toolchain dispatchers (cexr, cex, cxvm, .cmd, .ps1)
++-- dist/                         # Cross-platform distribution bundles (Rule 69: NOT ignored)
++-- downloads/                    # Cross-platform distribution download store
++-- scripts/                      # Build pipeline & setup automation scripts
+|   +-- generate_distributions.sh # Multi-platform package builder & dist sync
+|   +-- setup.sh                  # POSIX cross-platform setup window script
+|   +-- setup.ps1                 # Windows PowerShell setup window script
++-- src/                          # Lighting MVC fullstack application kernel
+|   +-- app.cex                   # Application kernel & route registry
+|   +-- builder/                  # Distribution builder logic
+|   +-- controllers/              # MVC controllers (FactoryController)
+|   +-- cxvm/                     # CXVM version manager engine core
+|   +-- models/                   # Validated entities (Platform, Version, Artifact)
+|   +-- views/                    # SSR HTML views & Setup Window (FactoryViews)
+|   +-- index.cex                 # Package entrypoint & live verification
+|   +-- lighting_mvc.cex          # Lighting MVC framework integration
++-- tests/                        # Comprehensive test suites
+|   +-- cxvm.test.cex             # CXVM engine & endpoint verification
+|   +-- factory.test.cex          # Factory architecture & model validation
++-- cex-pack.json                 # Package manifest (target: runtime, cexp: ^8, cexr: ^8)
++-- README.md                     # Complete cross-platform documentation
 ```

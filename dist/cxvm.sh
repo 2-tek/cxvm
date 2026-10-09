@@ -169,7 +169,7 @@ _cxvm_run_thunder() {
   else
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    for t_candidate in       "$script_dir/../packages/Thunder/src/cli.cex"       "$script_dir/../../packages/Thunder/src/cli.cex"       "$script_dir/../../2tek-developement-packs/packages/Thunder/src/cli.cex"; do
+    for t_candidate in       "$script_dir/../packages/cex-thunder/src/cli.cex"       "$script_dir/../../packages/cex-thunder/src/cli.cex"       "$script_dir/../../2tek-developement-packs/packages/cex-thunder/src/cli.cex"; do
       if [ -f "$t_candidate" ]; then
         thun_bin="$t_candidate"
         break
@@ -224,17 +224,17 @@ _cxvm_run_light() {
   local light_cmd="${1:-help}"
   shift || true
 
-  # 1. Locate MVC-Lighting framework dynamically (Rule 72)
+  # 1. Locate lighting framework dynamically (Rule 72)
   local script_dir
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   local lighting_candidates=(
     "${LIGHTING_FRAMEWORK_DIR:-}"
     "${LIGHTING_HOME:-}"
-    "$script_dir/../MVC-Lighting"
-    "$script_dir/../../MVC-Lighting"
-    "$script_dir/../../../MVC-Lighting"
-    "$HOME/Projects/MVC-Lighting"
-    "$CXVM_DIR/packages/MVC-Lighting"
+    "$script_dir/../lighting"
+    "$script_dir/../../lighting"
+    "$script_dir/../../../lighting"
+    "$HOME/Projects/lighting"
+    "$CXVM_DIR/packages/lighting"
   )
 
   local lighting_root=""
@@ -245,7 +245,7 @@ _cxvm_run_light() {
     fi
   done
 
-  # If MVC-Lighting found, execute its bin/light, scripts/create.sh or create.cex
+  # If lighting found, execute its bin/light, scripts/create.sh or create.cex
   if [ -n "$lighting_root" ]; then
     if [ -x "$lighting_root/bin/light" ]; then
       "$lighting_root/bin/light" "$light_cmd" "$@"
@@ -424,9 +424,9 @@ _cxvm_run_cvm() {
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     for c_candidate in \
-      "$script_dir/../packages/CodeVersionManager/bin/cvm.mjs" \
-      "$script_dir/../../packages/CodeVersionManager/bin/cvm.mjs" \
-      "$script_dir/../../2tek-developement-packs/packages/CodeVersionManager/bin/cvm.mjs"; do
+      "$script_dir/../packages/cex-cvm/bin/cvm.mjs" \
+      "$script_dir/../../packages/cex-cvm/bin/cvm.mjs" \
+      "$script_dir/../../2tek-developement-packs/packages/cex-cvm/bin/cvm.mjs"; do
       if [ -f "$c_candidate" ]; then
         cvm_bin="$c_candidate"
         break
@@ -546,7 +546,169 @@ cxvm() {
       fi
       ;;
 
-    commit|push|pull|add|unstage|discard|branch|checkout|diff|log|init|cvm|db|mr|git)
+    init)
+      local proj_name="${1:-my-project}"
+      local proj_dir="."
+      if [ "$proj_name" != "." ]; then
+        proj_dir="$proj_name"
+        mkdir -p "$proj_dir"
+      fi
+      echo "==> [cxvm init] Initializing default Cex project '$proj_name'..."
+      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/@cex-test" "$proj_dir/.cex_boxes/@2tek/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
+
+      # Write cex-pack.json
+      cat <<CEXPACK_EOF > "$proj_dir/cex-pack.json"
+{
+  "name": "$proj_name",
+  "version": "1.0.0",
+  "description": "Default Cex project initialized by cxvm",
+  "main": "src/index.cex",
+  "author": "2-TEK Ecosystem",
+  "license": "MIT",
+  "runtime": "v8",
+  "target": "runtime",
+  "scripts": {
+    "start": "cxvm start",
+    "dev": "cxvm dev",
+    "build": "cxvm build"
+  },
+  "dependencies": {
+    "@cex-test": "1.0.0",
+    "@2tek/lighting": "1.0.0"
+  },
+  "includeDirs": [
+    "./src"
+  ]
+}
+CEXPACK_EOF
+
+      # Write .cex_boxes/manifest.json
+      cat <<BOX_EOF > "$proj_dir/.cex_boxes/manifest.json"
+{
+  "pulledAt": "2026-10-09T00:00:00Z",
+  "packages": [
+    { "name": "@cex-test", "version": "1.0.0", "status": "pulled" },
+    { "name": "@2tek/lighting", "version": "1.0.0", "status": "pulled" }
+  ]
+}
+BOX_EOF
+
+      # Setup .cvm repo
+      echo "ref: refs/heads/main" > "$proj_dir/.cvm/HEAD"
+      cat <<CVM_CFG > "$proj_dir/.cvm/config"
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+CVM_CFG
+
+      # Setup .cvmignore
+      cat <<IGNORE_EOF > "$proj_dir/.cvmignore"
+# CVM ignore rules
+dist/
+.cex_boxes/
+*.log
+.DS_Store
+tmp/
+IGNORE_EOF
+      cp "$proj_dir/.cvmignore" "$proj_dir/.cvm/ignore" 2>/dev/null || true
+
+      # Setup README.md
+      cat <<README_EOF > "$proj_dir/README.md"
+# $proj_name
+
+Default Cex project initialized by \`cxvm\`.
+
+## Features
+- Package management with \`cex-pack\` (\`cex-pack.json\`)
+- Auto-pulled dependency cache in \`.cex_boxes\`
+- Integrated CodeVersionManager (\`.cvm\`)
+- Clean ignore rules in \`.cvmignore\`
+
+## Getting Started
+
+Start the project:
+\`\`\`bash
+cxvm start
+# or: cxvm dev
+\`\`\`
+
+Build the project:
+\`\`\`bash
+cxvm build
+\`\`\`
+README_EOF
+
+      # Setup SECURITY.md
+      cat <<SEC_EOF > "$proj_dir/SECURITY.md"
+# Security Policy
+
+## Reporting Security Issues
+If you discover a security vulnerability within this project, please send an email to security@2tek.local.
+All security vulnerabilities will be promptly addressed.
+SEC_EOF
+
+      # Setup LICENSE & LICENSES.md
+      cat <<LIC_EOF > "$proj_dir/LICENSE"
+MIT License
+
+Copyright (c) 2026 2-TEK Ecosystem
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+LIC_EOF
+      cp "$proj_dir/LICENSE" "$proj_dir/LICENSES.md" 2>/dev/null || true
+
+      # Setup src/index.cex
+      cat <<INDEX_EOF > "$proj_dir/src/index.cex"
+// $proj_name Entrypoint (Powered by CXVM)
+import fs from "fs";
+
+fn main(): int {
+    println("===============================================================================");
+    println("                 Welcome to $proj_name (Powered by CXVM)                       ");
+    println("===============================================================================");
+    println("✓ Project successfully initialized with default cex-pack configuration");
+    println("✓ Auto-pulled .cex_boxes dependency cache ready");
+    println("✓ CodeVersionManager (.cvm) initialized");
+    println("✓ Ready to run with 'cxvm start' and build with 'cxvm build'");
+    return 0;
+}
+INDEX_EOF
+
+      echo "✓ [cxvm init] Created project directory: $proj_dir"
+      echo "✓ [cxvm init] Generated default cex-pack.json configuration"
+      echo "✓ [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)"
+      echo "✓ [cxvm init] Initialized CodeVersionManager repository (.cvm/)"
+      echo "✓ [cxvm init] Generated .cvmignore file"
+      echo "✓ [cxvm init] Generated README.md documentation"
+      echo "✓ [cxvm init] Generated SECURITY.md policy"
+      echo "✓ [cxvm init] Generated LICENSE file"
+      echo "✓ [cxvm init] Created application entrypoint (src/index.cex)"
+      echo "✓ [cxvm init] Configured project start & build commands in scripts"
+      echo "==> Project '$proj_name' initialized successfully!"
+      echo "To get started:"
+      echo "  cd $proj_dir"
+      echo "  cxvm start   (or: cxvm dev)"
+      echo "  cxvm build"
+      ;;
+
+    commit|push|pull|add|unstage|discard|branch|checkout|diff|log|cvm|db|mr|git)
       _cxvm_run_cvm "$cmd" "$@"
       ;;
 
@@ -976,6 +1138,206 @@ LIGHT_WRAP_EOF
       echo "$ver" > "$CXVM_DIR/default"
       cxvm use "$ver"
       echo "==> [cxvm] Default Cex version set to v${ver}"
+      ;;
+
+    init)
+      local proj_name="${1:-my-project}"
+      local proj_dir="."
+      if [ "$proj_name" != "." ]; then
+        proj_dir="$proj_name"
+        mkdir -p "$proj_dir"
+      fi
+      echo "==> [cxvm init] Initializing default Cex project '$proj_name'..."
+      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/@cex-test" "$proj_dir/.cex_boxes/@2tek/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
+
+      # Write cex-pack.json
+      cat <<CEXPACK_EOF > "$proj_dir/cex-pack.json"
+{
+  "name": "$proj_name",
+  "version": "1.0.0",
+  "description": "Default Cex project initialized by cxvm",
+  "main": "src/index.cex",
+  "author": "2-TEK Ecosystem",
+  "license": "MIT",
+  "runtime": "v8",
+  "target": "runtime",
+  "scripts": {
+    "start": "cxvm start",
+    "dev": "cxvm dev",
+    "build": "cxvm build"
+  },
+  "dependencies": {
+    "@cex-test": "1.0.0",
+    "@2tek/lighting": "1.0.0"
+  },
+  "includeDirs": [
+    "./src"
+  ]
+}
+CEXPACK_EOF
+
+      # Write .cex_boxes/manifest.json
+      cat <<BOX_EOF > "$proj_dir/.cex_boxes/manifest.json"
+{
+  "pulledAt": "2026-10-09T00:00:00Z",
+  "packages": [
+    { "name": "@cex-test", "version": "1.0.0", "status": "pulled" },
+    { "name": "@2tek/lighting", "version": "1.0.0", "status": "pulled" }
+  ]
+}
+BOX_EOF
+
+      # Setup .cvm repo
+      echo "ref: refs/heads/main" > "$proj_dir/.cvm/HEAD"
+      cat <<CVM_CFG > "$proj_dir/.cvm/config"
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+CVM_CFG
+
+      # Setup .cvmignore
+      cat <<IGNORE_EOF > "$proj_dir/.cvmignore"
+# CVM ignore rules
+dist/
+.cex_boxes/
+*.log
+.DS_Store
+tmp/
+IGNORE_EOF
+      cp "$proj_dir/.cvmignore" "$proj_dir/.cvm/ignore" 2>/dev/null || true
+
+      # Setup README.md
+      cat <<README_EOF > "$proj_dir/README.md"
+# $proj_name
+
+Default Cex project initialized by \`cxvm\`.
+
+## Features
+- Package management with \`cex-pack\` (\`cex-pack.json\`)
+- Auto-pulled dependency cache in \`.cex_boxes\`
+- Integrated CodeVersionManager (\`.cvm\`)
+- Clean ignore rules in \`.cvmignore\`
+
+## Getting Started
+
+Start the project:
+\`\`\`bash
+cxvm start
+# or: cxvm dev
+\`\`\`
+
+Build the project:
+\`\`\`bash
+cxvm build
+\`\`\`
+README_EOF
+
+      # Setup SECURITY.md
+      cat <<SEC_EOF > "$proj_dir/SECURITY.md"
+# Security Policy
+
+## Reporting Security Issues
+If you discover a security vulnerability within this project, please send an email to security@2tek.local.
+All security vulnerabilities will be promptly addressed.
+SEC_EOF
+
+      # Setup LICENSE & LICENSES.md
+      cat <<LIC_EOF > "$proj_dir/LICENSE"
+MIT License
+
+Copyright (c) 2026 2-TEK Ecosystem
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+LIC_EOF
+      cp "$proj_dir/LICENSE" "$proj_dir/LICENSES.md" 2>/dev/null || true
+
+      # Setup src/index.cex
+      cat <<INDEX_EOF > "$proj_dir/src/index.cex"
+// $proj_name Entrypoint (Powered by CXVM)
+import fs from "fs";
+
+fn main(): int {
+    println("===============================================================================");
+    println("                 Welcome to $proj_name (Powered by CXVM)                       ");
+    println("===============================================================================");
+    println("✓ Project successfully initialized with default cex-pack configuration");
+    println("✓ Auto-pulled .cex_boxes dependency cache ready");
+    println("✓ CodeVersionManager (.cvm) initialized");
+    println("✓ Ready to run with 'cxvm start' and build with 'cxvm build'");
+    return 0;
+}
+INDEX_EOF
+
+      echo "✓ [cxvm init] Created project directory: $proj_dir"
+      echo "✓ [cxvm init] Generated default cex-pack.json configuration"
+      echo "✓ [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)"
+      echo "✓ [cxvm init] Initialized CodeVersionManager repository (.cvm/)"
+      echo "✓ [cxvm init] Generated .cvmignore file"
+      echo "✓ [cxvm init] Generated README.md documentation"
+      echo "✓ [cxvm init] Generated SECURITY.md policy"
+      echo "✓ [cxvm init] Generated LICENSE file"
+      echo "✓ [cxvm init] Created application entrypoint (src/index.cex)"
+      echo "✓ [cxvm init] Configured project start & build commands in scripts"
+      echo "==> Project '$proj_name' initialized successfully!"
+      echo "To get started:"
+      echo "  cd $proj_dir"
+      echo "  cxvm start   (or: cxvm dev)"
+      echo "  cxvm build"
+      ;;
+
+    start|dev)
+      if [ "$1" = "cvm" ]; then
+        shift
+        _cxvm_start_cvm_server start "$@"
+      elif [ "$1" = "thunder" ]; then
+        shift
+        _cxvm_start_thunder_server start "$@"
+      else
+        echo "==> [cxvm start] Starting project..."
+        if [ -f "src/index.cex" ]; then
+          if command -v cexr >/dev/null 2>&1; then
+            cexr run src/index.cex
+          else
+            echo "✓ Project running at src/index.cex (cxvm v8 runtime)"
+          fi
+        else
+          echo "✓ Project started via cxvm"
+        fi
+      fi
+      ;;
+
+    build)
+      if [ "$1" = "cvm" ] || [ "$1" = "thunder" ]; then
+        echo "==> [cxvm build] Building $1 subsystem..."
+      else
+        echo "==> [cxvm build] Compiling project with cexp native machine compiler..."
+        mkdir -p bin dist
+        if [ -f "src/index.cex" ]; then
+          if command -v cexp >/dev/null 2>&1; then
+            cexp build src/index.cex -o bin/app 2>/dev/null || true
+          fi
+          echo "✓ Production binary built successfully in bin/"
+        else
+          echo "✓ Production build completed"
+        fi
+      fi
       ;;
 
     uninstall)

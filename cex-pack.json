@@ -11,21 +11,41 @@
   },
   "homepage": "https://github.com/2-tek/cxvm#readme",
   "bugs": "https://github.com/2-tek/cxvm/issues",
+  "runtime": "v8",
   "target": "runtime",
   "required": {
     "cexr": "^8",
     "cexp": "^8"
   },
+  "scripts": {
+    "dev": "cexr run src/index.cex",
+    "lint": "cexr run src/index.cex",
+    "test": "cexr run tests/cxvm.test.cex"
+  },
   "dependencies": {
     "@cex-test": "1.0.0",
     "@cex-service": "1.0.0",
+    "@cex-lint": "1.0.0",
     "@2tek/lighting": "1.0.0"
   },
-  "cFlags": [
-    "-O3",
-    "-lpthread"
-  ],
   "includeDirs": [
     "./src"
-  ]
+  ],
+  "lint": {
+    "onBuild": true,
+    "include": [
+      "src",
+      "tests"
+    ],
+    "rules": {
+      "indent": { "level": "error", "size": 4 },
+      "quotes": { "level": "error", "style": "double" },
+      "semi": "error",
+      "no-tabs": "error",
+      "no-trailing-spaces": "error",
+      "eol-last": "error",
+      "no-duplicate-imports": "error",
+      "class-name-case": "error"
+    }
+  }
 }

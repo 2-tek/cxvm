@@ -118,6 +118,7 @@ cxvm use 6.0.0
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
 | `cxvm setup` | — | Displays cross-platform setup window, configures PATH & env, and links `./bin/cexr` & `./bin/cex` (v8 & v6) |
+| `cxvm init [name]` | `npm init` | Initializes default Cex project (default: `my-project`) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
 | `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr` runner |
 | `cxvm download 8.0.0 [plat]` | — | Downloads cross-platform bundle into cache for offline `cexr` setup |
 | `cxvm download 8.0.0 all` | — | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr` |
@@ -128,7 +129,7 @@ cxvm use 6.0.0
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
 | `cxvm doctor` | — | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
-| `cxvm light create <name>` | `nest new` | Hooks project creation logic in MVC-Lighting to scaffold new Fullstack MVC project |
+| `cxvm light create <name>` | `nest new` | Hooks project creation logic in lighting to scaffold new Fullstack MVC project |
 | `cxvm light dev` | `npm run dev` | Starts local Lighting MVC development server on port 3080 |
 | `cxvm light build` | `npm run build` | Compiles Lighting project with `cexp` direct machine compiler |
 | `cxvm light doctor` | — | Runs Lighting engine diagnostic and verification |
@@ -288,7 +289,7 @@ cxvm light create my-awesome-app
 cxvm lighting create my-awesome-app
 ```
 
-`cxvm` hooks directly into the logic scripts of `MVC-Lighting` (`bin/light`, `scripts/create.sh`, `create.cex`):
+`cxvm` hooks directly into the logic scripts of `lighting` (`bin/light`, `scripts/create.sh`, `create.cex`):
 1. **Directory Structure**:
    - `src/controllers/`: MVC controllers (e.g. `HomeController`, `FactoryController`).
    - `src/models/`: Strongly-typed schema models with validation.

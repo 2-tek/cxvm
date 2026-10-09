@@ -31,3 +31,4 @@ cex_boxes/
 # OS & Logs
 .DS_Store
 *.log
+packages/*

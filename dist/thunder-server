@@ -346,7 +346,7 @@ class ThunderHandler(BaseHTTPRequestHandler):
         elif path == "/api/v1/thunder/status":
             return self._send_json(200, {
                 "status": "HEALTHY",
-                "engine": "CexThunderEngine",
+                "engine": "ThunderEngine",
                 "controlPort": self.server.server_port,
                 "singleProcess": True,
                 "pid": os.getpid(),

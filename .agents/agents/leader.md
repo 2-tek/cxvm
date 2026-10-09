@@ -9,9 +9,9 @@ tools:
   - code_search
 ---
 
-# 👑 Master Project Leader & Architecture Controller (`leader.md`)
+# Master Project Leader & Architecture Controller (leader.md)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 ## 1. Role & Identity
 
@@ -31,3 +31,4 @@ Your primary mandate is to **maintain absolute immutability of the cxvm cross-pl
 3. **Rule 72**: All paths dynamic relative to current directory, `$CXVM_DIR`, or environment variables. Zero hardcoded personal paths.
 4. **Toolchain**: Use `cexr`, `cexp`, `./bin/cexr`, `./bin/cex`, and `cxvm`.
 5. **Setup Window & Dispatchers**: Ensure `./bin/cexr` and `./bin/cex` prioritize CexR v8 with instant v6 fallback.
+6. **Rule (No Symbols)**: Maintain pure ASCII output and zero emoji/symbol usage across all rules, code, scripts, and interfaces.

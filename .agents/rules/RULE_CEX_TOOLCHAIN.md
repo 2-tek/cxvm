@@ -4,7 +4,7 @@ trigger: always_on
 
 # Rule: Mandatory Cex Toolchain Usage (RULE_CEX_TOOLCHAIN)
 
-<!-- Rule Conformance: Rule 69 (Keep Target of Project), Rule 29 (EOF Integrity), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Keep Target of Project), Rule 29 (EOF Integrity), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 > **CANONICAL TOOLCHAIN & PURE CEX STANDARDS**:
 > In the `cxvm` repository and across all Cex projects, development, execution, and builds MUST use the Cex native toolchain (`cexr`, `cexp`, `./bin/cexr`, `./bin/cex`, or `./bin/cxvm`).
@@ -39,3 +39,4 @@ trigger: always_on
 1. **Zero External C++ Dependencies in v2**: No C++ build invocations (`g++`, `clang++`, `make`, `cmake`) for runtime app execution.
 2. **Dual Dispatcher Support**: `./bin/cexr` and `./bin/cex` must run out-of-the-box on POSIX and Windows (`.cmd`, `.ps1`).
 3. **Distribution Retention**: `dist/` contains all cross-platform pre-built archives and must never be stripped or ignored.
+4. **Rule (No Symbols)**: All scripts, outputs, and documentation must be pure ASCII without emojis or non-standard Unicode symbols.

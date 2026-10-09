@@ -326,7 +326,7 @@ class FactoryController : public BaseController {
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "SUCCESS");
         JsonDoc::setStr(doc, "health", "HEALTHY");
-        JsonDoc::setStr(doc, "engine", "CexThunderEngine");
+        JsonDoc::setStr(doc, "engine", "ThunderEngine");
         JsonDoc::setNum(doc, "controlPort", cxvm->thunderPort);
         JsonDoc::setBool(doc, "singleProcess", true);
         JsonDoc::setNum(doc, "containersRunning", cxvm->thunderContainersRunning);

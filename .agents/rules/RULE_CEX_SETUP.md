@@ -4,7 +4,7 @@ trigger: always_on
 
 # Rule: Cross-Platform CXVM Setup Window & Dispatcher Standards (RULE_CEX_SETUP)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 > **SETUP WINDOW & RUNTIME DISPATCHER DIRECTIVE**:
 > `cxvm` must provide an interactive setup window (both terminal and web-based) that configures environment variables, user shell PATHs, default runtime versions, and project dispatchers across Linux, macOS, and Windows.
@@ -15,7 +15,7 @@ trigger: always_on
 
 1. **Terminal Setup Window (`cxvm setup`)**:
    - Must be cross-platform: `scripts/setup.sh` (POSIX bash/zsh), `scripts/setup.ps1` (PowerShell Core / Windows PowerShell), and `downloads/setup.cmd` (Windows CMD).
-   - Renders an ASCII/Unicode framed setup window displaying:
+   - Renders an ASCII framed setup window displaying:
      - Header: `2-TEK CXVM Cross-Platform Setup Window`
      - Step 1: Detect Host OS, Architecture, and Shell.
      - Step 2: Initialize `CXVM_DIR` (`~/.cxvm` or `%USERPROFILE%\.cxvm`).
@@ -25,7 +25,7 @@ trigger: always_on
      - Step 6: Run `cxvm doctor` and report readiness.
 2. **Web Setup Window (`/setup`)**:
    - Delivered via Lighting Fullstack MVC at route `/setup`.
-   - Displays a desktop application window UI with OS titlebar controls (`🔴 🟡 🟢`), platform selection tabs, installer snippets, interactive version selector, and live status diagnostics.
+   - Displays a desktop application window UI with OS titlebar controls (`[RED] [YELLOW] [GREEN]`), platform selection tabs, installer snippets, interactive version selector, and live status diagnostics.
 
 ---
 

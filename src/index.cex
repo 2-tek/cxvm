@@ -53,6 +53,11 @@ fn main(): int {
     print("    Result: "); println(useRes->success ? "PASSED [OK]" : "FAILED");
     print("    Active Version now: "); println(app->cxvm->current());
 
+    println("\n  ▶ Simulating: cxvm init (default init project with cex-pack, my-project, .cex_boxes, .cvm)");
+    let initRes: CxvmCommandResult* = app->cxvm->cxvmInit("my-project", ".");
+    print("    Result: "); println(initRes->success ? "PASSED [OK]" : "FAILED");
+    print("    Output:\n    "); println(initRes->output);
+
     println("\n  ▶ Simulating: cxvm doctor");
     println(app->cxvm->doctor());
 

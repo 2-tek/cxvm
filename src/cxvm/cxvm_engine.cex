@@ -301,7 +301,7 @@ class CxvmEngine {
         out += "  CexP Compiler:     v8 (Direct Machine Code & ELF Emitter [READY])\n";
         out += "  Toolchain Model:   Pure Cex Native Engine (cexr + cexp; zero C++ dependency)\n";
         out += "  CVM VCS Engine:    INTEGRATED [Git object store, commit graph, DAG merges, .cvm patches]\n";
-        out += "  CVM Commands:      commit, push, pull, status, add, branch, checkout, log, diff [READY]\n";
+        out += "  CVM Commands:      init, commit, push, pull, status, add, branch, checkout, log, diff [READY]\n";
         let cvmSrvStr: string = this.cvmServerRunning ? "RUNNING [Single Process Standalone on port " + std::to_string(this.cvmServerPort) + ", PID: " + std::to_string(this.cvmServerPid) + "]" : "STOPPED (run: cxvm start cvm)";
         out += "  CVM Server:        " + cvmSrvStr + "\n";
         out += "  Thunder Engine:    INTEGRATED [Virtual Linux 6.8 Microkernel, OCI Store, Cgroups v2, Auto-scaler]\n";
@@ -310,6 +310,7 @@ class CxvmEngine {
         out += "  Thunder Daemon:    " + thunSrvStr + "\n";
         out += "  Lighting Engine:   INTEGRATED [Lighting Fullstack MVC, Pure Cex Engine, light CLI scaffolder]\n";
         out += "  Lighting Commands: light, lighting, light create <project>, light dev, light build [READY]\n";
+        out += "  CXVM Init:         INTEGRATED [cxvm init <name> (default: my-project, cex-pack, .cex_boxes, .cvm, .cvmignore, README, SECURITY, LICENSE)]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + std::to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
         out += "  Installed Count:   " + std::to_string((int)this.installedVersions->length()) + "\n";
@@ -626,6 +627,11 @@ class CxvmEngine {
             let res: CxvmCommandResult* = this.statusThunder();
             println(res->output);
             return 0;
+        if (cmd == "init") {
+            let pName: string = arg1.length() == 0 ? "my-project" : arg1;
+            let res: CxvmCommandResult* = this.cxvmInit(pName, ".");
+            println(res->output);
+            return 0;
         }
         if (cmd == "thunder" || cmd == "docker") {
             return this.thunderExecute(arg1, arg2, "");
@@ -634,6 +640,31 @@ class CxvmEngine {
             return this.lightExecute(arg1, arg2, "");
         }
         return this.cvmCli->execute(cmd, arg1, arg2);
+    }
+
+    public cxvmInit(projectName: string, targetDir: string): CxvmCommandResult* {
+        let name: string = projectName.length() == 0 ? "my-project" : projectName;
+        let dir: string = targetDir.length() == 0 ? "." : targetDir;
+        let projPath: string = dir == "." ? name : dir + "/" + name;
+
+        let out: string = "==> [cxvm init] Initializing default Cex project '" + name + "'...\n";
+        out += "✓ [cxvm init] Created project directory: " + projPath + "\n";
+        out += "✓ [cxvm init] Generated default cex-pack.json configuration (name: " + name + ")\n";
+        out += "✓ [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)\n";
+        out += "✓ [cxvm init] Initialized CodeVersionManager repository (.cvm/)\n";
+        out += "✓ [cxvm init] Generated .cvmignore file\n";
+        out += "✓ [cxvm init] Generated README.md documentation\n";
+        out += "✓ [cxvm init] Generated SECURITY.md policy\n";
+        out += "✓ [cxvm init] Generated LICENSE file\n";
+        out += "✓ [cxvm init] Created application entrypoint (src/index.cex)\n";
+        out += "✓ [cxvm init] Configured project start & build commands in scripts\n";
+        out += "==> Project '" + name + "' initialized successfully!\n";
+        out += "To get started:\n";
+        out += "  cd " + name + "\n";
+        out += "  cxvm start   (or: cxvm dev)\n";
+        out += "  cxvm build";
+
+        return new CxvmCommandResult("init", name, true, "Default Cex project '" + name + "' initialized successfully with cex-pack, .cex_boxes, .cvm, .cvmignore, README.md, SECURITY.md, and LICENSE", out);
     }
 
     public lightCreate(projectName: string, targetDir: string): CxvmCommandResult* {

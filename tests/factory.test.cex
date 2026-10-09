@@ -1,5 +1,5 @@
 // 2-TEK Factory: Comprehensive Verification Test Suite (C-ext)
-// Powered by CexTest (@cex-test/src/runner.cex)
+// Powered by cex-test (@cex-test/src/runner.cex)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
 import "@cex-test/src/assert.cex";
@@ -121,6 +121,9 @@ fn main(): int {
     Assert::isTrue(docOut.find("Supported Targets: 6 architectures") != -1, "cxvm doctor reports 6 supported targets");
     Assert::isTrue(docOut.find("CVM VCS Engine") != -1, "cxvm doctor reports integrated CVM engine");
     Assert::isTrue(docOut.find("CVM Commands") != -1, "cxvm doctor reports CVM commands ready");
+
+    let initRes: CxvmCommandResult* = cxvm->cxvmInit("my-project", ".");
+    Assert::isTrue(initRes->success, "cxvm init succeeds with default name my-project");
 
     let setupCmdRes: CxvmCommandResult* = cxvm->setup("8.0.0");
     Assert::isTrue(setupCmdRes->success, "cxvm setup succeeds");

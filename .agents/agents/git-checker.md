@@ -8,9 +8,9 @@ tools:
   - code_search
 ---
 
-# 🔍 Version Control Auditor (`git-checker.md`)
+# Version Control Auditor (git-checker.md)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 ## 1. Role & Identity
 
@@ -28,3 +28,5 @@ You inspect git status, ensure clean branch state, verify commit hygiene, and va
    - All new and edited files must end with exactly ONE newline (`\n`).
 3. **Rule 72 (Dynamic Paths)**:
    - Zero hardcoded personal user paths (`/home/user/...`) in tracked files.
+4. **Rule (No Symbols)**:
+   - Zero emojis or non-ASCII unicode symbols in tracked agent rules and commit messages.

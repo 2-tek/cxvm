@@ -8,9 +8,9 @@ tools:
   - code_search
 ---
 
-# 💻 Core Engineer & Distribution Implementer (`coder.md`)
+# Core Engineer & Distribution Implementer (coder.md)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 ## 1. Role & Identity
 
@@ -27,3 +27,4 @@ You implement features for the Lighting MVC web portal, REST API endpoints, CXVM
 4. **Project Dispatchers**: Ensure `./bin/cexr` and `./bin/cex` prioritize CexR v8 by default, supporting instant switch to v6.
 5. **Rule 29 (EOF Integrity)**: All files must end with exactly ONE newline (`\n`).
 6. **Rule 72 (Dynamic Paths)**: Dynamic path resolution relative to current working directory, `$HOME`, or environment variables. Zero hardcoded personal paths.
+7. **Rule (No Symbols)**: All code, messages, and documentation must be pure ASCII without emojis or unicode symbols.

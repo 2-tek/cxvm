@@ -1,7 +1,7 @@
 # Architecture & Design Standard: CXVM & Lighting MVC
 
 <!-- Standard Specification: .agents/standards/ARCHITECTURE.md -->
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 ## 1. System Architecture
 
@@ -53,11 +53,11 @@ flowchart TD
 ### 2.1 Lighting Fullstack MVC Kernel
 - **`src/app.cex`**: Bootstraps the Lighting MVC application, registers HTTP routes, and mounts the static asset handler. Prioritizes `dist/` before falling back to `downloads/`.
 - **`src/controllers/factory_controller.cex`**: Handles HTTP requests for catalog views, setup window rendering, download streaming, and REST API responses (`/api/v1/*`).
-- **`src/views/factory_views.cex`**: Server-side rendered HTML views featuring responsive layouts, dark theme styling, setup window UI with desktop window chrome (`🔴 🟡 🟢`), and platform selection tabs.
+- **`src/views/factory_views.cex`**: Server-side rendered HTML views featuring responsive layouts, dark theme styling, setup window UI with desktop window chrome (`[RED] [YELLOW] [GREEN]`), and platform selection tabs.
 - **`src/models/`**: Strongly-typed model definitions for `Platform`, `Version`, and `Artifact` with schema validation and architecture metadata.
 
 ### 2.2 Distribution Engine (`DistBuilder`)
-- **36 Platform Bundles**: 6 versions (`v8.0.0`, `v7.2.0`, `v6.0.0`, `v5.1.0`, `v2.0.0`, `v1.0.0`) × 6 platform targets.
+- **36 Platform Bundles**: 6 versions (`v8.0.0`, `v7.2.0`, `v6.0.0`, `v5.1.0`, `v2.0.0`, `v1.0.0`) x 6 platform targets.
 - **Checksum & Manifest Verification**: Generates `SHA256SUMS` and `manifest.json`.
 - **Dual Store Synchronization**: Builds directly into `downloads/` and synchronizes to `dist/` (Rule 69).
 

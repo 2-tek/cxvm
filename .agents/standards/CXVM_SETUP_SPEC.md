@@ -1,7 +1,7 @@
 # CXVM Setup Window & Environment Specification
 
 <!-- Standard Specification: .agents/standards/CXVM_SETUP_SPEC.md -->
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 ## 1. Overview
 
@@ -14,7 +14,7 @@ The `cxvm` setup system provides cross-platform initialization for the Cex envir
 ### 2.1 Terminal Setup Window (CLI)
 
 - **Entrypoint**: `cxvm setup`, `./bin/cxvm setup`, `bash scripts/setup.sh`, `pwsh scripts/setup.ps1`, or `downloads\setup.cmd`.
-- **Display**: ASCII / Unicode framed application window.
+- **Display**: ASCII framed application window.
 - **Workflow**:
   1. Detect host operating system, architecture, and current shell (`bash`, `zsh`, `fish`, `pwsh`, `cmd`).
   2. Create CXVM root at `$HOME/.cxvm` (POSIX) or `%USERPROFILE%\.cxvm` (Windows).
@@ -31,7 +31,7 @@ The `cxvm` setup system provides cross-platform initialization for the Cex envir
 
 - **Route**: `GET /setup` (served via Lighting MVC on port 3080).
 - **Interface**:
-  - Desktop-style window card featuring macOS/Windows control dots (`🔴 🟡 🟢`).
+  - Desktop-style window card featuring macOS/Windows control dots (`[RED] [YELLOW] [GREEN]`).
   - System summary badges: Host OS, architecture, detected shell, active Cex runtime.
   - Tabbed installation guides: Linux / macOS curl installer, Windows PowerShell script, CMD installer.
   - Interactive Runtime Version Switcher: Toggle between **v8.0.0** and **v6.0.0**.

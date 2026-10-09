@@ -5,7 +5,7 @@ trigger: always_on
 # 2-TEK cxvm: Project Standards & Governance
 
 <!-- Standard Specification: .agents/rules/standard-for-project.md -->
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 > **CORE PRINCIPLE**:
 > `cxvm` (`@2tek/cxvm`) is the official cross-platform distribution engine and runtime version manager for the Cex native language ecosystem.
@@ -34,6 +34,8 @@ trigger: always_on
    - Provide an interactive visual setup window via CLI (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `setup.cmd`) and Web (`http://localhost:3080/setup`) to configure PATH, environment variables, default runtimes, and local `./bin/` dispatchers.
 7. **Automated Testing**:
    - All tests live under `tests/` (`tests/cxvm.test.cex`, `tests/factory.test.cex`) and must pass cleanly with `cexr run <test_file>`.
+8. **Rule (No Symbols)**:
+   - All source code, console outputs, scripts, setup windows, documentation, and agent rules inside `cxvm` must use pure ASCII text without emojis, unicode symbols, or non-ASCII icon characters.
 
 ---
 
@@ -41,29 +43,29 @@ trigger: always_on
 
 ```text
 cxvm/
-├── .agents/                      # Agent governance, target specs, standards, and rules
-│   ├── PRODUCT_TARGET.md         # Canonical target specification
-│   ├── rules/                    # Enforced coding and architecture rules
-│   └── standards/                # Architectural layout and setup window specifications
-├── bin/                          # Toolchain entry dispatchers (cexr, cex, cxvm, .cmd, .ps1)
-├── dist/                         # Retained cross-platform distribution bundles (Rule 69)
-├── downloads/                    # Public download mirror store (36 bundles + manifests)
-├── scripts/                      # Build automation and setup scripts
-│   ├── generate_distributions.sh # Distribution builder and dist sync
-│   ├── setup.sh                  # POSIX setup window script
-│   └── setup.ps1                 # Windows PowerShell setup window script
-├── src/                          # Lighting MVC application kernel
-│   ├── app.cex                   # Lighting MVC kernel and route definitions
-│   ├── builder/                  # Package builder and checksum engine
-│   ├── controllers/              # MVC controllers (FactoryController)
-│   ├── cxvm/                     # CXVM version manager engine core
-│   ├── models/                   # Validated entities (Platform, Version, Artifact)
-│   ├── views/                    # Visual templates & Setup Window
-│   ├── index.cex                 # Package entrypoint & live server
-│   └── lighting_mvc.cex          # Lighting MVC framework integration
-├── tests/                        # Full regression test suite
-│   ├── cxvm.test.cex             # CXVM engine & endpoint verification
-│   └── factory.test.cex          # Factory architecture & model validation
-├── cex-pack.json                 # Package manifest (target: runtime)
-└── README.md                     # Comprehensive cross-platform documentation
++-- .agents/                      # Agent governance, target specs, standards, and rules
+|   +-- PRODUCT_TARGET.md         # Canonical target specification
+|   +-- rules/                    # Enforced coding and architecture rules
+|   +-- standards/                # Architectural layout and setup window specifications
++-- bin/                          # Toolchain entry dispatchers (cexr, cex, cxvm, .cmd, .ps1)
++-- dist/                         # Retained cross-platform distribution bundles (Rule 69)
++-- downloads/                    # Public download mirror store (36 bundles + manifests)
++-- scripts/                      # Build automation and setup scripts
+|   +-- generate_distributions.sh # Distribution builder and dist sync
+|   +-- setup.sh                  # POSIX setup window script
+|   +-- setup.ps1                 # Windows PowerShell setup window script
++-- src/                          # Lighting MVC application kernel
+|   +-- app.cex                   # Lighting MVC kernel and route definitions
+|   +-- builder/                  # Package builder and checksum engine
+|   +-- controllers/              # MVC controllers (FactoryController)
+|   +-- cxvm/                     # CXVM version manager engine core
+|   +-- models/                   # Validated entities (Platform, Version, Artifact)
+|   +-- views/                    # Visual templates & Setup Window
+|   +-- index.cex                 # Package entrypoint & live server
+|   +-- lighting_mvc.cex          # Lighting MVC framework integration
++-- tests/                        # Full regression test suite
+|   +-- cxvm.test.cex             # CXVM engine & endpoint verification
+|   +-- factory.test.cex          # Factory architecture & model validation
++-- cex-pack.json                 # Package manifest (target: runtime)
++-- README.md                     # Comprehensive cross-platform documentation
 ```

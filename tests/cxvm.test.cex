@@ -1,5 +1,5 @@
 // 2-TEK Factory: Comprehensive Verification Test Suite (C-ext)
-// Powered by CexTest (@cex-test/src/runner.cex)
+// Powered by cex-test (@cex-test/src/runner.cex)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
 import "@cex-test/src/assert.cex";
@@ -123,6 +123,15 @@ fn main(): int {
     Assert::isTrue(docOut.find("CVM Commands") != -1, "cxvm doctor reports CVM commands ready");
     Assert::isTrue(docOut.find("Thunder Engine") != -1, "cxvm doctor reports Thunder engine");
     Assert::isTrue(docOut.find("Thunder Daemon") != -1, "cxvm doctor reports Thunder daemon");
+
+    let initRes: CxvmCommandResult* = cxvm->cxvmInit("my-project", ".");
+    Assert::isTrue(initRes->success, "cxvm init succeeds with default name my-project");
+    Assert::isTrue(initRes->output.find("cex-pack.json") != -1, "cxvm init configures cex-pack.json");
+    Assert::isTrue(initRes->output.find(".cex_boxes") != -1, "cxvm init auto-pulls .cex_boxes");
+    Assert::isTrue(initRes->output.find(".cvm") != -1, "cxvm init sets up .cvm repository");
+    Assert::isTrue(initRes->output.find("README.md") != -1, "cxvm init generates README.md");
+    Assert::isTrue(initRes->output.find("SECURITY.md") != -1, "cxvm init generates SECURITY.md");
+    Assert::isTrue(initRes->output.find("LICENSE") != -1, "cxvm init generates LICENSE file");
 
     let setupCmdRes: CxvmCommandResult* = cxvm->setup("8.0.0");
     Assert::isTrue(setupCmdRes->success, "cxvm setup succeeds");
