@@ -122,7 +122,7 @@ fi
 
 echo ""
 echo "==============================================================="
-echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v8) installed via cxvm!    "
+echo "  [OK] Cex Runtime v$DEFAULT_VER (CexR v8) installed via cxvm! "
 echo "==============================================================="
 echo ""
 echo "Activate in current terminal:"
@@ -200,7 +200,7 @@ if ($env:PATH -notlike "*$binDir*") {
 
 Write-Host ""
 Write-Host "===============================================================" -ForegroundColor Green
-Write-Host "  ✓ Cex Runtime v$defaultVersion (CexR v8) installed via cxvm!    " -ForegroundColor Green
+Write-Host "  [OK] Cex Runtime v$defaultVersion (CexR v8) installed via cxvm! " -ForegroundColor Green
 Write-Host "===============================================================" -ForegroundColor Green
 Write-Host "Activate in PowerShell session:" -ForegroundColor Yellow
 Write-Host "  `$env:CXVM_DIR = `"$cxvmDir`"" -ForegroundColor Yellow
@@ -338,10 +338,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" thunder %*
 WEOF
     fi
 
+    cat <<'LGTEOF' > "$PKG_DIR/bin/lighting"
+#!/usr/bin/env bash
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+exec "$CXVM_DIR/bin/cxvm" lighting "$@"
+LGTEOF
+    chmod +x "$PKG_DIR/bin/lighting"
+    if [ "$pos" = "windows" ]; then
+      cat <<'WEOF' > "$PKG_DIR/bin/lighting.cmd"
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" lighting %*
+WEOF
+    fi
+
     cat <<'LEOF' > "$PKG_DIR/bin/light"
 #!/usr/bin/env bash
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-exec "$CXVM_DIR/bin/cxvm" light "$@"
+if [ "$1" = "start" ]; then
+  exec "$CXVM_DIR/bin/cxvm" lighting start "${@:2}"
+else
+  exec "$CXVM_DIR/bin/cxvm" light "$@"
+fi
 LEOF
     chmod +x "$PKG_DIR/bin/light"
     if [ "$pos" = "windows" ]; then
@@ -455,8 +472,8 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 mkdir -p "$DIST_DIR"
 cp -a "$DOWNLOADS_DIR"/* "$DIST_DIR/"
-echo "  ✓ Synchronized all cross-platform distributions into dist/"
+echo "  [OK] Synchronized all cross-platform distributions into dist/"
 
 echo "==============================================================="
-echo "  ✓ All cross-platform Cex distributions successfully built!   "
+echo "  [OK] All cross-platform Cex distributions successfully built!"
 echo "==============================================================="

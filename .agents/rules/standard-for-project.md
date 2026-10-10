@@ -20,24 +20,24 @@ trigger: always_on
 ## 1. Governance & Structural Rules
 
 1. **Rule 69 (Target Immutability & Dist Retention)**:
-   - Manifest `target` must always remain `"target": "runtime"`.
-   - `dist/` must remain un-ignored in `.gitignore` and contain pre-built cross-platform packages, installer scripts, `manifest.json`, and `SHA256SUMS`.
+    - Manifest `target` must always remain `"target": "runtime"`.
+    - `dist/` must remain un-ignored in `.gitignore` and contain pre-built cross-platform packages, installer scripts, `manifest.json`, and `SHA256SUMS`.
 2. **Rule 29 (EOF Integrity)**:
-   - Every file must terminate with exactly one newline character (`\n`).
+    - Every file must terminate with exactly one newline character (`\n`).
 3. **Rule 72 (Dynamic Paths)**:
-   - Zero hardcoded personal paths (`/home/user/...`). All paths resolve relative to `$HOME`, `$CXVM_DIR`, `$CEX_HOME`, or the working directory.
+    - Zero hardcoded personal paths (`/home/user/...`). All paths resolve relative to `$HOME`, `$CXVM_DIR`, `$CEX_HOME`, or the working directory.
 4. **Pure Cex Standard (v2)**:
-   - In v2, do not use C++ compilers (`g++`, `clang++`, `MSVC`). Execution is handled directly by `cexr` and machine compilation by `cexp`.
+    - In v2, do not use C++ compilers (`g++`, `clang++`, `MSVC`). Execution is handled directly by `cexr` and machine compilation by `cexp`.
 5. **Project Dispatchers & Default Runtimes**:
-   - Default `./bin/cexr` and `./bin/cex` prioritize **CexR v8.0.0** (with quick-switch support for **v6.0.0**).
+    - Default `./bin/cexr` and `./bin/cex` prioritize **CexR v8.0.0** (with quick-switch support for **v6.0.0**).
 6. **Cross-Platform Setup Window**:
-   - Provide an interactive visual setup window via CLI (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `setup.cmd`) and Web (`http://localhost:3080/setup`) to configure PATH, environment variables, default runtimes, and local `./bin/` dispatchers.
+    - Provide an interactive visual setup window via CLI (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `setup.cmd`) and Web (`http://localhost:3080/setup`) to configure PATH, environment variables, default runtimes, and local `./bin/` dispatchers.
 7. **Automated Testing**:
-   - All tests live under `tests/` (`tests/cxvm.test.cex`, `tests/factory.test.cex`) and must pass cleanly with `cexr run <test_file>`.
+    - All tests live under `tests/` (`tests/cxvm.test.cex`, `tests/factory.test.cex`) and must pass cleanly with `cexr run <test_file>`.
 8. **Rule (No Symbols)**:
-   - All source code, console outputs, scripts, setup windows, documentation, and agent rules inside `cxvm` must use pure ASCII text without emojis, unicode symbols, or non-ASCII icon characters.
+    - All source code, console outputs, scripts, setup windows, documentation, and agent rules inside `cxvm` must use pure ASCII text without emojis, unicode symbols, or non-ASCII icon characters.
 9. **Rule (Pure Cex Binaries in bin/)**:
-   - Across `cxvm` and packages, `bin/` directories must contain exclusively `.cex` files. Absolutely no `.js` files or JavaScript/Node.js scripts are permitted.
+    - Across `cxvm` and packages, `bin/` directories must contain exclusively `.cex` files. Absolutely no `.js` files or JavaScript/Node.js scripts are permitted.
 10. **Rule (Documents Update - RULE_DOCUMENTS_UPDATE)**:
     - Whenever a new feature, command, API, or architectural change is introduced in any project (`cxvm`, `cexp`, `cexr`, or packages), update the central documentation book at `documents/` under `../{projectName}`.
 11. **Rule (Auto-Lint on Load Before Run Dev)**:

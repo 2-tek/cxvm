@@ -1,59 +1,54 @@
 {
-  "name": "@2tek/cxvm",
-  "version": "2.0.0",
-  "description": "cxvm v2: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (Pure Cex: cexr + cexp, zero C++ dependency), powered by Lighting MVC",
-  "main": "src/index.cex",
-  "author": "2-TEK Ecosystem",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/2-tek/cxvm.git"
-  },
-  "homepage": "https://github.com/2-tek/cxvm#readme",
-  "bugs": "https://github.com/2-tek/cxvm/issues",
-  "runtime": "v8",
-  "target": "runtime",
-  "required": {
-    "cexr": "^8",
-    "cexp": "^8"
-  },
-  "alias": {
-    "@": ".",
-    "@/src": "./src"
-  },
-  "scripts": {
-    "install": "cex-pack downloads",
-    "downloads": "cex-pack downloads",
-    "dev": "cxvm dev",
-    "lint": "cxvm lint",
-    "test": "cxvm test"
-  },
-  "dependencies": {
-    "cex-test": "1.0.0",
-    "cex-service": "1.0.0",
-    "cex-lint": "1.0.0",
-    "cex-pack": "1.0.0",
-    "cex-cli": "1.0.0"
-  },
-  "includeDirs": [
-    "./src"
-  ],
-  "lint": {
-    "onBuild": true,
-    "onDev": true,
-    "include": [
-      "src",
-      "tests"
-    ],
-    "rules": {
-      "indent": { "level": "error", "size": 4 },
-      "quotes": { "level": "error", "style": "double" },
-      "semi": "error",
-      "no-tabs": "error",
-      "no-trailing-spaces": "error",
-      "eol-last": "error",
-      "no-duplicate-imports": "error",
-      "class-name-case": "error"
+    "name": "@2tek/cxvm",
+    "version": "2.0.0",
+    "description": "cxvm v2: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (Pure Cex: cexr + cexp, zero C++ dependency), powered by Lighting MVC",
+    "main": "src/index.cex",
+    "author": "2-TEK Ecosystem",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/2-tek/cxvm.git"
+    },
+    "homepage": "https://github.com/2-tek/cxvm#readme",
+    "bugs": "https://github.com/2-tek/cxvm/issues",
+    "runtime": "v8",
+    "target": "runtime",
+    "required": {
+        "cexr": "^8",
+        "cexp": "^8"
+    },
+    "alias": {
+        "@": ".",
+        "@/src": "./src"
+    },
+    "scripts": {
+        "install": "cex-pack downloads",
+        "downloads": "cex-pack downloads",
+        "dev": "cxvm dev",
+        "lint": "cxvm lint",
+        "test": "cxvm test"
+    },
+    "dependencies": {
+        "cex-test": "1.0.0",
+        "cex-service": "1.0.0",
+        "cex-lint": "1.0.0",
+        "cex-pack": "1.0.0",
+        "cex-cli": "1.0.0"
+    },
+    "includeDirs": ["./src"],
+    "lint": {
+        "onBuild": true,
+        "onDev": true,
+        "include": ["src", "tests"],
+        "rules": {
+            "indent": { "level": "error", "size": 4 },
+            "quotes": { "level": "error", "style": "double" },
+            "semi": "error",
+            "no-tabs": "error",
+            "no-trailing-spaces": "error",
+            "eol-last": "error",
+            "no-duplicate-imports": "error",
+            "class-name-case": "error"
+        }
     }
-  }
 }

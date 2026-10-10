@@ -36,7 +36,7 @@ trigger: always_on
 | **Install Version**             | `cxvm install <version>`                                            | Download and install pre-built runtime package                                          |
 | **Upgrade Toolchain**           | `cxvm upgrade [version]` \| `cxvm update`                           | Auto-detect latest release and upgrade `cexr` & `cexp`                                  |
 | **Pull Dependencies**           | `cxvm pull dependencies [flags]`                                    | Fetch and cache dependencies into `$CXVM_DIR/tmp/dependencies` (`--upgrade`, `--clean`) |
-| **Git & CVM Hooks Scanner**     | `cxvm hooks [scan\|install]` \| `scripts/scan_and_install_hooks.sh`  | Scan `.git` & `.cvm` repos, install pre-commit (cex-lint) & pre-push (prettier) hooks    |
+| **Git & CVM Hooks Scanner**     | `cxvm hooks [scan\|install]` \| `scripts/scan_and_install_hooks.sh` | Scan `.git` & `.cvm` repos, install pre-commit (cex-lint) & pre-push (prettier) hooks   |
 
 ---
 

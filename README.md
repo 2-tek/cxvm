@@ -122,20 +122,20 @@ cxvm use 6.0.0
 
 | Command                          | Node.js (`nvm`) Equivalent | Action                                                                                                                                                                                                              |
 | :------------------------------- | :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `cxvm setup`                     | —                          | Displays cross-platform setup window, configures PATH & env, and links `./bin/cexr` & `./bin/cex` (v8 & v6)                                                                                                         |
+| `cxvm setup`                     | -                          | Displays cross-platform setup window, configures PATH & env, and links `./bin/cexr` & `./bin/cex` (v8 & v6)                                                                                                         |
 | `cxvm init [name]`               | `npm init`                 | Initializes default Cex project (default: `my-project`) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
 | `cxvm install 8.0.0`             | `nvm install 18`           | Downloads platform archive and sets up native `cexr` runner                                                                                                                                                         |
-| `cxvm download 8.0.0 [plat]`     | —                          | Downloads cross-platform bundle into cache for offline `cexr` setup                                                                                                                                                 |
-| `cxvm download 8.0.0 all`        | —                          | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr`                                                                                                                  |
+| `cxvm download 8.0.0 [plat]`     | -                          | Downloads cross-platform bundle into cache for offline `cexr` setup                                                                                                                                                 |
+| `cxvm download 8.0.0 all`        | -                          | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr`                                                                                                                  |
 | `cxvm use 8.0.0`                 | `nvm use 18`               | Switches active version via symlink & activates `cexr` in PATH                                                                                                                                                      |
 | `cxvm list`                      | `nvm ls`                   | Lists locally installed Cex runtimes and active one                                                                                                                                                                 |
 | `cxvm list-remote`               | `nvm ls-remote`            | Queries Factory catalog for available upstream releases                                                                                                                                                             |
 | `cxvm current`                   | `nvm current`              | Prints active Cex runtime version (e.g. `v8.0.0`)                                                                                                                                                                   |
 | `cxvm default 8.0.0`             | `nvm alias default 18`     | Configures default Cex version for new shells                                                                                                                                                                       |
 | `cxvm uninstall 2.0.0`           | `nvm uninstall 18`         | Removes an installed version                                                                                                                                                                                        |
-| `cxvm upgrade [ver]`             | —                          | Auto-detects latest release (or specified version) and upgrades `cexr` & `cexp` toolchains                                                                                                                          |
-| `cxvm pull dependencies`         | —                          | Fetches & caches dependencies into `$CXVM_DIR/tmp/dependencies` (`--upgrade`, `--clean`)                                                                                                                            |
-| `cxvm hooks [scan|install]`     | -                          | Recursively scans workspace `.git` and `.cvm` repos, installs `pre-commit` (cex-lint --fix) & `pre-push` (prettier) hooks                                                            |
+| `cxvm upgrade [ver]`             | -                          | Auto-detects latest release (or specified version) and upgrades `cexr` & `cexp` toolchains                                                                                                                          |
+| `cxvm pull dependencies`         | -                          | Fetches & caches dependencies into `$CXVM_DIR/tmp/dependencies` (`--upgrade`, `--clean`)                                                                                                                            |
+| `cxvm hooks [scan                | install]`                  | -                                                                                                                                                                                                                   | Recursively scans workspace `.git` and `.cvm` repos, installs `pre-commit` (cex-lint --fix) & `pre-push` (prettier) hooks |
 | `cxvm start`                     | `npm start`                | Auto-lints and starts project (auto-detects main entrypoint from `cex-pack.json`)                                                                                                                                   |
 | `cxvm dev`                       | `npm run dev`              | Auto-lints and starts development server (auto-detects main entrypoint from `cex-pack.json`)                                                                                                                        |
 | `cxvm build`                     | `npm run build`            | Compiles project with `cexp` native compiler (auto-detects main entrypoint from `cex-pack.json`)                                                                                                                    |
@@ -144,7 +144,8 @@ cxvm use 6.0.0
 | `cxvm doctor`                    | -                          | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, linter, and host environment                                                                                                      |
 | `cxvm light create <name>`       | `nest new`                 | Hooks project creation logic in lighting to scaffold new Fullstack MVC project                                                                                                                                      |
 | `cxvm light dev`                 | `npm run dev`              | Auto-lints code and starts local Lighting MVC development server on port 3080                                                                                                                                       |
-| `cxvm light start`               | `npm start`                | Auto-lints code and starts Lighting MVC server on port 3080                                                                                                                                                         |
+| `cxvm lighting start`           | `npm start`                | Starts Lighting MVC production server (redirects 'light start' -> 'lighting start')                                                                  |
+| `cxvm light start`               | `npm start`                | Automatically redirects to 'lighting start' per project standard                                                                                     |
 | `cxvm light build`               | `npm run build`            | Compiles Lighting project with `cexp` direct machine compiler                                                                                                                                                       |
 | `cxvm light doctor`              | -                          | Runs Lighting engine diagnostic and verification                                                                                                                                                                    |
 | `cxvm thunder <cmd>`             | Docker CLI (`docker`)      | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`)                                                                                                                                           |
@@ -159,46 +160,45 @@ cxvm use 6.0.0
 
 `cxvm` features an integrated **CodeVersionManager (CVM)** engine built natively in pure C-ext (`src/cvm/`). All VCS operations can be executed directly via `cxvm`:
 
-| Command                       | Action                                                               | Example                                                |
-| :---------------------------- | :------------------------------------------------------------------- | :----------------------------------------------------- |
-| `cxvm status`                 | Inspect branch, working tree, and untracked/staged files             | `cxvm status`                                          |
-| `cxvm add <files...>`         | Stage file modifications into index                                  | `cxvm add src/app.cex` \| `cxvm add .`                 |
-| `cxvm commit -m <msg>`        | Commit staged changes to local DAG graph with SHA hash               | `cxvm commit -m "feat(cxvm): integrate cvm into cxvm"` |
-| `cxvm push [remote] [branch]` | Push committed changes to upstream remote repository                 | `cxvm push` \| `cxvm push origin main`                 |
-| `cxvm pull [remote] [branch]` | Fetch and integrate changes from upstream remote                     | `cxvm pull` \| `cxvm pull origin main`                 |
-| `cxvm branch [name]`          | List existing branches or create a new branch                        | `cxvm branch` \| `cxvm branch feature/my-feature`      |
-| `cxvm checkout <branch>`      | Switch active HEAD to target branch                                  | `cxvm checkout main`                                   |
-| `cxvm diff [file]`            | Display unified diff of modified files                               | `cxvm diff`                                            |
-| `cxvm log [--oneline]`        | Display commit log history with hashes and authors                   | `cxvm log`                                             |
-| `cxvm unstage <files...>`     | Unstage files from index without discarding changes                  | `cxvm unstage src/index.cex`                           |
-| `cxvm discard <files...>`     | Discard changes in working directory                                 | `cxvm discard src/index.cex`                           |
-| `cxvm init [dir] [--git]`     | Initialize new repository with object store                          | `cxvm init`                                            |
-| `cxvm git <args...>`          | Direct pass-through to native git toolchain                          | `cxvm git log -n 5`                                    |
-| `cxvm hooks [scan|install]`   | Scan workspace for .git & .cvm, install pre-commit & pre-push hooks   | `cxvm hooks scan` | `cxvm hooks install .`             |
-| `cxvm start cvm [-p <port>]`  | Start CVM as a server with single process (standalone) in background | `cxvm start cvm` \| `cxvm start cvm -p 4000`           |
-| `cxvm status cvm`             | Check single-process standalone CVM server status                    | `cxvm status cvm`                                      |
-| `cxvm stop cvm`               | Stop background standalone CVM server                                | `cxvm stop cvm`                                        |
-
+| Command                       | Action                                                               | Example                                                             |
+| :---------------------------- | :------------------------------------------------------------------- | :------------------------------------------------------------------ |
+| `cxvm status`                 | Inspect branch, working tree, and untracked/staged files             | `cxvm status`                                                       |
+| `cxvm add <files...>`         | Stage file modifications into index                                  | `cxvm add src/app.cex` \| `cxvm add .`                              |
+| `cxvm commit -m <msg>`        | Commit staged changes to local DAG graph with SHA hash               | `cxvm commit -m "feat(cxvm): integrate cvm into cxvm"`              |
+| `cxvm push [remote] [branch]` | Push committed changes to upstream remote repository                 | `cxvm push` \| `cxvm push origin main`                              |
+| `cxvm pull [remote] [branch]` | Fetch and integrate changes from upstream remote                     | `cxvm pull` \| `cxvm pull origin main`                              |
+| `cxvm branch [name]`          | List existing branches or create a new branch                        | `cxvm branch` \| `cxvm branch feature/my-feature`                   |
+| `cxvm checkout <branch>`      | Switch active HEAD to target branch                                  | `cxvm checkout main`                                                |
+| `cxvm diff [file]`            | Display unified diff of modified files                               | `cxvm diff`                                                         |
+| `cxvm log [--oneline]`        | Display commit log history with hashes and authors                   | `cxvm log`                                                          |
+| `cxvm unstage <files...>`     | Unstage files from index without discarding changes                  | `cxvm unstage src/index.cex`                                        |
+| `cxvm discard <files...>`     | Discard changes in working directory                                 | `cxvm discard src/index.cex`                                        |
+| `cxvm init [dir] [--git]`     | Initialize new repository with object store                          | `cxvm init`                                                         |
+| `cxvm git <args...>`          | Direct pass-through to native git toolchain                          | `cxvm git log -n 5`                                                 |
+| `cxvm hooks [scan             | install]`                                                            | Scan workspace for .git & .cvm, install pre-commit & pre-push hooks | `cxvm hooks scan` | `cxvm hooks install .` |
+| `cxvm start cvm [-p <port>]`  | Start CVM as a server with single process (standalone) in background | `cxvm start cvm` \| `cxvm start cvm -p 4000`                        |
+| `cxvm status cvm`             | Check single-process standalone CVM server status                    | `cxvm status cvm`                                                   |
+| `cxvm stop cvm`               | Stop background standalone CVM server                                | `cxvm stop cvm`                                                     |
 
 ### Automated Git & CVM Hooks Subsystem (Pre-Commit CexLint & Pre-Push Prettier):
 
 `cxvm` provides native repository-wide hook scanning and installation for both `.git` and `.cvm` repositories:
 
 1. **Pre-Commit Hook (`cex-lint --fix`)**:
-   - Automatically executes native `cex-lint --fix` / `cxvm lint --fix` on every commit.
-   - Automatically re-stages modified files (`git add -u` and `cvm add -u`) so formatting fixes are included in the commit.
-   - Eliminates formatting debt and guarantees clean Cex code.
+    - Automatically executes native `cex-lint --fix` / `cxvm lint --fix` on every commit.
+    - Automatically re-stages modified files (`git add -u` and `cvm add -u`) so formatting fixes are included in the commit.
+    - Eliminates formatting debt and guarantees clean Cex code.
 
 2. **Pre-Push Hook (Prettier Code Style Verification)**:
-   - Dynamically resolves Prettier (`$CXVM_DIR/bin/prettier`, `$HOME/.cxvm/bin/prettier`, `$HOME/.nvm/...`).
-   - Runs `prettier --check` and `prettier --write` with standard `--tab-width 4 --ignore-unknown` on modified files (`.json`, `.md`, `.yml`, `.yaml`, `.js`, `.ts`, `.html`, `.css`) before pushing to remote.
+    - Dynamically resolves Prettier (`$CXVM_DIR/bin/prettier`, `$HOME/.cxvm/bin/prettier`, `$HOME/.nvm/...`).
+    - Runs `prettier --check` and `prettier --write` with standard `--tab-width 4 --ignore-unknown` on modified files (`.json`, `.md`, `.yml`, `.yaml`, `.js`, `.ts`, `.html`, `.css`) before pushing to remote.
 
 3. **Workspace-Wide Scanner**:
-   ```bash
-   cxvm hooks scan             # Scan all .git and .cvm repositories under $HOME/Projects
-   cxvm hooks scan /path/to    # Scan custom workspace tree
-   cxvm hooks install .        # Install hooks in current repository
-   ```
+    ```bash
+    cxvm hooks scan             # Scan all .git and .cvm repositories under $HOME/Projects
+    cxvm hooks scan /path/to    # Scan custom workspace tree
+    cxvm hooks install .        # Install hooks in current repository
+    ```
 
 ### Standalone Single-Process CVM Server (`cxvm start cvm`):
 
@@ -348,8 +348,10 @@ cxvm lighting create my-awesome-app
 
 ```bash
 cd my-awesome-app
-cxvm light dev    # Or ./bin/light dev (starts server on port 3080)
-cxvm light build  # Or ./bin/light build (compiles native binary via cexp)
+lighting start       # Or cxvm lighting start (starts server on port 3080)
+cxvm light start     # Automatically redirects to 'lighting start'
+./bin/lighting dev   # Or cxvm light dev (starts dev server on port 3080)
+./bin/lighting build # Or cxvm light build (compiles native binary via cexp)
 cxvm light doctor # Runs diagnostic health check
 ```
 

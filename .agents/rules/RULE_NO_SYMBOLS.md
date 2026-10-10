@@ -15,15 +15,15 @@ trigger: always_on
 ## 1. Requirements
 
 1. **Pure ASCII Output Formatting**:
-   - Success status: Use `[OK]` instead of checkmarks or emojis.
-   - Warning status: Use `[WARN]` instead of warning symbols.
-   - Error status: Use `[FAIL]` or `[ERROR]` instead of error icons.
-   - UI status indicators: Use `[RED] [YELLOW] [GREEN]` or `[R] [Y] [G]` for UI window control lights.
+    - Success status: Use `[OK]` instead of checkmarks or emojis.
+    - Warning status: Use `[WARN]` instead of warning symbols.
+    - Error status: Use `[FAIL]` or `[ERROR]` instead of error icons.
+    - UI status indicators: Use `[RED] [YELLOW] [GREEN]` or `[R] [Y] [G]` for UI window control lights.
 2. **Directory & Architecture Layouts**:
-   - Use standard ASCII characters (`+--`, `|  `, `+--`) for directory tree diagrams instead of Unicode box-drawing characters.
+    - Use standard ASCII characters (`+--`, `|  `, `+--`) for directory tree diagrams instead of Unicode box-drawing characters.
 3. **Agent Headings & Rule Titles**:
-   - Headers in `.agents/` must be pure ASCII markdown text without emoji prefixes.
+    - Headers in `.agents/` must be pure ASCII markdown text without emoji prefixes.
 4. **Cex Class Member Access**:
-   - Standardize all class member and method invocations in Cex to standard dot notation (`this.member`, `object.method()`) instead of pointer arrow (`->`) symbols.
+    - Standardize all class member and method invocations in Cex to standard dot notation (`this.member`, `object.method()`) instead of pointer arrow (`->`) symbols.
 5. **Rule 29 Compliance**:
-   - Every file created or edited must terminate with exactly ONE newline (`\n`).
+    - Every file created or edited must terminate with exactly ONE newline (`\n`).

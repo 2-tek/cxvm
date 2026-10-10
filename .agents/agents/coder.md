@@ -3,9 +3,9 @@ name: coder
 description: Core Engineer & Distribution Engine Implementer for cxvm implementing Lighting MVC endpoints, version manager CLI, setup windows, and multi-platform packaging.
 subagent: true
 tools:
-  - bash
-  - file_edit
-  - code_search
+    - bash
+    - file_edit
+    - code_search
 ---
 
 # Core Engineer & Distribution Implementer (coder.md)

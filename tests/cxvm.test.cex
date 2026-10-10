@@ -422,7 +422,7 @@ fn main(): int {
     Assert::equalsString("sample-app", lightRes->version, "Target project name matches");
     Assert::isTrue(lightRes->output.find("Lighting Fullstack MVC project 'sample-app'") != -1, "Output confirms Lighting project creation");
     Assert::isTrue(lightRes->output.find("src/controllers") != -1, "Output details controller directory");
-    Assert::isTrue(lightRes->output.find("./bin/light") != -1, "Output details local light dispatcher");
+    Assert::isTrue(lightRes->output.find("./bin/lighting") != -1 || lightRes->output.find("./bin/light") != -1, "Output details local light/lighting dispatcher");
 
     // 2. CLI cvmExecute routing for light and lighting
     let lightExecCreate: int = cxvm->cvmExecute("light", "create", "test-project");
@@ -475,8 +475,11 @@ fn main(): int {
     let startExecResult: int = cxvm->cvmExecute("start", "", "");
     Assert::equalsInt(0, startExecResult, "cxvm cvmExecute start auto-lints and succeeds with code 0");
 
+    let lightingStartResult: int = cxvm->cvmExecute("lighting", "start", "");
+    Assert::equalsInt(0, lightingStartResult, "cxvm cvmExecute lighting start auto-lints and succeeds with code 0");
+
     let lightStartResult: int = cxvm->cvmExecute("light", "start", "");
-    Assert::equalsInt(0, lightStartResult, "cxvm cvmExecute light start auto-lints and succeeds with code 0");
+    Assert::equalsInt(0, lightStartResult, "cxvm cvmExecute light start redirects to lighting start and succeeds with code 0");
 
     let loadExecResult: int = cxvm->cvmExecute("load", "", "");
     Assert::equalsInt(0, loadExecResult, "cxvm cvmExecute load auto-lints and succeeds with code 0");
