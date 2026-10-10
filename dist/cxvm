@@ -160,6 +160,11 @@ _cxvm_run_thunder() {
   local thun_cmd="${1:-ps}"
   shift || true
 
+  if [ "$thun_cmd" = "start" ] || [ "$thun_cmd" = "stop" ] || [ "$thun_cmd" = "status" ] || [ "$thun_cmd" = "restart" ]; then
+    _cxvm_start_thunder_server "$thun_cmd" "$@"
+    return $?
+  fi
+
   # 0. Check cex-pack.json for thunder zero-file quick definition
   local manifest="cex-pack.json"
   if [ ! -f "$manifest" ]; then

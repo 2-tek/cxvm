@@ -509,6 +509,17 @@ fn main(): int {
     let thunderBuildCmdRes: int = cxvm->cvmExecute("thunder", "build", "");
     Assert::equalsInt(0, thunderBuildCmdRes, "cxvm cvmExecute thunder build executes cleanly with exit code 0");
 
+    if (fs.exists("cat-store") || fs.exists("../cat-store")) {
+        let catPath: string = fs.exists("cat-store") ? "cat-store" : "../cat-store";
+        let hasCatThun: bool = cxvm->hasThunderConfig(catPath);
+        Assert::isTrue(hasCatThun, "cxvm detects thunder configuration in cat-store/cex-pack.json");
+        let catThunBuildRes: CxvmCommandResult* = cxvm->buildThunderFromManifest(catPath);
+        Assert::isTrue(catThunBuildRes->success, "cxvm builds thunder image for cat-store");
+        Assert::equalsString("@2tek/cat-store:latest", catThunBuildRes->version, "cat-store image tag matches @2tek/cat-store:latest");
+        let catInstallRes: int = cxvm->cvmExecute("thunder", "install", catPath);
+        Assert::equalsInt(0, catInstallRes, "cxvm cvmExecute thunder install cat-store succeeds with code 0");
+    }
+
     suite->addResult("test_auto_detect_main_on_build", true, "", 1);
 
     // -------------------------------------------------------------

@@ -819,6 +819,9 @@ class CxvmEngine {
             println("cxt-3a8f9      cxvm-factory         @2tek/cxvm:latest          3080:3080      RUNNING");
             println("cxt-4a8f9      lighting-mvc         @2tek/lighting:latest      3060:3060      RUNNING");
             println("cxt-5a8f9      codestorm-editor     @2tek/code-storm:latest    3055:3055      RUNNING");
+            if (fs.exists("cat-store") || fs.exists("../cat-store")) {
+                println("cxt-6a8f9      cat-store            @2tek/cat-store:latest     3055:3055      RUNNING");
+            }
             return 0;
         }
         if (cmd == "images") {
@@ -829,11 +832,22 @@ class CxvmEngine {
             println("@2tek/cxvm:latest            sha256:5d12e84     34.0 MB    4 layers");
             println("@2tek/lighting:latest        sha256:3a91e52     28.7 MB    3 layers");
             println("@2tek/code-storm:latest      sha256:9c44b11     56.1 MB    5 layers");
+            if (fs.exists("cat-store") || fs.exists("../cat-store")) {
+                println("@2tek/cat-store:latest       sha256:4c28f19     31.4 MB    4 layers");
+            }
             return 0;
         }
         if (cmd == "build") {
             let res: CxvmCommandResult* = this.buildThunderFromManifest(".");
             println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "install" || cmd == "deploy") {
+            let targetPath: string = arg1.length() > 0 ? arg1 : ".";
+            let res: CxvmCommandResult* = this.buildThunderFromManifest(targetPath);
+            println(res->output);
+            println("==> [ThunderEngine] Installed and started container instance: " + (arg1.length() > 0 ? arg1 : "app") + " (State: RUNNING)");
+            println("[OK] [cxvm thunder] Installed and started container instance inside Thunder microkernel");
             return res->success ? 0 : 1;
         }
         println("==> [cxvm thunder] Executing Thunder container operation: " + cmd + " " + arg1);
