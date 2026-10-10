@@ -26,6 +26,11 @@
       "version": "1.0.0",
       "url": "cex-enc:4490df244a4c89320f03742ebaff6c05:1723d44f557a632385dce48593ece6a729a863ebe18e3f31bcc440abcb5c12878bb0e86ac3fdb14b9a3bd60f5186d172af3f2918e6e953d3fd048ceaa5d68220",
       "updatedAt": "2026-10-09T04:22:56.143Z"
+    },
+    "cex-cli": {
+      "version": "1.0.0",
+      "url": "cex-enc:55104e718d0bbe937d5ccd3e67cb96cc:1ac24cc9e39dc6cf04476c12bd305b5020490d21bb0968e06bc059d355d01fd5164360b14399fdc1d93f2f432823c7f672e17d194d3ca04c42c9f52335a58095",
+      "updatedAt": "2026-10-09T04:30:00.000Z"
     }
   }
 }
