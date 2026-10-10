@@ -369,7 +369,7 @@ def is_iam_path(path):
         "/api/v1/groups", "/api/v1/channels", "/api/v1/conversations",
         "/api/v1/messages", "/api/v1/notifications", "/api/v1/documents",
         "/api/v1/assets", "/api/v1/mail", "/api/v1/events", "/iam",
-        "/swagger.json", "/docs", "/console"
+        "/swagger.json", "/docs", "/console", "/login", "/register"
     ]
     for p in iam_prefixes:
         if path == p or path.startswith(p + "/") or path.startswith(p + "?"):
@@ -401,7 +401,7 @@ class ThunderHandler(BaseHTTPRequestHandler):
             sub = raw_path[11:]
             if sub in ("", "/"):
                 target_path = "/"
-            elif sub in ("/health", "/docs", "/swagger.json", "/console", "/metrics"):
+            elif sub in ("/health", "/docs", "/swagger.json", "/console", "/metrics", "/login", "/register"):
                 target_path = sub
             else:
                 target_path = "/api/v1" + sub

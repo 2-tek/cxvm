@@ -1,6 +1,7 @@
 # Cex runtime cache & active states
 .cex_cache/
 .cex_active_runtime
+.cxvm_updated
 
 # Binaries and build outputs
 bin
