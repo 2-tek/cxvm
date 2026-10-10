@@ -37,25 +37,33 @@ PLATFORMS=(
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-if [ -f "$REPO_ROOT/downloads/cxvm" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
+if [ -f "$REPO_ROOT/dist/cxvm" ]; then
+  cp -f "$REPO_ROOT/dist/cxvm" "$DOWNLOADS_DIR/cxvm"
+elif [ -f "$REPO_ROOT/downloads/cxvm" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
   cp -f "$REPO_ROOT/downloads/cxvm" "$DOWNLOADS_DIR/cxvm"
 fi
 chmod +x "$DOWNLOADS_DIR/cxvm" 2>/dev/null || true
 cp -f "$DOWNLOADS_DIR/cxvm" "$DOWNLOADS_DIR/cxvm.sh" 2>/dev/null || true
 
 # 2. Ensure cxvm.ps1
-if [ -f "$REPO_ROOT/downloads/cxvm.ps1" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
+if [ -f "$REPO_ROOT/dist/cxvm.ps1" ]; then
+  cp -f "$REPO_ROOT/dist/cxvm.ps1" "$DOWNLOADS_DIR/cxvm.ps1"
+elif [ -f "$REPO_ROOT/downloads/cxvm.ps1" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
   cp -f "$REPO_ROOT/downloads/cxvm.ps1" "$DOWNLOADS_DIR/cxvm.ps1"
 fi
 
 # 2b. Ensure cvm-server
-if [ -f "$REPO_ROOT/downloads/cvm-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
+if [ -f "$REPO_ROOT/dist/cvm-server" ]; then
+  cp -f "$REPO_ROOT/dist/cvm-server" "$DOWNLOADS_DIR/cvm-server"
+elif [ -f "$REPO_ROOT/downloads/cvm-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
   cp -f "$REPO_ROOT/downloads/cvm-server" "$DOWNLOADS_DIR/cvm-server"
 fi
 chmod +x "$DOWNLOADS_DIR/cvm-server" 2>/dev/null || true
 
 # 2c. Ensure thunder-server
-if [ -f "$REPO_ROOT/downloads/thunder-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
+if [ -f "$REPO_ROOT/dist/thunder-server" ]; then
+  cp -f "$REPO_ROOT/dist/thunder-server" "$DOWNLOADS_DIR/thunder-server"
+elif [ -f "$REPO_ROOT/downloads/thunder-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
   cp -f "$REPO_ROOT/downloads/thunder-server" "$DOWNLOADS_DIR/thunder-server"
 fi
 chmod +x "$DOWNLOADS_DIR/thunder-server" 2>/dev/null || true

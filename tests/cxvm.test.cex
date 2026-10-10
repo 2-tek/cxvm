@@ -487,17 +487,27 @@ fn main(): int {
     suite->addResult("test_auto_lint_before_run_dev", true, "", 1);
 
     // -------------------------------------------------------------
-    // Test 10: Auto-Detect Main Entrypoint from cex-pack.json on Build, Dev, and Start
+    // Test 10: Auto-Detect Main Entrypoint & Thunder Auto-Build from cex-pack.json
     // -------------------------------------------------------------
-    println("\n[Test Suite 10: Auto-Detect Main Entrypoint from cex-pack.json on Build, Dev, and Start]");
+    println("\n[Test Suite 10: Auto-Detect Main Entrypoint & Thunder Auto-Build from cex-pack.json]");
     let detectedMain: string = cxvm->detectMainFile(".");
     Assert::equalsString("src/index.cex", detectedMain, "cxvm auto-detects main entrypoint from cex-pack.json");
 
+    let hasThun: bool = cxvm->hasThunderConfig(".");
+    Assert::isTrue(hasThun, "cxvm detects thunder configuration in cex-pack.json");
+
+    let thunBuildRes: CxvmCommandResult* = cxvm->buildThunderFromManifest(".");
+    Assert::isTrue(thunBuildRes->success, "cxvm builds thunder image from cex-pack.json");
+    Assert::equalsString("@2tek/cxvm:latest", thunBuildRes->version, "Thunder image tag matches package");
+
     let buildExecResult: int = cxvm->cvmExecute("build", "", "");
-    Assert::equalsInt(0, buildExecResult, "cxvm cvmExecute build auto-detects main file and succeeds with exit code 0");
+    Assert::equalsInt(0, buildExecResult, "cxvm cvmExecute build auto-detects main file and builds into thunder with code 0");
 
     let lightBuildResult: int = cxvm->cvmExecute("light", "build", "");
-    Assert::equalsInt(0, lightBuildResult, "cxvm cvmExecute light build auto-detects main file and succeeds with exit code 0");
+    Assert::equalsInt(0, lightBuildResult, "cxvm cvmExecute light build auto-detects main file and builds into thunder with code 0");
+
+    let thunderBuildCmdRes: int = cxvm->cvmExecute("thunder", "build", "");
+    Assert::equalsInt(0, thunderBuildCmdRes, "cxvm cvmExecute thunder build executes cleanly with exit code 0");
 
     suite->addResult("test_auto_detect_main_on_build", true, "", 1);
 

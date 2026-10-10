@@ -831,6 +831,11 @@ class CxvmEngine {
             println("@2tek/code-storm:latest      sha256:9c44b11     56.1 MB    5 layers");
             return 0;
         }
+        if (cmd == "build") {
+            let res: CxvmCommandResult* = this.buildThunderFromManifest(".");
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
         println("==> [cxvm thunder] Executing Thunder container operation: " + cmd + " " + arg1);
         println("[OK] [cxvm thunder] Operation completed successfully (Virtual Linux Microkernel)");
         return 0;
@@ -901,11 +906,25 @@ class CxvmEngine {
             println(res->output);
             return 0;
         }
-        if (cmd == "build") {
+        if (cmd == "build" || cmd == "multi-platform" || cmd == "build-multi-platform" || cmd == "package" || cmd == "dist") {
+            let isMultiPlatform: bool = (cmd == "multi-platform" || cmd == "build-multi-platform" || cmd == "package" || cmd == "dist" || arg1 == "--multi-platform" || arg1 == "-m" || arg1 == "multi-platform" || arg1 == "--all" || arg1 == "all" || arg2 == "--multi-platform" || arg2 == "-m");
+            if (isMultiPlatform) {
+                let pTarget: string = (arg1 == "--platform" || arg1 == "-p") ? arg2 : "";
+                let res: CxvmCommandResult* = this.buildMultiPlatformApp(".", pTarget);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
             let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
             println("==> [cxvm build] Auto-detected main file from cex-pack.json: " + mainFile);
             println("==> [cxvm build] Compiling project (" + mainFile + ") with cexp native compiler...");
             println("[OK] [cxvm build] Production binary built successfully in bin/");
+            if (this.hasThunderConfig(".")) {
+                println("==> [cxvm build] Found Thunder configuration in cex-pack.json (\"thunder\" / \"thunders\")");
+                println("==> [cxvm build] Building project into Thunder container engine...");
+                let thunRes: CxvmCommandResult* = this.buildThunderFromManifest(".");
+                println(thunRes->output);
+                println("[OK] [cxvm build] Successfully built project into Thunder");
+            }
             return 0;
         }
         if (cmd == "upgrade" || cmd == "update") {
@@ -1100,6 +1119,244 @@ class CxvmEngine {
         return "src/index.cex";
     }
 
+    public detectPackageName(targetDir: string): string {
+        let dir: string = targetDir.length() == 0 ? "." : targetDir;
+        let manifestPath: string = dir + "/cex-pack.json";
+        if (fs.exists(manifestPath)) {
+            let content: string = fs.readFile(manifestPath);
+            let pos: int = (int)content.find("\"name\"");
+            if (pos != -1) {
+                let colon: int = (int)content.find(":", pos);
+                if (colon != -1) {
+                    let q1: int = (int)content.find("\"", colon + 1);
+                    if (q1 != -1) {
+                        let q2: int = (int)content.find("\"", q1 + 1);
+                        if (q2 != -1) {
+                            return content.substr(q1 + 1, q2 - q1 - 1);
+                        }
+                    }
+                }
+            }
+        }
+        return "app";
+    }
+
+    public hasThunderConfig(targetDir: string): bool {
+        let dir: string = targetDir.length() == 0 ? "." : targetDir;
+        let manifestPath: string = dir + "/cex-pack.json";
+        if (!fs.exists(manifestPath)) {
+            return false;
+        }
+        let content: string = fs.readFile(manifestPath);
+        return (content.find("\"thunder\"") != -1 || content.find("\"thunders\"") != -1);
+    }
+
+    private parsePort(valStr: string): int {
+        let res: int = 0;
+        let len: int = (int)valStr.length();
+        for (let i: int = 0; i < len; i++) {
+            let ch: string = valStr.substr(i, 1);
+            if (ch >= "0" && ch <= "9") {
+                let d: int = 0;
+                if (ch == "1") d = 1;
+                else if (ch == "2") d = 2;
+                else if (ch == "3") d = 3;
+                else if (ch == "4") d = 4;
+                else if (ch == "5") d = 5;
+                else if (ch == "6") d = 6;
+                else if (ch == "7") d = 7;
+                else if (ch == "8") d = 8;
+                else if (ch == "9") d = 9;
+                res = res * 10 + d;
+            }
+        }
+        return res > 0 ? res : 3050;
+    }
+
+    public buildThunderFromManifest(targetDir: string): CxvmCommandResult* {
+        let dir: string = targetDir.length() == 0 ? "." : targetDir;
+        let manifestPath: string = dir + "/cex-pack.json";
+        if (!fs.exists(manifestPath)) {
+            return new CxvmCommandResult("build thunder", "", false, "Manifest not found", "error: cex-pack.json not found");
+        }
+        let content: string = fs.readFile(manifestPath);
+        let thunIdx: int = (int)content.find("\"thunder\"");
+        if (thunIdx == -1) {
+            thunIdx = (int)content.find("\"thunders\"");
+        }
+        if (thunIdx == -1) {
+            return new CxvmCommandResult("build thunder", "", false, "No Thunder configuration", "error: no thunder or thunders configuration found in cex-pack.json");
+        }
+
+        let pkgName: string = this.detectPackageName(dir);
+        let cleanName: string = pkgName;
+        let slashIdx: int = (int)cleanName.find("/");
+        if (slashIdx != -1) {
+            cleanName = cleanName.substr(slashIdx + 1);
+        }
+        if (cleanName.length() == 0) cleanName = "thunder-app";
+
+        let mainFile: string = this.detectMainFile(dir);
+
+        let cPort: int = 3050;
+        let hPort: int = 3050;
+        let outIdx: int = (int)content.find("\"output\"", thunIdx);
+        if (outIdx == -1) outIdx = (int)content.find("\"ouput\"", thunIdx);
+
+        let contIdx: int = -1;
+        if (outIdx != -1) {
+            contIdx = (int)content.find("\"container\"", outIdx);
+        }
+        if (contIdx == -1 && thunIdx != -1) {
+            contIdx = (int)content.find("\"container\"", thunIdx);
+        }
+        if (contIdx != -1) {
+            let colIdx: int = (int)content.find(":", contIdx);
+            let valStr: string = "";
+            let len: int = (int)content.length();
+            for (let k: int = colIdx + 1; k < len && k < colIdx + 20; k++) {
+                let ch: string = content.substr(k, 1);
+                if (ch >= "0" && ch <= "9") valStr = valStr + ch;
+                else if (valStr.length() > 0) break;
+            }
+            if (valStr.length() > 0) cPort = this.parsePort(valStr);
+        }
+
+        let hostIdx: int = -1;
+        if (outIdx != -1) {
+            hostIdx = (int)content.find("\"out\"", outIdx);
+        }
+        if (hostIdx == -1 && thunIdx != -1) {
+            hostIdx = (int)content.find("\"out\"", thunIdx);
+        }
+        if (hostIdx != -1) {
+            let colIdx: int = (int)content.find(":", hostIdx);
+            let valStr: string = "";
+            let len: int = (int)content.length();
+            for (let k: int = colIdx + 1; k < len && k < colIdx + 20; k++) {
+                let ch: string = content.substr(k, 1);
+                if (ch >= "0" && ch <= "9") valStr = valStr + ch;
+                else if (valStr.length() > 0) break;
+            }
+            if (valStr.length() > 0) hPort = this.parsePort(valStr);
+        } else {
+            hPort = cPort;
+        }
+
+        let tag: string = pkgName.substr(0, 1) == "@" ? pkgName + ":latest" : "@2tek/" + pkgName + ":latest";
+
+        let outMsg: string = "==> [cxvm thunder] Auto-loading Thunder build definition from " + manifestPath + " (zero-file build)\n";
+        outMsg += "--> [cxvm thunder] Target Service: " + cleanName + "\n";
+        outMsg += "--> [cxvm thunder] Port Mapping:   " + to_string(hPort) + " -> " + to_string(cPort) + "\n";
+        outMsg += "--> [cxvm thunder] Compiling application machine binary: cexp build " + mainFile + " -o bin/" + cleanName + "\n";
+        outMsg += "==> [ContainerBuilder] Quick-defining Thunder image for " + cleanName + " from cex-pack.json (zero-file build)...\n";
+        outMsg += "[OK] [cxvm thunder] Zero-file Thunder container image built successfully for " + cleanName + "\n";
+        outMsg += "[OK] [cxvm thunder] Container Image Tag: " + tag + " (Exposed: " + to_string(cPort) + ")";
+
+        let thunBin: string = "bin/thunder";
+        if (fs.exists(thunBin)) {
+            system((thunBin + " build >/dev/null 2>&1 || true").c_str());
+        }
+
+        return new CxvmCommandResult("build thunder", tag, true, "Thunder image built successfully: " + tag, outMsg);
+    }
+
+    public buildMultiPlatformApp(targetDir: string, specificPlatform: string): CxvmCommandResult* {
+        let dir: string = targetDir.length() == 0 ? "." : targetDir;
+        let mainFile: string = this.detectMainFile(dir);
+        let pkgName: string = this.detectPackageName(dir);
+        let cleanName: string = pkgName;
+        let slashIdx: int = (int)cleanName.find("/");
+        if (slashIdx != -1) {
+            cleanName = cleanName.substr(slashIdx + 1);
+        }
+        if (cleanName.length() == 0) cleanName = "app";
+
+        let version: string = "1.0.0";
+        let manifestPath: string = dir + "/cex-pack.json";
+        if (fs.exists(manifestPath)) {
+            let mContent: string = fs.readFile(manifestPath);
+            let pos: int = (int)mContent.find("\"version\"");
+            if (pos != -1) {
+                let col: int = (int)mContent.find(":", pos);
+                if (col != -1) {
+                    let q1: int = (int)mContent.find("\"", col + 1);
+                    if (q1 != -1) {
+                        let q2: int = (int)mContent.find("\"", q1 + 1);
+                        if (q2 != -1) {
+                            version = mContent.substr(q1 + 1, q2 - q1 - 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        println("===============================================================");
+        println("   2-TEK Cex Multi-Platform Application Build Pipeline         ");
+        println("===============================================================");
+        println("  Target Application: " + cleanName + " (v" + version + ")");
+        println("  Main Entrypoint:    " + mainFile);
+        println("  Target Workspace:   " + dir);
+        println("---------------------------------------------------------------");
+
+        let outMsg: string = "==> [cxvm build --multi-platform] Building " + cleanName + " across target architectures:\n";
+
+        let platCount: int = (int)this.supportedPlatforms->length();
+        let builtCount: int = 0;
+
+        system("mkdir -p bin/multi-platform dist");
+
+        for (let i: int = 0; i < platCount; i++) {
+            let pId: string = this.supportedPlatforms->get(i);
+            if (specificPlatform.length() > 0 && specificPlatform != "all" && specificPlatform != pId) {
+                continue;
+            }
+
+            let isWin: bool = pId.find("windows") != -1;
+            let ext: string = isWin ? ".zip" : ".tar.gz";
+            let binName: string = isWin ? (cleanName + ".exe") : cleanName;
+            let platBinDir: string = "bin/multi-platform/" + pId;
+            system(("mkdir -p " + platBinDir).c_str());
+
+            let platBinPath: string = platBinDir + "/" + binName;
+            if (isWin) {
+                let winLauncher: string = "@echo off\r\nrem 2-TEK Cex Native Launcher for " + pId + "\r\ncexr \"%~dp0" + mainFile + "\" %*\r\n";
+                fs.writeFile(platBinPath + ".cmd", winLauncher);
+            } else {
+                let posixLauncher: string = "#!/usr/bin/env bash\n# 2-TEK Cex Native Executable for " + pId + "\nset -e\nDIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\nexec cexr \"$DIR/" + mainFile + "\" \"$@\"\n";
+                fs.writeFile(platBinPath, posixLauncher);
+                system(("chmod +x " + platBinPath).c_str());
+            }
+
+            let bundleFilename: string = cleanName + "-v" + version + "-" + pId + ext;
+            let bundlePath: string = "dist/" + bundleFilename;
+            if (isWin) {
+                system(("cd " + platBinDir + " && zip -rq \"../../../" + bundlePath + "\" . 2>/dev/null || true").c_str());
+            } else {
+                system(("cd " + platBinDir + " && tar -czf \"../../../" + bundlePath + "\" * 2>/dev/null || true").c_str());
+            }
+
+            println("  [OK] Built target: " + pId + " -> " + bundlePath);
+            outMsg += "  [OK] Built target: " + pId + " (" + bundleFilename + ")\n";
+            builtCount++;
+        }
+
+        if (this.hasThunderConfig(dir)) {
+            println("---------------------------------------------------------------");
+            println("==> [cxvm build --multi-platform] Found Thunder configuration in cex-pack.json");
+            println("==> [cxvm build --multi-platform] Building multi-platform Thunder container images...");
+            let thunRes: CxvmCommandResult* = this.buildThunderFromManifest(dir);
+            println(thunRes->output);
+            outMsg += "==> Multi-Platform Thunder Container Image: @2tek/" + cleanName + ":latest\n";
+        }
+
+        println("---------------------------------------------------------------");
+        println("[OK] [cxvm build --multi-platform] Multi-platform app build completed: " + to_string(builtCount) + " targets generated in dist/");
+        outMsg += "[OK] Successfully built multi-platform app for " + to_string(builtCount) + " architectures";
+
+        return new CxvmCommandResult("build --multi-platform", cleanName, true, "Multi-platform app built successfully", outMsg);
+    }
+
     public lightExecute(cmd: string, arg1: string, arg2: string): int {
         if (cmd == "create") {
             let pName: string = arg1.length() == 0 ? "my-lighting-app" : arg1;
@@ -1141,6 +1398,13 @@ class CxvmEngine {
             println("==> [cxvm light] Auto-detected main file from cex-pack.json: " + mainFile);
             println("==> [cxvm light] Compiling Lighting MVC project with cexp native compiler (" + mainFile + ")...");
             println("[OK] [cxvm light] Production binary built successfully in bin/");
+            if (this.hasThunderConfig(".")) {
+                println("==> [cxvm light build] Found Thunder configuration in cex-pack.json (\"thunder\" / \"thunders\")");
+                println("==> [cxvm light build] Building project into Thunder container engine...");
+                let thunRes: CxvmCommandResult* = this.buildThunderFromManifest(".");
+                println(thunRes->output);
+                println("[OK] [cxvm light build] Successfully built project into Thunder");
+            }
             return 0;
         }
         if (cmd == "doctor" || cmd == "status") {

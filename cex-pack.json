@@ -22,6 +22,15 @@
         "@": ".",
         "@/src": "./src"
     },
+    "thunder": {
+        "output": [
+            {
+                "container": 3080,
+                "out": 3080,
+                "name": "cxvm-server"
+            }
+        ]
+    },
     "scripts": {
         "install": "cex-pack downloads",
         "downloads": "cex-pack downloads",

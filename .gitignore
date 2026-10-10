@@ -33,3 +33,4 @@ cex_boxes/
 .DS_Store
 *.log
 packages/*
+downloads/

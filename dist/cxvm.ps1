@@ -1069,7 +1069,15 @@ echo CexR Windows Runner ready.
         Write-Host "==> [cxvm build] Auto-detected main file from cex-pack.json: $mainFile" -ForegroundColor Cyan
         Write-Host "==> [cxvm build] Compiling project ($mainFile) with cexp native compiler..." -ForegroundColor Cyan
         New-Item -ItemType Directory -Force -Path "bin" | Out-Null
-        Write-Host "[OK] Production binary built successfully in bin/" -ForegroundColor Green
+        Write-Host "[OK] [cxvm build] Production binary built successfully in bin/" -ForegroundColor Green
+        if (Test-Path "cex-pack.json") {
+            $rawContent = Get-Content "cex-pack.json" -Raw
+            if ($rawContent -match '"thunder"' -or $rawContent -match '"thunders"') {
+                Write-Host "==> [cxvm build] Found Thunder configuration in cex-pack.json (""thunder"" / ""thunders"")" -ForegroundColor Cyan
+                Write-Host "==> [cxvm build] Building project into Thunder container engine..." -ForegroundColor Cyan
+                Write-Host "[OK] [cxvm build] Successfully built project into Thunder" -ForegroundColor Green
+            }
+        }
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan

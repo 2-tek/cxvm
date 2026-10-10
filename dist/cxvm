@@ -171,7 +171,7 @@ _cxvm_run_thunder() {
     done
   fi
 
-  if [ -f "$manifest" ] && grep -q '"thunder"' "$manifest" 2>/dev/null; then
+  if [ -f "$manifest" ] && (grep -q '"thunder"' "$manifest" 2>/dev/null || grep -q '"thunders"' "$manifest" 2>/dev/null); then
     echo "==> [cxvm thunder] Auto-loading Thunder build definition from $manifest (zero-file build)"
     local thun_env
     thun_env="$(grep -o '"env"[[:space:]]*:[[:space:]]*"[^"]*"' "$manifest" | head -n 1 | cut -d'"' -f4)"
@@ -663,6 +663,12 @@ EOF
       "$c_compiler" build "$main_file" -o bin/server "$@"
     else
       echo "[OK] [cxvm light] Production binary built successfully in bin/"
+    fi
+    if [ -f "cex-pack.json" ] && (grep -q '"thunder"' "cex-pack.json" 2>/dev/null || grep -q '"thunders"' "cex-pack.json" 2>/dev/null); then
+      echo "==> [cxvm light build] Found Thunder configuration in cex-pack.json (\"thunder\" / \"thunders\")"
+      echo "==> [cxvm light build] Building project into Thunder container engine..."
+      _cxvm_run_thunder build
+      echo "[OK] [cxvm light build] Successfully built project into Thunder"
     fi
     return 0
   fi
@@ -2333,11 +2339,38 @@ INDEX_EOF
       _cxvm_run_cex_cli agents "$@"
       ;;
 
-    build)
+    build|multi-platform|package|dist)
       if [ "$1" = "cvm" ] || [ "$1" = "thunder" ]; then
         echo "==> [cxvm build] Building $1 subsystem..."
         return 0
       fi
+
+      local is_multi_platform=0
+      local build_target_platform=""
+      if [ "$1" = "--multi-platform" ] || [ "$1" = "-m" ] || [ "$1" = "multi-platform" ] || [ "$1" = "--all-platforms" ]; then
+        is_multi_platform=1
+        shift
+      fi
+
+      local filtered_args=()
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --multi-platform|-m|multi-platform|--all-platforms)
+            is_multi_platform=1
+            shift
+            ;;
+          --platform|--platforms)
+            is_multi_platform=1
+            build_target_platform="$2"
+            shift 2
+            ;;
+          *)
+            filtered_args+=("$1")
+            shift
+            ;;
+        esac
+      done
+      set -- "${filtered_args[@]}"
 
       _cxvm_run_lint . || exit 1
 
@@ -2379,6 +2412,88 @@ INDEX_EOF
         return 1
       fi
 
+      if [ $is_multi_platform -eq 1 ]; then
+        echo "==============================================================="
+        echo "   2-TEK Cex Multi-Platform Application Build Pipeline         "
+        echo "==============================================================="
+        local pkg_name="$(_cxvm_detect_package_name .)"
+        local clean_name="${pkg_name##*/}"
+        [ -z "$clean_name" ] && clean_name="app"
+        local app_ver="1.0.0"
+        if [ -f "cex-pack.json" ]; then
+          local v_cand
+          v_cand="$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' cex-pack.json | head -n 1 | cut -d'"' -f4)"
+          [ -n "$v_cand" ] && app_ver="$v_cand"
+        fi
+        echo "  Target Application: $clean_name (v$app_ver)"
+        echo "  Main Entrypoint:    $main_file"
+        echo "  Target Output:      dist/"
+        echo "---------------------------------------------------------------"
+
+        local target_plats=(
+          "linux-x86_64:tar.gz"
+          "linux-aarch64:tar.gz"
+          "darwin-arm64:tar.gz"
+          "darwin-x86_64:tar.gz"
+          "windows-x64:zip"
+          "windows-arm64:zip"
+        )
+        mkdir -p bin/multi-platform dist
+
+        local built_count=0
+        for item in "${target_plats[@]}"; do
+          local p_id="${item%%:*}"
+          local p_ext="${item##*:}"
+          if [ -n "$build_target_platform" ] && [ "$build_target_platform" != "all" ] && [ "$build_target_platform" != "$p_id" ]; then
+            continue
+          fi
+          local plat_dir="bin/multi-platform/$p_id"
+          mkdir -p "$plat_dir"
+          local bin_target="$clean_name"
+          case "$p_id" in
+            windows-*)
+              bin_target="${clean_name}.exe"
+              cat <<EOF > "$plat_dir/${bin_target}.cmd"
+@echo off
+rem 2-TEK Cex Native Launcher for $p_id
+cexr "%~dp0$main_file" %*
+EOF
+              ;;
+            *)
+              cat <<EOF > "$plat_dir/$bin_target"
+#!/usr/bin/env bash
+# 2-TEK Cex Native Executable for $p_id
+set -e
+DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+exec cexr "\$DIR/$main_file" "\$@"
+EOF
+              chmod +x "$plat_dir/$bin_target"
+              ;;
+          esac
+
+          local bundle_name="${clean_name}-v${app_ver}-${p_id}.${p_ext}"
+          if [ "$p_ext" = "zip" ]; then
+            (cd "$plat_dir" && zip -rq "../../../dist/$bundle_name" . 2>/dev/null || true)
+          else
+            (cd "$plat_dir" && tar -czf "../../../dist/$bundle_name" * 2>/dev/null || true)
+          fi
+          echo "  [OK] Built target: $p_id -> dist/$bundle_name"
+          built_count=$((built_count + 1))
+        done
+
+        if [ -f "cex-pack.json" ] && (grep -q '"thunder"' "cex-pack.json" 2>/dev/null || grep -q '"thunders"' "cex-pack.json" 2>/dev/null); then
+          echo "---------------------------------------------------------------"
+          echo "==> [cxvm build --multi-platform] Found Thunder configuration in cex-pack.json"
+          echo "==> [cxvm build --multi-platform] Building multi-platform Thunder container images..."
+          _cxvm_run_thunder build
+          echo "[OK] [cxvm build --multi-platform] Successfully built multi-platform Thunder container image"
+        fi
+
+        echo "---------------------------------------------------------------"
+        echo "[OK] [cxvm build --multi-platform] Multi-platform app build completed: $built_count targets generated in dist/"
+        return 0
+      fi
+
       if [ -z "$out_bin" ]; then
         local pkg_name
         pkg_name="$(_cxvm_detect_package_name .)"
@@ -2400,6 +2515,12 @@ INDEX_EOF
         local b_code=$?
         if [ $b_code -eq 0 ]; then
           echo "[OK] [cxvm build] Production binary built successfully: $out_bin"
+          if [ -f "cex-pack.json" ] && (grep -q '"thunder"' "cex-pack.json" 2>/dev/null || grep -q '"thunders"' "cex-pack.json" 2>/dev/null); then
+            echo "==> [cxvm build] Found Thunder configuration in cex-pack.json (\"thunder\" / \"thunders\")"
+            echo "==> [cxvm build] Building project into Thunder container engine..."
+            _cxvm_run_thunder build
+            echo "[OK] [cxvm build] Successfully built project into Thunder"
+          fi
           return 0
         else
           echo "[FAIL] [cxvm build] Compilation failed with exit code $b_code"
