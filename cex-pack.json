@@ -41,8 +41,14 @@
       "tests"
     ],
     "rules": {
-      "indent": { "level": "error", "size": 4 },
-      "quotes": { "level": "error", "style": "double" },
+      "indent": {
+        "level": "error",
+        "size": 4
+      },
+      "quotes": {
+        "level": "error",
+        "style": "double"
+      },
       "semi": "error",
       "no-tabs": "error",
       "no-trailing-spaces": "error",
