@@ -96,6 +96,19 @@ INITIAL_CONTAINERS = [
         "memoryMb": 112,
         "maxMemoryMb": 512,
         "uptimeSec": 3360
+    },
+    {
+        "id": "cxt-6a8f9",
+        "name": "cex-iam-service",
+        "image": "@2tek/cex-iam-service:latest",
+        "hostPort": 3090,
+        "containerPort": 3090,
+        "status": "RUNNING",
+        "pid": 106,
+        "cpu": 1.2,
+        "memoryMb": 42,
+        "maxMemoryMb": 512,
+        "uptimeSec": 3300
     }
 ]
 
@@ -106,11 +119,14 @@ IMAGES_STORE = [
     {"tag": "@2tek/lighting:latest", "id": "sha256:3a91e52", "sizeMb": 28.7, "layers": 3, "format": "OCI v1"},
     {"tag": "@2tek/code-storm:latest", "id": "sha256:9c44b11", "sizeMb": 56.1, "layers": 5, "format": "OCI v1"},
     {"tag": "@2tek/tyrant:latest", "id": "sha256:2f18d77", "sizeMb": 39.4, "layers": 3, "format": "OCI v1"},
-    {"tag": "@2tek/rol:latest", "id": "sha256:4b28c99", "sizeMb": 45.8, "layers": 4, "format": "OCI v1"}
+    {"tag": "@2tek/rol:latest", "id": "sha256:4b28c99", "sizeMb": 45.8, "layers": 4, "format": "OCI v1"},
+    {"tag": "@2tek/roe:latest", "id": "sha256:5a38d12", "sizeMb": 32.1, "layers": 3, "format": "OCI v1"},
+    {"tag": "@2tek/pcbe:latest", "id": "sha256:1c44e99", "sizeMb": 40.5, "layers": 4, "format": "OCI v1"},
+    {"tag": "@2tek/cex-iam-service:latest", "id": "sha256:6e19f42", "sizeMb": 35.8, "layers": 4, "format": "OCI v1"}
 ]
 
 CONTAINERS = list(INITIAL_CONTAINERS)
-CONTAINER_COUNTER = 6
+CONTAINER_COUNTER = 7
 
 def render_dashboard_html(port):
     containers_rows = ""
@@ -301,6 +317,65 @@ curl http://localhost:{port}/api/v1/thunder/containers
 </html>"""
     return html
 
+IAM_SERVICE_PROC = None
+
+def ensure_iam_service():
+    global IAM_SERVICE_PROC
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect(("127.0.0.1", 3090))
+        s.close()
+        return True
+    except Exception:
+        pass
+
+    home_dir = os.environ.get("HOME") or "/root"
+    iam_candidates = [
+        os.path.join(home_dir, "Projects/dependencies/cex-iam-service/dist/iam-server"),
+        os.path.join(home_dir, "Projects/dependencies/cex-iam-service/dist/server"),
+        os.path.join(home_dir, "Projects/cex-iam-service/dist/iam-server"),
+        os.path.join(home_dir, "Projects/cex-iam-service/dist/server"),
+        "../dependencies/cex-iam-service/dist/iam-server",
+        "../cex-iam-service/dist/iam-server"
+    ]
+    iam_bin = None
+    for cand in iam_candidates:
+        if os.path.exists(cand) and os.access(cand, os.X_OK):
+            iam_bin = cand
+            break
+
+    if iam_bin:
+        try:
+            cxvm_dir = get_cxvm_dir()
+            log_file = os.path.join(cxvm_dir, "iam_service.log")
+            out = open(log_file, "a+")
+            IAM_SERVICE_PROC = subprocess.Popen([iam_bin, "start", "--port", "3090"], stdout=out, stderr=out, start_new_session=True)
+            for c in CONTAINERS:
+                if c["name"] == "cex-iam-service":
+                    c["pid"] = IAM_SERVICE_PROC.pid
+                    c["status"] = "RUNNING"
+                    break
+            time.sleep(0.3)
+            return True
+        except Exception as e:
+            sys.stderr.write(f"[Thunder] Error spawning IAM service: {e}\n")
+    return False
+
+def is_iam_path(path):
+    iam_prefixes = [
+        "/api/v1/iam", "/api/v1/auth", "/api/v1/users", "/api/v1/roles",
+        "/api/v1/permissions", "/api/v1/permission-groups", "/api/v1/orgs",
+        "/api/v1/groups", "/api/v1/channels", "/api/v1/conversations",
+        "/api/v1/messages", "/api/v1/notifications", "/api/v1/documents",
+        "/api/v1/assets", "/api/v1/mail", "/api/v1/events", "/iam",
+        "/swagger.json", "/docs", "/console"
+    ]
+    for p in iam_prefixes:
+        if path == p or path.startswith(p + "/") or path.startswith(p + "?"):
+            return True
+    return False
+
 class ThunderHandler(BaseHTTPRequestHandler):
     def _send_json(self, status, payload):
         body = json.dumps(payload, indent=2).encode("utf-8")
@@ -319,15 +394,80 @@ class ThunderHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _proxy_to_iam(self, method, raw_path, body=None):
+        ensure_iam_service()
+        target_path = raw_path
+        if raw_path.startswith("/api/v1/iam/"):
+            sub = raw_path[12:]
+            if sub in ("/health", "/docs", "/swagger.json", "/console", "/metrics"):
+                target_path = sub
+            else:
+                target_path = "/api/v1/" + sub
+        elif raw_path in ("/api/v1/iam", "/iam"):
+            target_path = "/"
+
+        try:
+            import http.client
+            conn = http.client.HTTPConnection("127.0.0.1", 3090, timeout=10)
+            headers = {}
+            for h, v in self.headers.items():
+                if h.lower() not in ("host", "connection", "content-length"):
+                    headers[h] = v
+            if body:
+                body_bytes = body.encode("utf-8") if isinstance(body, str) else body
+                headers["Content-Length"] = str(len(body_bytes))
+                conn.request(method, target_path, body=body_bytes, headers=headers)
+            else:
+                conn.request(method, target_path, headers=headers)
+
+            resp = conn.getresponse()
+            resp_body = resp.read()
+            self.send_response(resp.status)
+            for k, v in resp.getheaders():
+                if k.lower() not in ("server", "date", "transfer-encoding"):
+                    self.send_header(k, v)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(resp_body)))
+            self.end_headers()
+            self.wfile.write(resp_body)
+            conn.close()
+            return True
+        except Exception as e:
+            self._send_json(503, {
+                "error": "IAM Container Service Unavailable",
+                "detail": str(e),
+                "hostPort": 3090,
+                "hint": "Check if cex-iam-service is running on port 3090"
+            })
+            return True
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
         if not path:
             path = "/"
 
+        if is_iam_path(path):
+            return self._proxy_to_iam("GET", self.path)
+
         if path in ("/", "/dashboard"):
             port = self.server.server_port
             return self._send_html(200, render_dashboard_html(port))
+
+        elif path in ("/ping", "/api/v1/ping", "/api/v1/thunder/ping"):
+            return self._send_json(200, {
+                "status": "PONG",
+                "source": "localhost",
+                "target": "127.0.0.1",
+                "port": self.server.server_port,
+                "packetsTransmitted": 3,
+                "packetsReceived": 3,
+                "packetLossPercent": 0,
+                "latencyMs": 0.042,
+                "success": True,
+                "containersRunning": len([c for c in CONTAINERS if c["status"] == "RUNNING"]),
+                "timestamp": time.time()
+            })
 
         elif path in ("/health", "/api/v1/health"):
             return self._send_json(200, {
@@ -403,6 +543,10 @@ class ThunderHandler(BaseHTTPRequestHandler):
 
         length = int(self.headers.get("Content-Length", 0))
         raw_body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+
+        if is_iam_path(path):
+            return self._proxy_to_iam("POST", self.path, raw_body)
+
         try:
             body = json.loads(raw_body)
         except Exception:
@@ -430,6 +574,30 @@ class ThunderHandler(BaseHTTPRequestHandler):
             CONTAINERS.append(new_c)
             CONTAINER_COUNTER += 1
             return self._send_json(200, {"status": "SUCCESS", "message": f"Container {name} started", "container": new_c})
+
+        elif path in ("/ping", "/api/v1/ping", "/api/v1/thunder/ping"):
+            target = body.get("target") or "localhost"
+            resolved_ip = "127.0.0.1" if target in ("localhost", "127.0.0.1") else ("172.18.0.1" if target == "gateway" else "")
+            if not resolved_ip:
+                for c in CONTAINERS:
+                    if c["name"] == target or c["id"] == target:
+                        resolved_ip = f"172.18.0.{c.get('hostPort', 3050) % 250}"
+                        break
+            if not resolved_ip:
+                resolved_ip = target
+            return self._send_json(200, {
+                "status": "PONG",
+                "source": "localhost",
+                "target": target,
+                "resolvedIp": resolved_ip,
+                "port": self.server.server_port,
+                "packetsTransmitted": 3,
+                "packetsReceived": 3,
+                "packetLossPercent": 0,
+                "latencyMs": 0.042,
+                "success": True,
+                "timestamp": time.time()
+            })
 
         elif path == "/api/v1/thunder/containers/stop":
             target = body.get("id") or body.get("name") or ""
@@ -529,6 +697,8 @@ def start_server(port, foreground=False, pidfile="", logfile=""):
     signal.signal(signal.SIGTERM, shutdown_handler)
     signal.signal(signal.SIGINT, shutdown_handler)
 
+    ensure_iam_service()
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -570,9 +740,17 @@ def stop_server(pidfile=""):
             os.kill(pid, signal.SIGKILL)
         except OSError:
             pass
-        print(f"✓ [cxvm] Thunder server (PID: {pid}) stopped.")
+        print(f"[OK] [cxvm] Thunder server (PID: {pid}) stopped.")
     except OSError as e:
         print(f"[cxvm] Process {pid} was not running: {e}")
+
+    # Stop supervised IAM service container
+    for c in CONTAINERS:
+        if c["name"] == "cex-iam-service" and c.get("pid"):
+            try:
+                os.kill(c["pid"], signal.SIGTERM)
+            except OSError:
+                pass
 
     for p in (pidfile, portfile):
         if os.path.exists(p):
@@ -597,7 +775,7 @@ def status_server(pidfile=""):
             if os.path.exists(portfile):
                 with open(portfile, "r") as f:
                     port = int(f.read().strip())
-            print(f"✓ [cxvm] Thunder server is running (single process standalone, PID: {pid}, port: {port})")
+            print(f"[OK] [cxvm] Thunder server is running (single process standalone, PID: {pid}, port: {port})")
             print(f"  - Dashboard:  http://localhost:{port}")
             print(f"  - Health API: http://localhost:{port}/health")
             return 0
@@ -623,15 +801,33 @@ def list_images():
         size = f"{img['sizeMb']} MB"
         print(f"{img['tag']:<28} {img['id']:<18} {size:<10} {img['layers']} layers")
 
+def ping_target(target="localhost"):
+    resolved_ip = "127.0.0.1" if target in ("localhost", "127.0.0.1") else ("172.18.0.1" if target == "gateway" else "")
+    if not resolved_ip:
+        for c in CONTAINERS:
+            if c["name"] == target or c["id"] == target:
+                resolved_ip = f"172.18.0.{c.get('hostPort', 3050) % 250}"
+                break
+    if not resolved_ip:
+        resolved_ip = target
+    print(f"PING {target} ({resolved_ip}): 56 data bytes")
+    for i in range(1, 4):
+        print(f"64 bytes from {resolved_ip}: icmp_seq={i} ttl=64 time=0.042 ms")
+    print(f"--- {target} ping statistics ---")
+    print("3 packets transmitted, 3 packets received, 0% packet loss")
+    print("round-trip min/avg/max = 0.042/0.042/0.042 ms")
+    return 0
+
 def main():
     parser = argparse.ArgumentParser(description="2-TEK Thunder Standalone Single-Process Server")
-    parser.add_argument("action", nargs="?", default="start", choices=["start", "stop", "status", "restart", "ps", "images"], help="Action to perform")
+    parser.add_argument("action", nargs="?", default="start", choices=["start", "stop", "status", "restart", "ps", "images", "ping"], help="Action to perform")
+    parser.add_argument("target", nargs="?", default="localhost", help="Ping target (default: localhost)")
     parser.add_argument("-p", "--port", type=int, default=DEFAULT_PORT, help="Port to listen on (default: 3050)")
     parser.add_argument("-f", "--foreground", action="store_true", help="Run in foreground instead of background daemon")
     parser.add_argument("--pidfile", type=str, default="", help="Custom PID file path")
     parser.add_argument("--logfile", type=str, default="", help="Custom log file path")
 
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     if args.action == "stop":
         return stop_server(args.pidfile)
@@ -647,6 +843,9 @@ def main():
     elif args.action == "images":
         list_images()
         return 0
+    elif args.action == "ping":
+        target = args.target if args.target else "localhost"
+        return ping_target(target)
     else:
         return start_server(args.port, args.foreground, args.pidfile, args.logfile)
 

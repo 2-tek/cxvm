@@ -975,13 +975,18 @@ class CxvmEngine {
 
     public scanAndInstallHooks(searchRoot: string): CxvmCommandResult* {
         let root: string = searchRoot.length() == 0 ? "$HOME/Projects" : searchRoot;
-        let scriptPath: string = "scripts/scan_and_install_hooks.sh";
-        if (!fs.exists(scriptPath)) {
-            scriptPath = "../scripts/scan_and_install_hooks.sh";
+        let scriptCex: string = "scripts/scan_and_install_hooks.cex";
+        if (!fs.exists(scriptCex)) {
+            scriptCex = "../scripts/scan_and_install_hooks.cex";
         }
         let out: string = "==> [cxvm hooks] Scanning all .git and .cvm repositories in " + root + "...\n";
-        if (fs.exists(scriptPath)) {
-            system(("bash \"" + scriptPath + "\" \"" + root + "\"").c_str());
+        if (fs.exists(scriptCex)) {
+            system(("cexr \"" + scriptCex + "\" \"" + root + "\"").c_str());
+        } else {
+            let scriptPath: string = fs.exists("scripts/scan_and_install_hooks.sh") ? "scripts/scan_and_install_hooks.sh" : "../scripts/scan_and_install_hooks.sh";
+            if (fs.exists(scriptPath)) {
+                system(("bash \"" + scriptPath + "\" \"" + root + "\"").c_str());
+            }
         }
         out += "[OK] [cxvm hooks] Pre-commit (cex-lint --fix) and pre-push (prettier) hooks installed across repositories";
         return new CxvmCommandResult("hooks", "scan", true, "Scanned and installed pre-commit and pre-push hooks", out);
