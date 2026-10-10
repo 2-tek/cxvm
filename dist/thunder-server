@@ -399,11 +399,13 @@ class ThunderHandler(BaseHTTPRequestHandler):
         target_path = raw_path
         if raw_path.startswith("/api/v1/iam/"):
             sub = raw_path[11:]
-            if sub in ("/health", "/docs", "/swagger.json", "/console", "/metrics"):
+            if sub in ("", "/"):
+                target_path = "/"
+            elif sub in ("/health", "/docs", "/swagger.json", "/console", "/metrics"):
                 target_path = sub
             else:
                 target_path = "/api/v1" + sub
-        elif raw_path in ("/api/v1/iam", "/iam"):
+        elif raw_path in ("/api/v1/iam", "/iam", "/api/v1/iam/"):
             target_path = "/"
 
         try:
