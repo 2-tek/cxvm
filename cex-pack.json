@@ -15,7 +15,8 @@
     "target": "runtime",
     "required": {
         "cexr": "^8",
-        "cexp": "^8"
+        "cexp": "^8",
+        "cxvm": ">= v8"
     },
     "alias": {
         "@": ".",
@@ -26,7 +27,31 @@
         "downloads": "cex-pack downloads",
         "dev": "cxvm dev",
         "lint": "cxvm lint",
-        "test": "cxvm test"
+        "test": "cxvm test",
+        "build:auto": "cxvm build",
+        "build:thunder": "cxvm thunder build",
+        "thunder": "cxvm thunder",
+        "thunder:start": "cxvm start thunder",
+        "thunder:stop": "cxvm stop thunder",
+        "thunder:status": "cxvm status thunder",
+        "thunder:build": "cxvm thunder build",
+        "thunder:ps": "cxvm thunder ps",
+        "thunder:images": "cxvm thunder images",
+        "thunder:stats": "cxvm thunder stats",
+        "docker": "cxvm docker",
+        "start": "cxvm start",
+        "build": "cxvm light build",
+        "cli": "cxvm cli",
+        "cli:dev": "cxvm light dev",
+        "cli:build": "cxvm light build",
+        "cli:start": "cxvm start",
+        "cli:test": "cxvm cli test",
+        "cli:doctor": "cxvm doctor",
+        "cli:thunder": "cxvm thunder",
+        "doctor": "cxvm doctor",
+        "watch": "cxvm watch",
+        "agents": "cxvm agents",
+        "lint:fix": "cxvm lint --fix"
     },
     "dependencies": {
         "cex-test": "1.0.0",
@@ -41,8 +66,14 @@
         "onDev": true,
         "include": ["src", "tests"],
         "rules": {
-            "indent": { "level": "error", "size": 4 },
-            "quotes": { "level": "error", "style": "double" },
+            "indent": {
+                "level": "error",
+                "size": 4
+            },
+            "quotes": {
+                "level": "error",
+                "style": "double"
+            },
             "semi": "error",
             "no-tabs": "error",
             "no-trailing-spaces": "error",

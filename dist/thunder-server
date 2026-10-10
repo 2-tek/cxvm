@@ -398,11 +398,11 @@ class ThunderHandler(BaseHTTPRequestHandler):
         ensure_iam_service()
         target_path = raw_path
         if raw_path.startswith("/api/v1/iam/"):
-            sub = raw_path[12:]
+            sub = raw_path[11:]
             if sub in ("/health", "/docs", "/swagger.json", "/console", "/metrics"):
                 target_path = sub
             else:
-                target_path = "/api/v1/" + sub
+                target_path = "/api/v1" + sub
         elif raw_path in ("/api/v1/iam", "/iam"):
             target_path = "/"
 
@@ -533,6 +533,13 @@ class ThunderHandler(BaseHTTPRequestHandler):
                 "requestsPerSecond": 420
             })
 
+        elif path == "/api/v1/thunder/manifest":
+            info = auto_load_thunder_manifest()
+            return self._send_json(200, {
+                "status": "SUCCESS",
+                "manifest": info if info else {}
+            })
+
         else:
             return self._send_json(404, {"error": "Not Found", "path": self.path})
 
@@ -619,7 +626,96 @@ class ThunderHandler(BaseHTTPRequestHandler):
         # Suppress noisy standard logs in daemon mode
         pass
 
+def auto_load_thunder_manifest():
+    global CONTAINER_COUNTER
+    manifest_path = "cex-pack.json"
+    if not os.path.exists(manifest_path):
+        for parent in ["..", "../.."]:
+            cand = os.path.join(parent, "cex-pack.json")
+            if os.path.exists(cand):
+                manifest_path = cand
+                break
+    if not os.path.exists(manifest_path):
+        return None
+
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+    except Exception:
+        return None
+
+    thunder_cfg = manifest.get("thunder")
+    if not thunder_cfg or not isinstance(thunder_cfg, dict):
+        return None
+
+    pkg_name = manifest.get("name", "app")
+    tag = pkg_name if pkg_name.startswith("@") else f"@2tek/{pkg_name}:latest"
+    if not tag.endswith(":latest"):
+        tag = f"{tag}:latest"
+
+    env_file = thunder_cfg.get("env", "")
+    output_cfg = thunder_cfg.get("output") or thunder_cfg.get("ouput") or []
+
+    if not any(img.get("tag") == tag for img in IMAGES_STORE):
+        IMAGES_STORE.append({
+            "id": f"sha256:thun-{abs(hash(pkg_name)) % 1000000}",
+            "tag": tag,
+            "sizeMb": 28,
+            "layers": 6
+        })
+
+    loaded = []
+    if isinstance(output_cfg, list):
+        for item in output_cfg:
+            if not isinstance(item, dict):
+                continue
+            c_port = item.get("container")
+            o_port = item.get("out") or item.get("host") or c_port
+            c_name = item.get("name") or pkg_name.split("/")[-1]
+
+            if isinstance(c_port, dict):
+                c_port = list(c_port.values())[0] if c_port else 3050
+            if isinstance(o_port, dict):
+                o_port = list(o_port.values())[0] if o_port else 3050
+
+            try:
+                c_port = int(c_port)
+            except (ValueError, TypeError):
+                c_port = 3050
+            try:
+                o_port = int(o_port)
+            except (ValueError, TypeError):
+                o_port = 3050
+
+            existing = next((c for c in CONTAINERS if c.get("name") == c_name), None)
+            if existing:
+                existing["hostPort"] = o_port
+                existing["containerPort"] = c_port
+                existing["envFile"] = env_file
+                loaded.append(existing)
+            else:
+                CONTAINER_COUNTER += 1
+                new_c = {
+                    "id": f"cxt-{CONTAINER_COUNTER}a8f9",
+                    "name": c_name,
+                    "image": tag,
+                    "hostPort": o_port,
+                    "containerPort": c_port,
+                    "status": "RUNNING",
+                    "pid": 300 + CONTAINER_COUNTER,
+                    "cpu": 0.8,
+                    "memoryMb": 48,
+                    "maxMemoryMb": 512,
+                    "uptimeSec": 100,
+                    "envFile": env_file
+                }
+                CONTAINERS.append(new_c)
+                loaded.append(new_c)
+            print(f"[OK] [cxvm thunder] Auto-loaded '{c_name}' from {manifest_path} (out: {o_port} -> container: {c_port}, env: {env_file})")
+    return {"manifest": manifest_path, "thunder": thunder_cfg, "containers": loaded}
+
 def start_server(port, foreground=False, pidfile="", logfile=""):
+    auto_load_thunder_manifest()
     cxvm_dir = get_cxvm_dir()
     os.makedirs(cxvm_dir, exist_ok=True)
 
@@ -788,6 +884,7 @@ def status_server(pidfile=""):
         return 1
 
 def list_containers():
+    auto_load_thunder_manifest()
     print(f"{'CONTAINER ID':<14} {'NAME':<20} {'IMAGE':<26} {'PORTS':<14} {'STATUS':<10}")
     print("-" * 88)
     for c in CONTAINERS:

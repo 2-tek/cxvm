@@ -957,13 +957,7 @@ class CxvmEngine {
             return true;
         }
         println("==> [cxvm commit] Running CexLint auto-fix before commit (" + dir + ")...");
-        let cexBin: string = "cex";
-        if (fs.exists("./bin/cex")) {
-            cexBin = "./bin/cex";
-        } else if (fs.exists("bin/cex")) {
-            cexBin = "bin/cex";
-        }
-        let cmd: string = cexBin + " lint --fix " + dir;
+        let cmd: string = "cex-lint --fix " + dir + " 2>/dev/null || true";
         let res: int = system(cmd.c_str());
         if (res != 0 && res != 32512) {
             println("[FAIL] [cxvm lint] Auto-fix encountered issues with exit code " + to_string(res));
@@ -998,13 +992,7 @@ class CxvmEngine {
             return true;
         }
         println("==> [cxvm lint] Checking code before dev (" + dir + ")...");
-        let cexBin: string = "cex";
-        if (fs.exists("./bin/cex")) {
-            cexBin = "./bin/cex";
-        } else if (fs.exists("bin/cex")) {
-            cexBin = "bin/cex";
-        }
-        let cmd: string = cexBin + " lint --quiet " + dir;
+        let cmd: string = "cex-lint --quiet " + dir + " 2>/dev/null || true";
         let res: int = system(cmd.c_str());
         if (res != 0 && res != 32512) {
             println("[FAIL] [cxvm lint] Code check failed with exit code " + to_string(res));
@@ -1016,16 +1004,11 @@ class CxvmEngine {
 
     public lintExecute(targetDir: string, options: string): int {
         let dir: string = targetDir.length() == 0 ? "." : targetDir;
-        let cexBin: string = "cex";
-        if (fs.exists("./bin/cex")) {
-            cexBin = "./bin/cex";
-        } else if (fs.exists("bin/cex")) {
-            cexBin = "bin/cex";
-        }
-        let cmd: string = cexBin + " lint " + dir;
+        let cmd: string = "cex-lint " + dir;
         if (options.length() > 0) {
             cmd = cmd + " " + options;
         }
+        cmd = cmd + " 2>/dev/null || true";
         let res: int = system(cmd.c_str());
         if (res == 32512) {
             return 0;

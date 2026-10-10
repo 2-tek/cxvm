@@ -160,21 +160,84 @@ _cxvm_run_thunder() {
   local thun_cmd="${1:-ps}"
   shift || true
 
-  # 1. Locate thunder CLI binary if installed
-  local thun_bin=""
-  if command -v thunder >/dev/null 2>&1; then
-    thun_bin="$(command -v thunder)"
-  elif [ -x "$CXVM_DIR/bin/thunder" ]; then
-    thun_bin="$CXVM_DIR/bin/thunder"
-  else
-    local script_dir
-    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    for t_candidate in       "$script_dir/../packages/cex-thunder/src/cli.cex"       "$script_dir/../../packages/cex-thunder/src/cli.cex"       "$script_dir/../../2tek-developement-packs/packages/cex-thunder/src/cli.cex"; do
-      if [ -f "$t_candidate" ]; then
-        thun_bin="$t_candidate"
+  # 0. Check cex-pack.json for thunder zero-file quick definition
+  local manifest="cex-pack.json"
+  if [ ! -f "$manifest" ]; then
+    for parent in ".." "../.."; do
+      if [ -f "$parent/cex-pack.json" ]; then
+        manifest="$parent/cex-pack.json"
         break
       fi
     done
+  fi
+
+  if [ -f "$manifest" ] && grep -q '"thunder"' "$manifest" 2>/dev/null; then
+    echo "==> [cxvm thunder] Auto-loading Thunder build definition from $manifest (zero-file build)"
+    local thun_env
+    thun_env="$(grep -o '"env"[[:space:]]*:[[:space:]]*"[^"]*"' "$manifest" | head -n 1 | cut -d'"' -f4)"
+    local thun_c_port
+    thun_c_port="$(grep -o '"container"[[:space:]]*:[[:space:]]*[0-9]*' "$manifest" | head -n 1 | grep -o '[0-9]*')"
+    local thun_o_port
+    thun_o_port="$(grep -o '"out"[[:space:]]*:[[:space:]]*[0-9]*' "$manifest" | head -n 1 | grep -o '[0-9]*')"
+    local thun_name
+    thun_name="$(grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' "$manifest" | head -n 1 | cut -d'"' -f4)"
+    local thun_main
+    thun_main="$(grep -o '"main"[[:space:]]*:[[:space:]]*"[^"]*"' "$manifest" | head -n 1 | cut -d'"' -f4)"
+
+    [ -z "$thun_c_port" ] && thun_c_port=3050
+    [ -z "$thun_o_port" ] && thun_o_port="$thun_c_port"
+    local clean_name="${thun_name##*/}"
+    [ -z "$clean_name" ] && clean_name="thunder-app"
+
+    echo "--> [cxvm thunder] Target Service: $clean_name"
+    echo "--> [cxvm thunder] Port Mapping: $thun_o_port -> $thun_c_port"
+    if [ -n "$thun_env" ]; then
+      echo "--> [cxvm thunder] Environment File: $thun_env"
+      if [ -f "$thun_env" ]; then
+        export $(grep -v '^#' "$thun_env" | xargs -d '\n' 2>/dev/null) 2>/dev/null || true
+      fi
+    fi
+
+    # Auto-compile native binary if needed or on build command
+    if [ "$thun_cmd" = "build" ] || [ ! -f "bin/$clean_name" ]; then
+      if [ -n "$thun_main" ] && [ -f "$thun_main" ]; then
+        echo "--> [cxvm thunder] Compiling application machine binary: cexp build $thun_main -o bin/$clean_name"
+        mkdir -p bin
+        cexp build "$thun_main" -O3 -o "bin/$clean_name"
+      fi
+    fi
+
+    if [ "$thun_cmd" = "build" ]; then
+      echo "[OK] [cxvm thunder] Zero-file Thunder container image built successfully for $clean_name"
+      return 0
+    fi
+  fi
+
+  # 1. Locate thunder CLI binary or pure cex script
+  local thun_bin=""
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  for cand in \
+    "$CXVM_DIR/bin/thunder-bin" \
+    "$script_dir/../../mvc-lighting-thunder/bin/thunder" \
+    "$script_dir/../mvc-lighting-thunder/bin/thunder" \
+    "$script_dir/../../mvc-lighting-thunder/src/cli.cex" \
+    "$script_dir/../mvc-lighting-thunder/src/cli.cex" \
+    "$script_dir/../packages/cex-thunder/src/cli.cex" \
+    "$script_dir/../../packages/cex-thunder/src/cli.cex"; do
+    if [ -f "$cand" ]; then
+      thun_bin="$cand"
+      break
+    fi
+  done
+
+  if [ -z "$thun_bin" ] && command -v thunder >/dev/null 2>&1; then
+    local sys_thun
+    sys_thun="$(command -v thunder)"
+    if ! grep -q "cxvm.*thunder" "$sys_thun" 2>/dev/null; then
+      thun_bin="$sys_thun"
+    fi
   fi
 
   if [ -n "$thun_bin" ]; then
@@ -182,7 +245,7 @@ _cxvm_run_thunder() {
       "$thun_bin" "$thun_cmd" "$@"
       return $?
     elif command -v cexr >/dev/null 2>&1; then
-      THUNDER_CMD="thunder $thun_cmd $*" cexr run "$thun_bin"
+      THUNDER_CMD="thunder $thun_cmd $*" cexr "$thun_bin"
       return $?
     fi
   fi
@@ -249,17 +312,15 @@ _cxvm_run_lint() {
   # Check if cex-pack.json exists and has a lint block (or default)
   if [ -f "$target_dir/cex-pack.json" ]; then
     local lint_cmd=""
-    if command -v cex >/dev/null 2>&1; then
-      lint_cmd="cex"
-    elif [ -x "$CXVM_DIR/bin/cex" ]; then
-      lint_cmd="$CXVM_DIR/bin/cex"
-    elif [ -x "$CXVM_DIR/current/bin/cex" ]; then
-      lint_cmd="$CXVM_DIR/current/bin/cex"
+    if command -v cex-lint >/dev/null 2>&1; then
+      lint_cmd="$(command -v cex-lint)"
+    elif [ -x "$CXVM_DIR/bin/cex-lint" ]; then
+      lint_cmd="$CXVM_DIR/bin/cex-lint"
     fi
 
     if [ -n "$lint_cmd" ]; then
       echo "==> [cxvm lint] Checking code before dev ($target_dir)..."
-      "$lint_cmd" lint "$target_dir" "$@"
+      "$lint_cmd" "$target_dir" "$@"
       local exit_code=$?
       if [ $exit_code -ne 0 ]; then
         echo "[FAIL] [cxvm lint] Lint check failed with exit code $exit_code."
@@ -985,10 +1046,10 @@ EOF_PKG
 # -----------------------------------------------------------------------------
 _cxvm_run_pre_commit_lint_fix() {
   echo "==> [cxvm pre-commit] Auto-fixing code formatting with cex-lint before commit..."
-  if command -v cex >/dev/null 2>&1; then
-    cex lint --fix . 2>/dev/null || true
-  elif [ -x "$CXVM_DIR/bin/cex" ]; then
-    "$CXVM_DIR/bin/cex" lint --fix . 2>/dev/null || true
+  if command -v cex-lint >/dev/null 2>&1; then
+    cex-lint --fix . 2>/dev/null || true
+  elif [ -x "$CXVM_DIR/bin/cex-lint" ]; then
+    "$CXVM_DIR/bin/cex-lint" --fix . 2>/dev/null || true
   else
     _cxvm_run_lint --fix . 2>/dev/null || true
   fi
