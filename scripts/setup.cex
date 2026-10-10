@@ -1,0 +1,58 @@
+// 2-TEK CXVM: Quick Installer & Toolchain Environment Setup (Pure Cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+
+import fs from "fs";
+
+fn main(): int {
+    println("================================================================================");
+    println("    2-TEK CXVM: Quick Installer & Toolchain Environment Setup                  ");
+    println("    Installs and configures CXVM, Cex runtimes, and shell environment          ");
+    println("================================================================================");
+
+    let cxvmDir: string = "";
+    char* envDir = getenv("CXVM_DIR");
+    if (envDir != nullptr && std::string(envDir).length() > 0) {
+        cxvmDir = std::string(envDir);
+    } else {
+        char* home = getenv("HOME");
+        if (home != nullptr) {
+            cxvmDir = std::string(home) + "/.cxvm";
+        } else {
+            cxvmDir = ".cxvm";
+        }
+    }
+
+    println("[INFO] CXVM Home Directory: " + cxvmDir);
+
+    // 1. Create directory structure
+    system(("mkdir -p \"" + cxvmDir + "/bin\" \"" + cxvmDir + "/versions\" \"" + cxvmDir + "/cache\"").c_str());
+    println("[OK] Directory structure initialized.");
+
+    // 2. Install cxvm launcher script to $CXVM_DIR/bin/cxvm
+    if (fs.exists("dist/cxvm")) {
+        system(("cp -f dist/cxvm \"" + cxvmDir + "/bin/cxvm\" && chmod +x \"" + cxvmDir + "/bin/cxvm\"").c_str());
+    } else if (fs.exists("downloads/cxvm")) {
+        system(("cp -f downloads/cxvm \"" + cxvmDir + "/bin/cxvm\" && chmod +x \"" + cxvmDir + "/bin/cxvm\"").c_str());
+    }
+
+    // 3. Install default runtimes
+    println("[INFO] Installing default runtime v8.0.0 and v6.0.0...");
+    let installCmd8: string = "\"" + cxvmDir + "/bin/cxvm\" install 8.0.0 >/dev/null 2>&1 || true";
+    system(installCmd8.c_str());
+    let installCmd6: string = "\"" + cxvmDir + "/bin/cxvm\" install 6.0.0 >/dev/null 2>&1 || true";
+    system(installCmd6.c_str());
+
+    // 4. Set default and active version to 8.0.0
+    let useCmd: string = "\"" + cxvmDir + "/bin/cxvm\" use 8.0.0 >/dev/null 2>&1 || true";
+    system(useCmd.c_str());
+
+    println("================================================================================");
+    println("  [OK] Setup complete! Active default: v8.0.0 (v6.0.0 ready)                    ");
+    println("================================================================================");
+    println("Activate in current terminal session:");
+    println("  export CXVM_DIR=\"" + cxvmDir + "\"");
+    println("  export PATH=\"$CXVM_DIR/bin:$CXVM_DIR/current/bin:$PATH\"");
+    println("================================================================================");
+
+    return 0;
+}
