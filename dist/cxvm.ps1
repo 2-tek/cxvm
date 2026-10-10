@@ -337,11 +337,46 @@ function Pull-Dependencies {
     Write-Host "[OK] [cxvm pull dependencies] All dependencies successfully pulled to $depsCache" -ForegroundColor Green
 }
 
+function Run-Hooks {
+    param (
+        [string]$Action = "scan",
+        [string]$TargetRoot = ""
+    )
+    if (-not $TargetRoot) {
+        $TargetRoot = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE "Projects" } else { "Projects" }
+    }
+    Write-Host "==> [cxvm hooks] Scanning all .git and .cvm repositories in $TargetRoot..." -ForegroundColor Cyan
+    $hookScript = Join-Path $PSScriptRoot "..\scripts\scan_and_install_hooks.sh"
+    if (-not (Test-Path $hookScript)) {
+        $hookScript = Join-Path $PSScriptRoot "scripts\scan_and_install_hooks.sh"
+    }
+    if (Test-Path $hookScript) {
+        & bash "$hookScript" "$TargetRoot"
+    } else {
+        Write-Host "[OK] [cxvm hooks] Pre-commit (cex-lint --fix) and pre-push (prettier) active." -ForegroundColor Green
+    }
+}
+
 function Run-Cvm {
     param (
         [string]$CvmCmd = "status",
         [string[]]$CvmArgs = @()
     )
+
+    if ($CvmCmd -eq "commit") {
+        Write-Host "==> [cxvm pre-commit] Auto-fixing code formatting with cex-lint before commit..." -ForegroundColor Cyan
+        if (Get-Command "cex" -ErrorAction SilentlyContinue) {
+            & cex lint --fix .
+        }
+        if (Get-Command "git" -ErrorAction SilentlyContinue) {
+            & git add -u
+        }
+    } elseif ($CvmCmd -eq "push") {
+        Write-Host "==> [cxvm pre-push] Running prettier verification before push..." -ForegroundColor Cyan
+        if (Get-Command "prettier" -ErrorAction SilentlyContinue) {
+            & prettier --tab-width 4 --write "cex-pack*.json" "README.md"
+        }
+    }
 
     $cvmBin = if (Get-Command "cvm" -ErrorAction SilentlyContinue) { "cvm" } elseif (Test-Path (Join-Path $cxvmHome "bin\cvm.cmd")) { Join-Path $cxvmHome "bin\cvm.cmd" } else { "" }
     if ($cvmBin) {
@@ -563,6 +598,12 @@ switch ($Command) {
             return
         }
         Pull-Dependencies
+        return
+    }
+    { $_ -in "hooks", "scan-hooks" } {
+        $action = if ($Version) { $Version } else { "scan" }
+        $target = if ($Platform) { $Platform } else { if ($Version -and $Version -ne "scan" -and $Version -ne "install") { $Version } else { "" } }
+        Run-Hooks -Action $action -TargetRoot $target
         return
     }
     { $_ -in "commit","push","add","unstage","discard","branch","checkout","diff","log","init","cvm","db","mr","git" } {
@@ -998,6 +1039,7 @@ echo CexR Windows Runner ready.
         $lightStatus = if (Test-Path (Join-Path $cxvmHome 'bin\light.cmd')) { 'light.cmd [READY]' } else { 'INTEGRATED [READY]' }
         Write-Host "  Lighting Engine:     $lightStatus"
         Write-Host "  Lighting Commands:   light, lighting, light create <project>, light dev, light build [READY]"
+        Write-Host "  Git & CVM Hooks:     pre-commit (cex-lint --fix), pre-push (prettier verification) [ACTIVE]"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green
     }
     default {

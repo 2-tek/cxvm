@@ -914,11 +914,103 @@ EOF_PKG
 }
 
 # -----------------------------------------------------------------------------
+# Integrated Git & CVM Hooks Subsystem (Pre-Commit CexLint & Pre-Push Prettier)
+# -----------------------------------------------------------------------------
+_cxvm_run_pre_commit_lint_fix() {
+  echo "==> [cxvm pre-commit] Auto-fixing code formatting with cex-lint before commit..."
+  if command -v cex >/dev/null 2>&1; then
+    cex lint --fix . 2>/dev/null || true
+  elif [ -x "$CXVM_DIR/bin/cex" ]; then
+    "$CXVM_DIR/bin/cex" lint --fix . 2>/dev/null || true
+  else
+    _cxvm_run_lint --fix . 2>/dev/null || true
+  fi
+  if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+    git add -u 2>/dev/null || true
+  fi
+  if command -v cvm >/dev/null 2>&1 && [ -d ".cvm" ]; then
+    cvm add -u 2>/dev/null || true
+  fi
+}
+
+_cxvm_run_pre_push_prettier() {
+  echo "==> [cxvm pre-push] Running prettier verification before push..."
+  local prettier_bin=""
+  if [ -x "$CXVM_DIR/bin/prettier" ]; then
+    prettier_bin="$CXVM_DIR/bin/prettier"
+  elif command -v prettier >/dev/null 2>&1; then
+    prettier_bin="$(command -v prettier)"
+  else
+    for p_cand in "$HOME"/.cxvm/bin/prettier "$HOME"/.nvm/versions/node/*/bin/prettier /usr/local/bin/prettier /usr/bin/prettier; do
+      if [ -x "$p_cand" ]; then
+        prettier_bin="$p_cand"
+        break
+      fi
+    done
+  fi
+
+  if [ -n "$prettier_bin" ]; then
+    local files_to_format=()
+    if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+      while IFS= read -r f; do
+        if [ -f "$f" ]; then
+          case "$f" in
+            *.json|*.md|*.yml|*.yaml|*.js|*.ts|*.html|*.css)
+              files_to_format+=("$f")
+              ;;
+          esac
+        fi
+      done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null || git ls-files 2>/dev/null)
+    fi
+
+    if [ ${#files_to_format[@]} -gt 0 ]; then
+      echo "--> [cxvm pre-push] Verifying Prettier style for modified files..."
+      "$prettier_bin" --tab-width 4 --write "${files_to_format[@]}" 2>/dev/null || true
+      if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+        git add -u 2>/dev/null || true
+      fi
+    else
+      "$prettier_bin" --tab-width 4 --write "cex-pack*.json" "README.md" 2>/dev/null || true
+    fi
+    echo "[OK] [cxvm pre-push] Prettier verification complete."
+  else
+    echo "[WARN] Prettier not found in PATH; skipping pre-push formatting."
+  fi
+}
+
+_cxvm_run_hooks() {
+  local sub="${1:-scan}"
+  shift || true
+  local root_target="${1:-$HOME/Projects}"
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  for cand in \
+    "$script_dir/scripts/scan_and_install_hooks.sh" \
+    "$script_dir/../scripts/scan_and_install_hooks.sh" \
+    "$CXVM_DIR/scripts/scan_and_install_hooks.sh" \
+    "$(pwd)/scripts/scan_and_install_hooks.sh"; do
+    if [ -f "$cand" ]; then
+      bash "$cand" "$root_target"
+      return $?
+    fi
+  done
+  echo "[ERROR] scripts/scan_and_install_hooks.sh not found."
+  return 1
+}
+
+# -----------------------------------------------------------------------------
 # Integrated CodeVersionManager (CVM) Runner
 # -----------------------------------------------------------------------------
 _cxvm_run_cvm() {
   local cvm_cmd="$1"
   shift || true
+
+  # Pre-commit auto-fix with cex-lint and pre-push prettier
+  if [ "$cvm_cmd" = "commit" ]; then
+    _cxvm_run_pre_commit_lint_fix
+  elif [ "$cvm_cmd" = "push" ]; then
+    _cxvm_run_pre_push_prettier
+  fi
 
   # 1. Dynamically locate node if not in PATH (Rule 72: dynamic paths)
   if ! command -v node >/dev/null 2>&1; then
@@ -1044,6 +1136,24 @@ cxvm() {
 
       echo "==> [cxvm $cmd] Auto-linting code when load before run $cmd..."
       _cxvm_run_lint . || exit 1
+
+      if [ "$cmd" = "start" ]; then
+        if [ $# -gt 0 ] && [ -f "$1" ] && [[ "$1" != *.cex ]]; then
+          local target_bin="$1"
+          shift
+          chmod +x "$target_bin" 2>/dev/null || true
+          echo "==============================================================================="
+          echo "      ⚡ 2-TEK Production Mode: Starting Bit Code Binary                       "
+          echo "==============================================================================="
+          echo "  > Binary Location:   $target_bin"
+          echo "  > Mode:              Production (Bit Code Native Engine)"
+          echo "  > Start Command:     cxvm start $target_bin"
+          echo "==============================================================================="
+          exec "$target_bin" "$@"
+        elif [ -f "bin/start" ]; then
+          exec bash "bin/start" "$@"
+        fi
+      fi
 
       local main_file=""
       if [ $# -gt 0 ] && [[ "$1" == *.cex ]]; then
@@ -1272,6 +1382,13 @@ INDEX_EOF
         shift
       fi
       _cxvm_run_pull_dependencies "$@"
+      return $?
+      ;;
+
+    hooks|scan-hooks)
+      local sub_action="${1:-scan}"
+      shift || true
+      _cxvm_run_hooks "$sub_action" "$@"
       return $?
       ;;
 
@@ -2318,6 +2435,7 @@ INDEX_EOF
       echo "  Lighting Engine:     $light_status"
       echo "  Lighting Commands:   light, lighting, light create <project>, light dev, light build [READY]"
       echo "  Code Linter:         $([ -x "$CXVM_DIR/current/bin/cex" ] || command -v cex >/dev/null 2>&1 && echo "CexLint [Auto-lint on load/dev ENABLED]" || echo "CexLint v1.0.0 [READY]")"
+      echo "  Git & CVM Hooks:     pre-commit (cex-lint --fix), pre-push (prettier verification) [ACTIVE]"
       echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
       echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
       echo "  Supported Targets:   6 architectures (download & install ready)"
@@ -2392,6 +2510,7 @@ INDEX_EOF
       echo "  cvm <subcommand>      Change record commands (diff, preview, apply, record)"
       echo "  db <subcommand>       LocalSQLServer commands (status, sync, query)"
       echo "  git <args...>         Execute native git commands directly via cxvm"
+      echo "  hooks [scan|install]  Scan .git and .cvm repos, install pre-commit (cex-lint) and pre-push (prettier) hooks"
       echo ""
       echo "General:"
       echo "  help                  Show this help message"

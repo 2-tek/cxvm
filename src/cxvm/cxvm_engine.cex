@@ -541,6 +541,7 @@ class CxvmEngine {
         out += "  Lighting Commands: light, lighting, light create <project>, light dev, light build [READY]\n";
         out += "  Upgrade Subsystem: cxvm upgrade (auto-upgrade cexr and cexp to latest version) [READY]\n";
         out += "  Dependencies Sub:  cxvm pull dependencies (store: " + this.getDependenciesDir() + ", --upgrade, --clean) [READY]\n";
+        out += "  Git & CVM Hooks:   pre-commit (cex-lint --fix), pre-push (prettier verification) [ACTIVE]\n";
         out += "  CXVM Init:         INTEGRATED [cxvm init <name> (default: my-project, cex-pack, .cex_boxes, .cvm, .cvmignore, README, SECURITY, LICENSE)]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
@@ -612,6 +613,7 @@ class CxvmEngine {
     }
 
     public cvmCommit(message: string, authorName: string, authorEmail: string): CxvmCommandResult* {
+        this.autoLintFix(".");
         let msg: string = message.length() == 0 ? "Commit via cxvm" : message;
         let aName: string = authorName.length() == 0 ? "2-TEK Developer" : authorName;
         let aEmail: string = authorEmail.length() == 0 ? "dev@2tek.local" : authorEmail;
@@ -628,6 +630,7 @@ class CxvmEngine {
     }
 
     public cvmPush(remoteArg: string, branchArg: string): CxvmCommandResult* {
+        system("prettier --write \"**/*.{json,md,yml,yaml,js,ts,html,css}\" --tab-width 4 --ignore-unknown 2>/dev/null || true");
         let remote: string = remoteArg.length() == 0 ? "origin" : remoteArg;
         let currBranch: string = this.cvmRepo->refManager->getCurrentBranch();
         let branch: string = branchArg.length() == 0 ? (currBranch.length() == 0 ? "main" : currBranch) : branchArg;
@@ -939,7 +942,49 @@ class CxvmEngine {
         if (cmd == "light" || cmd == "lighting") {
             return this.lightExecute(arg1, arg2, "");
         }
+        if (cmd == "hooks" || cmd == "scan-hooks") {
+            let root: string = (arg1 == "scan" || arg1 == "install") ? arg2 : arg1;
+            let res: CxvmCommandResult* = this.scanAndInstallHooks(root);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
         return this.cvmCli->execute(cmd, arg1, arg2);
+    }
+
+    public autoLintFix(targetDir: string): bool {
+        let dir: string = targetDir.length() == 0 ? "." : targetDir;
+        if (!fs.exists(dir + "/cex-pack.json")) {
+            return true;
+        }
+        println("==> [cxvm commit] Running CexLint auto-fix before commit (" + dir + ")...");
+        let cexBin: string = "cex";
+        if (fs.exists("./bin/cex")) {
+            cexBin = "./bin/cex";
+        } else if (fs.exists("bin/cex")) {
+            cexBin = "bin/cex";
+        }
+        let cmd: string = cexBin + " lint --fix " + dir;
+        let res: int = system(cmd.c_str());
+        if (res != 0 && res != 32512) {
+            println("[FAIL] [cxvm lint] Auto-fix encountered issues with exit code " + to_string(res));
+            return false;
+        }
+        println("[OK] [cxvm commit] CexLint auto-fix completed.");
+        return true;
+    }
+
+    public scanAndInstallHooks(searchRoot: string): CxvmCommandResult* {
+        let root: string = searchRoot.length() == 0 ? "$HOME/Projects" : searchRoot;
+        let scriptPath: string = "scripts/scan_and_install_hooks.sh";
+        if (!fs.exists(scriptPath)) {
+            scriptPath = "../scripts/scan_and_install_hooks.sh";
+        }
+        let out: string = "==> [cxvm hooks] Scanning all .git and .cvm repositories in " + root + "...\n";
+        if (fs.exists(scriptPath)) {
+            system(("bash \"" + scriptPath + "\" \"" + root + "\"").c_str());
+        }
+        out += "[OK] [cxvm hooks] Pre-commit (cex-lint --fix) and pre-push (prettier) hooks installed across repositories";
+        return new CxvmCommandResult("hooks", "scan", true, "Scanned and installed pre-commit and pre-push hooks", out);
     }
 
     public autoLint(targetDir: string): bool {

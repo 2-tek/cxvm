@@ -83,6 +83,8 @@ class FactoryApp {
         this.router->post("/api/v1/upgrade", "factory.apiUpgrade");
         this.router->get("/api/v1/dependencies/pull", "factory.apiPullDependencies");
         this.router->post("/api/v1/dependencies/pull", "factory.apiPullDependencies");
+        this.router->get("/api/v1/hooks/scan", "factory.apiHooksScan");
+        this.router->post("/api/v1/hooks/install", "factory.apiHooksInstall");
     }
 
     public start(): void {
@@ -252,6 +254,14 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiLightCreate") {
             return this.controller->apiLightCreate(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiHooksScan") {
+            return this.controller->apiHooksScan(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiHooksInstall") {
+            return this.controller->apiHooksInstall(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

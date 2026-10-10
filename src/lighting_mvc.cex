@@ -91,6 +91,18 @@ class HttpRequest {
         this.contentType = cType;
         this.queryParams = new Array<string>();
         this.pathParams = new Array<string>();
+
+        if (this.path.find("?") != -1) {
+            let qIdx: int = (int)this.path.find("?");
+            let qStr: string = this.path.substr(qIdx + 1, (int)this.path.length() - qIdx - 1);
+            this.path = this.path.substr(0, qIdx);
+            let eqIdx: int = (int)qStr.find("=");
+            if (eqIdx != -1) {
+                let k: string = qStr.substr(0, eqIdx);
+                let v: string = qStr.substr(eqIdx + 1, (int)qStr.length() - eqIdx - 1);
+                this.addQueryParam(k, v);
+            }
+        }
     }
 
     public addQueryParam(key: string, value: string): void {
@@ -121,6 +133,10 @@ class HttpRequest {
             if (item.find(prefix) == 0) {
                 return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
             }
+        }
+        let qVal: string = this.getQuery(key);
+        if (qVal.length() > 0) {
+            return qVal;
         }
         return "";
     }

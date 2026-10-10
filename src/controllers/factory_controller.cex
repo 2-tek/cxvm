@@ -542,4 +542,43 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "message", res->message);
         return this.json(doc);
     }
+
+    public apiHooksScan(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let root: string = req->getParam("root");
+        if (root.length() == 0) {
+            root = "$HOME/Projects";
+        }
+        let res: CxvmCommandResult* = cxvm->scanAndInstallHooks(root);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "root", root);
+        JsonDoc::setStr(doc, "action", "scan");
+        JsonDoc::setStr(doc, "preCommit", "cex-lint --fix");
+        JsonDoc::setStr(doc, "prePush", "prettier verification");
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
+    public apiHooksInstall(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let root: string = req->getParam("root");
+        if (root.length() == 0 && req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("root")) {
+                root = parsed->get("root")->asString();
+            }
+        }
+        if (root.length() == 0) {
+            root = "$HOME/Projects";
+        }
+        let res: CxvmCommandResult* = cxvm->scanAndInstallHooks(root);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "root", root);
+        JsonDoc::setStr(doc, "action", "install");
+        JsonDoc::setStr(doc, "preCommit", "cex-lint --fix");
+        JsonDoc::setStr(doc, "prePush", "prettier verification");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
 }

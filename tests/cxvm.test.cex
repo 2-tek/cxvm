@@ -568,6 +568,47 @@ fn main(): int {
 
     suite->addResult("test_pull_dependencies_subsystem", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 13: Git & CVM Hooks Subsystem (Pre-Commit CexLint & Pre-Push Prettier)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 13: Git & CVM Hooks Subsystem (Pre-Commit CexLint & Pre-Push Prettier)]");
+
+    // 1. autoLintFix verification
+    let autoLintFixRes: bool = cxvm->autoLintFix(".");
+    Assert::isTrue(autoLintFixRes, "cxvm autoLintFix succeeds on valid project");
+
+    // 2. scanAndInstallHooks verification
+    let hooksRes: CxvmCommandResult* = cxvm->scanAndInstallHooks(".");
+    Assert::isTrue(hooksRes->success, "cxvm scanAndInstallHooks succeeds");
+    Assert::isTrue(hooksRes->output.find("Pre-commit (cex-lint --fix)") != -1, "Output confirms pre-commit hook installed");
+    Assert::isTrue(hooksRes->output.find("pre-push (prettier)") != -1, "Output confirms pre-push hook installed");
+
+    // 3. CLI execution via cvmExecute
+    let hooksExec1: int = cxvm->cvmExecute("hooks", "scan", ".");
+    Assert::equalsInt(0, hooksExec1, "cxvm cvmExecute hooks scan returns exit code 0");
+
+    let hooksExec2: int = cxvm->cvmExecute("scan-hooks", ".", "");
+    Assert::equalsInt(0, hooksExec2, "cxvm cvmExecute scan-hooks returns exit code 0");
+
+    // 4. REST API GET /api/v1/hooks/scan
+    let resHooksScan: HttpResponse* = app->simulateRequest("GET", "/api/v1/hooks/scan?root=.", "", "application/json");
+    Assert::equalsInt(200, resHooksScan->statusCode, "GET /api/v1/hooks/scan returns 200 OK");
+    Assert::isTrue(resHooksScan->body.find("SUCCESS") != -1, "Hooks scan reports SUCCESS");
+    Assert::isTrue(resHooksScan->body.find("cex-lint --fix") != -1, "Hooks scan reports preCommit cex-lint --fix");
+    Assert::isTrue(resHooksScan->body.find("prettier verification") != -1, "Hooks scan reports prePush prettier verification");
+
+    // 5. REST API POST /api/v1/hooks/install
+    let resHooksInstall: HttpResponse* = app->simulateRequest("POST", "/api/v1/hooks/install", "{\"root\":\".\"}", "application/json");
+    Assert::equalsInt(200, resHooksInstall->statusCode, "POST /api/v1/hooks/install returns 200 OK");
+    Assert::isTrue(resHooksInstall->body.find("SUCCESS") != -1, "Hooks install reports SUCCESS");
+
+    // 6. Doctor output verification for hooks
+    let docHooks: string = cxvm->doctor();
+    Assert::isTrue(docHooks.find("Git & CVM Hooks:") != -1, "Doctor reports Git & CVM Hooks");
+    Assert::isTrue(docHooks.find("pre-commit (cex-lint --fix)") != -1, "Doctor reports pre-commit hook active");
+
+    suite->addResult("test_git_and_cvm_hooks_subsystem", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;
