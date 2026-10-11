@@ -627,6 +627,7 @@ class CxvmEngine {
             let res: CxvmCommandResult* = this.statusThunder();
             println(res->output);
             return 0;
+        }
         if (cmd == "init") {
             let pName: string = arg1.length() == 0 ? "my-project" : arg1;
             let res: CxvmCommandResult* = this.cxvmInit(pName, ".");
