@@ -71,6 +71,9 @@ class FactoryApp {
         this.router->post("/api/v1/cvm/server/start", "factory.apiCvmServerStart");
         this.router->get("/api/v1/cvm/server/status", "factory.apiCvmServerStatus");
         this.router->post("/api/v1/cvm/server/stop", "factory.apiCvmServerStop");
+        this.router->post("/api/v1/server/start", "factory.apiServerStart");
+        this.router->get("/api/v1/server/status", "factory.apiServerStatus");
+        this.router->post("/api/v1/server/stop", "factory.apiServerStop");
         this.router->get("/api/v1/thunder/status", "factory.apiThunderStatus");
         this.router->post("/api/v1/thunder/server/start", "factory.apiThunderServerStart");
         this.router->get("/api/v1/thunder/server/status", "factory.apiThunderServerStatus");
@@ -222,6 +225,18 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiCvmServerStop") {
             return this.controller->apiCvmServerStop(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiServerStart") {
+            return this.controller->apiServerStart(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiServerStatus") {
+            return this.controller->apiServerStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiServerStop") {
+            return this.controller->apiServerStop(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.apiThunderStatus") {

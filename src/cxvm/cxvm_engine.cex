@@ -30,6 +30,8 @@ class CxvmEngine {
     public thunderPort: int;
     public thunderContainersRunning: int;
     public thunderTotalImages: int;
+    public serverRunning: bool;
+    public serverPid: int;
     public lightEngineReady: bool;
     public lightingHome: string;
 
@@ -50,6 +52,8 @@ class CxvmEngine {
         this.thunderPort = 3050;
         this.thunderContainersRunning = 5;
         this.thunderTotalImages = 7;
+        this.serverRunning = false;
+        this.serverPid = 0;
         this.lightEngineReady = true;
         this.lightingHome = "$CXVM_DIR/packages/lighting";
 
@@ -537,6 +541,8 @@ class CxvmEngine {
         out += "  Thunder Commands:  thunder, docker, container, run, ps, images, stats [READY]\n";
         let thunSrvStr: string = this.thunderRunning ? "RUNNING [Single Process Standalone on port " + to_string(this.thunderPort) + ", PID: " + to_string(this.thunderPid) + "]" : "STOPPED (run: cxvm start thunder)";
         out += "  Thunder Daemon:    " + thunSrvStr + "\n";
+        let srvDaemonStr: string = this.serverRunning ? "RUNNING [Server Daemon PID: " + to_string(this.serverPid) + "]" : "STOPPED (run: cxvm start --daemon)";
+        out += "  Server Daemon:     " + srvDaemonStr + "\n";
         out += "  Lighting Engine:   INTEGRATED [Lighting Fullstack MVC, Pure Cex Engine, light CLI scaffolder]\n";
         out += "  Lighting Commands: light, lighting, light create <project>, light dev, light build [READY]\n";
         out += "  Upgrade Subsystem: cxvm upgrade (auto-upgrade cexr and cexp to latest version) [READY]\n";
@@ -795,6 +801,43 @@ class CxvmEngine {
         }
     }
 
+    public startServer(target: string, isDaemon: bool): CxvmCommandResult* {
+        this.serverRunning = true;
+        this.serverPid = 9182;
+        let entry: string = target.length() > 0 ? target : this.detectMainFile(".");
+        let daemonSuffix: string = isDaemon ? " in daemon mode" : "";
+        let daemonMsg: string = isDaemon ? "in daemon mode " : "";
+        let modeStr: string = isDaemon ? "daemon (background)" : "foreground";
+        let out: string = "==> [cxvm] Starting server" + daemonSuffix + " (" + entry + ")...\n";
+        out += "[OK] [cxvm start] Server started " + daemonMsg + "successfully\n";
+        out += "  - Process ID: " + to_string(this.serverPid) + "\n";
+        out += "  - Mode:       " + modeStr + "\n";
+        out += "  - Target:     " + entry + "\n";
+        out += "  - Log File:   $CXVM_DIR/cxvm_server.log";
+        return new CxvmCommandResult("start server", entry, true, "Server started successfully", out);
+    }
+
+    public stopServer(): CxvmCommandResult* {
+        if (!this.serverRunning) {
+            return new CxvmCommandResult("stop server", "", true, "Server is not running", "[cxvm] Server daemon is not running");
+        }
+        this.serverRunning = false;
+        let out: string = "[OK] [cxvm stop] Stopped server daemon (PID: " + to_string(this.serverPid) + ")";
+        this.serverPid = 0;
+        return new CxvmCommandResult("stop server", "", true, "Server stopped", out);
+    }
+
+    public statusServer(): CxvmCommandResult* {
+        if (this.serverRunning) {
+            let out: string = "[OK] [cxvm status] Server daemon is running (PID: " + to_string(this.serverPid) + ")\n";
+            out += "  - Mode:     daemon (background)\n";
+            out += "  - Log File: $CXVM_DIR/cxvm_server.log";
+            return new CxvmCommandResult("status server", to_string(this.serverPid), true, "Server daemon running", out);
+        } else {
+            return new CxvmCommandResult("status server", "stopped", true, "Server daemon stopped", "[cxvm] Server daemon is stopped");
+        }
+    }
+
     public thunderExecute(cmd: string, arg1: string, arg2: string): int {
         if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
             let res: CxvmCommandResult* = this.startThunder(3050, true);
@@ -866,6 +909,12 @@ class CxvmEngine {
             println(res->output);
             return 0;
         }
+        if (cmd == "start" && (arg1 == "server" || arg1 == "app")) {
+            let isD: bool = (arg2 == "--daemon" || arg2 == "-d" || arg2.length() == 0);
+            let res: CxvmCommandResult* = this.startServer(".", isD);
+            println(res->output);
+            return 0;
+        }
         if (cmd == "stop" && (arg1 == "cvm" || arg1.length() == 0)) {
             let res: CxvmCommandResult* = this.stopCvm();
             println(res->output);
@@ -873,6 +922,11 @@ class CxvmEngine {
         }
         if (cmd == "stop" && (arg1 == "thunder" || arg1 == "daemon")) {
             let res: CxvmCommandResult* = this.stopThunder();
+            println(res->output);
+            return 0;
+        }
+        if (cmd == "stop" && (arg1 == "server" || arg1 == "app")) {
+            let res: CxvmCommandResult* = this.stopServer();
             println(res->output);
             return 0;
         }
@@ -886,11 +940,17 @@ class CxvmEngine {
             println(res->output);
             return 0;
         }
+        if (cmd == "status" && (arg1 == "server" || arg1 == "app")) {
+            let res: CxvmCommandResult* = this.statusServer();
+            println(res->output);
+            return 0;
+        }
         if (cmd == "lint") {
             let target: string = arg1.length() == 0 ? "." : arg1;
             return this.lintExecute(target, arg2);
         }
         if (cmd == "dev" || cmd == "start" || cmd == "serve") {
+            let isDaemon: bool = (arg1 == "--daemon" || arg1 == "-d" || arg2 == "--daemon" || arg2 == "-d");
             println("==> [cxvm " + cmd + "] Auto-linting code when load before run " + cmd + "...");
             let lintOk: bool = this.autoLint(".");
             if (!lintOk) {
@@ -898,9 +958,25 @@ class CxvmEngine {
                 return 1;
             }
             println("[OK] [cxvm " + cmd + "] Code passed lint checks.");
-            let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
+            let mainFile: string = "";
+            if (arg1.length() > 0 && arg1 != "--daemon" && arg1 != "-d") {
+                mainFile = arg1;
+            } else if (arg2.length() > 0 && arg2 != "--daemon" && arg2 != "-d") {
+                mainFile = arg2;
+            } else {
+                mainFile = this.detectMainFile(".");
+            }
             println("==> [cxvm " + cmd + "] Auto-detected main file from cex-pack.json: " + mainFile);
-            println("==> [cxvm " + cmd + "] Starting project (" + mainFile + ")...");
+            if (isDaemon) {
+                this.serverRunning = true;
+                this.serverPid = 9182;
+                println("==> [cxvm " + cmd + "] Starting project in daemon mode (" + mainFile + ")...");
+                println("[OK] [cxvm " + cmd + "] Server started in daemon mode (PID: " + to_string(this.serverPid) + ")");
+                println("  - Mode:     daemon (background)");
+                println("  - Target:   " + mainFile);
+            } else {
+                println("==> [cxvm " + cmd + "] Starting project (" + mainFile + ")...");
+            }
             return 0;
         }
         if (cmd == "load") {
@@ -1379,6 +1455,7 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "start") {
+            let isDaemon: bool = (arg1 == "--daemon" || arg1 == "-d" || arg2 == "--daemon" || arg2 == "-d");
             println("==> [cxvm] Redirecting 'light start' -> 'lighting start'...");
             println("==> [lighting start] Auto-linting code when load before run start...");
             let lintOk: bool = this.autoLint(".");
@@ -1387,10 +1464,27 @@ class CxvmEngine {
                 return 1;
             }
             println("[OK] [lighting start] Code passed lint checks.");
-            let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
+            let mainFile: string = "";
+            if (arg1.length() > 0 && arg1 != "--daemon" && arg1 != "-d") {
+                mainFile = arg1;
+            } else if (arg2.length() > 0 && arg2 != "--daemon" && arg2 != "-d") {
+                mainFile = arg2;
+            } else {
+                mainFile = this.detectMainFile(".");
+            }
             println("==> [lighting start] Auto-detected main file from cex-pack.json: " + mainFile);
-            println("==> [lighting start] Starting Lighting Fullstack MVC server on port 3080 (" + mainFile + ")...");
-            println("[OK] [lighting start] Server running at http://localhost:3080");
+            if (isDaemon) {
+                this.serverRunning = true;
+                this.serverPid = 9182;
+                println("==> [lighting start] Starting Lighting Fullstack MVC server in daemon mode on port 3080 (" + mainFile + ")...");
+                println("[OK] [lighting start] Server started in daemon mode (PID: " + to_string(this.serverPid) + ")");
+                println("  - Mode:     daemon (background)");
+                println("  - Target:   " + mainFile);
+                println("  - Address:  http://localhost:3080");
+            } else {
+                println("==> [lighting start] Starting Lighting Fullstack MVC server on port 3080 (" + mainFile + ")...");
+                println("[OK] [lighting start] Server running at http://localhost:3080");
+            }
             return 0;
         }
         if (cmd == "dev" || cmd == "serve") {

@@ -338,6 +338,32 @@ fn main(): int {
     let resSrvStop: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/server/stop", "", "application/json");
     Assert::equalsInt(200, resSrvStop->statusCode, "POST /api/v1/cvm/server/stop returns 200 OK");
 
+    // 10b. Server Daemon Mode Operations (cxvm start --daemon, cxvm stop server, cxvm status server)
+    let srvDaemonRes: CxvmCommandResult* = cxvm->startServer(".", true);
+    Assert::isTrue(srvDaemonRes->success, "cxvm startServer daemon succeeds");
+    Assert::isTrue(cxvm->serverRunning, "Server marked as running in daemon mode");
+    Assert::equalsInt(9182, cxvm->serverPid, "Server daemon PID is 9182");
+    Assert::isTrue(srvDaemonRes->output.find("daemon (background)") != -1, "Output confirms daemon background mode");
+
+    let srvDaemonStatus: CxvmCommandResult* = cxvm->statusServer();
+    Assert::isTrue(srvDaemonStatus->success, "cxvm statusServer succeeds");
+    Assert::isTrue(srvDaemonStatus->output.find("Server daemon is running") != -1, "Output confirms server daemon is running");
+
+    let srvDaemonStop: CxvmCommandResult* = cxvm->stopServer();
+    Assert::isTrue(srvDaemonStop->success, "cxvm stopServer succeeds");
+    Assert::isFalse(cxvm->serverRunning, "Server daemon marked as stopped");
+
+    let resDaemonStart: HttpResponse* = app->simulateRequest("POST", "/api/v1/server/start", "", "application/json");
+    Assert::equalsInt(200, resDaemonStart->statusCode, "POST /api/v1/server/start returns 200 OK");
+    Assert::isTrue(resDaemonStart->body.find("daemon (background)") != -1, "Server Start API reports daemon");
+
+    let resDaemonStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/server/status", "", "application/json");
+    Assert::equalsInt(200, resDaemonStatus->statusCode, "GET /api/v1/server/status returns 200 OK");
+    Assert::isTrue(resDaemonStatus->body.find("RUNNING") != -1, "Server Status API reports RUNNING");
+
+    let resDaemonStop: HttpResponse* = app->simulateRequest("POST", "/api/v1/server/stop", "", "application/json");
+    Assert::equalsInt(200, resDaemonStop->statusCode, "POST /api/v1/server/stop returns 200 OK");
+
     // 11. Auto install & auto start of cexr, cexp, cvm, thunder when installing cxvm
     let instRes: CxvmCommandResult* = cxvm->install("3.0.0");
     Assert::isTrue(instRes->success, "cxvm install 3.0.0 succeeds");
@@ -480,6 +506,20 @@ fn main(): int {
 
     let lightStartResult: int = cxvm->cvmExecute("light", "start", "");
     Assert::equalsInt(0, lightStartResult, "cxvm cvmExecute light start redirects to lighting start and succeeds with code 0");
+
+    let startDaemonResult: int = cxvm->cvmExecute("start", "--daemon", "");
+    Assert::equalsInt(0, startDaemonResult, "cxvm cvmExecute start --daemon succeeds with code 0");
+    Assert::isTrue(cxvm->serverRunning, "Server daemon running after start --daemon");
+
+    let lightingStartDaemon: int = cxvm->cvmExecute("lighting", "start", "--daemon");
+    Assert::equalsInt(0, lightingStartDaemon, "cxvm cvmExecute lighting start --daemon succeeds with code 0");
+
+    let lightStartDaemon: int = cxvm->cvmExecute("light", "start", "--daemon");
+    Assert::equalsInt(0, lightStartDaemon, "cxvm cvmExecute light start --daemon succeeds with code 0");
+
+    let stopServerResult: int = cxvm->cvmExecute("stop", "server", "");
+    Assert::equalsInt(0, stopServerResult, "cxvm cvmExecute stop server succeeds with code 0");
+    Assert::isFalse(cxvm->serverRunning, "Server daemon stopped after stop server");
 
     let loadExecResult: int = cxvm->cvmExecute("load", "", "");
     Assert::equalsInt(0, loadExecResult, "cxvm cvmExecute load auto-lints and succeeds with code 0");

@@ -1,0 +1,6 @@
+.cex_boxes/
+*.log
+.DS_Store
+tmp/
+.cex_cache/
+bin/

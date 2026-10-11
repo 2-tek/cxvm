@@ -1015,6 +1015,15 @@ echo CexR Windows Runner ready.
         }
     }
     "start" {
+        $isDaemon = $false
+        $filtered = @()
+        foreach ($a in $args) {
+            if ($a -eq "-d" -or $a -eq "--daemon") {
+                $isDaemon = $true
+            } else {
+                $filtered += $a
+            }
+        }
         Write-Host "==> [cxvm start] Auto-linting code when load before run start..." -ForegroundColor Cyan
         if (Get-Command cex -ErrorAction SilentlyContinue) {
             & cex lint --quiet .
@@ -1024,16 +1033,39 @@ echo CexR Windows Runner ready.
             }
         }
         $mainFile = "src\index.cex"
-        if (Test-Path "cex-pack.json") {
+        if ($filtered.Count -gt 0 -and $filtered[0] -ne "") {
+            $mainFile = $filtered[0]
+        } elseif (Test-Path "cex-pack.json") {
             $mContent = Get-Content "cex-pack.json" -Raw
             if ($mContent -match '"main"\s*:\s*"([^"]+)"') {
                 $mainFile = $Matches[1].Replace("/", "\")
             }
         }
         Write-Host "==> [cxvm start] Auto-detected main file from cex-pack.json: $mainFile" -ForegroundColor Cyan
-        Write-Host "==> [cxvm start] Starting project ($mainFile)..." -ForegroundColor Cyan
-        if (Test-Path $mainFile) {
-            Write-Host "[OK] Project running at $mainFile" -ForegroundColor Green
+        if ($isDaemon) {
+            Write-Host "==> [cxvm start] Starting project in daemon mode ($mainFile)..." -ForegroundColor Cyan
+            $pidFile = Join-Path $cxvmHome "cxvm_server.pid"
+            $logFile = Join-Path $cxvmHome "cxvm_server.log"
+            $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+            $pinfo.FileName = "cexr"
+            $pinfo.Arguments = "`"$mainFile`""
+            $pinfo.RedirectStandardOutput = $true
+            $pinfo.RedirectStandardError = $true
+            $pinfo.UseShellExecute = $false
+            $pinfo.CreateNoWindow = $true
+            $proc = [System.Diagnostics.Process]::Start($pinfo)
+            if ($proc) {
+                Set-Content -Path $pidFile -Value $proc.Id
+                Write-Host "[OK] [cxvm start] Server started in daemon mode (PID: $($proc.Id))" -ForegroundColor Green
+                Write-Host "  - Mode:     daemon (background)"
+                Write-Host "  - Target:   $mainFile"
+                Write-Host "  - Log File: $logFile"
+            }
+        } else {
+            Write-Host "==> [cxvm start] Starting project ($mainFile)..." -ForegroundColor Cyan
+            if (Test-Path $mainFile) {
+                Write-Host "[OK] Project running at $mainFile" -ForegroundColor Green
+            }
         }
     }
     "dev" {
@@ -1115,6 +1147,16 @@ echo CexR Windows Runner ready.
         }
         Write-Host "  Thunder Engine:      $(if (Test-Path (Join-Path $cxvmHome 'bin\thunder.cmd')) { 'thunder.cmd [READY]' } else { 'INTEGRATED [READY]' })"
         Write-Host "  Thunder Daemon:      $thStatus"
+        $srvDaemonStatus = "STOPPED (run: cxvm start --daemon)"
+        $srvDaemonPidFile = Join-Path $cxvmHome "cxvm_server.pid"
+        if (Test-Path $srvDaemonPidFile) {
+            $srvDPid = (Get-Content $srvDaemonPidFile -Raw).Trim()
+            $proc = Get-Process -Id $srvDPid -ErrorAction SilentlyContinue
+            if ($proc) {
+                $srvDaemonStatus = "RUNNING [PID: $srvDPid]"
+            }
+        }
+        Write-Host "  Server Daemon:       $srvDaemonStatus"
         $lightStatus = if (Test-Path (Join-Path $cxvmHome 'bin\lighting.cmd')) { 'lighting.cmd [READY]' } elseif (Test-Path (Join-Path $cxvmHome 'bin\light.cmd')) { 'light.cmd [READY]' } else { 'INTEGRATED [READY]' }
         Write-Host "  Lighting Engine:     $lightStatus"
         Write-Host "  Lighting Commands:   lighting, light, lighting start, light start, light dev, light build [READY]"
@@ -1128,8 +1170,9 @@ echo CexR Windows Runner ready.
         Write-Host "Commands:"
         Write-Host "  setup                 Display setup window & configure PATH, env, and default runtimes"
         Write-Host "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
-        Write-Host "  lighting start        Start Lighting production server (or: cxvm lighting start)"
-        Write-Host "  light start           Start Lighting server (redirects 'light start' -> 'lighting start')"
+        Write-Host "  start [target] [-d]   Start production server or binary (supports --daemon mode)"
+        Write-Host "  lighting start [-d]   Start Lighting production server (supports --daemon mode)"
+        Write-Host "  light start [-d]      Start Lighting server (redirects 'light start' -> 'lighting start')"
         Write-Host "  light create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
         Write-Host "  light dev             Start local development server"
         Write-Host "  light build           Compile project with cexp native compiler"

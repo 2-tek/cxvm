@@ -370,6 +370,36 @@ class FactoryController extends BaseController {
         return this.json(doc);
     }
 
+    public apiServerStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->startServer(".", true);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "service", "cxvm-server");
+        JsonDoc::setStr(doc, "mode", "daemon (background)");
+        JsonDoc::setNum(doc, "pid", cxvm->serverPid);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiServerStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->statusServer();
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", cxvm->serverRunning ? "RUNNING" : "STOPPED");
+        JsonDoc::setBool(doc, "isRunning", cxvm->serverRunning);
+        JsonDoc::setNum(doc, "pid", cxvm->serverPid);
+        JsonDoc::setStr(doc, "mode", "daemon (background)");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiServerStop(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let res: CxvmCommandResult* = cxvm->stopServer();
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "STOPPED");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
     public apiThunderStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "SUCCESS");

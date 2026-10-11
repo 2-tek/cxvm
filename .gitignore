@@ -34,3 +34,4 @@ cex_boxes/
 *.log
 packages/*
 downloads/
+.cvm/

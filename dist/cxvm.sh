@@ -160,6 +160,11 @@ _cxvm_run_thunder() {
   local thun_cmd="${1:-ps}"
   shift || true
 
+  if [ "$thun_cmd" = "start" ] || [ "$thun_cmd" = "stop" ] || [ "$thun_cmd" = "status" ] || [ "$thun_cmd" = "restart" ]; then
+    _cxvm_start_thunder_server "$thun_cmd" "$@"
+    return $?
+  fi
+
   # 0. Check cex-pack.json for thunder zero-file quick definition
   local manifest="cex-pack.json"
   if [ ! -f "$manifest" ]; then
@@ -277,6 +282,92 @@ _cxvm_run_thunder() {
   done
 
   echo "Thunder Container Engine: command '$thun_cmd' completed."
+  return 0
+}
+
+# -----------------------------------------------------------------------------
+# Background Daemon Process Manager (cxvm start --daemon)
+# -----------------------------------------------------------------------------
+_cxvm_start_daemon_process() {
+  local pid_file="$1"
+  local log_file="$2"
+  local label="$3"
+  shift 3
+  local run_cmd=("$@")
+
+  if [ -f "$pid_file" ]; then
+    local old_pid
+    old_pid="$(cat "$pid_file" 2>/dev/null)"
+    if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
+      echo "[WARN] [cxvm $label] Server daemon is already running (PID: $old_pid)."
+      echo "  Log File: $log_file"
+      echo "  Use 'cxvm stop server' or 'cxvm stop' to stop it first."
+      return 0
+    fi
+  fi
+
+  mkdir -p "$(dirname "$pid_file")" "$(dirname "$log_file")" 2>/dev/null || true
+  nohup "${run_cmd[@]}" >> "$log_file" 2>&1 &
+  local daemon_pid=$!
+  sleep 0.2
+
+  if kill -0 "$daemon_pid" 2>/dev/null; then
+    echo "$daemon_pid" > "$pid_file"
+    if [ -d ".cxvm" ]; then
+      echo "$daemon_pid" > ".cxvm/server.pid" 2>/dev/null || true
+    fi
+    echo "==============================================================================="
+    echo "      2-TEK Production Mode: Server Started in Daemon Mode                     "
+    echo "==============================================================================="
+    echo "  - Process ID:  $daemon_pid"
+    echo "  - Mode:        daemon (background)"
+    echo "  - Command:     ${run_cmd[*]}"
+    echo "  - Log File:    $log_file"
+    echo "  - PID File:    $pid_file"
+    echo "==============================================================================="
+    echo "[OK] [cxvm $label] Server started successfully in daemon mode (PID: $daemon_pid)"
+    return 0
+  else
+    echo "[FAIL] [cxvm $label] Server daemon failed to start. Check log: $log_file"
+    tail -n 10 "$log_file" 2>/dev/null || true
+    return 1
+  fi
+}
+
+_cxvm_stop_server_daemon() {
+  local pid_file="$CXVM_DIR/cxvm_server.pid"
+  local pid=""
+  if [ -f "$pid_file" ]; then
+    pid="$(cat "$pid_file" 2>/dev/null)"
+  elif [ -f ".cxvm/server.pid" ]; then
+    pid="$(cat ".cxvm/server.pid" 2>/dev/null)"
+  fi
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || kill -9 "$pid" 2>/dev/null
+    rm -f "$pid_file" ".cxvm/server.pid" 2>/dev/null || true
+    echo "[OK] [cxvm stop] Stopped server daemon (PID: $pid)"
+    return 0
+  fi
+  rm -f "$pid_file" ".cxvm/server.pid" 2>/dev/null || true
+  echo "[cxvm stop] Server daemon is not running"
+  return 0
+}
+
+_cxvm_status_server_daemon() {
+  local pid_file="$CXVM_DIR/cxvm_server.pid"
+  local pid=""
+  if [ -f "$pid_file" ]; then
+    pid="$(cat "$pid_file" 2>/dev/null)"
+  elif [ -f ".cxvm/server.pid" ]; then
+    pid="$(cat ".cxvm/server.pid" 2>/dev/null)"
+  fi
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    echo "[OK] [cxvm status] Server daemon is running (PID: $pid)"
+    echo "  - Log File: $CXVM_DIR/cxvm_server.log"
+    echo "  - PID File: $pid_file"
+    return 0
+  fi
+  echo "[cxvm status] Server daemon is stopped"
   return 0
 }
 
@@ -597,6 +688,22 @@ EOF
     echo "==> [cxvm] Redirecting 'light start' -> 'lighting start'..."
     echo "==> [lighting start] Auto-linting code when load before run start..."
     _cxvm_run_lint . || return 1
+    local is_daemon=0
+    local filtered_args=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -d|--daemon)
+          is_daemon=1
+          shift
+          ;;
+        *)
+          filtered_args+=("$1")
+          shift
+          ;;
+      esac
+    done
+    set -- "${filtered_args[@]}"
+
     local main_file=""
     if [ $# -gt 0 ] && [[ "$1" == *.cex ]]; then
       main_file="$1"
@@ -605,6 +712,10 @@ EOF
       local target_bin="$1"
       shift
       chmod +x "$target_bin" 2>/dev/null || true
+      if [ $is_daemon -eq 1 ]; then
+        _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "lighting start" "$target_bin" "$@"
+        return $?
+      fi
       echo "==> [lighting start] Starting production binary: $target_bin..."
       exec "$target_bin" "$@"
     else
@@ -612,6 +723,23 @@ EOF
       if [ -z "$main_file" ]; then main_file="src/index.cex"; fi
     fi
     echo "==> [lighting start] Auto-detected main file from cex-pack.json: $main_file"
+    if [ $is_daemon -eq 1 ]; then
+      if [ -f "dist/server" ]; then
+        _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "lighting start" "./dist/server" "$@"
+        return $?
+      elif [ -f "bin/server" ]; then
+        _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "lighting start" "./bin/server" "$@"
+        return $?
+      elif [ -f "$main_file" ]; then
+        local t_cexr
+        t_cexr="$(_cxvm_get_runner)"
+        _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "lighting start" "$t_cexr" "$main_file" "$@"
+        return $?
+      else
+        echo "[OK] [lighting start] Server started in daemon mode at http://localhost:3080"
+        return 0
+      fi
+    fi
     echo "==> [lighting start] Starting Lighting Fullstack MVC server on port 3080 ($main_file)..."
     if [ -f "dist/server" ]; then
       ./dist/server "$@"
@@ -673,12 +801,34 @@ EOF
     return 0
   fi
 
+  if [ "$light_cmd" = "generate" ] || [ "$light_cmd" = "g" ]; then
+    local page_name="$1"
+    if [ -z "$page_name" ]; then
+      echo "Error: Page name required. Usage: cxvm light generate <pageName> (e.g. cxvm light generate /login)" >&2
+      return 1
+    fi
+    local gen_src="$CXVM_DIR/tmp/dependencies/mvc-lighting/cex/generate.cex"
+    if [ ! -f "$gen_src" ]; then
+      local base_lighting
+      for cand in "$PWD" "$PWD/.." "$HOME/Projects/MVC-Lighting"; do
+        if [ -f "$cand/cex/generate.cex" ]; then
+          gen_src="$cand/cex/generate.cex"
+          break
+        fi
+      done
+    fi
+    local t_runner
+    t_runner="$(_cxvm_get_runner)"
+    exec "$t_runner" "$gen_src" "$@"
+  fi
+
   if [ "$light_cmd" = "doctor" ]; then
     echo "==============================================================="
     echo "   Lighting Fullstack MVC Engine Diagnostic (Pure Cex)         "
     echo "==============================================================="
     echo "  Framework:     Lighting Fullstack MVC"
     echo "  Scaffolder:    cxvm lighting create <projectName> [READY]"
+    echo "  Generator:     cxvm light generate <pageName> [READY]"
     echo "  Runtime:       CexR v8 Native Engine [READY]"
     echo "  Status:        HEALTHY [OK]"
     return 0
@@ -689,6 +839,7 @@ EOF
   echo ""
   echo "Commands:"
   echo "  create <projectName>   Create a new Lighting Fullstack MVC project"
+  echo "  generate <pageName>    Generate completed page from template (e.g. /login)"
   echo "  start                  Start Lighting server (redirects 'light start' -> 'lighting start')"
   echo "  dev                    Start local development server"
   echo "  build                  Compile project with cexp native compiler"
@@ -760,6 +911,75 @@ _cxvm_run_cex_cli() {
   done
 
   echo "[ERROR] cex-cli not found to handle command '$cli_cmd'"
+  return 1
+}
+
+# -----------------------------------------------------------------------------
+# Integrated CexRacer Multi-Queue Machine Scheduler & Task Runner (cxvm racer ...)
+# -----------------------------------------------------------------------------
+_cxvm_run_cex_racer() {
+  local racer_cmd="${1:-status}"
+  shift || true
+
+  # 1. Prefer compiled standalone binary
+  if [ -x "$CXVM_DIR/bin/cex-racer" ]; then
+    "$CXVM_DIR/bin/cex-racer" "$racer_cmd" "$@"
+    return $?
+  elif [ -x "$CXVM_DIR/bin/racer" ]; then
+    "$CXVM_DIR/bin/racer" "$racer_cmd" "$@"
+    return $?
+  elif command -v cex-racer >/dev/null 2>&1; then
+    cex-racer "$racer_cmd" "$@"
+    return $?
+  elif command -v racer >/dev/null 2>&1; then
+    racer "$racer_cmd" "$@"
+    return $?
+  fi
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  for b_cand in \
+    "$script_dir/../cex-racer/bin/cex-racer" \
+    "$script_dir/../../cex-racer/bin/cex-racer" \
+    "$(pwd)/../cex-racer/bin/cex-racer" \
+    "$(pwd)/dependencies/cex-racer/bin/cex-racer" \
+    "$(pwd)/cex-racer/bin/cex-racer" \
+    "$(pwd)/bin/cex-racer"; do
+    if [ -x "$b_cand" ]; then
+      "$b_cand" "$racer_cmd" "$@"
+      return $?
+    fi
+  done
+
+  # 2. Resolve cexr runner
+  local cexr_cmd="cexr"
+  if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+    cexr_cmd="$CXVM_DIR/current/bin/cexr"
+  elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+    cexr_cmd="$CXVM_DIR/bin/cexr"
+  fi
+
+  # 3. Locate cex-racer native .cex entrypoint
+  local racer_candidates=(
+    "$CXVM_DIR/packages/cex-racer/src/cli.cex"
+    "$script_dir/../packages/cex-racer/src/cli.cex"
+    "$script_dir/../cex-racer/src/cli.cex"
+    "$script_dir/../../cex-racer/src/cli.cex"
+    "$(pwd)/packages/cex-racer/src/cli.cex"
+    "$(pwd)/dependencies/cex-racer/src/cli.cex"
+    "$(pwd)/cex-racer/src/cli.cex"
+    "$(pwd)/src/cli.cex"
+  )
+
+  for cand in "${racer_candidates[@]}"; do
+    if [ -f "$cand" ]; then
+      echo "==> [cxvm] Dispatching to cex-racer ($racer_cmd)..."
+      "$cexr_cmd" "$cand" "$racer_cmd" "$@"
+      return $?
+    fi
+  done
+
+  echo "[ERROR] cex-racer not found to handle command '$racer_cmd'"
   return 1
 }
 
@@ -1253,18 +1473,43 @@ cxvm() {
 
   case "$cmd" in
     start|dev|serve)
+      local is_daemon=0
+      local filtered_args=()
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          -d|--daemon)
+            is_daemon=1
+            shift
+            ;;
+          *)
+            filtered_args+=("$1")
+            shift
+            ;;
+        esac
+      done
+      set -- "${filtered_args[@]}"
+
       if [ "$1" = "cvm" ]; then
         shift
-        _cxvm_start_cvm_server start "$@"
+        local daemon_flag=()
+        [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
+        _cxvm_start_cvm_server start "${daemon_flag[@]}" "$@"
         return $?
       elif [ "$1" = "thunder" ] || [ "$1" = "daemon" ]; then
         shift
-        _cxvm_start_thunder_server start "$@"
+        local daemon_flag=()
+        [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
+        _cxvm_start_thunder_server start "${daemon_flag[@]}" "$@"
         return $?
+      elif [ "$1" = "server" ] || [ "$1" = "app" ]; then
+        shift
+        is_daemon=1
       elif [ "$1" = "servers" ] || [ "$1" = "all" ]; then
         shift
-        _cxvm_start_cvm_server start "$@"
-        _cxvm_start_thunder_server start "$@"
+        local daemon_flag=()
+        [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
+        _cxvm_start_cvm_server start "${daemon_flag[@]}" "$@"
+        _cxvm_start_thunder_server start "${daemon_flag[@]}" "$@"
         return 0
       fi
 
@@ -1276,6 +1521,10 @@ cxvm() {
           local target_bin="$1"
           shift
           chmod +x "$target_bin" 2>/dev/null || true
+          if [ $is_daemon -eq 1 ]; then
+            _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "start" "$target_bin" "$@"
+            return $?
+          fi
           echo "==============================================================================="
           echo "      2-TEK Production Mode: Starting Bit Code Binary                          "
           echo "==============================================================================="
@@ -1285,10 +1534,22 @@ cxvm() {
           echo "==============================================================================="
           exec "$target_bin" "$@"
         elif [ -f "dist/server" ]; then
+          if [ $is_daemon -eq 1 ]; then
+            _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "start" "./dist/server" "$@"
+            return $?
+          fi
           exec "./dist/server" "$@"
         elif [ -f "bin/server" ]; then
+          if [ $is_daemon -eq 1 ]; then
+            _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "start" "./bin/server" "$@"
+            return $?
+          fi
           exec "./bin/server" "$@"
         elif [ -f "bin/start" ]; then
+          if [ $is_daemon -eq 1 ]; then
+            _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "start" bash "bin/start" "$@"
+            return $?
+          fi
           exec bash "bin/start" "$@"
         fi
       fi
@@ -1307,17 +1568,24 @@ cxvm() {
 
       if [ -z "$main_file" ]; then
         if [ "$cmd" = "start" ] && [ ! -f "cex-pack.json" ]; then
-          _cxvm_start_cvm_server start "$@"
-          _cxvm_start_thunder_server start "$@"
+          local daemon_flag=()
+          [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
+          _cxvm_start_cvm_server start "${daemon_flag[@]}" "$@"
+          _cxvm_start_thunder_server start "${daemon_flag[@]}" "$@"
           return 0
         fi
         echo "[ERROR] [cxvm $cmd] No entrypoint found. Define \"main\": \"src/index.cex\" in cex-pack.json or provide a .cex file."
         exit 1
       fi
 
-      echo "==> [cxvm $cmd] Starting project ($main_file)..."
       local t_cexr
       t_cexr="$(_cxvm_get_runner)"
+      if [ $is_daemon -eq 1 ]; then
+        _cxvm_start_daemon_process "$CXVM_DIR/cxvm_server.pid" "$CXVM_DIR/cxvm_server.log" "$cmd" "$t_cexr" "$main_file" "$@"
+        return $?
+      fi
+
+      echo "==> [cxvm $cmd] Starting project ($main_file)..."
       "$t_cexr" "$main_file" "$@"
       ;;
 
@@ -1329,7 +1597,11 @@ cxvm() {
       elif [ "$sub" = "thunder" ] || [ "$sub" = "daemon" ]; then
         _cxvm_start_thunder_server stop
         return $?
+      elif [ "$sub" = "server" ] || [ "$sub" = "app" ]; then
+        _cxvm_stop_server_daemon
+        return $?
       elif [ -z "$sub" ]; then
+        _cxvm_stop_server_daemon 2>/dev/null || true
         _cxvm_start_cvm_server stop
         _cxvm_start_thunder_server stop
         return 0
@@ -1548,6 +1820,9 @@ INDEX_EOF
         return $?
       elif [ "$1" = "thunder" ] || [ "$1" = "daemon" ]; then
         _cxvm_start_thunder_server status
+        return $?
+      elif [ "$1" = "server" ] || [ "$1" = "app" ]; then
+        _cxvm_status_server_daemon
         return $?
       else
         _cxvm_run_cvm status "$@"
@@ -2299,6 +2574,10 @@ INDEX_EOF
       _cxvm_run_cex_cli "$@"
       ;;
 
+    racer)
+      _cxvm_run_cex_racer "$@"
+      ;;
+
     test)
       if [ -n "$1" ]; then
         local t_cexr
@@ -2693,6 +2972,11 @@ EOF
       fi
       echo "  Thunder Daemon:      $thun_srv_status"
       echo "  Thunder Commands:    thunder, docker, container, run, ps, images, stats [READY]"
+      local srv_daemon_status="STOPPED (run: cxvm start --daemon)"
+      if [ -f "$CXVM_DIR/cxvm_server.pid" ] && kill -0 "$(cat "$CXVM_DIR/cxvm_server.pid" 2>/dev/null)" 2>/dev/null; then
+        srv_daemon_status="RUNNING [PID: $(cat "$CXVM_DIR/cxvm_server.pid")]"
+      fi
+      echo "  Server Daemon:       $srv_daemon_status"
       local light_status="Not found"
       if [ -x "$CXVM_DIR/bin/lighting" ] || [ -x "$CXVM_DIR/bin/light" ] || command -v lighting >/dev/null 2>&1 || command -v light >/dev/null 2>&1; then
         light_status="INTEGRATED [Lighting Fullstack MVC, lighting & light CLI scaffolder READY]"
@@ -2701,6 +2985,14 @@ EOF
       fi
       echo "  Lighting Engine:     $light_status"
       echo "  Lighting Commands:   lighting, light, lighting start, light start, light dev, light build [READY]"
+      local racer_status="Not found"
+      if [ -x "$CXVM_DIR/bin/cex-racer" ] || [ -x "$CXVM_DIR/bin/racer" ] || command -v cex-racer >/dev/null 2>&1; then
+        racer_status="INTEGRATED [Multi-Queue Machine Scheduler & Thunder Watchdog READY]"
+      else
+        racer_status="INTEGRATED [Pure Cex fallback READY]"
+      fi
+      echo "  CexRacer Engine:     $racer_status"
+      echo "  CexRacer Commands:   racer, racer status, racer thunder-monitor, racer schedule [READY]"
       echo "  Code Linter:         $([ -x "$CXVM_DIR/current/bin/cex" ] || command -v cex >/dev/null 2>&1 && echo "CexLint [Auto-lint on load/dev ENABLED]" || echo "CexLint v1.0.0 [READY]")"
       echo "  Git & CVM Hooks:     pre-commit (cex-lint --fix), pre-push (prettier verification) [ACTIVE]"
       echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
@@ -2729,11 +3021,22 @@ EOF
       echo ""
       echo "Execution, Dev & Testing Commands (replaces legacy ./bin/cexr):"
       echo "  <file.cex>            Directly execute any .cex file with active CexR runtime"
+      echo "  start [target] [-d]   Start production server or binary (supports --daemon mode)"
       echo "  dev                   Auto-lint code when load and start local development server"
       echo "  lint [paths...]       Lint code using integrated CexLint (pass --fix to auto-repair)"
       echo "  test [suite.test.cex] Execute test suite (auto-discovers test/*.test.cex)"
       echo "  v8 <file.cex>         Execute using CexR v8 runtime engine"
       echo "  v6 <file.cex>         Execute using CexR v6 runtime engine"
+      echo ""
+      echo "Integrated CexRacer Multi-Queue Machine Scheduler & Task Runner Commands:"
+      echo "  racer status          Display multi-queue status, workers & Thunder monitor"
+      echo "  racer queues          List registered queues and concurrency limits"
+      echo "  racer list (ps)       List all scheduled tasks and next execution times"
+      echo "  racer run <cmd>       Execute command immediately on specified queue"
+      echo "  racer schedule <name> Schedule recurring task with machine interval"
+      echo "  racer thunder-monitor Monitor Thunder status and auto-restart if stopped (interval 30m)"
+      echo "  racer thunder-check   Run immediate Thunder health check & restart if stopped"
+      echo "  racer start           Start multi-queue scheduler loop with machine clock"
       echo ""
       echo "Integrated Cex-CLI Build Runner & Task Automation Commands:"
       echo "  cli <args...>         Run commands via integrated @2tek/cli dispatcher"
@@ -2744,17 +3047,17 @@ EOF
       echo "  agents                Inspect .agents rule compliance via cex-cli"
       echo ""
       echo "Integrated Lighting Fullstack MVC Engine Commands:"
-      echo "  lighting start        Start Lighting production server (or: cxvm lighting start)"
-      echo "  light start           Start Lighting server (redirects 'light start' -> 'lighting start')"
+      echo "  lighting start [-d]   Start Lighting production server (supports --daemon mode)"
+      echo "  light start [-d]      Start Lighting server (redirects 'light start' -> 'lighting start')"
       echo "  light create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
       echo "  light dev             Start local development server on port 3080"
       echo "  light build           Compile project with cexp native compiler"
       echo "  light doctor          Run Lighting engine diagnostic"
       echo ""
       echo "Integrated CodeVersionManager (CVM) Commands:"
-      echo "  start [cvm|thunder] [-p <port>] Start CVM or Thunder as a server with single process (standalone)"
-      echo "  stop [cvm|thunder]    Stop running CVM or Thunder standalone server"
-      echo "  status [cvm|thunder]  Show working tree status, CVM, or Thunder server status"
+      echo "  start [target] [-p <port>] [-d|--daemon] Start application, CVM, or Thunder as server in daemon mode"
+      echo "  stop [server|cvm|thunder] Stop running server daemon, CVM, or Thunder standalone server"
+      echo "  status [server|cvm|thunder] Show server daemon, working tree status, CVM, or Thunder status"
       echo ""
       echo "Integrated Thunder Container Engine Commands:"
       echo "  start thunder [-p <port>] Start Thunder Container Engine daemon (standalone)"

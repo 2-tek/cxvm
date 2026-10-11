@@ -144,8 +144,11 @@ cxvm use 6.0.0
 | `cxvm doctor`                    | -                          | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, linter, and host environment                                                                                                      |
 | `cxvm light create <name>`       | `nest new`                 | Hooks project creation logic in lighting to scaffold new Fullstack MVC project                                                                                                                                      |
 | `cxvm light dev`                 | `npm run dev`              | Auto-lints code and starts local Lighting MVC development server on port 3080                                                                                                                                       |
-| `cxvm lighting start`            | `npm start`                | Starts Lighting MVC production server (redirects 'light start' -> 'lighting start')                                                                                                                                 |
-| `cxvm light start`               | `npm start`                | Automatically redirects to 'lighting start' per project standard                                                                                                                                                    |
+| `cxvm start [target] [-d         | --daemon]`                 | `npm start`                                                                                                                                                                                                         | Starts production binary or server in foreground or background daemon mode                                                |
+| `cxvm status server`             | -                          | Inspects status of running server daemon                                                                                                                                                                            |
+| `cxvm stop server`               | -                          | Stops background server daemon                                                                                                                                                                                      |
+| `cxvm lighting start [-d]`       | `npm start`                | Starts Lighting MVC production server (redirects 'light start' -> 'lighting start', supports --daemon)                                                                                                              |
+| `cxvm light start [-d]`          | `npm start`                | Automatically redirects to 'lighting start' per project standard (supports --daemon)                                                                                                                                |
 | `cxvm light build`               | `npm run build`            | Compiles Lighting project with `cexp` direct machine compiler                                                                                                                                                       |
 | `cxvm light doctor`              | -                          | Runs Lighting engine diagnostic and verification                                                                                                                                                                    |
 | `cxvm thunder <cmd>`             | Docker CLI (`docker`)      | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`)                                                                                                                                           |
@@ -348,11 +351,14 @@ cxvm lighting create my-awesome-app
 
 ```bash
 cd my-awesome-app
-lighting start       # Or cxvm lighting start (starts server on port 3080)
-cxvm light start     # Automatically redirects to 'lighting start'
-./bin/lighting dev   # Or cxvm light dev (starts dev server on port 3080)
-./bin/lighting build # Or cxvm light build (compiles native binary via cexp)
-cxvm light doctor # Runs diagnostic health check
+lighting start           # Or cxvm lighting start (starts server on port 3080)
+cxvm start --daemon      # Start server in background daemon mode
+cxvm status server       # Check status of running server daemon
+cxvm stop server         # Stop background server daemon
+cxvm light start         # Automatically redirects to 'lighting start'
+./bin/lighting dev       # Or cxvm light dev (starts dev server on port 3080)
+./bin/lighting build     # Or cxvm light build (compiles native binary via cexp)
+cxvm light doctor        # Runs diagnostic health check
 ```
 
 ### Lighting MVC REST Endpoints:
