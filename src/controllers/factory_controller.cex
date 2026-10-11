@@ -122,7 +122,7 @@ class FactoryController extends BaseController {
         script += "  cxvm install \"$DEFAULT_VER\"\n";
         script += "  cxvm use \"$DEFAULT_VER\"\n";
         script += "fi\n";
-        script += "echo \"✓ Cex Toolchain setup complete! Run 'cxvm --help'\"\n";
+        script += "echo \"[OK] Cex Toolchain setup complete! Run 'cxvm --help'\"\n";
         return HttpResponse::ok(script, "text/x-shellscript");
     }
 
@@ -141,7 +141,7 @@ class FactoryController extends BaseController {
         script += "Write-Host \"==> Installing Cex cxvm toolchain...\" -ForegroundColor Cyan\n";
         script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"bin\") | Out-Null\n";
         script += "New-Item -ItemType Directory -Force -Path (Join-Path $cxvmDir \"versions\") | Out-Null\n";
-        script += "Write-Host \"✓ Cex Toolchain setup complete!\" -ForegroundColor Green\n";
+        script += "Write-Host \"[OK] Cex Toolchain setup complete!\" -ForegroundColor Green\n";
         return HttpResponse::ok(script, "text/plain");
     }
 
@@ -492,6 +492,44 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "projectName", projectName);
         JsonDoc::setStr(doc, "framework", "Lighting Fullstack MVC");
         JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiOpen(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let url: string = "http://localhost:3080/";
+        let target: string = "browser";
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (parsed->has("url")) {
+                    url = parsed->get("url")->asString();
+                }
+                if (parsed->has("target")) {
+                    target = parsed->get("target")->asString();
+                }
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->cxvmOpen(url, target);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "target", target);
+        JsonDoc::setStr(doc, "url", url);
+        JsonDoc::setStr(doc, "engine", target == "view" ? "cex-view" : "cex-webkit");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiTarget(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "defaultTarget", cxvm->defaultTarget);
+        let arr: JsonValue* = JsonDoc::arr();
+        JsonDoc::pushStr(arr, "browser");
+        JsonDoc::pushStr(arr, "view");
+        JsonDoc::setVal(doc, "supportedTargets", arr);
+        let engines: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(engines, "browser", "cex-webkit (default browser engine)");
+        JsonDoc::setStr(engines, "view", "cex-view (native desktop window engine)");
+        JsonDoc::setVal(doc, "engines", engines);
         return this.json(doc);
     }
 }

@@ -117,27 +117,29 @@ cxvm use 6.0.0
 
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
-| `cxvm setup` | — | Displays cross-platform setup window, configures PATH & env, and links `./bin/cexr` & `./bin/cex` (v8 & v6) |
+| `cxvm setup` | - | Displays cross-platform setup window, configures PATH & env, and links `./bin/cexr` & `./bin/cex` (v8 & v6) |
 | `cxvm init [name]` | `npm init` | Initializes default Cex project (default: `my-project`) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
 | `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr` runner |
-| `cxvm download 8.0.0 [plat]` | — | Downloads cross-platform bundle into cache for offline `cexr` setup |
-| `cxvm download 8.0.0 all` | — | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr` |
+| `cxvm download 8.0.0 [plat]` | - | Downloads cross-platform bundle into cache for offline `cexr` setup |
+| `cxvm download 8.0.0 all` | - | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr` |
 | `cxvm use 8.0.0` | `nvm use 18` | Switches active version via symlink & activates `cexr` in PATH |
 | `cxvm list` | `nvm ls` | Lists locally installed Cex runtimes and active one |
 | `cxvm list-remote` | `nvm ls-remote` | Queries Factory catalog for available upstream releases |
 | `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v8.0.0`) |
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
-| `cxvm doctor` | — | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
+| `cxvm doctor` | - | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
 | `cxvm light create <name>` | `nest new` | Hooks project creation logic in lighting to scaffold new Fullstack MVC project |
 | `cxvm light dev` | `npm run dev` | Starts local Lighting MVC development server on port 3080 |
+| `cxvm light dev --target view` | - | Starts Lighting MVC dev server and opens CexView native window |
 | `cxvm light build` | `npm run build` | Compiles Lighting project with `cexp` direct machine compiler |
-| `cxvm light doctor` | — | Runs Lighting engine diagnostic and verification |
+| `cxvm light doctor` | - | Runs Lighting engine diagnostic and verification |
+| `cxvm open [url] [--target <browser\|view>]` | - | Opens application or URL using CexWebKit browser (default) or CexView native window |
 | `cxvm thunder <cmd>` | Docker CLI (`docker`) | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`) |
 | `cxvm docker <cmd>` | Docker CLI (`docker`) | Docker compatibility alias for Thunder |
-| `cxvm start thunder [-p <port>]` | — | Starts Thunder container engine daemon with single process (standalone) |
-| `cxvm status thunder` | — | Inspects status of standalone Thunder server |
-| `cxvm stop thunder` | — | Stops background standalone Thunder server |
+| `cxvm start thunder [-p <port>]` | - | Starts Thunder container engine daemon with single process (standalone) |
+| `cxvm status thunder` | - | Inspects status of standalone Thunder server |
+| `cxvm stop thunder` | - | Stops background standalone Thunder server |
 
 ---
 
@@ -313,7 +315,45 @@ cxvm light doctor # Runs diagnostic health check
 
 ---
 
-## 8. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
+## 8. Integrated Target Opener & Window Engine (`cxvm open --target browser||view`)
+
+`cxvm` features built-in target dispatching to open applications or URLs either in a browser viewport or inside a native desktop window:
+
+| Target Option | Engine | Description | Default |
+| :--- | :--- | :--- | :--- |
+| `--target browser` (`-t browser`) | **CexWebKit** | Standard Cex browser engine rendering web viewports | **Yes (Default)** |
+| `--target view` (`-t view`) | **CexView** | Native desktop OS window engine (`800x600`) | No |
+
+### Usage Examples:
+```bash
+# Open using default CexWebKit browser:
+cxvm open
+cxvm open http://localhost:3080
+cxvm open http://localhost:3080 --target browser
+
+# Open using CexView native desktop window:
+cxvm open http://localhost:3080 --target view
+cxvm open http://localhost:3080 -t view
+
+# Target aliases in Lighting MVC runners:
+cxvm light dev --target view
+cxvm light dev --target browser
+cxvm dev -t view
+```
+
+### Interactive Keyboard Shortcuts:
+During `cxvm dev` / `cxvm light dev` / `cxvm serve`:
+- Press `[o]` or type `open` to open in browser (`cex-webkit`).
+- Type `o view` to open in native desktop window (`cex-view`).
+- Type `o browser` to switch back to browser.
+
+### REST Endpoints:
+- `POST /api/v1/open`: JSON body `{"url": "...", "target": "browser|view"}`.
+- `GET /api/v1/target`: Returns supported opener engines (`cex-webkit`, `cex-view`) and default target.
+
+---
+
+## 9. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
 
 The following distribution archives (36 bundles: 6 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
@@ -370,7 +410,7 @@ The following distribution archives (36 bundles: 6 versions x 6 platforms) and t
 
 ---
 
-## 9. Execution & Testing with CexR v8
+## 10. Execution & Testing with CexR v8
 
 ```bash
 # 1. Switch to CexR v8 Runtime via cxvm
@@ -392,7 +432,7 @@ cexr run tests/factory.test.cex
 
 ---
 
-## 10. Repository & Upstream Git Origin
+## 11. Repository & Upstream Git Origin
 
 - **GitHub Repository**: [`https://github.com/2-tek/cxvm`](https://github.com/2-tek/cxvm)
 - **Clone Repository**:

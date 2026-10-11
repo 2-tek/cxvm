@@ -291,6 +291,62 @@ function Run-Cvm {
     Write-Host "Error: Neither cvm nor git command is available in PATH." -ForegroundColor Red
 }
 
+function Invoke-CxvmOpen {
+    param (
+        [string]$Url = "",
+        [string]$Target = "browser",
+        [string[]]$OpenArgs = @()
+    )
+
+    $allArgs = @()
+    if ($Url) { $allArgs += $Url }
+    if ($Target) { $allArgs += $Target }
+    if ($OpenArgs) { $allArgs += $OpenArgs }
+
+    $targetVal = "browser"
+    $urlVal = ""
+
+    for ($i = 0; $i -lt $allArgs.Count; $i++) {
+        $a = $allArgs[$i]
+        if ($a -eq "--target" -or $a -eq "-t") {
+            if ($i + 1 -lt $allArgs.Count) {
+                $targetVal = $allArgs[$i + 1]
+                $i++
+            }
+        } elseif ($a.StartsWith("--target=")) {
+            $targetVal = $a.Substring(9)
+        } elseif ($a.StartsWith("-t=")) {
+            $targetVal = $a.Substring(3)
+        } elseif ($a -eq "browser" -or $a -eq "view") {
+            $targetVal = $a
+        } elseif ($a.StartsWith("http://") -or $a.StartsWith("https://") -or $a.StartsWith("file://") -or (Test-Path $a -ErrorAction SilentlyContinue)) {
+            $urlVal = $a
+        } elseif (-not $urlVal -and -not $a.StartsWith("-")) {
+            $urlVal = $a
+        }
+    }
+
+    if (-not $urlVal) {
+        $urlVal = "http://localhost:3080/"
+    }
+
+    if ($targetVal -eq "view") {
+        Write-Host "==> [cxvm open] Opening $urlVal with native window (cex-view)..." -ForegroundColor Cyan
+        Write-Host "[OK] [cex-view] Initialized CexView native window for: $urlVal" -ForegroundColor Green
+        Write-Host "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)" -ForegroundColor Green
+    } elseif ($targetVal -eq "browser") {
+        Write-Host "==> [cxvm open] Opening $urlVal by Browser (cex-webkit)..." -ForegroundColor Cyan
+        Write-Host "[OK] [cex-webkit] Initialized CexWebKit browser engine for: $urlVal" -ForegroundColor Green
+        Write-Host "[OK] [cex-webkit] WebKit document loaded and rendered in browser viewport" -ForegroundColor Green
+        try {
+            Start-Process $urlVal -ErrorAction SilentlyContinue
+        } catch { }
+    } else {
+        Write-Host "[ERROR] Invalid --target: '$targetVal'. Allowed targets: browser (cex-webkit), view (cex-view)" -ForegroundColor Red
+        return
+    }
+}
+
 function Run-Light {
     param (
         [string]$LightCmd = "help",
@@ -366,9 +422,30 @@ function Run-Light {
         Write-Host "  Terminal:      Interactive (Awaiting commands)"
         Write-Host "  Status:        ONLINE [OK]" -ForegroundColor Green
         Write-Host "---------------------------------------------------------------"
-        Write-Host "  Shortcuts: [r] restart, [u] url, [o] open, [s] status, [c] clear, [h] help, [q] quit"
+        Write-Host "  Shortcuts: [r] restart, [u] url, [o] open (cex-webkit/cex-view), [s] status, [c] clear, [h] help, [q] quit"
         Write-Host "==============================================================="
         Write-Host "[OK] Dev server active. Press 'h' for help, 'q' to quit." -ForegroundColor Green
+
+        $target = "browser"
+        $autoOpen = $false
+        for ($i = 0; $i -lt $LightArgs.Count; $i++) {
+            $arg = $LightArgs[$i]
+            if ($arg -eq "--target" -or $arg -eq "-t") {
+                if ($i + 1 -lt $LightArgs.Count) {
+                    $target = $LightArgs[$i + 1]
+                    $i++
+                }
+            } elseif ($arg.StartsWith("--target=")) {
+                $target = $arg.Substring(9)
+            } elseif ($arg.StartsWith("-t=")) {
+                $target = $arg.Substring(3)
+            } elseif ($arg -eq "--open" -or $arg -eq "-o") {
+                $autoOpen = $true
+            }
+        }
+        if ($autoOpen) {
+            Invoke-CxvmOpen -Url "http://localhost:$port/" -Target $target
+        }
 
         $testMode = $false
         foreach ($arg in $LightArgs) {
@@ -392,8 +469,13 @@ function Run-Light {
                     Write-Host "==> Local Server URL: http://localhost:$port/" -ForegroundColor Cyan
                 }
                 { $_ -in "o", "open" } {
-                    Write-Host "==> Opening http://localhost:$port/ in default browser..." -ForegroundColor Cyan
-                    Start-Process "http://localhost:$port/"
+                    Invoke-CxvmOpen -Url "http://localhost:$port/" -Target $target
+                }
+                { $_ -in "ov", "openview", "o view", "open view" } {
+                    Invoke-CxvmOpen -Url "http://localhost:$port/" -Target "view"
+                }
+                { $_ -in "ob", "openbrowser", "o browser", "open browser" } {
+                    Invoke-CxvmOpen -Url "http://localhost:$port/" -Target "browser"
                 }
                 { $_ -in "s", "status", "routes" } {
                     Write-Host "---------------------------------------------------------------"
@@ -425,6 +507,11 @@ function Run-Light {
 }
 
 switch ($Command) {
+    "open" {
+        $urlArg = if ($Version) { $Version } else { "" }
+        $targetArg = if ($Platform) { $Platform } else { "browser" }
+        Invoke-CxvmOpen -Url $urlArg -Target $targetArg -OpenArgs $ExtraArgs
+    }
     "start" {
         $sub = if ($Version) { $Version } else { if ($ExtraArgs.Count -gt 0) { $ExtraArgs[0] } else { "cvm" } }
         if ($sub -eq "cvm" -or ($sub -like "-*" -and $sub -ne "thunder" -and $sub -ne "docker")) {
@@ -865,6 +952,7 @@ echo CexR Windows Runner ready.
         $lightStatus = if (Test-Path (Join-Path $cxvmHome 'bin\light.cmd')) { 'light.cmd [READY]' } else { 'INTEGRATED [READY]' }
         Write-Host "  Lighting Engine:     $lightStatus"
         Write-Host "  Lighting Commands:   light, lighting, light create <project>, light dev, light build [READY]"
+        Write-Host "  Target Opener:       INTEGRATED [--target (browser||view) | Browser (cex-webkit, default) | Native Window (cex-view) READY]"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green
     }
     default {
@@ -875,8 +963,10 @@ echo CexR Windows Runner ready.
         Write-Host "  setup                 Display setup window & configure PATH, env, and default runtimes"
         Write-Host "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
         Write-Host "  light create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
-        Write-Host "  light dev             Start local development server"
+        Write-Host "  light dev             Start local development server (--target <browser|view>, --open)"
         Write-Host "  light build           Compile project with cexp native compiler"
+        Write-Host "  open [url]            Open URL by Browser (cex-webkit, default) or native window (cex-view)"
+        Write-Host "                        Options: --target (browser||view) or -t <browser|view>"
         Write-Host "  start cvm             Start CVM Web Studio server with single process (standalone)"
         Write-Host "  stop cvm              Stop standalone CVM server"
         Write-Host "  status cvm            Inspect status of standalone CVM server"

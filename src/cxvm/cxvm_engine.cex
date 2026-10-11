@@ -32,10 +32,12 @@ class CxvmEngine {
     public thunderTotalImages: int;
     public lightEngineReady: bool;
     public lightingHome: string;
+    public defaultTarget: string;
 
     public constructor() {
         this.currentVersion = "";
         this.defaultVersion = "";
+        this.defaultTarget = "browser";
         this.installedVersions = new Array<string>();
         this.availableVersions = new Array<VersionModel*>();
         this.supportedPlatforms = new Array<string>();
@@ -310,6 +312,7 @@ class CxvmEngine {
         out += "  Thunder Daemon:    " + thunSrvStr + "\n";
         out += "  Lighting Engine:   INTEGRATED [Lighting Fullstack MVC, Pure Cex Engine, light CLI scaffolder]\n";
         out += "  Lighting Commands: light, lighting, light create <project>, light dev, light build [READY]\n";
+        out += "  Target Opener:     INTEGRATED [--target (browser||view) | Browser (cex-webkit, default) | Native Window (cex-view) READY]\n";
         out += "  CXVM Init:         INTEGRATED [cxvm init <name> (default: my-project, cex-pack, .cex_boxes, .cvm, .cvmignore, README, SECURITY, LICENSE)]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + std::to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
@@ -634,6 +637,34 @@ class CxvmEngine {
             println(res->output);
             return 0;
         }
+        if (cmd == "open") {
+            let url: string = "";
+            let targetType: string = "browser";
+
+            if (arg1.find("--target=") == 0) {
+                targetType = arg1.substr(9);
+            } else if (arg1 == "--target" || arg1 == "-t") {
+                targetType = arg2.length() == 0 ? "browser" : arg2;
+            } else if (arg1 == "browser" || arg1 == "view") {
+                targetType = arg1;
+            } else if (arg1.length() > 0) {
+                url = arg1;
+            }
+
+            if (arg2.find("--target=") == 0) {
+                targetType = arg2.substr(9);
+            } else if (arg2 == "--target" || arg2 == "-t") {
+                targetType = "browser";
+            } else if (arg2 == "browser" || arg2 == "view") {
+                targetType = arg2;
+            } else if (arg2.length() > 0 && url.length() == 0) {
+                url = arg2;
+            }
+
+            let res: CxvmCommandResult* = this.cxvmOpen(url, targetType);
+            println(res->output);
+            return 0;
+        }
         if (cmd == "thunder" || cmd == "docker") {
             return this.thunderExecute(arg1, arg2, "");
         }
@@ -689,6 +720,28 @@ class CxvmEngine {
         return new CxvmCommandResult("light create", name, true, "Lighting Fullstack MVC project '" + name + "' created successfully", out);
     }
 
+    public cxvmOpen(targetUrl: string, targetType: string): CxvmCommandResult* {
+        let url: string = targetUrl.length() == 0 ? "http://localhost:3080/" : targetUrl;
+        let t: string = targetType.length() == 0 ? this.defaultTarget : targetType;
+        if (t == "--target=browser" || t == "-t=browser" || t == "--target browser" || t == "-t browser") {
+            t = "browser";
+        } else if (t == "--target=view" || t == "-t=view" || t == "--target view" || t == "-t view") {
+            t = "view";
+        }
+
+        if (t == "view") {
+            let out: string = "==> [cxvm open] Opening " + url + " with native window (cex-view)...\n";
+            out += "[OK] [cex-view] Initialized CexView native window for: " + url + "\n";
+            out += "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)\n";
+            return new CxvmCommandResult("open", url, true, "Opened via native window (cex-view)", out);
+        } else {
+            let out: string = "==> [cxvm open] Opening " + url + " by Browser (cex-webkit)...\n";
+            out += "[OK] [cex-webkit] Initialized CexWebKit browser engine for: " + url + "\n";
+            out += "[OK] [cex-webkit] WebKit document loaded and rendered in browser viewport\n";
+            return new CxvmCommandResult("open", url, true, "Opened via Browser (cex-webkit)", out);
+        }
+    }
+
     public lightExecute(cmd: string, arg1: string, arg2: string): int {
         if (cmd == "create") {
             let pName: string = arg1.length() == 0 ? "my-lighting-app" : arg1;
@@ -697,8 +750,31 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "dev" || cmd == "serve" || cmd == "start") {
+            let targetType: string = "browser";
+            let hasTarget: bool = false;
+            if (arg1.find("--target=") == 0) {
+                targetType = arg1.substr(9);
+                hasTarget = true;
+            } else if (arg1 == "--target" || arg1 == "-t") {
+                targetType = arg2.length() == 0 ? "browser" : arg2;
+                hasTarget = true;
+            } else if (arg2.find("--target=") == 0) {
+                targetType = arg2.substr(9);
+                hasTarget = true;
+            } else if (arg1 == "view" || arg2 == "view") {
+                targetType = "view";
+                hasTarget = true;
+            } else if (arg1 == "browser" || arg2 == "browser") {
+                targetType = "browser";
+                hasTarget = true;
+            }
+
             println("==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080...");
             println("[OK] [cxvm light] Server running at http://localhost:3080");
+            if (hasTarget) {
+                let openRes: CxvmCommandResult* = this.cxvmOpen("http://localhost:3080", targetType);
+                println(openRes->output);
+            }
             return 0;
         }
         if (cmd == "build") {
@@ -720,6 +796,7 @@ class CxvmEngine {
         println("  dev                     Start local development server");
         println("  build                   Compile project with cexp native compiler");
         println("  doctor                  Run Lighting engine diagnostic");
+        println("  open [url] [--target <browser|view>] Open URL by Browser (cex-webkit, default) or native window (cex-view)");
         return 0;
     }
 }

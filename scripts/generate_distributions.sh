@@ -122,7 +122,7 @@ fi
 
 echo ""
 echo "==============================================================="
-echo "  ✓ Cex Runtime v$DEFAULT_VER (CexR v8) installed via cxvm!    "
+echo "  [OK] Cex Runtime v$DEFAULT_VER (CexR v8) installed via cxvm!    "
 echo "==============================================================="
 echo ""
 echo "Activate in current terminal:"
@@ -200,7 +200,7 @@ if ($env:PATH -notlike "*$binDir*") {
 
 Write-Host ""
 Write-Host "===============================================================" -ForegroundColor Green
-Write-Host "  ✓ Cex Runtime v$defaultVersion (CexR v8) installed via cxvm!    " -ForegroundColor Green
+Write-Host "  [OK] Cex Runtime v$defaultVersion (CexR v8) installed via cxvm!    " -ForegroundColor Green
 Write-Host "===============================================================" -ForegroundColor Green
 Write-Host "Activate in PowerShell session:" -ForegroundColor Yellow
 Write-Host "  `$env:CXVM_DIR = `"$cxvmDir`"" -ForegroundColor Yellow
@@ -402,8 +402,13 @@ echo "Generating SHA256 checksums..."
 (
   cd "$DOWNLOADS_DIR"
   rm -f SHA256SUMS
-  sha256sum cex-v*.* > SHA256SUMS 2>/dev/null || true
-  sha256sum install.* cxvm* cvm-server thunder-server setup.* >> SHA256SUMS 2>/dev/null || true
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum cex-v*.* > SHA256SUMS 2>/dev/null || true
+    sha256sum install.* cxvm* cvm-server thunder-server setup.* manifest.json >> SHA256SUMS 2>/dev/null || true
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 cex-v*.* > SHA256SUMS 2>/dev/null || true
+    shasum -a 256 install.* cxvm* cvm-server thunder-server setup.* manifest.json >> SHA256SUMS 2>/dev/null || true
+  fi
 )
 
 # 8. Generate manifest.json
@@ -455,8 +460,8 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 mkdir -p "$DIST_DIR"
 cp -a "$DOWNLOADS_DIR"/* "$DIST_DIR/"
-echo "  ✓ Synchronized all cross-platform distributions into dist/"
+echo "  [OK] Synchronized all cross-platform distributions into dist/"
 
 echo "==============================================================="
-echo "  ✓ All cross-platform Cex distributions successfully built!   "
+echo "  [OK] All cross-platform Cex distributions successfully built!   "
 echo "==============================================================="

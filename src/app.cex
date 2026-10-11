@@ -79,6 +79,8 @@ class FactoryApp {
         this.router->get("/api/v1/thunder/images", "factory.apiThunderImages");
         this.router->get("/api/v1/light/status", "factory.apiLightStatus");
         this.router->post("/api/v1/light/create", "factory.apiLightCreate");
+        this.router->post("/api/v1/open", "factory.apiOpen");
+        this.router->get("/api/v1/target", "factory.apiTarget");
     }
 
     public start(): void {
@@ -242,6 +244,14 @@ class FactoryApp {
             return this.controller->apiLightCreate(req, this.cxvm);
         }
 
+        if (route->handlerId === "factory.apiOpen") {
+            return this.controller->apiOpen(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiTarget") {
+            return this.controller->apiTarget(req, this.cxvm);
+        }
+
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);
     }
 
@@ -251,11 +261,11 @@ class FactoryApp {
     }
 
     public displayRoutes(): void {
-        println("╔═══════════════════════════════════════════════════════════════╗");
-        println("║             2-TEK Cex Factory Route Registry Table            ║");
-        println("╚═══════════════════════════════════════════════════════════════╝");
+        println("+---------------------------------------------------------------+");
+        println("|             2-TEK Cex Factory Route Registry Table            |");
+        println("+---------------------------------------------------------------+");
         println("  METHOD  ROUTE PATTERN               HANDLER ACTION");
-        println("  ─────────────────────────────────────────────────────────────");
+        println("  -------------------------------------------------------------");
         let count: int = this.router->getRouteCount();
         for (let i: int = 0; i < count; i++) {
             let r: RouteEntry* = this.router->routes->get(i);
@@ -265,6 +275,6 @@ class FactoryApp {
             for (let s: int = (int)r->pattern.length(); s < 28; s++) print(" ");
             println(r->handlerId);
         }
-        println("─────────────────────────────────────────────────────────────");
+        println("-------------------------------------------------------------");
     }
 }

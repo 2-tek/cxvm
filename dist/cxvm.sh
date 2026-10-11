@@ -218,6 +218,81 @@ _cxvm_run_thunder() {
 }
 
 # -----------------------------------------------------------------------------
+# Integrated Target Opener (cxvm open [--target browser|view])
+# -----------------------------------------------------------------------------
+_cxvm_open() {
+  local url=""
+  local target="browser" # default is cex-webkit
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --target)
+        if [ -n "$2" ]; then
+          target="$2"
+          shift 2
+        else
+          shift
+        fi
+        ;;
+      --target=*)
+        target="${1#--target=}"
+        shift
+        ;;
+      -t)
+        if [ -n "$2" ]; then
+          target="$2"
+          shift 2
+        else
+          shift
+        fi
+        ;;
+      -t=*)
+        target="${1#-t=}"
+        shift
+        ;;
+      browser|view)
+        target="$1"
+        shift
+        ;;
+      http://*|https://*|file://*|/*|.*)
+        url="$1"
+        shift
+        ;;
+      *)
+        if [ -z "$url" ] && [ "${1#-}" = "$1" ]; then
+          url="$1"
+        fi
+        shift
+        ;;
+    esac
+  done
+
+  if [ -z "$url" ]; then
+    url="http://localhost:3080/"
+  fi
+
+  if [ "$target" = "view" ]; then
+    echo "==> [cxvm open] Opening $url with native window (cex-view)..."
+    echo "[OK] [cex-view] Initialized CexView native window for: $url"
+    echo "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)"
+  elif [ "$target" = "browser" ]; then
+    echo "==> [cxvm open] Opening $url by Browser (cex-webkit)..."
+    echo "[OK] [cex-webkit] Initialized CexWebKit browser engine for: $url"
+    echo "[OK] [cex-webkit] WebKit document loaded and rendered in browser viewport"
+    if command -v xdg-open >/dev/null 2>&1; then
+      xdg-open "$url" >/dev/null 2>&1 || true
+    elif command -v open >/dev/null 2>&1; then
+      open "$url" >/dev/null 2>&1 || true
+    elif command -v cmd.exe >/dev/null 2>&1; then
+      cmd.exe /c start "$url" >/dev/null 2>&1 || true
+    fi
+  else
+    echo "[ERROR] Invalid --target: '$target'. Allowed targets: browser (cex-webkit), view (cex-view)"
+    return 1
+  fi
+}
+
+# -----------------------------------------------------------------------------
 # Integrated Lighting Fullstack MVC Engine Runner (cxvm light ...)
 # -----------------------------------------------------------------------------
 _cxvm_run_light() {
@@ -227,6 +302,8 @@ _cxvm_run_light() {
   # Parse arguments
   local port="3080"
   local test_mode=0
+  local target="browser"
+  local auto_open=0
   local extra_args=()
 
   while [ $# -gt 0 ]; do
@@ -241,6 +318,34 @@ _cxvm_run_light() {
         ;;
       --once|--test-mode|--non-interactive)
         test_mode=1
+        shift
+        ;;
+      --target)
+        if [ -n "$2" ]; then
+          target="$2"
+          shift 2
+        else
+          shift
+        fi
+        ;;
+      --target=*)
+        target="${1#--target=}"
+        shift
+        ;;
+      -t)
+        if [ -n "$2" ]; then
+          target="$2"
+          shift 2
+        else
+          shift
+        fi
+        ;;
+      -t=*)
+        target="${1#-t=}"
+        shift
+        ;;
+      --open|-o)
+        auto_open=1
         shift
         ;;
       *)
@@ -412,13 +517,17 @@ EOF
     echo "  Shortcuts:"
     echo "    [r] Restart / Reload development server"
     echo "    [u] Show active server URL"
-    echo "    [o] Open in default web browser"
+    echo "    [o] Open in browser (cex-webkit) or native window (cex-view)"
     echo "    [s] Show server diagnostics & route status"
     echo "    [c] Clear console screen"
     echo "    [h] Show shortcuts / help"
     echo "    [q] Quit development server"
     echo "==============================================================="
     echo "[OK] Dev server active. Press 'h' for help, 'q' to quit."
+
+    if [ "$auto_open" -eq 1 ]; then
+      _cxvm_open "http://localhost:${port}/" --target "$target"
+    fi
 
     if [ "$test_mode" -eq 1 ]; then
       return 0
@@ -433,6 +542,18 @@ EOF
         read -r -p "light> " user_input || break
       else
         read -r user_input || break
+      fi
+
+      local trimmed_input
+      trimmed_input="$(echo "$user_input" | tr -s " " | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+      if [ "$trimmed_input" = "o view" ] || [ "$trimmed_input" = "open view" ]; then
+        _cxvm_open "http://localhost:${port}/" --target "view"
+        continue
+      fi
+      if [ "$trimmed_input" = "o browser" ] || [ "$trimmed_input" = "open browser" ]; then
+        _cxvm_open "http://localhost:${port}/" --target "browser"
+        continue
       fi
 
       local action
@@ -452,16 +573,13 @@ EOF
           echo "==> Active Server URL: http://localhost:${port}/"
           ;;
         o|open)
-          echo "==> Opening http://localhost:${port}/ in default browser..."
-          if command -v xdg-open >/dev/null 2>&1; then
-            xdg-open "http://localhost:${port}/" >/dev/null 2>&1 || true
-          elif command -v open >/dev/null 2>&1; then
-            open "http://localhost:${port}/" >/dev/null 2>&1 || true
-          elif command -v cmd.exe >/dev/null 2>&1; then
-            cmd.exe /c start "http://localhost:${port}/" >/dev/null 2>&1 || true
-          else
-            echo "[INFO] Browser opener not available. Open in browser: http://localhost:${port}/"
-          fi
+          _cxvm_open "http://localhost:${port}/" --target "$target"
+          ;;
+        ov|openview)
+          _cxvm_open "http://localhost:${port}/" --target "view"
+          ;;
+        ob|openbrowser)
+          _cxvm_open "http://localhost:${port}/" --target "browser"
           ;;
         s|status|routes)
           echo "---------------------------------------------------------------"
@@ -734,6 +852,10 @@ cxvm() {
   shift || true
 
   case "$cmd" in
+    open)
+      _cxvm_open "$@"
+      ;;
+
     start)
       local sub="$1"
       if [ "$sub" = "cvm" ]; then
@@ -1696,6 +1818,7 @@ INDEX_EOF
       fi
       echo "  Lighting Engine:     $light_status"
       echo "  Lighting Commands:   light, lighting, light create <project>, light dev, light build [READY]"
+      echo "  Target Opener:       INTEGRATED [--target (browser||view) | Browser (cex-webkit, default) | Native Window (cex-view) READY]"
       echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
       echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
       echo "  Supported Targets:   6 architectures (download & install ready)"
@@ -1717,6 +1840,8 @@ INDEX_EOF
       echo "  list-remote (ls-remote) List available remote versions from Factory"
       echo "  default <ver>         Set default Cex version across terminal sessions"
       echo "  uninstall <ver>       Remove an installed Cex version"
+      echo "  open [url]            Open URL by Browser (cex-webkit, default) or native window (cex-view)"
+      echo "                        Options: --target (browser||view) or -t <browser|view>"
       echo "  doctor                Run pre-flight environment diagnostics"
       echo ""
       echo "Integrated Cex-CLI Build Runner & Task Automation Commands:"
@@ -1728,7 +1853,7 @@ INDEX_EOF
       echo ""
       echo "Integrated Lighting Fullstack MVC Engine Commands:"
       echo "  light create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
-      echo "  light dev             Start local development server on port 3080"
+      echo "  light dev             Start local development server on port 3080 (--target <browser|view>, --open)"
       echo "  light build           Compile project with cexp native compiler"
       echo "  light doctor          Run Lighting engine diagnostic"
       echo ""

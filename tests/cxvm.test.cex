@@ -459,6 +459,60 @@ fn main(): int {
 
     suite->addResult("test_integrated_lighting_engine_and_scaffolder", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 9: CLI Alias --target (browser||view) for CexWebKit Browser and CexView Native Window
+    // -------------------------------------------------------------
+    println("\n[Test Suite 9: CLI Alias --target (browser||view) for CexWebKit & CexView]");
+
+    // 1. Direct cxvmOpen calls
+    let opBrowser: CxvmCommandResult* = cxvm->cxvmOpen("http://localhost:3080", "browser");
+    Assert::isTrue(opBrowser->success, "cxvmOpen browser succeeds");
+    Assert::isTrue(opBrowser->output.find("[cex-webkit]") != -1, "Output confirms cex-webkit browser engine");
+    Assert::isTrue(opBrowser->output.find("http://localhost:3080") != -1, "Output contains target URL");
+
+    let opView: CxvmCommandResult* = cxvm->cxvmOpen("http://localhost:3080", "view");
+    Assert::isTrue(opView->success, "cxvmOpen view succeeds");
+    Assert::isTrue(opView->output.find("[cex-view]") != -1, "Output confirms cex-view native window engine");
+    Assert::isTrue(opView->output.find("1024x768") != -1, "Output confirms native window dimensions");
+
+    // 2. CLI cvmExecute routing for open
+    let execOpenView: int = cxvm->cvmExecute("open", "http://localhost:3080", "--target view");
+    Assert::equalsInt(0, execOpenView, "cxvm open --target view returns exit code 0");
+
+    let execOpenBrowser: int = cxvm->cvmExecute("open", "http://localhost:3080", "--target browser");
+    Assert::equalsInt(0, execOpenBrowser, "cxvm open --target browser returns exit code 0");
+
+    let execOpenDefault: int = cxvm->cvmExecute("open", "", "");
+    Assert::equalsInt(0, execOpenDefault, "cxvm open default returns exit code 0");
+
+    // 3. CLI cvmExecute light dev with --target
+    let execLightTarget: int = cxvm->cvmExecute("light", "dev", "--target view");
+    Assert::equalsInt(0, execLightTarget, "cxvm light dev --target view returns exit code 0");
+
+    // 4. REST API /api/v1/open for view and browser
+    let resApiOpenV: HttpResponse* = app->simulateRequest("POST", "/api/v1/open", "{\"url\":\"http://localhost:3080\",\"target\":\"view\"}", "application/json");
+    Assert::equalsInt(200, resApiOpenV->statusCode, "POST /api/v1/open view returns 200 OK");
+    Assert::isTrue(resApiOpenV->body.find("cex-view") != -1, "POST /api/v1/open reports cex-view engine");
+    Assert::isTrue(resApiOpenV->body.find("SUCCESS") != -1, "POST /api/v1/open reports SUCCESS");
+
+    let resApiOpenB: HttpResponse* = app->simulateRequest("POST", "/api/v1/open", "{\"url\":\"http://localhost:3080\",\"target\":\"browser\"}", "application/json");
+    Assert::equalsInt(200, resApiOpenB->statusCode, "POST /api/v1/open browser returns 200 OK");
+    Assert::isTrue(resApiOpenB->body.find("cex-webkit") != -1, "POST /api/v1/open reports cex-webkit engine");
+
+    // 5. REST API /api/v1/target
+    let resApiTarget: HttpResponse* = app->simulateRequest("GET", "/api/v1/target", "", "application/json");
+    Assert::equalsInt(200, resApiTarget->statusCode, "GET /api/v1/target returns 200 OK");
+    Assert::isTrue(resApiTarget->body.find("supportedTargets") != -1, "GET /api/v1/target reports supportedTargets");
+    Assert::isTrue(resApiTarget->body.find("cex-webkit") != -1, "GET /api/v1/target lists cex-webkit");
+    Assert::isTrue(resApiTarget->body.find("cex-view") != -1, "GET /api/v1/target lists cex-view");
+
+    // 6. Doctor capability check
+    Assert::isTrue(docStr.find("Target Opener:") != -1, "Doctor reports Target Opener capability");
+    Assert::isTrue(docStr.find("cex-webkit") != -1, "Doctor reports cex-webkit default");
+    Assert::isTrue(docStr.find("cex-view") != -1, "Doctor reports cex-view native window");
+
+    suite->addResult("test_cli_alias_target_browser_and_view", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;
