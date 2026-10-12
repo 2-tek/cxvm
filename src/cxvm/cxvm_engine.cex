@@ -997,6 +997,7 @@ class CxvmEngine {
     public startThunder(port: int, standalone: bool): CxvmCommandResult* {
         if (this.thunderRunning && this.thunderPid > 0) {
             let out: string = "[OK] [cxvm] Thunder server already running (PID: " + to_string(this.thunderPid) + ", port: " + to_string(this.thunderPort) + ")\n";
+            out += "  - Mode:       standalone (single process)\n";
             out += "  - State:      RUNNING (preserved, no process killed)\n";
             out += "  - Dashboard:  http://localhost:" + to_string(this.thunderPort);
             return new CxvmCommandResult("start thunder", to_string(port), true, "Thunder server already running", out);
@@ -1460,6 +1461,161 @@ class CxvmEngine {
         return "thunder";
     }
 
+    public findCvmCli(): string {
+        let envBin: char* = getenv("CVM_BIN");
+        if (envBin != nullptr) {
+            let envStr: string = (string)envBin;
+            if (envStr.length() > 0 && fs.exists(envStr)) {
+                return envStr;
+            }
+        }
+        let cxvmDir: char* = getenv("CXVM_DIR");
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/bin/cvm";
+            if (fs.exists(p1)) return p1;
+        }
+        let home: char* = getenv("HOME");
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/bin/cvm";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)home + "/.local/bin/cvm";
+            if (fs.exists(p2)) return p2;
+            let pProj: string = (string)home + "/Projects/mvclt/code-version-manager/bin/cvm";
+            if (fs.exists(pProj)) return pProj;
+        }
+        if (fs.exists("bin/cvm")) {
+            return "bin/cvm";
+        }
+        return "cvm";
+    }
+
+    public findLightingCli(): string {
+        let envBin: char* = getenv("LIGHTING_BIN");
+        if (envBin != nullptr) {
+            let envStr: string = (string)envBin;
+            if (envStr.length() > 0 && fs.exists(envStr)) {
+                return envStr;
+            }
+        }
+        let cxvmDir: char* = getenv("CXVM_DIR");
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/bin/lighting";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)cxvmDir + "/bin/light";
+            if (fs.exists(p2)) return p2;
+        }
+        let home: char* = getenv("HOME");
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/bin/lighting";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)home + "/.cxvm/bin/light";
+            if (fs.exists(p2)) return p2;
+            let pProj: string = (string)home + "/Projects/MVC-Lighting/bin/lighting";
+            if (fs.exists(pProj)) return pProj;
+        }
+        if (fs.exists("bin/lighting")) {
+            return "bin/lighting";
+        }
+        return "lighting";
+    }
+
+    public findDeepseaCli(): string {
+        let envBin: char* = getenv("DEEPSEA_BIN");
+        if (envBin != nullptr) {
+            let envStr: string = (string)envBin;
+            if (envStr.length() > 0 && fs.exists(envStr)) {
+                return envStr;
+            }
+        }
+        let cxvmDir: char* = getenv("CXVM_DIR");
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/bin/deepsea";
+            if (fs.exists(p1)) return p1;
+        }
+        let home: char* = getenv("HOME");
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/bin/deepsea";
+            if (fs.exists(p1)) return p1;
+            let pProj: string = (string)home + "/Projects/MVP-DeepSea/bin/deepsea";
+            if (fs.exists(pProj)) return pProj;
+        }
+        if (fs.exists("bin/deepsea")) {
+            return "bin/deepsea";
+        }
+        return "deepsea";
+    }
+
+    public cvmAppExecute(cmd: string, arg1: string, arg2: string): int {
+        // Intercept daemon management when explicitly managed by cxvm daemon supervisor
+        if (cmd == "start" && (arg1 == "cvm" || arg1 == "daemon" || arg1 == "--daemon")) {
+            let res: CxvmCommandResult* = this.startCvm(4000, true);
+            println(res->output);
+            return 0;
+        }
+        if (cmd == "stop" && (arg1 == "cvm" || arg1 == "daemon")) {
+            let res: CxvmCommandResult* = this.stopCvm();
+            println(res->output);
+            return 0;
+        }
+        if (cmd == "status" && (arg1 == "cvm" || arg1 == "daemon")) {
+            let res: CxvmCommandResult* = this.statusCvm();
+            println(res->output);
+            return 0;
+        }
+
+        let cvmCliBin: string = this.findCvmCli();
+        let cliCmd: string = cvmCliBin;
+        if (cmd.length() > 0) {
+            cliCmd += " " + cmd;
+        }
+        if (arg1.length() > 0) {
+            cliCmd += " " + arg1;
+        }
+        if (arg2.length() > 0) {
+            cliCmd += " " + arg2;
+        }
+        println("==> [cxvm --app cvm] Hook calling CVM CLI: " + cliCmd);
+        let res: int = system(cliCmd.c_str());
+        if (res == 0) {
+            println("[OK] [cxvm --app cvm] CVM CLI hook completed successfully.");
+            return 0;
+        }
+        if (res != 32512 && res != 127) {
+            return res;
+        }
+        println("[WARN] [cxvm --app cvm] CVM CLI hook not found or returned " + to_string(res) + ", using internal fallback...");
+        return this.cvmAppExecuteFallback(cmd, arg1, arg2);
+    }
+
+    public cvmAppExecuteFallback(cmd: string, arg1: string, arg2: string): int {
+        if (cmd == "status" || cmd.length() == 0) {
+            let res: CxvmCommandResult* = this.cvmStatus();
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "commit") {
+            let msg: string = arg1.length() > 0 ? arg1 : "auto-commit";
+            let res: CxvmCommandResult* = this.cvmCommit(msg, "Developer", "dev@2tek.local");
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "push") {
+            let rem: string = arg1.length() > 0 ? arg1 : "origin";
+            let br: string = arg2.length() > 0 ? arg2 : "main";
+            let res: CxvmCommandResult* = this.cvmPush(rem, br);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "pull") {
+            let rem: string = arg1.length() > 0 ? arg1 : "origin";
+            let br: string = arg2.length() > 0 ? arg2 : "main";
+            let res: CxvmCommandResult* = this.cvmPull(rem, br);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        return this.cvmCli->execute(cmd, arg1, arg2);
+    }
+
     public thunderExecute(cmd: string, arg1: string, arg2: string): int {
         // Intercept daemon management when explicitly managed by cxvm daemon supervisor
         if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon")) {
@@ -1611,7 +1767,7 @@ class CxvmEngine {
             return this.deepseaExecute(subCmd, subArg, "");
         }
         if (app == "cvm" || app == "vcs" || app == "git") {
-            return this.cvmExecute(subCmd, subArg, "");
+            return this.cvmAppExecute(subCmd, subArg, "");
         }
         println("[ERROR] [cxvm --app] Unknown application: '" + app + "'");
         println("Supported apps: thunder, lighting, deepsea, cvm");
@@ -1873,6 +2029,9 @@ class CxvmEngine {
         }
         if (cmd == "deepsea" || cmd == "deep-sea") {
             return this.dispatchApp("deepsea", arg1, arg2);
+        }
+        if (cmd == "cvm" || cmd == "vcs") {
+            return this.dispatchApp("cvm", arg1, arg2);
         }
         if (cmd == "hooks" || cmd == "scan-hooks") {
             let root: string = (arg1 == "scan" || arg1 == "install") ? arg2 : arg1;

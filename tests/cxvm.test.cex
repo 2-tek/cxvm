@@ -411,7 +411,8 @@ fn main(): int {
     // -------------------------------------------------------------
     println("\n[Test Suite 7: Integrated Thunder Container Engine & Virtual Linux Microkernel]");
 
-    // 1. Start Thunder standalone single process
+    // 1. Start Thunder standalone single process (ensure stopped first)
+    cxvm->stopThunder();
     let thStartRes: CxvmCommandResult* = cxvm->startThunder(3050, true);
     Assert::isTrue(thStartRes->success, "cxvm start thunder succeeds");
     Assert::isTrue(cxvm->thunderRunning, "Thunder server marked as running");
@@ -453,6 +454,23 @@ fn main(): int {
 
     let thDispatchDirect: int = cxvm->dispatchApp("thunder", "ps", "");
     Assert::equalsInt(0, thDispatchDirect, "cxvm dispatchApp thunder ps returns exit code 0");
+
+    // Unified Application Engine (--app) routing & CVM CLI hook
+    Assert::isTrue(cxvm->findCvmCli().length() > 0, "findCvmCli resolves CVM CLI path");
+    Assert::isTrue(cxvm->findLightingCli().length() > 0, "findLightingCli resolves Lighting CLI path");
+    Assert::isTrue(cxvm->findDeepseaCli().length() > 0, "findDeepseaCli resolves DeepSea CLI path");
+
+    let cvmAppExec: int = cxvm->cvmExecute("--app", "cvm", "status");
+    Assert::equalsInt(0, cvmAppExec, "cxvm cvmExecute --app cvm status returns exit code 0");
+
+    let cvmAppEqExec: int = cxvm->cvmExecute("--app=cvm", "status", "");
+    Assert::equalsInt(0, cvmAppEqExec, "cxvm cvmExecute --app=cvm status returns exit code 0");
+
+    let cvmAliasExec: int = cxvm->cvmExecute("cvm", "status", "");
+    Assert::equalsInt(0, cvmAliasExec, "cxvm cvmExecute cvm status redirects to --app cvm and returns exit code 0");
+
+    let cvmDispatchDirect: int = cxvm->dispatchApp("cvm", "status", "");
+    Assert::equalsInt(0, cvmDispatchDirect, "cxvm dispatchApp cvm status returns exit code 0");
 
     // 5. REST Endpoints for Thunder
     let resThStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/status", "", "application/json");

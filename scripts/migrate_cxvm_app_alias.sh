@@ -58,7 +58,7 @@ if [ $FIX_MODE -eq 1 ]; then
 else
   echo "  Execution Mode:   CHECK (Dry-Run Preview)"
 fi
-echo "  Target Aliases:   'cxvm thunder', 'cxvm lighting', 'cxvm deepsea'"
+echo "  Target Aliases:   'cxvm thunder', 'cxvm lighting', 'cxvm deepsea', 'cxvm cvm'"
 echo "  Replacement:      'cxvm --app {appName}'"
 echo "-------------------------------------------------------------------------------"
 
@@ -79,6 +79,7 @@ patterns = [
     (re.compile(r'(?<!\[)(?<!\b--app\s)(?<!\bapp\s)(?<!alias:\s)\bcxvm\s+thunder\b'), 'cxvm --app thunder'),
     (re.compile(r'(?<!\[)(?<!\b--app\s)(?<!\bapp\s)(?<!alias:\s)\bcxvm\s+lighting\b'), 'cxvm --app lighting'),
     (re.compile(r'(?<!\[)(?<!\b--app\s)(?<!\bapp\s)(?<!alias:\s)\bcxvm\s+deepsea\b'), 'cxvm --app deepsea'),
+    (re.compile(r'(?<!\[)(?<!\b--app\s)(?<!\bapp\s)(?<!alias:\s)\bcxvm\s+cvm\b'), 'cxvm --app cvm'),
 ]
 
 for root, dirs, files in os.walk(target_dir):

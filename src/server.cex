@@ -5,10 +5,13 @@ import "@/src/app.cex";
 
 typedef FactoryApp FactoryServer;
 
+#define DEFAULT_PORT 3080
+
 fn main(argc: int, argv: char**): int {
     let isDryRun: bool = false;
     let isCheck: bool = false;
-    let port: int = 3080;
+    let portEnv: char* = getenv("PORT");
+    let port: int = (portEnv != nullptr && string(portEnv).length() > 0) ? atoi(portEnv) : DEFAULT_PORT;
 
     for (let i: int = 1; i < argc; i++) {
         let arg: string = (string)argv[i];

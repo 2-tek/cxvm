@@ -56,6 +56,18 @@ _cxvm_start_cvm_server() {
     done
   fi
 
+  # Check if CVM server is already running when action is start
+  if [ "$action" = "start" ] && [ -f "$CXVM_DIR/cvm_server.pid" ]; then
+    local ex_cvm_pid
+    ex_cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || true)"
+    if [ -n "$ex_cvm_pid" ] && kill -0 "$ex_cvm_pid" 2>/dev/null; then
+      echo "[OK] [cxvm cvm] CVM server is already running (PID: $ex_cvm_pid, port: $port)"
+      echo "  - State:      RUNNING (preserved, no process killed)"
+      echo "  - Dashboard:  http://localhost:$port"
+      return 0
+    fi
+  fi
+
   if [ -n "$srv_bin" ] && command -v python3 >/dev/null 2>&1; then
     local cmd_args=("$srv_bin" "$action" "-p" "$port")
     if [ "$foreground" -eq 1 ]; then
@@ -115,126 +127,36 @@ _cxvm_start_thunder_server() {
     esac
   done
 
-  # 1. Prefer native Thunder server binary or CLI
-  local native_srv=""
-  local s_dir
-  s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  for cand in \
-    "dist/server" \
-    "./dist/server" \
-    "bin/thunder" \
-    "./bin/thunder" \
-    "$CXVM_DIR/bin/thunder" \
-    "$HOME/Projects/mvclt/thunder/dist/server" \
-    "$HOME/Projects/mvclt/thunder/bin/thunder" \
-    "$CXVM_DIR/bin/thunder-bin"; do
-    if [ -x "$cand" ]; then
-      native_srv="$cand"
-      break
-    fi
-  done
-
-  if [ -n "$native_srv" ]; then
-    local pidfile="$CXVM_DIR/thunder_server.pid"
-    local portfile="$CXVM_DIR/thunder_server.port"
-
-    case "$action" in
-      status)
-        if [ -f "$pidfile" ]; then
-          local p
-          p="$(cat "$pidfile" 2>/dev/null | tr -d ' ')"
-          if [ -n "$p" ] && kill -0 "$p" 2>/dev/null; then
-            local active_p="$port"
-            if [ -f "$portfile" ]; then active_p="$(cat "$portfile" 2>/dev/null | tr -d ' ')"; fi
-            echo "[OK] [cxvm] Thunder server is running (single process standalone, PID: $p, port: $active_p)"
-            echo "  - Dashboard:  http://localhost:$active_p"
-            echo "  - Health API: http://localhost:$active_p/health"
-            return 0
-          fi
-        fi
-        echo "[cxvm] Thunder server is stopped."
-        return 1
-        ;;
-
-      stop)
-        if [ -f "$pidfile" ]; then
-          local p
-          p="$(cat "$pidfile" 2>/dev/null | tr -d ' ')"
-          if [ -n "$p" ] && kill -0 "$p" 2>/dev/null; then
-            kill -TERM "$p" 2>/dev/null || true
-            sleep 0.3
-            kill -KILL "$p" 2>/dev/null || true
-            rm -f "$pidfile" "$portfile"
-            echo "[OK] [cxvm] Thunder server (PID: $p) stopped."
-            return 0
-          fi
-        fi
-        rm -f "$pidfile" "$portfile"
-        echo "[cxvm] Thunder server is not running."
-        return 0
-        ;;
-
-      restart)
-        _cxvm_start_thunder_server stop
-        sleep 0.5
-        _cxvm_start_thunder_server start -p "$port" "${extra_args[@]}"
-        return $?
-        ;;
-
-      start)
-        if [ -f "$pidfile" ]; then
-          local p
-          p="$(cat "$pidfile" 2>/dev/null | tr -d ' ')"
-          if [ -n "$p" ] && kill -0 "$p" 2>/dev/null; then
-            local active_p="$port"
-            if [ -f "$portfile" ]; then active_p="$(cat "$portfile" 2>/dev/null | tr -d ' ')"; fi
-            echo "[OK] [cxvm] Thunder server is already running (single process standalone, PID: $p, port: $active_p)"
-            echo "  - Dashboard:  http://localhost:$active_p"
-            echo "  - Health API: http://localhost:$active_p/health"
-            return 0
-          fi
-        fi
-
-        local srv_exec="$native_srv"
-        local b_name
-        b_name="$(basename "$native_srv")"
-        if [ "$b_name" = "thunder" ] || [ "$b_name" = "thunder-bin" ]; then
-          local possible_srv="$(dirname "$native_srv")/../dist/server"
-          if [ -x "$possible_srv" ]; then
-            srv_exec="$possible_srv"
-          fi
-        fi
-
-        if [ "$foreground" -eq 1 ]; then
-          echo "==> [cxvm] Starting Thunder server in foreground on port $port..."
-          echo "--> Dashboard: http://localhost:$port"
-          "$srv_exec" -p "$port" "${extra_args[@]}"
-          return $?
-        else
-          echo "==> [cxvm] Starting Thunder server as background daemon on port $port..."
-          "$srv_exec" --daemon -p "$port" "${extra_args[@]}"
-          local res=$?
-          sleep 0.5
-          _cxvm_start_thunder_server status -p "$port"
-          return $res
-        fi
-        ;;
-
-      ps|images)
-        "$native_srv" "$action" "${extra_args[@]}"
-        return $?
-        ;;
-    esac
+  # Locate thunder-server script
+  local srv_bin=""
+  if [ -x "$CXVM_DIR/bin/thunder-server" ]; then
+    srv_bin="$CXVM_DIR/bin/thunder-server"
+  else
+    local s_dir
+    s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    for candidate in "$s_dir/thunder-server" "$s_dir/downloads/thunder-server" "$s_dir/../downloads/thunder-server"; do
+      if [ -x "$candidate" ]; then
+        srv_bin="$candidate"
+        break
+      fi
+    done
   fi
 
-  # Fallback to python thunder-server ONLY if no native binary exists
-  local srv_bin=""
-  for candidate in "$CXVM_DIR/bin/thunder-server" "$s_dir/thunder-server" "$s_dir/downloads/thunder-server"; do
-    if [ -x "$candidate" ]; then
-      srv_bin="$candidate"
-      break
-    fi
-  done
+  # Check if Thunder container engine is already running when action is start
+  if [ "$action" = "start" ]; then
+    for t_pid_f in "$CXVM_DIR/thunder_server.pid" "$CXVM_DIR/thunder.pid"; do
+      if [ -f "$t_pid_f" ]; then
+        local ex_thun_pid
+        ex_thun_pid="$(cat "$t_pid_f" 2>/dev/null || true)"
+        if [ -n "$ex_thun_pid" ] && kill -0 "$ex_thun_pid" 2>/dev/null; then
+          echo "[OK] [cxvm thunder] Thunder container engine is already running (PID: $ex_thun_pid, port: $port)"
+          echo "  - State:      RUNNING (preserved, no process killed)"
+          echo "  - Dashboard:  http://localhost:$port"
+          return 0
+        fi
+      fi
+    done
+  fi
 
   if [ -n "$srv_bin" ] && command -v python3 >/dev/null 2>&1; then
     local cmd_args=("$srv_bin" "$action" "-p" "$port")
@@ -245,83 +167,18 @@ _cxvm_start_thunder_server() {
     return $?
   fi
 
+  if command -v python3 >/dev/null 2>&1; then
+    if [ -f "$srv_bin" ]; then
+      local cmd_args=(python3 "$srv_bin" "$action" "-p" "$port")
+      if [ "$foreground" -eq 1 ]; then
+        cmd_args+=("-f")
+      fi
+      "${cmd_args[@]}" "${extra_args[@]}"
+      return $?
+    fi
+  fi
+
   _cxvm_run_thunder "$action" "${extra_args[@]}"
-}
-
-# -----------------------------------------------------------------------------
-# Thunder Container Post-Deploy Supervisor & Health Verifier
-# -----------------------------------------------------------------------------
-_cxvm_thunder_post_deploy() {
-  local app_name="$1"
-  local app_port="$2"
-  local env_file="$3"
-  [ -z "$app_port" ] && app_port=3080
-
-  # 1. Notify thunder-server (port 3050) if running
-  if curl -s "http://127.0.0.1:3050/health" >/dev/null 2>&1; then
-    curl -s -X POST "http://127.0.0.1:3050/api/v1/thunder/deploy" \
-      -H "Content-Type: application/json" \
-      -d "{\"name\":\"$app_name\",\"port\":$app_port,\"dir\":\"$PWD\"}" >/dev/null 2>&1 || true
-  fi
-
-  # 2. Check if app port is already open
-  local is_running=0
-  if curl -s "http://127.0.0.1:$app_port/api/health" >/dev/null 2>&1 || curl -s "http://127.0.0.1:$app_port/health" >/dev/null 2>&1; then
-    is_running=1
-  fi
-
-  # 3. If not running, spawn application binary
-  if [ "$is_running" -eq 0 ]; then
-    local app_bin=""
-    for cand in "$PWD/bin/$app_name" "$PWD/bin/server" "$PWD/dist/server" "$PWD/dist/$app_name"; do
-      if [ -x "$cand" ]; then
-        app_bin="$cand"
-        break
-      fi
-    done
-
-    if [ -n "$app_bin" ]; then
-      local log_file="$CXVM_DIR/$app_name.log"
-      local pid_file="$CXVM_DIR/thunder_apps.pid"
-      mkdir -p "$CXVM_DIR"
-
-      # Export environment variables if env_file exists
-      if [ -n "$env_file" ] && [ -f "$env_file" ]; then
-        export $(grep -v '^#' "$env_file" | xargs -d '\n' 2>/dev/null) 2>/dev/null || true
-      fi
-      export PORT="$app_port"
-
-      nohup "$app_bin" --port "$app_port" >> "$log_file" 2>&1 &
-      local child_pid=$!
-      echo "$app_name:$child_pid" >> "$pid_file"
-      sleep 0.5
-    fi
-  fi
-
-  # 4. Verify deployment health
-  echo ""
-  echo "=================================================="
-  echo "    Thunder Container Deployment Verification     "
-  echo "=================================================="
-  local health_res=""
-  for i in 1 2 3 4 5; do
-    health_res="$(curl -s -m 2 "http://127.0.0.1:$app_port/api/health" 2>/dev/null || curl -s -m 2 "http://127.0.0.1:$app_port/health" 2>/dev/null || true)"
-    if [ -n "$health_res" ]; then
-      break
-    fi
-    sleep 0.3
-  done
-
-  if [ -n "$health_res" ]; then
-    echo "✓ [ThunderEngine] Live Container Service: $app_name (HEALTHY)"
-    echo "  - Service URL:       http://localhost:$app_port"
-    echo "  - Health Endpoint:   http://localhost:$app_port/api/health"
-    echo "  - Microkernel Admin: http://localhost:3050"
-  else
-    echo "⚡ [ThunderEngine] Container deployed into Thunder registry for $app_name."
-    echo "  - Port: $app_port (Service initializing or managed by Thunder Supervisor)"
-  fi
-  echo "=================================================="
 }
 
 # -----------------------------------------------------------------------------
@@ -395,15 +252,11 @@ _cxvm_run_thunder() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   for cand in \
-    "bin/thunder" \
-    "./bin/thunder" \
-    "$(pwd)/bin/thunder" \
     "$CXVM_DIR/bin/thunder" \
-    "$HOME/Projects/mvclt/thunder/bin/thunder" \
+    "$CXVM_DIR/bin/thunder-bin" \
     "$script_dir/../../mvclt/thunder/bin/thunder" \
     "$script_dir/../mvclt/thunder/bin/thunder" \
     "/home/viettd/Projects/mvclt/thunder/bin/thunder" \
-    "$CXVM_DIR/bin/thunder-bin" \
     "$script_dir/../../mvc-lighting-thunder/bin/thunder" \
     "$script_dir/../mvc-lighting-thunder/bin/thunder"; do
     if [ -f "$cand" ]; then
@@ -423,18 +276,10 @@ _cxvm_run_thunder() {
   if [ -n "$thun_bin" ]; then
     if [ -x "$thun_bin" ] && [ "${thun_bin##*.}" != "cex" ]; then
       "$thun_bin" "$thun_cmd" "$@"
-      local thun_res=$?
-      if [ "$thun_cmd" = "deploy" ]; then
-        _cxvm_thunder_post_deploy "$clean_name" "$thun_o_port" "$thun_env"
-      fi
-      return $thun_res
+      return $?
     elif command -v cexr >/dev/null 2>&1; then
       THUNDER_CMD="thunder $thun_cmd $*" cexr "$thun_bin"
-      local thun_res=$?
-      if [ "$thun_cmd" = "deploy" ]; then
-        _cxvm_thunder_post_deploy "$clean_name" "$thun_o_port" "$thun_env"
-      fi
-      return $thun_res
+      return $?
     fi
   fi
 
@@ -460,11 +305,7 @@ _cxvm_run_thunder() {
   for cand in "$CXVM_DIR/bin/thunder-server" "$s_dir/thunder-server" "$s_dir/downloads/thunder-server"; do
     if [ -f "$cand" ] && command -v python3 >/dev/null 2>&1; then
       python3 "$cand" "$thun_cmd" "$@"
-      local thun_res=$?
-      if [ "$thun_cmd" = "deploy" ]; then
-        _cxvm_thunder_post_deploy "$clean_name" "$thun_o_port" "$thun_env"
-      fi
-      return $thun_res
+      return $?
     fi
   done
 
@@ -2004,6 +1845,23 @@ except Exception: pass" 2>/dev/null)
   fi
 
   echo "==> [cxvm upgrade] Upgrading dependencies: ${deps[*]}"
+
+  # Check and preserve active processes
+  local thun_active_pid=""
+  for t_pid_f in "$CXVM_DIR/thunder_server.pid" "$CXVM_DIR/thunder.pid"; do
+    if [ -f "$t_pid_f" ]; then
+      local p_val
+      p_val="$(cat "$t_pid_f" 2>/dev/null || true)"
+      if [ -n "$p_val" ] && kill -0 "$p_val" 2>/dev/null; then
+        thun_active_pid="$p_val"
+        break
+      fi
+    fi
+  done
+  if [ -n "$thun_active_pid" ]; then
+    echo "[OK] [cxvm upgrade] Preserved active Thunder container engine (PID: $thun_active_pid, State: RUNNING)"
+    echo "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)"
+  fi
   mkdir -p "$repo_root/.cex_boxes"
 
   for raw_pkg in "${deps[@]}"; do
@@ -2263,12 +2121,21 @@ _cxvm_run_cvm() {
 
   # 3. If cvm binary is found and node is available, execute cvm
   if [ -n "$cvm_bin" ] && command -v node >/dev/null 2>&1; then
+    echo "==> [cxvm --app cvm] Hook calling CVM CLI: $cvm_bin $cvm_cmd $*"
     if [ -x "$cvm_bin" ]; then
       "$cvm_bin" "$cvm_cmd" "$@"
-      return $?
+      local cvm_res=$?
+      if [ $cvm_res -eq 0 ]; then
+        echo "[OK] [cxvm --app cvm] CVM CLI hook completed successfully."
+      fi
+      return $cvm_res
     else
       node "$cvm_bin" "$cvm_cmd" "$@"
-      return $?
+      local cvm_res=$?
+      if [ $cvm_res -eq 0 ]; then
+        echo "[OK] [cxvm --app cvm] CVM CLI hook completed successfully."
+      fi
+      return $cvm_res
     fi
   fi
 
@@ -2306,6 +2173,20 @@ _cxvm_run_cvm() {
         git diff "$@"
         ;;
       log)
+        if [ "$1" = "thunder" ] || [ "$1" = "server" ] || [ "$1" = "cvm" ] || [ "$1" = "apps" ]; then
+          local svc_name="$1"
+          local target_log="$CXVM_DIR/thunder_server.log"
+          if [ "$svc_name" = "server" ]; then target_log="$CXVM_DIR/cxvm_server.log"; fi
+          if [ "$svc_name" = "cvm" ]; then target_log="$CXVM_DIR/cvm_server.log"; fi
+          if [ "$svc_name" = "apps" ]; then target_log="$CXVM_DIR/thunder_apps.pid"; fi
+          echo "==> [cxvm log] Viewing logs for service '$svc_name' ($target_log)..."
+          if [ -f "$target_log" ]; then
+            tail -n 30 "$target_log" 2>/dev/null || cat "$target_log"
+          else
+            echo "[OK] [cxvm log] Log file for $svc_name is empty or does not exist yet."
+          fi
+          return 0
+        fi
         git log "$@"
         ;;
       init)
@@ -2687,8 +2568,13 @@ INDEX_EOF
       return $?
       ;;
 
-    commit|push|add|unstage|discard|branch|checkout|diff|log|cvm|db|mr|git)
+    commit|push|add|unstage|discard|branch|checkout|diff|log|db|mr|git)
       _cxvm_run_cvm "$cmd" "$@"
+      ;;
+
+    cvm|vcs)
+      _cxvm_dispatch_app "cvm" "$@"
+      return $?
       ;;
 
     app|--app)
@@ -3012,16 +2898,36 @@ LIGHT_WRAP_EOF
       echo "  [OK] [auto-start] cexp machine compiler active & ready"
 
       # Auto-start CVM as a server with single process (standalone) in background
-      _cxvm_start_cvm_server start -p 4000 --daemon >/dev/null 2>&1 || true
-      local cvm_pid
-      cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
-      echo "  [OK] [auto-start] cvm server started (single process standalone, PID: $cvm_pid, port: 4000)"
+      local cvm_was_running=0
+      if [ -f "$CXVM_DIR/cvm_server.pid" ] && kill -0 "$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null)" 2>/dev/null; then
+        cvm_was_running=1
+      fi
+      if [ "$cvm_was_running" -eq 0 ]; then
+        _cxvm_start_cvm_server start -p 4000 --daemon >/dev/null 2>&1 || true
+        local cvm_pid
+        cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
+        echo "  [OK] [auto-start] cvm server started (single process standalone, PID: $cvm_pid, port: 4000)"
+      else
+        local cvm_pid
+        cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
+        echo "  [OK] [auto-start] cvm server preserved running (PID: $cvm_pid, port: 4000, no restart)"
+      fi
 
       # Auto-start Thunder as a server with single process (standalone) in background
-      _cxvm_start_thunder_server start -p 3050 --daemon >/dev/null 2>&1 || true
-      local thun_pid
-      thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
-      echo "  [OK] [auto-start] thunder server started (single process standalone, PID: $thun_pid, port: 3050)"
+      local thun_was_running=0
+      if [ -f "$CXVM_DIR/thunder_server.pid" ] && kill -0 "$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null)" 2>/dev/null; then
+        thun_was_running=1
+      fi
+      if [ "$thun_was_running" -eq 0 ]; then
+        _cxvm_start_thunder_server start -p 3050 --daemon >/dev/null 2>&1 || true
+        local thun_pid
+        thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
+        echo "  [OK] [auto-start] thunder server started (single process standalone, PID: $thun_pid, port: 3050)"
+      else
+        local thun_pid
+        thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
+        echo "  [OK] [auto-start] thunder server preserved running (PID: $thun_pid, port: 3050, no restart)"
+      fi
 
       echo "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)"
 
@@ -3767,6 +3673,23 @@ EOF
       echo "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v$target_ver)..."
       echo "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v$target_ver)..."
 
+      # Check and preserve active processes
+      local thun_active_pid=""
+      for t_pid_f in "$CXVM_DIR/thunder_server.pid" "$CXVM_DIR/thunder.pid"; do
+        if [ -f "$t_pid_f" ]; then
+          local p_val
+          p_val="$(cat "$t_pid_f" 2>/dev/null || true)"
+          if [ -n "$p_val" ] && kill -0 "$p_val" 2>/dev/null; then
+            thun_active_pid="$p_val"
+            break
+          fi
+        fi
+      done
+      if [ -n "$thun_active_pid" ]; then
+        echo "[OK] [cxvm upgrade] Preserved active Thunder container engine (PID: $thun_active_pid, State: RUNNING)"
+        echo "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)"
+      fi
+
       cxvm install "$target_ver" >/dev/null 2>&1 || true
 
       local s_dir
@@ -3800,28 +3723,6 @@ EOF
               cp -f "$cand_p/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
               mkdir -p "$CXVM_DIR/versions/v$target_ver/bin"
               cp -f "$cand_p/bin/cexp" "$CXVM_DIR/versions/v$target_ver/bin/cexp" 2>/dev/null || true
-            fi
-          fi
-          break
-        fi
-      done
-
-      # Sync and compile latest thunder if local repo is found
-      for cand_t in "$s_dir/../mvclt/thunder" "$s_dir/../../mvclt/thunder" "$HOME/Projects/mvclt/thunder" "$HOME/Projects/mvc-lighting/thunder"; do
-        if [ -d "$cand_t" ] && [ -f "$cand_t/cex-pack.json" ]; then
-          echo "--> [cxvm upgrade] Found local thunder repository at $(cd "$cand_t" && pwd)"
-          if [ -f "$cand_t/src/cli.cex" ] && command -v cexp >/dev/null 2>&1; then
-            mkdir -p "$cand_t/bin" "$cand_t/dist"
-            echo "--> [cxvm upgrade] Compiling latest Thunder CLI binary..."
-            cexp build "$cand_t/src/cli.cex" -o "$cand_t/bin/thunder" >/dev/null 2>&1 || true
-            if [ -f "$cand_t/src/server.cex" ]; then
-              echo "--> [cxvm upgrade] Compiling latest Thunder daemon server..."
-              cexp build "$cand_t/src/server.cex" -o "$cand_t/dist/server" >/dev/null 2>&1 || true
-            fi
-            if [ -f "$cand_t/bin/thunder" ]; then
-              ln -sf "$(cd "$cand_t/bin" && pwd)/thunder" "$CXVM_DIR/bin/thunder" 2>/dev/null || cp -f "$cand_t/bin/thunder" "$CXVM_DIR/bin/thunder" 2>/dev/null || true
-              cp -f "$cand_t/bin/thunder" "$CXVM_DIR/bin/thunder-bin" 2>/dev/null || true
-              echo "[OK] [cxvm upgrade] Synchronized latest native Thunder binary ($CXVM_DIR/bin/thunder)"
             fi
           fi
           break

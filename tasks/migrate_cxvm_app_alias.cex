@@ -114,6 +114,15 @@ class AppAliasMigrator {
                     pos = afterWord;
                     continue;
                 }
+            } else if (remainder.rfind("cvm", 0) == 0) {
+                size_t afterWord = afterMatch + 3;
+                char nextChar = afterWord < len ? content[afterWord] : ' ';
+                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
+                    res += "cxvm --app cvm";
+                    repls++;
+                    pos = afterWord;
+                    continue;
+                }
             }
 
             res += "cxvm ";
@@ -148,7 +157,7 @@ class AppAliasMigrator {
         println("===============================================================================");
         println("  Target Directory: " + this.targetDir);
         println("  Execution Mode:   " + (this.fixMode ? "FIX (In-Place File Updates)" : "CHECK (Dry-Run Preview)"));
-        println("  Target Aliases:   'cxvm thunder', 'cxvm lighting', 'cxvm deepsea'");
+        println("  Target Aliases:   'cxvm thunder', 'cxvm lighting', 'cxvm deepsea', 'cxvm cvm'");
         println("  Replacement:      'cxvm --app {appName}'");
         println("-------------------------------------------------------------------------------");
 
