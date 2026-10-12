@@ -177,7 +177,7 @@ _cxvm_run_thunder() {
   fi
 
   if [ -f "$manifest" ] && (grep -q '"thunder"' "$manifest" 2>/dev/null || grep -q '"thunders"' "$manifest" 2>/dev/null); then
-    echo "==> [cxvm thunder] Auto-loading Thunder build definition from $manifest (zero-file build)"
+    echo "==> [cxvm --app thunder] Auto-loading Thunder build definition from $manifest (zero-file build)"
     local thun_env
     thun_env="$(grep -o '"env"[[:space:]]*:[[:space:]]*"[^"]*"' "$manifest" | head -n 1 | cut -d'"' -f4)"
     local thun_c_port
@@ -194,10 +194,10 @@ _cxvm_run_thunder() {
     local clean_name="${thun_name##*/}"
     [ -z "$clean_name" ] && clean_name="thunder-app"
 
-    echo "--> [cxvm thunder] Target Service: $clean_name"
-    echo "--> [cxvm thunder] Port Mapping: $thun_o_port -> $thun_c_port"
+    echo "--> [cxvm --app thunder] Target Service: $clean_name"
+    echo "--> [cxvm --app thunder] Port Mapping: $thun_o_port -> $thun_c_port"
     if [ -n "$thun_env" ]; then
-      echo "--> [cxvm thunder] Environment File: $thun_env"
+      echo "--> [cxvm --app thunder] Environment File: $thun_env"
       if [ -f "$thun_env" ]; then
         export $(grep -v '^#' "$thun_env" | xargs -d '\n' 2>/dev/null) 2>/dev/null || true
       fi
@@ -206,14 +206,14 @@ _cxvm_run_thunder() {
     # Auto-compile native binary if needed or on build command
     if [ "$thun_cmd" = "build" ] || [ ! -f "bin/$clean_name" ]; then
       if [ -n "$thun_main" ] && [ -f "$thun_main" ]; then
-        echo "--> [cxvm thunder] Compiling application machine binary: cexp build $thun_main -o bin/$clean_name"
+        echo "--> [cxvm --app thunder] Compiling application machine binary: cexp build $thun_main -o bin/$clean_name"
         mkdir -p bin
         cexp build "$thun_main" -O3 -o "bin/$clean_name"
       fi
     fi
 
     if [ "$thun_cmd" = "build" ]; then
-      echo "[OK] [cxvm thunder] Zero-file Thunder container image built successfully for $clean_name"
+      echo "[OK] [cxvm --app thunder] Zero-file Thunder container image built successfully for $clean_name"
       return 0
     fi
   fi
@@ -224,13 +224,13 @@ _cxvm_run_thunder() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   for cand in \
+    "$CXVM_DIR/bin/thunder" \
     "$CXVM_DIR/bin/thunder-bin" \
+    "$script_dir/../../mvclt/thunder/bin/thunder" \
+    "$script_dir/../mvclt/thunder/bin/thunder" \
+    "/home/viettd/Projects/mvclt/thunder/bin/thunder" \
     "$script_dir/../../mvc-lighting-thunder/bin/thunder" \
-    "$script_dir/../mvc-lighting-thunder/bin/thunder" \
-    "$script_dir/../../mvc-lighting-thunder/src/cli.cex" \
-    "$script_dir/../mvc-lighting-thunder/src/cli.cex" \
-    "$script_dir/../packages/cex-thunder/src/cli.cex" \
-    "$script_dir/../../packages/cex-thunder/src/cli.cex"; do
+    "$script_dir/../mvc-lighting-thunder/bin/thunder"; do
     if [ -f "$cand" ]; then
       thun_bin="$cand"
       break

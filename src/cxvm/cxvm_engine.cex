@@ -1220,21 +1220,21 @@ class CxvmEngine {
     }
 
     public findThunderCli(): string {
-        char* envBin: char* = getenv("THUNDER_BIN");
+        let envBin: char* = getenv("THUNDER_BIN");
         if (envBin != nullptr) {
             let envStr: string = (string)envBin;
             if (envStr.length() > 0 && fs.exists(envStr)) {
                 return envStr;
             }
         }
-        char* cxvmDir: char* = getenv("CXVM_DIR");
+        let cxvmDir: char* = getenv("CXVM_DIR");
         if (cxvmDir != nullptr) {
             let p1: string = (string)cxvmDir + "/bin/thunder";
             if (fs.exists(p1)) return p1;
             let p2: string = (string)cxvmDir + "/bin/thunder-bin";
             if (fs.exists(p2)) return p2;
         }
-        char* home: char* = getenv("HOME");
+        let home: char* = getenv("HOME");
         if (home != nullptr) {
             let p1: string = (string)home + "/.cxvm/bin/thunder";
             if (fs.exists(p1)) return p1;
