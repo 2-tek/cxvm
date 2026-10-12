@@ -1450,8 +1450,9 @@ class CxvmEngine {
         if (fs.exists("../mvclt/thunder/bin/thunder")) {
             return "../mvclt/thunder/bin/thunder";
         }
-        if (fs.exists("/home/viettd/Projects/mvclt/thunder/bin/thunder")) {
-            return "/home/viettd/Projects/mvclt/thunder/bin/thunder";
+        if (home != nullptr) {
+            let pProj: string = (string)home + "/Projects/mvclt/thunder/bin/thunder";
+            if (fs.exists(pProj)) return pProj;
         }
         if (fs.exists("bin/thunder")) {
             return "bin/thunder";
