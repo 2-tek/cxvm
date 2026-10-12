@@ -285,6 +285,33 @@ class FactoryController extends BaseController {
         return HttpResponse::ok(content, cType);
     }
 
+    public faviconIco(req: HttpRequest*): HttpResponse* {
+        let p: string = "public/favicon.ico";
+        if (fs.exists(p)) {
+            let content: string = fs.readFile(p);
+            return HttpResponse::ok(content, "image/x-icon");
+        }
+        return HttpResponse::notFound("favicon.ico not found");
+    }
+
+    public faviconSvg(req: HttpRequest*): HttpResponse* {
+        let p: string = "public/favicon.svg";
+        if (fs.exists(p)) {
+            let content: string = fs.readFile(p);
+            return HttpResponse::ok(content, "image/svg+xml");
+        }
+        return HttpResponse::notFound("favicon.svg not found");
+    }
+
+    public faviconPng(req: HttpRequest*): HttpResponse* {
+        let p: string = "public/favicon.png";
+        if (fs.exists(p)) {
+            let content: string = fs.readFile(p);
+            return HttpResponse::ok(content, "image/png");
+        }
+        return HttpResponse::notFound("favicon.png not found");
+    }
+
     public serveSetupSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
         let filePath: string = downloadsDir + "/setup.sh";
         if (fs.exists(filePath)) {

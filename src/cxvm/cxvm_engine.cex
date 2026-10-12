@@ -1882,9 +1882,9 @@ class CxvmEngine {
         if (cmd == "log") {
             if (arg1 == "thunder" || arg1 == "server" || arg1 == "cvm" || arg1 == "apps") {
                 let svcName: string = arg1;
-                let homeEnv = getenv("HOME");
+                let homeEnv: char* = getenv("HOME");
                 let homeDir: string = homeEnv != nullptr ? string(homeEnv) : "";
-                let cxvmDirEnv = getenv("CXVM_DIR");
+                let cxvmDirEnv: char* = getenv("CXVM_DIR");
                 let cxvmDir: string = cxvmDirEnv != nullptr ? string(cxvmDirEnv) : (homeDir + "/.cxvm");
                 let resolvedLog: string = cxvmDir + "/thunder_server.log";
                 if (svcName == "server") resolvedLog = cxvmDir + "/cxvm_server.log";

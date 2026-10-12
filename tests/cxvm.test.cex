@@ -182,6 +182,17 @@ fn main(): int {
     Assert::equalsInt(200, resSh->statusCode, "GET /install.sh returns 200 OK");
     Assert::isTrue(resSh->body.find("CXVM_DIR") != -1, "install.sh contains CXVM_DIR variable");
 
+    // Favicon static asset route verification
+    let resFavIco: HttpResponse* = app->simulateRequest("GET", "/favicon.ico", "", "image/x-icon");
+    Assert::equalsInt(200, resFavIco->statusCode, "GET /favicon.ico returns 200 OK");
+
+    let resFavSvg: HttpResponse* = app->simulateRequest("GET", "/favicon.svg", "", "image/svg+xml");
+    Assert::equalsInt(200, resFavSvg->statusCode, "GET /favicon.svg returns 200 OK");
+    Assert::isTrue(resFavSvg->body.find("<svg") != -1, "favicon.svg contains valid SVG element");
+
+    let resFavPng: HttpResponse* = app->simulateRequest("GET", "/favicon.png", "", "image/png");
+    Assert::equalsInt(200, resFavPng->statusCode, "GET /favicon.png returns 200 OK");
+
     let resStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
     Assert::equalsInt(200, resStatus->statusCode, "GET /api/v1/status returns 200 OK");
     Assert::isTrue(resStatus->body.find("ACTIVE") != -1, "Status reports ACTIVE");
@@ -640,6 +651,36 @@ fn main(): int {
     let upDepResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/upgrade?dependencies=cex-log", "", "application/json");
     Assert::equalsInt(200, upDepResp->statusCode, "GET /api/v1/upgrade?dependencies=cex-log returns 200 OK");
     Assert::isTrue(upDepResp->body.find("\"success\":true") != -1, "Upgrade dependencies API reports success:true");
+
+    // Test process preservation guard (Thunder, CVM, pending processes not killed on upgrade)
+    let thunStartRes: CxvmCommandResult* = cxvm->startThunder(3050, true);
+    Assert::isTrue(cxvm->thunderRunning, "Thunder server is running prior to upgrade");
+    let upResGuard: CxvmCommandResult* = cxvm->upgrade("latest");
+    Assert::isTrue(upResGuard->success, "cxvm upgrade latest succeeds with active Thunder");
+    Assert::isTrue(cxvm->thunderRunning, "Thunder server remains running (NOT killed) after upgrade");
+    Assert::isTrue(upResGuard->output.find("Preserved active Thunder container engine") != -1, "Output confirms Thunder preserved on upgrade");
+    Assert::isTrue(upResGuard->output.find("Preserved all pending and running processes") != -1, "Output confirms no process killed on upgrade");
+
+    let upDepGuard: CxvmCommandResult* = cxvm->upgradeDependencies("cex-log", false);
+    Assert::isTrue(upDepGuard->success, "cxvm upgradeDependencies succeeds with active Thunder");
+    Assert::isTrue(cxvm->thunderRunning, "Thunder server remains running (NOT killed) after upgradeDependencies");
+    Assert::isTrue(upDepGuard->output.find("Preserved active Thunder container engine") != -1, "Output confirms Thunder preserved on upgradeDependencies");
+    Assert::isTrue(upDepGuard->output.find("Preserved all pending and running processes") != -1, "Output confirms no process killed on upgradeDependencies");
+
+    // Test cex-log integration (Stopwatch, Log, CexLog, CexLogger)
+    let testSw: Stopwatch* = Log::start("test_suite_stopwatch");
+    Assert::isTrue(testSw->isRunning, "Stopwatch is running");
+    let testElapsed: double = testSw->stop();
+    Assert::isTrue(testElapsed >= 0.0, "Stopwatch measures elapsed time >= 0");
+    Log::info("Verified Log::info from cex-log");
+    CexLog::info("Verified CexLog::info from cex-log bridge");
+    CexLogger::info("Verified CexLogger::info from cex-logger bridge");
+
+    // Test cxvm log command for services
+    let logExec1: int = cxvm->cvmExecute("log", "thunder", "");
+    Assert::equalsInt(0, logExec1, "cxvm cvmExecute log thunder returns exit code 0");
+    let logExec2: int = cxvm->cvmExecute("log", "server", "");
+    Assert::equalsInt(0, logExec2, "cxvm cvmExecute log server returns exit code 0");
 
     suite->addResult("test_auto_upgrade_toolchain", true, "", 1);
 

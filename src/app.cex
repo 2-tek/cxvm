@@ -55,6 +55,9 @@ class FactoryApp {
         this.router->get("/cxvm.ps1", "factory.cxvmPs1");
         this.router->get("/cxvm.cmd", "factory.cxvmCmd");
         this.router->get("/downloads/:id", "factory.downloadFile");
+        this.router->get("/favicon.ico", "factory.faviconIco");
+        this.router->get("/favicon.svg", "factory.faviconSvg");
+        this.router->get("/favicon.png", "factory.faviconPng");
 
         // REST JSON API Routes
         this.router->get("/api/v1/status", "factory.status");
@@ -181,6 +184,18 @@ class FactoryApp {
 
         if (route->handlerId === "factory.downloadFile") {
             return this.controller->downloadFile(req, this.downloadsDir);
+        }
+
+        if (route->handlerId === "factory.faviconIco") {
+            return this.controller->faviconIco(req);
+        }
+
+        if (route->handlerId === "factory.faviconSvg") {
+            return this.controller->faviconSvg(req);
+        }
+
+        if (route->handlerId === "factory.faviconPng") {
+            return this.controller->faviconPng(req);
         }
 
         if (route->handlerId === "factory.status") {
