@@ -260,16 +260,16 @@ Thunder enables building, isolating, executing, and orchestrating native contain
 
 ### Thunder CLI Commands:
 
-| Command                                              | Action                                                             | Example                                                      |
-| :--------------------------------------------------- | :----------------------------------------------------------------- | :----------------------------------------------------------- |
-| `cxvm --app thunder ps` / `cxvm docker ps`           | List running containers with IDs, names, images, ports, and status | `cxvm --app thunder ps`                                      |
-| `cxvm --app thunder run <image>`                     | Run container workload inside virtual microkernel isolation        | `cxvm --app thunder run @2tek/cxvm:latest`                   |
-| `cxvm --app thunder stop <id>`                       | Gracefully stop running container instance                         | `cxvm --app thunder stop cxt-1a8f9`                          |
-| `cxvm --app thunder images` / `cxvm docker images`   | List local OCI container images in cache                           | `cxvm --app thunder images`                                  |
-| `cxvm --app thunder stats`                           | Inspect real-time virtual CPU, memory, vFS, and network metrics    | `cxvm --app thunder stats`                                   |
-| `cxvm start thunder [-p <port>]`             | Start Thunder as a single-process standalone daemon in background  | `cxvm start thunder` \| `cxvm start thunder -p 3050` |
-| `cxvm status thunder`                        | Check status of single-process standalone Thunder daemon           | `cxvm status thunder`                                |
-| `cxvm stop thunder`                          | Stop background standalone Thunder daemon                          | `cxvm stop thunder`                                  |
+| Command                                            | Action                                                             | Example                                              |
+| :------------------------------------------------- | :----------------------------------------------------------------- | :--------------------------------------------------- |
+| `cxvm --app thunder ps` / `cxvm docker ps`         | List running containers with IDs, names, images, ports, and status | `cxvm --app thunder ps`                              |
+| `cxvm --app thunder run <image>`                   | Run container workload inside virtual microkernel isolation        | `cxvm --app thunder run @2tek/cxvm:latest`           |
+| `cxvm --app thunder stop <id>`                     | Gracefully stop running container instance                         | `cxvm --app thunder stop cxt-1a8f9`                  |
+| `cxvm --app thunder images` / `cxvm docker images` | List local OCI container images in cache                           | `cxvm --app thunder images`                          |
+| `cxvm --app thunder stats`                         | Inspect real-time virtual CPU, memory, vFS, and network metrics    | `cxvm --app thunder stats`                           |
+| `cxvm start thunder [-p <port>]`                   | Start Thunder as a single-process standalone daemon in background  | `cxvm start thunder` \| `cxvm start thunder -p 3050` |
+| `cxvm status thunder`                              | Check status of single-process standalone Thunder daemon           | `cxvm status thunder`                                |
+| `cxvm stop thunder`                                | Stop background standalone Thunder daemon                          | `cxvm stop thunder`                                  |
 
 ### Standalone Single-Process Thunder Daemon (`cxvm start thunder`):
 
