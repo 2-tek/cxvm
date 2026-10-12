@@ -123,6 +123,14 @@ public:
             }
         }
 
+        if (result.find(": public ") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "Rule 81 (public-by-extends)", "Replace ': public' with 'extends'", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->replaceAll(result, ": public ", " extends ");
+                modified = true;
+            }
+        }
+
         return result;
     }
 
