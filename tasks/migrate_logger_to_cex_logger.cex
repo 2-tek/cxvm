@@ -1,0 +1,302 @@
+// 2-TEK CexR v8: Automated Task to Migrate Loggers to Cex-Logger in MVC & MVP
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 80, Rule 81, Rule 82, Rule 83
+
+import "cpp/string";
+import "cpp/vector";
+import "cpp/iostream";
+import "c/stdio.h";
+import "c/stdlib.h";
+import fs from "fs";
+import child_process from "child_process";
+
+class LoggerMigrationFinding {
+public:
+    string projectPath;
+    string targetFile;
+    string actionDescription;
+    bool fixed;
+
+    LoggerMigrationFinding(string proj, string file, string desc, bool wasFixed) {
+        this->projectPath = proj;
+        this->targetFile = file;
+        this->actionDescription = desc;
+        this->fixed = wasFixed;
+    }
+}
+
+class LoggerMigrationSummary {
+public:
+    int scannedProjects;
+    int modifiedManifests;
+    int modifiedLogBridges;
+    int modifiedMiddlewares;
+    int totalFindings;
+    Array<LoggerMigrationFinding*>* findings;
+
+    LoggerMigrationSummary() {
+        this->scannedProjects = 0;
+        this->modifiedManifests = 0;
+        this->modifiedLogBridges = 0;
+        this->modifiedMiddlewares = 0;
+        this->totalFindings = 0;
+        this->findings = new Array<LoggerMigrationFinding*>();
+    }
+
+    fn addFinding(finding: LoggerMigrationFinding*): void {
+        this->findings->push(finding);
+        this->totalFindings = this->totalFindings + 1;
+    }
+}
+
+class LoggerMigrator {
+private:
+    bool autoFix;
+
+public:
+    LoggerMigrator(bool fix) {
+        this->autoFix = fix;
+    }
+
+    // Helper: trims leading/trailing whitespace
+    fn trim(s: string): string {
+        let start: size_t = 0;
+        let len: size_t = s.length();
+        while (start < len && (s.substr(start, 1) == " " || s.substr(start, 1) == "\t" || s.substr(start, 1) == "\r" || s.substr(start, 1) == "\n")) {
+            start++;
+        }
+        let end: size_t = len;
+        while (end > start && (s.substr(end - 1, 1) == " " || s.substr(end - 1, 1) == "\t" || s.substr(end - 1, 1) == "\r" || s.substr(end - 1, 1) == "\n")) {
+            end--;
+        }
+        return s.substr(start, end - start);
+    }
+
+    // Integrate "cex-logger": "1.0.0" into dependencies block of cex-pack.json
+    fn updateManifestDependencies(manifestContent: string): string {
+        if (manifestContent.find("\"cex-logger\"") != std::string::npos) {
+            return manifestContent;
+        }
+
+        let depPos = manifestContent.find("\"dependencies\"");
+        if (depPos == std::string::npos) {
+            return manifestContent;
+        }
+
+        let openBrace = manifestContent.find("{", depPos);
+        if (openBrace == std::string::npos) {
+            return manifestContent;
+        }
+
+        // Insert "cex-logger": "1.0.0", right after openBrace
+        let prefix = manifestContent.substr(0, openBrace + 1);
+        let suffix = manifestContent.substr(openBrace + 1);
+
+        let insertStr = "\n    \"cex-logger\": \"1.0.0\",";
+        return prefix + insertStr + suffix;
+    }
+
+    // Update src/log.cex to import from @cex-logger and provide CexLogger
+    fn generateLogBridgeContent(): string {
+        let out: string = "// Lighting Fullstack MVC: CexLogger Bridge (C-ext)\n";
+        out += "// Conforms to Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)\n\n";
+        out += "import \"@cex-logger/src/log.cex\";\n";
+        return out;
+    }
+
+    // Update middleware.cex to replace raw print logs with CexLogger::info
+    fn updateMiddlewareContent(content: string): string {
+        let target: string = "public static runLogger(req: HttpRequest*): void {\n        print(\"  [Lighting MVC Logger] \");\n        print(req->method);\n        print(\" \");\n        println(req->path);\n    }";
+        let replacement: string = "public static runLogger(req: HttpRequest*): void {\n        CexLogger::info(\"[Lighting MVC Logger] \" + req->method + \" \" + req->path);\n    }";
+
+        let pos = content.find(target);
+        if (pos != std::string::npos) {
+            let out = content.substr(0, pos) + replacement + content.substr(pos + target.length());
+            return out;
+        }
+
+        if (content.find("CexLogger::info") != std::string::npos) {
+            return content;
+        }
+
+        let runLoggerPos = content.find("runLogger(req: HttpRequest*)");
+        if (runLoggerPos != std::string::npos) {
+            let bodyStart = content.find("{", runLoggerPos);
+            let bodyEnd = content.find("}", bodyStart);
+            if (bodyStart != std::string::npos && bodyEnd != std::string::npos) {
+                let currentBody = content.substr(bodyStart, bodyEnd - bodyStart + 1);
+                if (currentBody.find("print") != std::string::npos && currentBody.find("CexLogger") == std::string::npos) {
+                    let newBody = "{\n        CexLogger::info(\"[Lighting MVC Logger] \" + req->method + \" \" + req->path);\n    }";
+                    return content.substr(0, bodyStart) + newBody + content.substr(bodyEnd + 1);
+                }
+            }
+        }
+
+        return content;
+    }
+
+    // Process a single project directory
+    fn processProject(projDir: string, summary: LoggerMigrationSummary*): void {
+        if (projDir.find("dependencies/cex-log") != std::string::npos || projDir.find("dependencies/cex-logger") != std::string::npos) {
+            return;
+        }
+
+        summary->scannedProjects = summary->scannedProjects + 1;
+
+        let manifestPath = projDir + "/cex-pack.json";
+        if (fs.exists(manifestPath)) {
+            let content = fs.readFile(manifestPath);
+            let updated = this->updateManifestDependencies(content);
+            if (updated != content) {
+                summary->modifiedManifests = summary->modifiedManifests + 1;
+                let finding = new LoggerMigrationFinding(projDir, manifestPath, "Add \"cex-logger\": \"1.0.0\" to dependencies", this->autoFix);
+                summary->addFinding(finding);
+                if (this->autoFix) {
+                    fs.writeFile(manifestPath, updated);
+                    println("[FIXED] Added cex-logger to: " + manifestPath);
+                }
+            }
+        }
+
+        // Ensure .cex_boxes/cex-logger exists if .cex_boxes exists
+        let boxesDir = projDir + "/.cex_boxes";
+        if (fs.exists(boxesDir)) {
+            let targetBox = boxesDir + "/cex-logger";
+            if (!fs.exists(targetBox)) {
+                let sourceBox = boxesDir + "/cex-log";
+                if (fs.exists(sourceBox)) {
+                    if (this->autoFix) {
+                        child_process.execSync("ln -sfn cex-log " + targetBox);
+                        println("[FIXED] Linked " + targetBox + " -> cex-log");
+                    }
+                    let finding = new LoggerMigrationFinding(projDir, targetBox, "Link .cex_boxes/cex-logger -> cex-log", this->autoFix);
+                    summary->addFinding(finding);
+                }
+            }
+        }
+
+        // Update src/log.cex if exists
+        let logCexPath = projDir + "/src/log.cex";
+        if (fs.exists(logCexPath)) {
+            let currentLog = fs.readFile(logCexPath);
+            let newLog = this->generateLogBridgeContent();
+            if (currentLog != newLog) {
+                summary->modifiedLogBridges = summary->modifiedLogBridges + 1;
+                let finding = new LoggerMigrationFinding(projDir, logCexPath, "Upgrade to canonical @cex-logger bridge", this->autoFix);
+                summary->addFinding(finding);
+                if (this->autoFix) {
+                    fs.writeFile(logCexPath, newLog);
+                    println("[FIXED] Upgraded bridge in: " + logCexPath);
+                }
+            }
+        }
+
+        // Update src/middleware.cex if exists
+        let mwPath = projDir + "/src/middleware.cex";
+        if (fs.exists(mwPath)) {
+            let currentMw = fs.readFile(mwPath);
+            let updatedMw = this->updateMiddlewareContent(currentMw);
+            if (updatedMw != currentMw) {
+                summary->modifiedMiddlewares = summary->modifiedMiddlewares + 1;
+                let finding = new LoggerMigrationFinding(projDir, mwPath, "Migrate runLogger to CexLogger::info", this->autoFix);
+                summary->addFinding(finding);
+                if (this->autoFix) {
+                    fs.writeFile(mwPath, updatedMw);
+                    println("[FIXED] Migrated runLogger in: " + mwPath);
+                }
+            }
+        }
+    }
+
+    fn scanDir(dirPath: string, summary: LoggerMigrationSummary*): void {
+        let files: Array<string>* = fs.readDir(dirPath);
+        for (let i: int = 0; i < (int)files->length(); i++) {
+            let name = files->get(i);
+            if (name == "." || name == ".." || name == ".git" || name == ".cvm" || name == ".cex_cache" || name == "dist" || name == "node_modules" || name == ".cex_boxes") {
+                continue;
+            }
+            let fullPath = dirPath + "/" + name;
+            if (fs.isDir(fullPath)) {
+                // If it contains cex-pack.json, process project
+                let packPath = fullPath + "/cex-pack.json";
+                if (fs.exists(packPath)) {
+                    this->processProject(fullPath, summary);
+                }
+                // Recursively scan subdirectories up to reasonable depth
+                this->scanDir(fullPath, summary);
+            }
+        }
+    }
+
+    fn run(targetPath: string): LoggerMigrationSummary* {
+        println("===============================================================================");
+        println("      2-TEK CexR v8: Logger -> Cex-Logger Automated Migration Task            ");
+        println("===============================================================================");
+        println("Target Path:  " + targetPath);
+        let modeStr: string = this->autoFix ? "APPLY (--fix)" : "AUDIT (Dry-Run)";
+        println("Mode:         " + modeStr);
+        println("-------------------------------------------------------------------------------");
+
+        let summary = new LoggerMigrationSummary();
+        if (fs.exists(targetPath)) {
+            if (fs.exists(targetPath + "/cex-pack.json")) {
+                this->processProject(targetPath, summary);
+            }
+            if (fs.isDir(targetPath)) {
+                this->scanDir(targetPath, summary);
+            }
+        } else {
+            println("[ERROR] Path does not exist: " + targetPath);
+        }
+
+        this->printReport(summary);
+        return summary;
+    }
+
+    fn printReport(summary: LoggerMigrationSummary*): void {
+        println("-------------------------------------------------------------------------------");
+        println("                   Logger -> Cex-Logger Migration Report                       ");
+        println("-------------------------------------------------------------------------------");
+        println("Total Projects Scanned:    " + std::to_string(summary->scannedProjects));
+        println("Manifests Modified:        " + std::to_string(summary->modifiedManifests));
+        println("Log Bridges Updated:       " + std::to_string(summary->modifiedLogBridges));
+        println("Middlewares Updated:       " + std::to_string(summary->modifiedMiddlewares));
+        println("Total Migration Findings:  " + std::to_string(summary->totalFindings));
+        println("-------------------------------------------------------------------------------");
+
+        for (let i = 0; i < (int)summary->findings->length(); i++) {
+            let f = summary->findings->get(i);
+            let status: string = f->fixed ? "[FIXED]" : "[PENDING]";
+            println(status + " " + f->projectPath + " -> " + f->actionDescription);
+        }
+
+        if (summary->totalFindings == 0) {
+            println("SUCCESS: All projects already comply with cex-logger standards!");
+        } else if (this->autoFix) {
+            println("SUCCESS: Successfully applied all cex-logger migrations!");
+        } else {
+            println("NOTICE: Run with '--fix' to apply automated migrations.");
+        }
+        println("===============================================================================");
+    }
+}
+
+fn main(argc: int, argv: char**): int {
+    let targetPath: string = ".";
+    let fixMode: bool = false;
+
+    for (let i: int = 1; i < argc; i++) {
+        let arg: string = string(argv[i]);
+        if (arg == "--fix" || arg == "-f") {
+            fixMode = true;
+        } else if (arg == "--path" || arg == "-p") {
+            if (i + 1 < argc) {
+                targetPath = string(argv[i + 1]);
+                i++;
+            }
+        }
+    }
+
+    let migrator = new LoggerMigrator(fixMode);
+    migrator->run(targetPath);
+    return 0;
+}

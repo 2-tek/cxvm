@@ -1,0 +1,237 @@
+// 2-TEK CexR v8: Automated Task to Migrate EnvLoader to Cex-Env in MVC & MVP
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 80, Rule 81, Rule 82, Rule 83
+
+import "cpp/string";
+import "cpp/vector";
+import "cpp/iostream";
+import "c/stdio.h";
+import "c/stdlib.h";
+import fs from "fs";
+import child_process from "child_process";
+
+class EnvMigrationFinding {
+public:
+    string projectPath;
+    string targetFile;
+    string actionDescription;
+    bool fixed;
+
+    EnvMigrationFinding(string proj, string file, string desc, bool wasFixed) {
+        this->projectPath = proj;
+        this->targetFile = file;
+        this->actionDescription = desc;
+        this->fixed = wasFixed;
+    }
+}
+
+class EnvMigrationSummary {
+public:
+    int scannedProjects;
+    int modifiedManifests;
+    int modifiedEnvBridges;
+    int totalFindings;
+    Array<EnvMigrationFinding*>* findings;
+
+    EnvMigrationSummary() {
+        this->scannedProjects = 0;
+        this->modifiedManifests = 0;
+        this->modifiedEnvBridges = 0;
+        this->totalFindings = 0;
+        this->findings = new Array<EnvMigrationFinding*>();
+    }
+
+    fn addFinding(finding: EnvMigrationFinding*): void {
+        this->findings->push(finding);
+        this->totalFindings = this->totalFindings + 1;
+    }
+}
+
+class EnvMigrator {
+private:
+    bool autoFix;
+
+public:
+    EnvMigrator(bool fix) {
+        this->autoFix = fix;
+    }
+
+    // Integrate "cex-env": "1.0.0" into dependencies block of cex-pack.json
+    fn updateManifestDependencies(manifestContent: string): string {
+        if (manifestContent.find("\"cex-env\"") != std::string::npos) {
+            return manifestContent;
+        }
+
+        let depPos = manifestContent.find("\"dependencies\"");
+        if (depPos == std::string::npos) {
+            return manifestContent;
+        }
+
+        let openBrace = manifestContent.find("{", depPos);
+        if (openBrace == std::string::npos) {
+            return manifestContent;
+        }
+
+        // Insert "cex-env": "1.0.0", right after openBrace
+        let prefix = manifestContent.substr(0, openBrace + 1);
+        let suffix = manifestContent.substr(openBrace + 1);
+
+        let insertStr = "\n    \"cex-env\": \"1.0.0\",";
+        return prefix + insertStr + suffix;
+    }
+
+    // Generate unified CexEnv bridge for src/env_loader.cex
+    fn generateEnvBridgeContent(): string {
+        let out: string = "// Lighting Fullstack MVC: Environment Configuration Loader Bridge (C-ext)\n";
+        out += "// Powered by cex-env (@cex-env-loader)\n";
+        out += "// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)\n\n";
+        out += "import \"@cex-env/src/env_loader.cex\";\n";
+        return out;
+    }
+
+    // Process a single project directory
+    fn processProject(projDir: string, summary: EnvMigrationSummary*): void {
+        if (projDir.find("dependencies/cex-env") != std::string::npos || projDir.find("dependencies/cex-env-loader") != std::string::npos) {
+            return;
+        }
+
+        summary->scannedProjects = summary->scannedProjects + 1;
+
+        let manifestPath = projDir + "/cex-pack.json";
+        if (fs.exists(manifestPath)) {
+            let content = fs.readFile(manifestPath);
+            let updated = this->updateManifestDependencies(content);
+            if (updated != content) {
+                summary->modifiedManifests = summary->modifiedManifests + 1;
+                let finding = new EnvMigrationFinding(projDir, manifestPath, "Add \"cex-env\": \"1.0.0\" to dependencies", this->autoFix);
+                summary->addFinding(finding);
+                if (this->autoFix) {
+                    fs.writeFile(manifestPath, updated);
+                    println("[FIXED] Added cex-env to: " + manifestPath);
+                }
+            }
+        }
+
+        // Ensure .cex_boxes/cex-env exists if .cex_boxes exists
+        let boxesDir = projDir + "/.cex_boxes";
+        if (fs.exists(boxesDir)) {
+            let targetBox = boxesDir + "/cex-env";
+            if (!fs.exists(targetBox)) {
+                let sourceBox = boxesDir + "/cex-env-loader";
+                if (fs.exists(sourceBox)) {
+                    if (this->autoFix) {
+                        child_process.execSync("ln -sfn cex-env-loader " + targetBox);
+                        println("[FIXED] Linked " + targetBox + " -> cex-env-loader");
+                    }
+                    let finding = new EnvMigrationFinding(projDir, targetBox, "Link .cex_boxes/cex-env -> cex-env-loader", this->autoFix);
+                    summary->addFinding(finding);
+                }
+            }
+        }
+
+        // Update src/env_loader.cex if exists
+        let envLoaderPath = projDir + "/src/env_loader.cex";
+        if (fs.exists(envLoaderPath)) {
+            let currentContent = fs.readFile(envLoaderPath);
+            let newContent = this->generateEnvBridgeContent();
+            if (currentContent != newContent) {
+                summary->modifiedEnvBridges = summary->modifiedEnvBridges + 1;
+                let finding = new EnvMigrationFinding(projDir, envLoaderPath, "Migrate duplicate env_loader to unified @cex-env bridge", this->autoFix);
+                summary->addFinding(finding);
+                if (this->autoFix) {
+                    fs.writeFile(envLoaderPath, newContent);
+                    println("[FIXED] Upgraded env_loader bridge in: " + envLoaderPath);
+                }
+            }
+        }
+    }
+
+    fn scanDir(dirPath: string, summary: EnvMigrationSummary*): void {
+        let files: Array<string>* = fs.readDir(dirPath);
+        for (let i: int = 0; i < (int)files->length(); i++) {
+            let name = files->get(i);
+            if (name == "." || name == ".." || name == ".git" || name == ".cvm" || name == ".cex_cache" || name == "dist" || name == "node_modules" || name == ".cex_boxes") {
+                continue;
+            }
+            let fullPath = dirPath + "/" + name;
+            if (fs.isDir(fullPath)) {
+                let packPath = fullPath + "/cex-pack.json";
+                if (fs.exists(packPath)) {
+                    this->processProject(fullPath, summary);
+                }
+                this->scanDir(fullPath, summary);
+            }
+        }
+    }
+
+    fn run(targetPath: string): EnvMigrationSummary* {
+        println("===============================================================================");
+        println("      2-TEK CexR v8: EnvLoader -> Cex-Env Automated Migration Task             ");
+        println("===============================================================================");
+        println("Target Path:  " + targetPath);
+        let modeStr: string = this->autoFix ? "APPLY (--fix)" : "AUDIT (Dry-Run)";
+        println("Mode:         " + modeStr);
+        println("-------------------------------------------------------------------------------");
+
+        let summary = new EnvMigrationSummary();
+        if (fs.exists(targetPath)) {
+            if (fs.exists(targetPath + "/cex-pack.json")) {
+                this->processProject(targetPath, summary);
+            }
+            if (fs.isDir(targetPath)) {
+                this->scanDir(targetPath, summary);
+            }
+        } else {
+            println("[ERROR] Path does not exist: " + targetPath);
+        }
+
+        this->printReport(summary);
+        return summary;
+    }
+
+    fn printReport(summary: EnvMigrationSummary*): void {
+        println("-------------------------------------------------------------------------------");
+        println("                  EnvLoader -> Cex-Env Migration Report                        ");
+        println("-------------------------------------------------------------------------------");
+        println("Total Projects Scanned:    " + std::to_string(summary->scannedProjects));
+        println("Manifests Modified:        " + std::to_string(summary->modifiedManifests));
+        println("Env Bridges Updated:       " + std::to_string(summary->modifiedEnvBridges));
+        println("Total Migration Findings:  " + std::to_string(summary->totalFindings));
+        println("-------------------------------------------------------------------------------");
+
+        for (let i = 0; i < (int)summary->findings->length(); i++) {
+            let f = summary->findings->get(i);
+            let status: string = f->fixed ? "[FIXED]" : "[PENDING]";
+            println(status + " " + f->projectPath + " -> " + f->actionDescription);
+        }
+
+        if (summary->totalFindings == 0) {
+            println("SUCCESS: All projects already comply with cex-env standards!");
+        } else if (this->autoFix) {
+            println("SUCCESS: Successfully applied all cex-env migrations!");
+        } else {
+            println("NOTICE: Run with '--fix' to apply automated migrations.");
+        }
+        println("===============================================================================");
+    }
+}
+
+fn main(argc: int, argv: char**): int {
+    let targetPath: string = ".";
+    let fixMode: bool = false;
+
+    for (let i: int = 1; i < argc; i++) {
+        let arg: string = string(argv[i]);
+        if (arg == "--fix" || arg == "-f") {
+            fixMode = true;
+        } else if (arg == "--path" || arg == "-p") {
+            if (i + 1 < argc) {
+                targetPath = string(argv[i + 1]);
+                i++;
+            }
+        }
+    }
+
+    let migrator = new EnvMigrator(fixMode);
+    migrator->run(targetPath);
+    return 0;
+}

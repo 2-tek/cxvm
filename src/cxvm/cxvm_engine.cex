@@ -1219,7 +1219,83 @@ class CxvmEngine {
         return 1;
     }
 
+    public findThunderCli(): string {
+        char* envBin: char* = getenv("THUNDER_BIN");
+        if (envBin != nullptr) {
+            let envStr: string = (string)envBin;
+            if (envStr.length() > 0 && fs.exists(envStr)) {
+                return envStr;
+            }
+        }
+        char* cxvmDir: char* = getenv("CXVM_DIR");
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/bin/thunder";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)cxvmDir + "/bin/thunder-bin";
+            if (fs.exists(p2)) return p2;
+        }
+        char* home: char* = getenv("HOME");
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/bin/thunder";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)home + "/.cxvm/bin/thunder-bin";
+            if (fs.exists(p2)) return p2;
+        }
+        if (fs.exists("../mvclt/thunder/bin/thunder")) {
+            return "../mvclt/thunder/bin/thunder";
+        }
+        if (fs.exists("/home/viettd/Projects/mvclt/thunder/bin/thunder")) {
+            return "/home/viettd/Projects/mvclt/thunder/bin/thunder";
+        }
+        if (fs.exists("bin/thunder")) {
+            return "bin/thunder";
+        }
+        return "thunder";
+    }
+
     public thunderExecute(cmd: string, arg1: string, arg2: string): int {
+        // Intercept daemon management when explicitly managed by cxvm daemon supervisor
+        if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon")) {
+            let res: CxvmCommandResult* = this.startThunder(3050, true);
+            println(res->output);
+            return 0;
+        }
+        if (cmd == "stop" && (arg1 == "thunder" || arg1 == "daemon")) {
+            let res: CxvmCommandResult* = this.stopThunder();
+            println(res->output);
+            return 0;
+        }
+        if (cmd == "status" && (arg1 == "thunder" || arg1 == "daemon")) {
+            let res: CxvmCommandResult* = this.statusThunder();
+            println(res->output);
+            return 0;
+        }
+
+        let thunCli: string = this.findThunderCli();
+        let cliCmd: string = thunCli;
+        if (cmd.length() > 0) {
+            cliCmd += " " + cmd;
+        }
+        if (arg1.length() > 0) {
+            cliCmd += " " + arg1;
+        }
+        if (arg2.length() > 0) {
+            cliCmd += " " + arg2;
+        }
+        println("==> [cxvm --app thunder] Hook calling Thunder CLI: " + cliCmd);
+        let res: int = system(cliCmd.c_str());
+        if (res == 0) {
+            println("[OK] [cxvm --app thunder] Thunder CLI hook completed successfully.");
+            return 0;
+        }
+        if (res != 32512 && res != 127) {
+            return res;
+        }
+        println("[WARN] [cxvm --app thunder] Thunder CLI hook not found or returned " + to_string(res) + ", using internal fallback...");
+        return this.thunderExecuteFallback(cmd, arg1, arg2);
+    }
+
+    public thunderExecuteFallback(cmd: string, arg1: string, arg2: string): int {
         if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
             let res: CxvmCommandResult* = this.startThunder(3050, true);
             println(res->output);
@@ -1271,11 +1347,11 @@ class CxvmEngine {
             let res: CxvmCommandResult* = this.buildThunderFromManifest(targetPath);
             println(res->output);
             println("==> [ThunderEngine] Installed and started container instance: " + (arg1.length() > 0 ? arg1 : "app") + " (State: RUNNING)");
-            println("[OK] [cxvm thunder] Installed and started container instance inside Thunder microkernel");
+            println("[OK] [cxvm --app thunder] Installed and started container instance inside Thunder microkernel");
             return res->success ? 0 : 1;
         }
-        println("==> [cxvm thunder] Executing Thunder container operation: " + cmd + " " + arg1);
-        println("[OK] [cxvm thunder] Operation completed successfully (Virtual Linux Microkernel)");
+        println("==> [cxvm --app thunder] Executing Thunder container operation: " + cmd + " " + arg1);
+        println("[OK] [cxvm --app thunder] Operation completed successfully (Virtual Linux Microkernel)");
         return 0;
     }
 
@@ -1862,16 +1938,16 @@ class CxvmEngine {
 
         let tag: string = pkgName.substr(0, 1) == "@" ? pkgName + ":latest" : "@2tek/" + pkgName + ":latest";
 
-        let outMsg: string = "==> [cxvm thunder] Auto-loading Thunder build definition from " + manifestPath + " (zero-file build)\n";
-        outMsg += "--> [cxvm thunder] Target Service: " + cleanName + "\n";
-        outMsg += "--> [cxvm thunder] Port Mapping:   " + to_string(hPort) + " -> " + to_string(cPort) + "\n";
-        outMsg += "--> [cxvm thunder] Compiling application machine binary: cexp build " + mainFile + " -o bin/" + cleanName + "\n";
+        let outMsg: string = "==> [cxvm --app thunder] Auto-loading Thunder build definition from " + manifestPath + " (zero-file build)\n";
+        outMsg += "--> [cxvm --app thunder] Target Service: " + cleanName + "\n";
+        outMsg += "--> [cxvm --app thunder] Port Mapping:   " + to_string(hPort) + " -> " + to_string(cPort) + "\n";
+        outMsg += "--> [cxvm --app thunder] Compiling application machine binary: cexp build " + mainFile + " -o bin/" + cleanName + "\n";
         outMsg += "==> [ContainerBuilder] Quick-defining Thunder image for " + cleanName + " from cex-pack.json (zero-file build)...\n";
-        outMsg += "[OK] [cxvm thunder] Zero-file Thunder container image built successfully for " + cleanName + "\n";
-        outMsg += "[OK] [cxvm thunder] Container Image Tag: " + tag + " (Exposed: " + to_string(cPort) + ")";
+        outMsg += "[OK] [cxvm --app thunder] Zero-file Thunder container image built successfully for " + cleanName + "\n";
+        outMsg += "[OK] [cxvm --app thunder] Container Image Tag: " + tag + " (Exposed: " + to_string(cPort) + ")";
 
-        let thunBin: string = "bin/thunder";
-        if (fs.exists(thunBin)) {
+        let thunBin: string = this.findThunderCli();
+        if (fs.exists(thunBin) || thunBin == "thunder") {
             system((thunBin + " build >/dev/null 2>&1 || true").c_str());
         }
 
