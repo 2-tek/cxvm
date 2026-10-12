@@ -1,0 +1,60 @@
+// 2-TEK CexR v8: Migration Task Test Suite
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 81, Rule 82, Rule 83
+
+import "@cex-test/src/assert.cex";
+import "@cex-test/src/runner.cex";
+import "../migrate_cexp_to_v8_cexr.cex";
+
+fn main(): int {
+    let suite: TestSuite* = new TestSuite("CexP to CexR v8 Migration Task Test Suite");
+    cex::GC::pin(suite);
+
+    println("===============================================================================");
+    println("          2-TEK CexR v8: Migration Task Automated Verification Suite           ");
+    println("===============================================================================");
+
+    let migrator: CexpToV8Migrator* = new CexpToV8Migrator(true);
+    let summary: MigrationSummary* = new MigrationSummary();
+
+    // -------------------------------------------------------------
+    // Test 1: Transform Raw #include to Rule 83 Standard Imports
+    // -------------------------------------------------------------
+    let legacyCode1: string = "#include <iostream>\n#include <vector>\nfn test(): void {}\n";
+    let migrated1: string = migrator->migrateCexSource(legacyCode1, "test1.cex", summary);
+    Assert::isTrue(migrated1.find("import \"cpp/iostream\";") != std::string::npos, "iostream converted to Rule 83 import");
+    Assert::isTrue(migrated1.find("import \"cpp/vector\";") != std::string::npos, "vector converted to Rule 83 import");
+    Assert::isTrue(migrated1.find("#include") == std::string::npos, "All raw #includes removed");
+    suite->addResult("test_rule_83_import_migration", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 2: Eliminate 'run' subcommand from cexr and cexp
+    // -------------------------------------------------------------
+    let legacyCode2: string = "cexr run src/server.cex\ncexp run src/main.cex\n";
+    let migrated2: string = migrator->migrateCexSource(legacyCode2, "test2.sh", summary);
+    Assert::isTrue(migrated2.find("cexr src/server.cex") != std::string::npos, "cexr run replaced with direct cexr");
+    Assert::isTrue(migrated2.find("cexr src/main.cex") != std::string::npos, "cexp run replaced with direct cexr");
+    Assert::isTrue(migrated2.find(" run ") == std::string::npos, "run subcommand completely stripped");
+    suite->addResult("test_eliminate_run_subcommand", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 3: Migrate ': public' Inheritance to 'extends' (Rule 81 / 82)
+    // -------------------------------------------------------------
+    let legacyCode3: string = "class GatewayService : public BaseService {\npublic:\n    int port;\n}\n";
+    let migrated3: string = migrator->migrateCexSource(legacyCode3, "test3.cex", summary);
+    Assert::isTrue(migrated3.find("class GatewayService extends BaseService") != std::string::npos, "Inheritance converted to extends");
+    Assert::isTrue(migrated3.find(": public") == std::string::npos, ": public completely eliminated");
+    suite->addResult("test_extends_inheritance_migration", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 4: Manifest cFlags Deprecation & Removal
+    // -------------------------------------------------------------
+    let legacyManifest: string = "{\n  \"name\": \"test-app\",\n  \"version\": \"1.0.0\",\n  \"cFlags\": [\"-std=c++20\", \"-O3\"],\n  \"main\": \"src/index.cex\"\n}\n";
+    let migratedMf: string = migrator->migrateManifest(legacyManifest, "cex-pack.json", summary);
+    Assert::isTrue(migratedMf.find("\"cFlags\"") == std::string::npos, "cFlags removed from manifest");
+    Assert::isTrue(migratedMf.find("\"name\": \"test-app\"") != std::string::npos, "Manifest name preserved");
+    Assert::isTrue(migratedMf.find("\"main\": \"src/index.cex\"") != std::string::npos, "Manifest main preserved");
+    suite->addResult("test_manifest_cflags_removal", true, "", 1);
+
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

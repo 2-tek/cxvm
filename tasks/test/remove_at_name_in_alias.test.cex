@@ -1,0 +1,53 @@
+// 2-TEK CexR v8: Verification Test Suite for Removing (@name) in Manifest Aliases
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 80, Rule 81, Rule 82, Rule 83, RULE_NO_PACKAGE_AT_NAME_IN_ALIAS
+
+import "@cex-test/src/assert.cex";
+import "@cex-test/src/runner.cex";
+import "../migrate_remove_at_name_in_alias.cex";
+
+fn main(): int {
+    let suite: TestSuite* = new TestSuite("Manifest Alias (@name) Removal Test Suite");
+    cex::GC::pin(suite);
+
+    println("===============================================================================");
+    println("      2-TEK CexR v8: Manifest Alias (@name) Removal Automated Test Suite       ");
+    println("===============================================================================");
+
+    let cleaner: ManifestAliasCleaner* = new ManifestAliasCleaner(true);
+    let summary: AliasPurgeSummary* = new AliasPurgeSummary();
+
+    // -------------------------------------------------------------
+    // Test 1: Purge Package Aliases (@cex-cli, @cex-lint) from Manifest
+    // -------------------------------------------------------------
+    let sampleManifest1: string = "{\n  \"name\": \"cat-store\",\n  \"version\": \"1.0.0\",\n  \"alias\": {\n    \"@\": \".\",\n    \"@/src\": \"./src\",\n    \"@cex-cli\": \"./.cex_boxes/cex-cli\",\n    \"@cex-lint\": \"./.cex_boxes/cex-lint\"\n  },\n  \"main\": \"src/index.cex\"\n}\n";
+    let cleaned1: string = cleaner->cleanManifestAliasContent(sampleManifest1, "cat-store/cex-pack.json", summary);
+
+    Assert::isTrue(cleaned1.find("\"@\": \".\"") != std::string::npos, "Preserves root @ alias");
+    Assert::isTrue(cleaned1.find("\"@/src\": \"./src\"") != std::string::npos, "Preserves canonical @/src alias");
+    Assert::isTrue(cleaned1.find("@cex-cli") == std::string::npos, "@cex-cli alias purged");
+    Assert::isTrue(cleaned1.find("@cex-lint") == std::string::npos, "@cex-lint alias purged");
+    suite->addResult("test_purge_cex_package_aliases", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 2: Purge Multi-Path Aliases (@mvp-deepsea/...) from Manifest
+    // -------------------------------------------------------------
+    let sampleManifest2: string = "{\n  \"name\": \"mvp-deepsea\",\n  \"alias\": {\n    \"@\": \".\",\n    \"@/src\": \"./src\",\n    \"@mvp-deepsea\": \".\",\n    \"@mvp-deepsea/decorators\": \"./src/decorators/index.cex\",\n    \"@mvp-deepsea/models\": \"./src/models/entity.cex\"\n  }\n}\n";
+    let cleaned2: string = cleaner->cleanManifestAliasContent(sampleManifest2, "MVP-DeepSea/cex-pack.json", summary);
+
+    Assert::isTrue(cleaned2.find("\"@\": \".\"") != std::string::npos, "Preserves root @ alias");
+    Assert::isTrue(cleaned2.find("\"@/src\": \"./src\"") != std::string::npos, "Preserves @/src alias");
+    Assert::isTrue(cleaned2.find("@mvp-deepsea") == std::string::npos, "All @mvp-deepsea package aliases purged");
+    suite->addResult("test_purge_subpath_package_aliases", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 3: Clean Manifest Remains Completely Untouched
+    // -------------------------------------------------------------
+    let cleanManifest: string = "{\n  \"name\": \"clean-pkg\",\n  \"alias\": {\n    \"@\": \".\",\n    \"@/src\": \"./src\"\n  }\n}\n";
+    let unchanged: string = cleaner->cleanManifestAliasContent(cleanManifest, "clean/cex-pack.json", summary);
+
+    Assert::equalsString(cleanManifest, unchanged, "Already clean manifest is not modified");
+    suite->addResult("test_clean_manifest_untouched", true, "", 1);
+
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

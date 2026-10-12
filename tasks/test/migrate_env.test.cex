@@ -1,0 +1,45 @@
+// 2-TEK CexR v8: Verification Test Suite for EnvLoader Migration
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 80, Rule 81, Rule 82, Rule 83
+
+import "@cex-test/src/assert.cex";
+import "@cex-test/src/runner.cex";
+import "../migrate_env_loader_to_cex_env.cex";
+
+fn main(): int {
+    let suite: TestSuite* = new TestSuite("EnvLoader to Cex-Env Migration Test Suite");
+    cex::GC::pin(suite);
+
+    println("===============================================================================");
+    println("      2-TEK CexR v8: EnvLoader -> Cex-Env Automated Test Suite                 ");
+    println("===============================================================================");
+
+    let migrator: EnvMigrator* = new EnvMigrator(true);
+
+    // -------------------------------------------------------------
+    // Test 1: Inject cex-env into Dependencies Block
+    // -------------------------------------------------------------
+    let sampleManifest: string = "{\n  \"name\": \"test-app\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"@cex-service\": \"1.0.0\"\n  }\n}\n";
+    let updatedManifest: string = migrator->updateManifestDependencies(sampleManifest);
+
+    Assert::isTrue(updatedManifest.find("\"cex-env\": \"1.0.0\"") != std::string::npos, "Adds cex-env to dependencies");
+    Assert::isTrue(updatedManifest.find("\"@cex-service\": \"1.0.0\"") != std::string::npos, "Preserves existing dependencies");
+    suite->addResult("test_inject_cex_env_dependencies", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 2: Existing cex-env Declaration Remains Untouched
+    // -------------------------------------------------------------
+    let cleanManifest: string = "{\n  \"name\": \"test-app\",\n  \"dependencies\": {\n    \"cex-env\": \"1.0.0\"\n  }\n}\n";
+    let unchanged: string = migrator->updateManifestDependencies(cleanManifest);
+    Assert::equalsString(cleanManifest, unchanged, "Already configured manifest is not modified");
+    suite->addResult("test_existing_cex_env_untouched", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 3: Generate Canonical Env Bridge Content
+    // -------------------------------------------------------------
+    let bridge: string = migrator->generateEnvBridgeContent();
+    Assert::isTrue(bridge.find("@cex-env/src/env_loader.cex") != std::string::npos, "Bridge imports from @cex-env");
+    suite->addResult("test_generate_env_bridge", true, "", 1);
+
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

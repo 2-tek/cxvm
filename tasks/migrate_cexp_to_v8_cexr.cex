@@ -1,0 +1,286 @@
+// 2-TEK CexR v8: CexP -> CexR v8 Automated Migration Task
+// Conforms to Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 81 (Native Syntax), Rule 82 (CXVM & Direct CexR), Rule 83 (Import cpp/c Replace #include)
+
+import "cpp/string";
+import "cpp/vector";
+import "cpp/iostream";
+import "c/stdio.h";
+import "c/stdlib.h";
+import fs from "fs";
+import child_process from "child_process";
+
+class MigrationFinding {
+public:
+    string filePath;
+    string ruleName;
+    string description;
+    int lineNumber;
+    bool fixed;
+
+    MigrationFinding(string path, string rule, string desc, int line, bool wasFixed) {
+        this->filePath = path;
+        this->ruleName = rule;
+        this->description = desc;
+        this->lineNumber = line;
+        this->fixed = wasFixed;
+    }
+}
+
+class MigrationSummary {
+public:
+    int scannedFiles;
+    int detectedIssues;
+    int fixedIssues;
+    Array<MigrationFinding*>* findings;
+
+    MigrationSummary() {
+        this->scannedFiles = 0;
+        this->detectedIssues = 0;
+        this->fixedIssues = 0;
+        this->findings = new Array<MigrationFinding*>();
+    }
+
+    fn addFinding(finding: MigrationFinding*): void {
+        this->findings->push(finding);
+        this->detectedIssues = this->detectedIssues + 1;
+        if (finding->fixed) {
+            this->fixedIssues = this->fixedIssues + 1;
+        }
+    }
+}
+
+class CexpToV8Migrator {
+private:
+    bool autoFix;
+
+public:
+    CexpToV8Migrator(bool fix) {
+        this->autoFix = fix;
+    }
+
+    // Task 1 & Task 4 & Task 6: Migrate source code patterns
+    fn migrateCexSource(content: string, filePath: string, summary: MigrationSummary*): string {
+        let modified: bool = false;
+        let result: string = content;
+
+        // 1. Migrate raw #include to Rule 83 imports
+        if (result.find("#include <iostream>") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "Rule 83 (no-raw-include)", "Replace #include <iostream> with import 'cpp/iostream'", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->replaceAll(result, "#include <iostream>", "import \"cpp/iostream\";");
+                modified = true;
+            }
+        }
+
+        if (result.find("#include <vector>") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "Rule 83 (no-raw-include)", "Replace #include <vector> with import 'cpp/vector'", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->replaceAll(result, "#include <vector>", "import \"cpp/vector\";");
+                modified = true;
+            }
+        }
+
+        if (result.find("#include <string>") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "Rule 83 (no-raw-include)", "Replace #include <string> with import 'cpp/string'", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->replaceAll(result, "#include <string>", "import \"cpp/string\";");
+                modified = true;
+            }
+        }
+
+        if (result.find("#include <unistd.h>") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "Rule 83 (no-raw-include)", "Replace #include <unistd.h> with import 'c/unistd.h'", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->replaceAll(result, "#include <unistd.h>", "import \"c/unistd.h\";");
+                modified = true;
+            }
+        }
+
+        // 2. Migrate legacy 'cexr run ' to direct 'cexr '
+        if (result.find("cexr run ") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "Rule 82 (no-run-subcommand)", "Replace 'cexr run ' with direct 'cexr '", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->replaceAll(result, "cexr run ", "cexr ");
+                modified = true;
+            }
+        }
+
+        // 3. Migrate legacy 'cexp run ' to 'cexr '
+        if (result.find("cexp run ") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "Rule 82 (cexp-to-v8-cexr)", "Replace 'cexp run ' with 'cexr '", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->replaceAll(result, "cexp run ", "cexr ");
+                modified = true;
+            }
+        }
+
+        // 4. Migrate ': public' inheritance to 'extends' (Rule 81 / 82)
+        if (result.find(" : public ") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "Rule 81 (public-by-extends)", "Replace ': public' with 'extends'", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->replaceAll(result, " : public ", " extends ");
+                modified = true;
+            }
+        }
+
+        return result;
+    }
+
+    // Task 3: Migrate manifest cex-pack.json
+    fn migrateManifest(content: string, filePath: string, summary: MigrationSummary*): string {
+        let result: string = content;
+
+        // Check for deprecated cFlags
+        if (result.find("\"cFlags\"") != std::string::npos) {
+            summary->addFinding(new MigrationFinding(filePath, "RULE_CEX_TOOLCHAIN", "Remove deprecated 'cFlags' property from manifest", 0, this->autoFix));
+            if (this->autoFix) {
+                result = this->removeCFlagsFromJson(result);
+            }
+        }
+
+        return result;
+    }
+
+    fn removeCFlagsFromJson(jsonStr: string): string {
+        let keyPos = jsonStr.find("\"cFlags\"");
+        if (keyPos == std::string::npos) {
+            return jsonStr;
+        }
+
+        let lineStart = jsonStr.rfind("\n", keyPos);
+        if (lineStart == std::string::npos) {
+            lineStart = 0;
+        } else {
+            lineStart = lineStart + 1;
+        }
+
+        let bracketClose = jsonStr.find("]", keyPos);
+        if (bracketClose == std::string::npos) {
+            return jsonStr;
+        }
+
+        let lineEnd = jsonStr.find("\n", bracketClose);
+        if (lineEnd == std::string::npos) {
+            lineEnd = jsonStr.length();
+        } else {
+            lineEnd = lineEnd + 1;
+        }
+
+        let before = jsonStr.substr(0, lineStart);
+        let after = jsonStr.substr(lineEnd);
+        return before + after;
+    }
+
+    fn replaceAll(source: string, from: string, to: string): string {
+        let str: string = source;
+        let pos: size_t = 0;
+        while ((pos = str.find(from, pos)) != std::string::npos) {
+            str.replace(pos, from.length(), to);
+            pos += to.length();
+        }
+        return str;
+    }
+
+    fn runMigration(targetPath: string): MigrationSummary* {
+        let summary: MigrationSummary* = new MigrationSummary();
+        println("===============================================================================");
+        println("          2-TEK CexR v8: Automated Code & Task Migration Engine                ");
+        println("===============================================================================");
+        println("Scanning path: " + targetPath + " (Auto-fix: " + (this->autoFix ? "ENABLED" : "DRY-RUN") + ")\n");
+
+        if (fs.exists(targetPath)) {
+            if (fs.isDir(targetPath)) {
+                this->scanDirRecursive(targetPath, summary);
+            } else {
+                this->processFile(targetPath, summary);
+            }
+        } else {
+            println("[ERROR] Target path does not exist: " + targetPath);
+        }
+
+        this->printReport(summary);
+        return summary;
+    }
+
+    fn scanDirRecursive(dirPath: string, summary: MigrationSummary*): void {
+        let files: Array<string>* = fs.readDir(dirPath);
+        for (let i: int = 0; i < (int)files->length(); i++) {
+            let name: string = files->get(i);
+            if (name == "." || name == ".." || name == ".git" || name == ".cex_cache" || name == "dist" || name == "node_modules") {
+                continue;
+            }
+            let fullPath: string = dirPath + "/" + name;
+            if (fs.isDir(fullPath)) {
+                this->scanDirRecursive(fullPath, summary);
+            } else {
+                if (name.find(".cex") != std::string::npos || name == "cex-pack.json" || name.find(".sh") != std::string::npos || name.find(".md") != std::string::npos) {
+                    this->processFile(fullPath, summary);
+                }
+            }
+        }
+    }
+
+    fn processFile(filePath: string, summary: MigrationSummary*): void {
+        summary->scannedFiles = summary->scannedFiles + 1;
+        let content: string = fs.readFile(filePath);
+        let updated: string = content;
+
+        if (filePath.find("cex-pack.json") != std::string::npos) {
+            updated = this->migrateManifest(updated, filePath, summary);
+        } else {
+            updated = this->migrateCexSource(updated, filePath, summary);
+        }
+
+        if (this->autoFix && updated != content) {
+            fs.writeFile(filePath, updated);
+            println("[FIXED] Migrated: " + filePath);
+        }
+    }
+
+    fn printReport(summary: MigrationSummary*): void {
+        println("-------------------------------------------------------------------------------");
+        println("                       Migration Audit & Execution Report                      ");
+        println("-------------------------------------------------------------------------------");
+        println("Total Scanned Files : " + std::to_string(summary->scannedFiles));
+        println("Detected Issues     : " + std::to_string(summary->detectedIssues));
+        println("Fixed Issues        : " + std::to_string(summary->fixedIssues));
+        println("-------------------------------------------------------------------------------");
+
+        for (let i: int = 0; i < (int)summary->findings->length(); i++) {
+            let f = summary->findings->get(i);
+            let statusStr: string = f->fixed ? "[FIXED]" : "[PENDING]";
+            println(statusStr + " [" + f->ruleName + "] " + f->filePath + " -> " + f->description);
+        }
+
+        if (summary->detectedIssues == 0) {
+            println("SUCCESS: Codebase is 100% compliant with CexR v8 standards!");
+        } else if (this->autoFix) {
+            println("SUCCESS: All detected issues have been auto-fixed to CexR v8 syntax!");
+        } else {
+            println("NOTICE: Run with '--fix' to apply automated migrations.");
+        }
+        println("===============================================================================");
+    }
+}
+
+fn main(argc: int, argv: char**): int {
+    let targetPath: string = ".";
+    let fixMode: bool = false;
+
+    for (let i: int = 1; i < argc; i++) {
+        let arg: string = string(argv[i]);
+        if (arg == "--fix" || arg == "-f") {
+            fixMode = true;
+        } else if (arg == "--path" || arg == "-p") {
+            if (i + 1 < argc) {
+                targetPath = string(argv[i + 1]);
+                i++;
+            }
+        }
+    }
+
+    let migrator: CexpToV8Migrator* = new CexpToV8Migrator(fixMode);
+    let summary: MigrationSummary* = migrator->runMigration(targetPath);
+
+    return 0;
+}

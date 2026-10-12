@@ -1,0 +1,295 @@
+// 2-TEK CexR v8: Automated Task to Remove Package (@name) in Manifest Aliases
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 80, Rule 81, Rule 82, Rule 83, RULE_NO_PACKAGE_AT_NAME_IN_ALIAS
+
+import "cpp/string";
+import "cpp/vector";
+import "cpp/iostream";
+import "c/stdio.h";
+import "c/stdlib.h";
+import fs from "fs";
+import child_process from "child_process";
+
+class AliasPurgeFinding {
+public:
+    string filePath;
+    string aliasKey;
+    bool fixed;
+
+    AliasPurgeFinding(string path, string key, bool wasFixed) {
+        this->filePath = path;
+        this->aliasKey = key;
+        this->fixed = wasFixed;
+    }
+}
+
+class AliasPurgeSummary {
+public:
+    int scannedManifests;
+    int affectedManifests;
+    int purgedAliasesCount;
+    Array<AliasPurgeFinding*>* findings;
+
+    AliasPurgeSummary() {
+        this->scannedManifests = 0;
+        this->affectedManifests = 0;
+        this->purgedAliasesCount = 0;
+        this->findings = new Array<AliasPurgeFinding*>();
+    }
+
+    fn addFinding(finding: AliasPurgeFinding*): void {
+        this->findings->push(finding);
+        this->purgedAliasesCount = this->purgedAliasesCount + 1;
+    }
+}
+
+class ManifestAliasCleaner {
+private:
+    bool autoFix;
+
+public:
+    ManifestAliasCleaner(bool fix) {
+        this->autoFix = fix;
+    }
+
+    // Cleans the "alias" block of a manifest string
+    fn cleanManifestAliasContent(content: string, filePath: string, summary: AliasPurgeSummary*): string {
+        let aliasPos = content.find("\"alias\"");
+        if (aliasPos == std::string::npos) {
+            return content;
+        }
+
+        let openBrace = content.find("{", aliasPos);
+        if (openBrace == std::string::npos) {
+            return content;
+        }
+
+        // Find closing brace of alias object matching openBrace
+        let depth: int = 1;
+        let closeBrace: size_t = std::string::npos;
+        for (let i: size_t = openBrace + 1; i < content.length(); i++) {
+            let ch = content.substr(i, 1);
+            if (ch == "{") {
+                depth++;
+            } else if (ch == "}") {
+                depth--;
+                if (depth == 0) {
+                    closeBrace = i;
+                    break;
+                }
+            }
+        }
+
+        if (closeBrace == std::string::npos) {
+            return content;
+        }
+
+        let aliasBody = content.substr(openBrace + 1, closeBrace - openBrace - 1);
+        let cleanedLines: string = "";
+        let hasRemovals: bool = false;
+
+        // Process line by line
+        let start: size_t = 0;
+        let len: size_t = aliasBody.length();
+        while (start < len) {
+            let nextNl = aliasBody.find("\n", start);
+            let lineLen: size_t = (nextNl == std::string::npos) ? (len - start) : (nextNl - start);
+            let line = aliasBody.substr(start, lineLen);
+
+            let trimmed = this->trim(line);
+            if (trimmed.length() > 0 && trimmed.substr(0, 1) == "\"") {
+                let quoteEnd = trimmed.find("\"", 1);
+                if (quoteEnd != std::string::npos) {
+                    let key = trimmed.substr(1, quoteEnd - 1);
+
+                    // Check if key is a package @name alias (starts with @ and second char is not '/') or non-root alias
+                    let isRootAlias: bool = (key == "@" || (key.length() >= 2 && key.substr(0, 2) == "@/"));
+                    if (!isRootAlias) {
+                        // This is a package @name alias to remove!
+                        summary->addFinding(new AliasPurgeFinding(filePath, key, this->autoFix));
+                        hasRemovals = true;
+                    } else {
+                        if (cleanedLines.length() > 0) {
+                            cleanedLines += "\n";
+                        }
+                        cleanedLines += line;
+                    }
+                } else {
+                    if (cleanedLines.length() > 0) {
+                        cleanedLines += "\n";
+                    }
+                    cleanedLines += line;
+                }
+            } else {
+                if (trimmed.length() > 0) {
+                    if (cleanedLines.length() > 0) {
+                        cleanedLines += "\n";
+                    }
+                    cleanedLines += line;
+                }
+            }
+
+            if (nextNl == std::string::npos) {
+                break;
+            }
+            start = nextNl + 1;
+        }
+
+        if (!hasRemovals) {
+            return content;
+        }
+
+        summary->affectedManifests = summary->affectedManifests + 1;
+
+        // Format cleaned lines ensuring trailing commas are removed from last entry
+        cleanedLines = this->fixTrailingCommas(cleanedLines);
+
+        let before = content.substr(0, openBrace + 1);
+        let after = content.substr(closeBrace);
+        return before + "\n" + cleanedLines + "\n  " + after.substr(1);
+    }
+
+    fn fixTrailingCommas(block: string): string {
+        // Collect all non-empty lines
+        let lines: Array<string>* = new Array<string>();
+        let start: size_t = 0;
+        let len: size_t = block.length();
+        while (start < len) {
+            let nextNl = block.find("\n", start);
+            let lineLen: size_t = (nextNl == std::string::npos) ? (len - start) : (nextNl - start);
+            let line = block.substr(start, lineLen);
+            if (this->trim(line).length() > 0) {
+                lines->push(line);
+            }
+            if (nextNl == std::string::npos) break;
+            start = nextNl + 1;
+        }
+
+        let result: string = "";
+        let count: int = (int)lines->length();
+        for (let i: int = 0; i < count; i++) {
+            let l = lines->get(i);
+            let t = this->trim(l);
+            if (i < count - 1) {
+                // Ensure comma at end
+                if (t.substr(t.length() - 1) != ",") {
+                    l = l + ",";
+                }
+            } else {
+                // Last item: ensure NO comma at end
+                if (t.substr(t.length() - 1) == ",") {
+                    let commaPos = l.rfind(",");
+                    if (commaPos != std::string::npos) {
+                        l = l.substr(0, commaPos);
+                    }
+                }
+            }
+            if (result.length() > 0) {
+                result += "\n";
+            }
+            result += l;
+        }
+        return result;
+    }
+
+    fn trim(s: string): string {
+        let first = s.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) return "";
+        let last = s.find_last_not_of(" \t\r\n");
+        return s.substr(first, (last - first + 1));
+    }
+
+    fn run(targetPath: string): AliasPurgeSummary* {
+        let summary: AliasPurgeSummary* = new AliasPurgeSummary();
+        println("===============================================================================");
+        println("      2-TEK CexR v8: Remove Package (@name) Aliases from cex-pack.json         ");
+        println("===============================================================================");
+        println("Target Path: " + targetPath + " (Auto-fix: " + (this->autoFix ? "ENABLED" : "DRY-RUN") + ")\n");
+
+        if (fs.exists(targetPath)) {
+            if (fs.isDir(targetPath)) {
+                this->scanDir(targetPath, summary);
+            } else {
+                this->processManifest(targetPath, summary);
+            }
+        } else {
+            println("[ERROR] Path does not exist: " + targetPath);
+        }
+
+        this->printReport(summary);
+        return summary;
+    }
+
+    fn scanDir(dirPath: string, summary: AliasPurgeSummary*): void {
+        let files: Array<string>* = fs.readDir(dirPath);
+        for (let i: int = 0; i < (int)files->length(); i++) {
+            let name = files->get(i);
+            if (name == "." || name == ".." || name == ".git" || name == ".cex_cache" || name == "dist" || name == "node_modules") {
+                continue;
+            }
+            let fullPath = dirPath + "/" + name;
+            if (fs.isDir(fullPath)) {
+                this->scanDir(fullPath, summary);
+            } else if (name == "cex-pack.json") {
+                this->processManifest(fullPath, summary);
+            }
+        }
+    }
+
+    fn processManifest(filePath: string, summary: AliasPurgeSummary*): void {
+        summary->scannedManifests = summary->scannedManifests + 1;
+        let content: string = fs.readFile(filePath);
+        let cleaned: string = this->cleanManifestAliasContent(content, filePath, summary);
+
+        if (this->autoFix && cleaned != content) {
+            fs.writeFile(filePath, cleaned);
+            println("[FIXED] Purged (@name) aliases in: " + filePath);
+        }
+    }
+
+    fn printReport(summary: AliasPurgeSummary*): void {
+        println("-------------------------------------------------------------------------------");
+        println("                        Manifest Alias Purge Report                            ");
+        println("-------------------------------------------------------------------------------");
+        println("Total Scanned Manifests : " + std::to_string(summary->scannedManifests));
+        println("Affected Manifests      : " + std::to_string(summary->affectedManifests));
+        println("Purged Package Aliases  : " + std::to_string(summary->purgedAliasesCount));
+        println("-------------------------------------------------------------------------------");
+
+        for (let i: int = 0; i < (int)summary->findings->length(); i++) {
+            let f = summary->findings->get(i);
+            let status = f->fixed ? "[FIXED]" : "[PENDING]";
+            println(status + " " + f->filePath + " -> removed key '" + f->aliasKey + "'");
+        }
+
+        if (summary->purgedAliasesCount == 0) {
+            println("SUCCESS: All manifests strictly conform to RULE_NO_PACKAGE_AT_NAME_IN_ALIAS!");
+        } else if (this->autoFix) {
+            println("SUCCESS: Successfully purged all (@name) package aliases from manifests!");
+        } else {
+            println("NOTICE: Run with '--fix' to apply automated removals.");
+        }
+        println("===============================================================================");
+    }
+}
+
+fn main(argc: int, argv: char**): int {
+    let targetPath: string = ".";
+    let fixMode: bool = false;
+
+    for (let i: int = 1; i < argc; i++) {
+        let arg: string = string(argv[i]);
+        if (arg == "--fix" || arg == "-f") {
+            fixMode = true;
+        } else if (arg == "--path" || arg == "-p") {
+            if (i + 1 < argc) {
+                targetPath = string(argv[i + 1]);
+                i++;
+            }
+        }
+    }
+
+    let cleaner: ManifestAliasCleaner* = new ManifestAliasCleaner(fixMode);
+    cleaner->run(targetPath);
+
+    return 0;
+}

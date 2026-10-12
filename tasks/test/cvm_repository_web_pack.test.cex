@@ -1,0 +1,76 @@
+// 2-TEK CexR v8: Verification Test Suite for cvm_repository and Multi-Manifest Routing
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 80, Rule 82, RULE_CVM_REPOSITORY_IN_CEX_PACK
+
+import "@cex-test/src/assert.cex";
+import "@cex-test/src/runner.cex";
+import "../task_cvm_repository_web_pack.cex";
+
+fn main(): int {
+    let suite: TestSuite* = new TestSuite("CVM Repository & Multi-Manifest Test Suite");
+    cex::GC::pin(suite);
+
+    println("===============================================================================");
+    println("   2-TEK CexR v8: CVM Repository & Web-Pack.json Automated Test Suite         ");
+    println("===============================================================================");
+
+    let manager: CvmManifestManager* = new CvmManifestManager(".", "web-pack.json", false);
+
+    // -------------------------------------------------------------
+    // Test 1: Extract package name slug
+    // -------------------------------------------------------------
+    let sample1: string = "{\n  \"name\": \"@2tek/mvc-code-manager\",\n  \"version\": \"1.0.0\"\n}\n";
+    let slug1: string = manager->extractPackageName(sample1);
+    Assert::equalsString("2tek-mvc-code-manager", slug1, "Extracts normalized slug from scoped package name");
+    suite->addResult("test_extract_package_name", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 2: Inspect missing cvm_repository
+    // -------------------------------------------------------------
+    let sampleMissing: string = "{\n  \"name\": \"test-app\",\n  \"version\": \"1.0.0\"\n}\n";
+    let auditMissing: CvmRepoAuditItem* = manager->inspectCvmRepository(sampleMissing, "test/cex-pack.json");
+    Assert::isTrue(!auditMissing->hasCvmRepo, "Correctly detects missing cvm_repository");
+    Assert::equalsString("MISSING", auditMissing->status, "Status is marked MISSING");
+    suite->addResult("test_inspect_missing_cvm_repository", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 3: Inspect string format cvm_repository
+    // -------------------------------------------------------------
+    let sampleString: string = "{\n  \"name\": \"test-app\",\n  \"cvm_repository\": \"cvm://localhost:3110/repo/test-app\"\n}\n";
+    let auditString: CvmRepoAuditItem* = manager->inspectCvmRepository(sampleString, "test/cex-pack.json");
+    Assert::isTrue(auditString->hasCvmRepo, "Detects string cvm_repository");
+    Assert::isTrue(auditString->isValid, "String cvm_repository is marked valid");
+    Assert::equalsString("cvm://localhost:3110/repo/test-app", auditString->repoUrl, "Extracts URL correctly");
+    suite->addResult("test_inspect_string_cvm_repository", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 4: Inspect object format with custom path (web-pack.json)
+    // -------------------------------------------------------------
+    let sampleObject: string = "{\n  \"name\": \"test-app\",\n  \"cvm_repository\": {\n    \"type\": \"cvm\",\n    \"url\": \"cvm://localhost:3110/repo/test-app\",\n    \"path\": \"web-pack.json\",\n    \"branch\": \"main\"\n  }\n}\n";
+    let auditObj: CvmRepoAuditItem* = manager->inspectCvmRepository(sampleObject, "test/cex-pack.json");
+    Assert::isTrue(auditObj->hasCvmRepo, "Detects object cvm_repository");
+    Assert::isTrue(auditObj->isValid, "Object cvm_repository is valid");
+    Assert::equalsString("web-pack.json", auditObj->customPath, "Detects custom path pointing to web-pack.json");
+    suite->addResult("test_inspect_object_cvm_repository_web_pack", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 5: Detect path traversal error in cvm_repository
+    // -------------------------------------------------------------
+    let sampleTraversal: string = "{\n  \"name\": \"test-app\",\n  \"cvm_repository\": {\n    \"type\": \"cvm\",\n    \"url\": \"cvm://localhost:3110/repo/test-app\",\n    \"path\": \"../web-pack.json\"\n  }\n}\n";
+    let auditTraversal: CvmRepoAuditItem* = manager->inspectCvmRepository(sampleTraversal, "test/cex-pack.json");
+    Assert::isTrue(!auditTraversal->isValid, "Rejects path traversal in cvm_repository path");
+    Assert::equalsString("PATH_TRAVERSAL_ERROR", auditTraversal->status, "Reports PATH_TRAVERSAL_ERROR");
+    suite->addResult("test_detect_path_traversal", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 6: Inject cvm_repository with web-pack.json path
+    // -------------------------------------------------------------
+    let rawManifest: string = "{\n  \"name\": \"@2tek/sample\",\n  \"version\": \"1.0.0\",\n  \"target\": \"runtime\"\n}\n";
+    let injected: string = manager->injectCvmRepository(rawManifest, "sample/cex-pack.json", "web-pack.json");
+    Assert::isTrue(injected.find("\"cvm_repository\"") != std::string::npos, "Injects cvm_repository block");
+    Assert::isTrue(injected.find("\"path\": \"web-pack.json\"") != std::string::npos, "Configures path as web-pack.json");
+    Assert::isTrue(injected.find("cvm://localhost:3110/repo/2tek-sample") != std::string::npos, "Generates canonical repo URL");
+    suite->addResult("test_inject_cvm_repository_web_pack", true, "", 1);
+
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

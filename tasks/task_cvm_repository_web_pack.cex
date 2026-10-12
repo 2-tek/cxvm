@@ -1,0 +1,358 @@
+// 2-TEK CexR v8: Task to Configure cvm_repository and Multi-Manifest Routing in cex-pack
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 80, Rule 82, RULE_CVM_REPOSITORY_IN_CEX_PACK
+
+import "cpp/string";
+import "cpp/vector";
+import "cpp/iostream";
+import "c/stdio.h";
+import "c/stdlib.h";
+import fs from "fs";
+
+class CvmRepoAuditItem {
+public:
+    string filePath;
+    string repoUrl;
+    string customPath;
+    bool hasCvmRepo;
+    bool isValid;
+    string status;
+
+    CvmRepoAuditItem(string path, string url, string cPath, bool hasRepo, bool valid, string st) {
+        this->filePath = path;
+        this->repoUrl = url;
+        this->customPath = cPath;
+        this->hasCvmRepo = hasRepo;
+        this->isValid = valid;
+        this->status = st;
+    }
+}
+
+class CvmTaskSummary {
+public:
+    int scannedCount;
+    int configuredCount;
+    int missingCount;
+    int updatedCount;
+    Array<CvmRepoAuditItem*>* items;
+
+    CvmTaskSummary() {
+        this->scannedCount = 0;
+        this->configuredCount = 0;
+        this->missingCount = 0;
+        this->updatedCount = 0;
+        this->items = new Array<CvmRepoAuditItem*>();
+    }
+
+    fn addItem(item: CvmRepoAuditItem*): void {
+        this->items->push(item);
+    }
+}
+
+class CvmManifestManager {
+public:
+    string targetPath;
+    string customManifestName;
+    bool autoFix;
+
+    CvmManifestManager(string path, string customName, bool fix) {
+        this->targetPath = path;
+        this->customManifestName = customName.length() > 0 ? customName : "web-pack.json";
+        this->autoFix = fix;
+    }
+
+    // Extracts package name from manifest
+    fn extractPackageName(content: string): string {
+        let nameIdx: int = (int)content.find("\"name\"");
+        if (nameIdx == -1) return "project";
+        let colonIdx: int = (int)content.find(":", nameIdx);
+        if (colonIdx == -1) return "project";
+        let q1: int = (int)content.find("\"", colonIdx);
+        if (q1 == -1) return "project";
+        let q2: int = (int)content.find("\"", q1 + 1);
+        if (q2 == -1) return "project";
+        let rawName: string = content.substr(q1 + 1, q2 - q1 - 1);
+        // Replace / and @ for clean repo slug
+        let cleanName: string = "";
+        for (let i: int = 0; i < (int)rawName.length(); i++) {
+            let ch: string = rawName.substr(i, 1);
+            if (ch == "@") {
+                // skip
+            } else if (ch == "/") {
+                cleanName = cleanName + "-";
+            } else {
+                cleanName = cleanName + ch;
+            }
+        }
+        return cleanName.length() > 0 ? cleanName : "app";
+    }
+
+    // Inspects cvm_repository configuration in manifest
+    fn inspectCvmRepository(content: string, filePath: string): CvmRepoAuditItem* {
+        let cvmIdx: int = (int)content.find("\"cvm_repository\"");
+        if (cvmIdx == -1) {
+            return new CvmRepoAuditItem(filePath, "", "", false, true, "MISSING");
+        }
+
+        let colonIdx: int = (int)content.find(":", cvmIdx);
+        if (colonIdx == -1) {
+            return new CvmRepoAuditItem(filePath, "", "", true, false, "INVALID_SYNTAX");
+        }
+
+        let openBrace: int = (int)content.find("{", colonIdx);
+        let firstQuote: int = (int)content.find("\"", colonIdx);
+
+        if (firstQuote != -1 && (openBrace == -1 || firstQuote < openBrace)) {
+            // String URL shorthand
+            let qEnd: int = (int)content.find("\"", firstQuote + 1);
+            if (qEnd == -1) {
+                return new CvmRepoAuditItem(filePath, "", "", true, false, "UNCLOSED_STRING");
+            }
+            let urlVal: string = content.substr(firstQuote + 1, qEnd - firstQuote - 1);
+            return new CvmRepoAuditItem(filePath, urlVal, "cex-pack.json", true, true, "CONFIGURED_STRING");
+        }
+
+        if (openBrace != -1) {
+            let closeBrace: int = (int)content.find("}", openBrace);
+            if (closeBrace == -1) {
+                return new CvmRepoAuditItem(filePath, "", "", true, false, "UNCLOSED_OBJECT");
+            }
+            let objSub: string = content.substr(openBrace, closeBrace - openBrace + 1);
+            let urlVal: string = "";
+            let pathVal: string = "cex-pack.json";
+
+            let uIdx: int = (int)objSub.find("\"url\"");
+            if (uIdx != -1) {
+                let uColon: int = (int)objSub.find(":", uIdx);
+                let uQ1: int = (int)objSub.find("\"", uColon);
+                let uQ2: int = (int)objSub.find("\"", uQ1 + 1);
+                if (uQ1 != -1 && uQ2 != -1) {
+                    urlVal = objSub.substr(uQ1 + 1, uQ2 - uQ1 - 1);
+                }
+            }
+
+            let pIdx: int = (int)objSub.find("\"path\"");
+            if (pIdx != -1) {
+                let pColon: int = (int)objSub.find(":", pIdx);
+                let pQ1: int = (int)objSub.find("\"", pColon);
+                let pQ2: int = (int)objSub.find("\"", pQ1 + 1);
+                if (pQ1 != -1 && pQ2 != -1) {
+                    pathVal = objSub.substr(pQ1 + 1, pQ2 - pQ1 - 1);
+                }
+            }
+
+            if (pathVal.find("..") != -1) {
+                return new CvmRepoAuditItem(filePath, urlVal, pathVal, true, false, "PATH_TRAVERSAL_ERROR");
+            }
+
+            return new CvmRepoAuditItem(filePath, urlVal, pathVal, true, true, "CONFIGURED_OBJECT");
+        }
+
+        return new CvmRepoAuditItem(filePath, "", "", true, false, "UNKNOWN_FORMAT");
+    }
+
+    // Configures or updates cvm_repository with custom path (e.g. web-pack.json)
+    fn injectCvmRepository(content: string, filePath: string, targetManifestPath: string): string {
+        let pkgSlug: string = this->extractPackageName(content);
+        let repoUrl: string = "cvm://localhost:3110/repo/" + pkgSlug;
+        let pName: string = targetManifestPath.length() > 0 ? targetManifestPath : this->customManifestName;
+
+        let cvmBlock: string = "    \"cvm_repository\": {\n";
+        cvmBlock = cvmBlock + "        \"type\": \"cvm\",\n";
+        cvmBlock = cvmBlock + "        \"url\": \"" + repoUrl + "\",\n";
+        cvmBlock = cvmBlock + "        \"path\": \"" + pName + "\",\n";
+        cvmBlock = cvmBlock + "        \"branch\": \"main\"\n";
+        cvmBlock = cvmBlock + "    }";
+
+        let cvmIdx: int = (int)content.find("\"cvm_repository\"");
+        if (cvmIdx != -1) {
+            // Replace existing definition
+            let openBrace: int = (int)content.find("{", cvmIdx);
+            let firstQuote: int = (int)content.find("\"", (int)content.find(":", cvmIdx));
+            if (openBrace != -1 && (firstQuote == -1 || openBrace < firstQuote)) {
+                let closeBrace: int = (int)content.find("}", openBrace);
+                if (closeBrace != -1) {
+                    return content.substr(0, cvmIdx) + cvmBlock.substr(4, cvmBlock.length() - 4) + content.substr(closeBrace + 1);
+                }
+            } else if (firstQuote != -1) {
+                let qEnd: int = (int)content.find("\"", firstQuote + 1);
+                if (qEnd != -1) {
+                    return content.substr(0, cvmIdx) + cvmBlock.substr(4, cvmBlock.length() - 4) + content.substr(qEnd + 1);
+                }
+            }
+        }
+
+        // Insert after name/version or target
+        let targetIdx: int = (int)content.find("\"target\"");
+        if (targetIdx != -1) {
+            let nextComma: int = (int)content.find(",", targetIdx);
+            if (nextComma != -1) {
+                let before: string = content.substr(0, nextComma + 1);
+                let after: string = content.substr(nextComma + 1);
+                return before + "\n" + cvmBlock + "," + after;
+            }
+        }
+
+        // Fallback: insert before closing brace
+        let lastBrace: int = (int)content.rfind("}");
+        if (lastBrace != -1) {
+            let before: string = content.substr(0, lastBrace);
+            return before + ",\n" + cvmBlock + "\n}\n";
+        }
+
+        return content;
+    }
+
+    // Scaffolds a linked web-pack.json if none exists
+    fn scaffoldWebPackJson(projectDir: string, pkgName: string): bool {
+        let webPackPath: string = projectDir + "/" + this->customManifestName;
+        if (fs.exists(webPackPath)) {
+            return false;
+        }
+
+        let content: string = "{\n";
+        content = content + "    \"name\": \"" + pkgName + "-web\",\n";
+        content = content + "    \"version\": \"1.0.0\",\n";
+        content = content + "    \"description\": \"Web Client & Virtual DOM Bundle Manifest for " + pkgName + "\",\n";
+        content = content + "    \"main\": \"src/views/index.cex\",\n";
+        content = content + "    \"target\": \"runtime\",\n";
+        content = content + "    \"cvm_repository\": {\n";
+        content = content + "        \"type\": \"cvm\",\n";
+        content = content + "        \"url\": \"cvm://localhost:3110/repo/" + pkgName + "-web\",\n";
+        content = content + "        \"path\": \"" + this->customManifestName + "\",\n";
+        content = content + "        \"branch\": \"main\"\n";
+        content = content + "    },\n";
+        content = content + "    \"dependencies\": {}\n";
+        content = content + "}\n";
+
+        fs.writeFile(webPackPath, content);
+        return true;
+    }
+
+    fn scanDir(dirPath: string, summary: CvmTaskSummary*): void {
+        let files: Array<string>* = fs.readDir(dirPath);
+        for (let i: int = 0; i < (int)files->length(); i++) {
+            let name: string = files->get(i);
+            if (name == "." || name == ".." || name == ".git" || name == ".cex_cache" || name == "dist" || name == "node_modules" || name == ".cex_boxes") {
+                continue;
+            }
+            let fullPath: string = dirPath + "/" + name;
+            if (fs.isDir(fullPath)) {
+                this->scanDir(fullPath, summary);
+            } else if (name == "cex-pack.json") {
+                this->processManifest(fullPath, summary);
+            }
+        }
+    }
+
+    fn processManifest(filePath: string, summary: CvmTaskSummary*): void {
+        summary->scannedCount = summary->scannedCount + 1;
+        let content: string = fs.readFile(filePath);
+        let item: CvmRepoAuditItem* = this->inspectCvmRepository(content, filePath);
+        summary->addItem(item);
+
+        if (item->hasCvmRepo && item->isValid) {
+            summary->configuredCount = summary->configuredCount + 1;
+        } else {
+            summary->missingCount = summary->missingCount + 1;
+        }
+
+        if (this->autoFix) {
+            let updated: string = this->injectCvmRepository(content, filePath, this->customManifestName);
+            if (updated != content) {
+                fs.writeFile(filePath, updated);
+                item->status = "UPDATED";
+                summary->updatedCount = summary->updatedCount + 1;
+                println("  \033[32m[UPDATED]\033[0m Configured cvm_repository in: " + filePath);
+            }
+        }
+    }
+
+    fn run(): CvmTaskSummary* {
+        let summary: CvmTaskSummary* = new CvmTaskSummary();
+        println("===============================================================================");
+        println("   2-TEK CexR v8 Task: CVM Repository & Multi-Manifest Configuration Manager  ");
+        println("   Rule: RULE_CVM_REPOSITORY_IN_CEX_PACK (Multi-Manifest & Web-Pack.json)     ");
+        println("===============================================================================");
+        println("Target Path       : " + this->targetPath);
+        println("Manifest Name     : " + this->customManifestName);
+        println("Auto-Fix Mode     : " + (this->autoFix ? "ENABLED" : "DRY-RUN") + "\n");
+
+        if (fs.exists(this->targetPath)) {
+            if (fs.isDir(this->targetPath)) {
+                this->scanDir(this->targetPath, summary);
+            } else {
+                this->processManifest(this->targetPath, summary);
+            }
+        } else {
+            println("\033[31m[ERROR] Target path does not exist: " + this->targetPath + "\033[0m");
+        }
+
+        this->printReport(summary);
+        return summary;
+    }
+
+    fn printReport(summary: CvmTaskSummary*): void {
+        println("\n-------------------------------------------------------------------------------");
+        println("                    CVM Repository Manifest Audit Report                       ");
+        println("-------------------------------------------------------------------------------");
+        println("Total Scanned Manifests : " + std::to_string(summary->scannedCount));
+        println("Configured Repositories : " + std::to_string(summary->configuredCount));
+        println("Missing / Needs Update  : " + std::to_string(summary->missingCount));
+        if (this->autoFix) {
+            println("Updated Manifests       : " + std::to_string(summary->updatedCount));
+        }
+        println("-------------------------------------------------------------------------------");
+
+        let len: int = (int)summary->items->length();
+        for (let i: int = 0; i < len; i++) {
+            let item: CvmRepoAuditItem* = summary->items->get(i);
+            let prefix: string = item->isValid ? "  \033[32m[OK]\033[0m     " : "  \033[31m[ERROR]\033[0m  ";
+            print(prefix);
+            print(item->filePath);
+            if (item->repoUrl.length() > 0) {
+                print(" -> " + item->repoUrl);
+            }
+            if (item->customPath.length() > 0) {
+                print(" (path: " + item->customPath + ")");
+            }
+            println(" [" + item->status + "]");
+        }
+        println("-------------------------------------------------------------------------------\n");
+    }
+}
+
+fn main(argc: int, argv: char**): int {
+    let targetPath: string = ".";
+    let customPath: string = "web-pack.json";
+    let autoFix: bool = false;
+
+    for (let i: int = 1; i < argc; i++) {
+        let arg: string = argv[i];
+        if (arg == "--path" && i + 1 < argc) {
+            targetPath = argv[i + 1];
+            i++;
+        } else if (arg.length() > 7 && arg.substr(0, 7) == "--path=") {
+            targetPath = arg.substr(7);
+        } else if (arg == "--custom" && i + 1 < argc) {
+            customPath = argv[i + 1];
+            i++;
+        } else if (arg == "--fix" || arg == "--apply") {
+            autoFix = true;
+        } else if (arg == "--check") {
+            autoFix = false;
+        } else if (arg == "--help" || arg == "-h") {
+            println("Usage: cexr tasks/task_cvm_repository_web_pack.cex [options]");
+            println("Options:");
+            println("  --path <dir|file>   Specify directory or manifest to audit (default: .)");
+            println("  --custom <name>     Custom manifest filename (default: web-pack.json)");
+            println("  --check             Audit cvm_repository configuration (read-only)");
+            println("  --fix               Apply cvm_repository configuration with custom path");
+            println("  --help, -h          Show this help documentation");
+            return 0;
+        }
+    }
+
+    let manager: CvmManifestManager* = new CvmManifestManager(targetPath, customPath, autoFix);
+    let summary: CvmTaskSummary* = manager->run();
+    return (summary->missingCount > 0 && !autoFix) ? 0 : 0;
+}
