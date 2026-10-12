@@ -89,7 +89,7 @@ fn main(): int {
             fs.writeFile(pkgDir + "/bin/cvm", cvmWrap);
             system(("chmod +x " + pkgDir + "/bin/cvm").c_str());
 
-            let thunWrap: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nexec \"$CXVM_DIR/bin/cxvm\" thunder \"$@\"\n";
+            let thunWrap: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nexec \"$CXVM_DIR/bin/cxvm\" --app thunder \"$@\"\n";
             fs.writeFile(pkgDir + "/bin/thunder", thunWrap);
             system(("chmod +x " + pkgDir + "/bin/thunder").c_str());
 
@@ -103,7 +103,7 @@ fn main(): int {
                 fs.writeFile(pkgDir + "/bin/lighting.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" lighting %*\r\n");
                 fs.writeFile(pkgDir + "/bin/light.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" light %*\r\n");
                 fs.writeFile(pkgDir + "/bin/cvm.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" cvm %*\r\n");
-                fs.writeFile(pkgDir + "/bin/thunder.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" thunder %*\r\n");
+                fs.writeFile(pkgDir + "/bin/thunder.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" --app thunder %*\r\n");
             }
 
             // 8. Headers & Lib

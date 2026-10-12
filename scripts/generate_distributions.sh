@@ -366,13 +366,13 @@ WEOF
     cat <<'TEOF' > "$PKG_DIR/bin/thunder"
 #!/usr/bin/env bash
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-exec "$CXVM_DIR/bin/cxvm" thunder "$@"
+exec "$CXVM_DIR/bin/cxvm" --app thunder "$@"
 TEOF
     chmod +x "$PKG_DIR/bin/thunder"
     if [ "$pos" = "windows" ]; then
       cat <<'WEOF' > "$PKG_DIR/bin/thunder.cmd"
 @echo off
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" thunder %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" --app thunder %*
 WEOF
     fi
 

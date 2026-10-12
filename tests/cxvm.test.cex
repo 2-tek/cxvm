@@ -428,9 +428,14 @@ fn main(): int {
     let thExecDocker: int = cxvm->cvmExecute("docker", "ps", "");
     Assert::equalsInt(0, thExecDocker, "cxvm cvmExecute docker ps returns exit code 0");
 
-    // Unified Application Engine (--app) routing
+    // Unified Application Engine (--app) routing & Thunder CLI hook
+    Assert::isTrue(cxvm->findThunderCli().length() > 0, "findThunderCli resolves Thunder CLI path");
+
     let thAppExec: int = cxvm->cvmExecute("--app", "thunder", "ps");
     Assert::equalsInt(0, thAppExec, "cxvm cvmExecute --app thunder ps returns exit code 0");
+
+    let thAppImages: int = cxvm->cvmExecute("--app", "thunder", "images");
+    Assert::equalsInt(0, thAppImages, "cxvm cvmExecute --app thunder images returns exit code 0");
 
     let thAppEqExec: int = cxvm->cvmExecute("--app=thunder", "ps", "");
     Assert::equalsInt(0, thAppEqExec, "cxvm cvmExecute --app=thunder ps returns exit code 0");
