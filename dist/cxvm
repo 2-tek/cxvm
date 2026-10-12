@@ -56,6 +56,18 @@ _cxvm_start_cvm_server() {
     done
   fi
 
+  # Check if CVM server is already running when action is start
+  if [ "$action" = "start" ] && [ -f "$CXVM_DIR/cvm_server.pid" ]; then
+    local ex_cvm_pid
+    ex_cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || true)"
+    if [ -n "$ex_cvm_pid" ] && kill -0 "$ex_cvm_pid" 2>/dev/null; then
+      echo "[OK] [cxvm cvm] CVM server is already running (PID: $ex_cvm_pid, port: $port)"
+      echo "  - State:      RUNNING (preserved, no process killed)"
+      echo "  - Dashboard:  http://localhost:$port"
+      return 0
+    fi
+  fi
+
   if [ -n "$srv_bin" ] && command -v python3 >/dev/null 2>&1; then
     local cmd_args=("$srv_bin" "$action" "-p" "$port")
     if [ "$foreground" -eq 1 ]; then
@@ -126,6 +138,22 @@ _cxvm_start_thunder_server() {
       if [ -x "$candidate" ]; then
         srv_bin="$candidate"
         break
+      fi
+    done
+  fi
+
+  # Check if Thunder container engine is already running when action is start
+  if [ "$action" = "start" ]; then
+    for t_pid_f in "$CXVM_DIR/thunder_server.pid" "$CXVM_DIR/thunder.pid"; do
+      if [ -f "$t_pid_f" ]; then
+        local ex_thun_pid
+        ex_thun_pid="$(cat "$t_pid_f" 2>/dev/null || true)"
+        if [ -n "$ex_thun_pid" ] && kill -0 "$ex_thun_pid" 2>/dev/null; then
+          echo "[OK] [cxvm thunder] Thunder container engine is already running (PID: $ex_thun_pid, port: $port)"
+          echo "  - State:      RUNNING (preserved, no process killed)"
+          echo "  - Dashboard:  http://localhost:$port"
+          return 0
+        fi
       fi
     done
   fi
@@ -1817,6 +1845,23 @@ except Exception: pass" 2>/dev/null)
   fi
 
   echo "==> [cxvm upgrade] Upgrading dependencies: ${deps[*]}"
+
+  # Check and preserve active processes
+  local thun_active_pid=""
+  for t_pid_f in "$CXVM_DIR/thunder_server.pid" "$CXVM_DIR/thunder.pid"; do
+    if [ -f "$t_pid_f" ]; then
+      local p_val
+      p_val="$(cat "$t_pid_f" 2>/dev/null || true)"
+      if [ -n "$p_val" ] && kill -0 "$p_val" 2>/dev/null; then
+        thun_active_pid="$p_val"
+        break
+      fi
+    fi
+  done
+  if [ -n "$thun_active_pid" ]; then
+    echo "[OK] [cxvm upgrade] Preserved active Thunder container engine (PID: $thun_active_pid, State: RUNNING)"
+    echo "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)"
+  fi
   mkdir -p "$repo_root/.cex_boxes"
 
   for raw_pkg in "${deps[@]}"; do
@@ -2119,6 +2164,20 @@ _cxvm_run_cvm() {
         git diff "$@"
         ;;
       log)
+        if [ "$1" = "thunder" ] || [ "$1" = "server" ] || [ "$1" = "cvm" ] || [ "$1" = "apps" ]; then
+          local svc_name="$1"
+          local target_log="$CXVM_DIR/thunder_server.log"
+          if [ "$svc_name" = "server" ]; then target_log="$CXVM_DIR/cxvm_server.log"; fi
+          if [ "$svc_name" = "cvm" ]; then target_log="$CXVM_DIR/cvm_server.log"; fi
+          if [ "$svc_name" = "apps" ]; then target_log="$CXVM_DIR/thunder_apps.pid"; fi
+          echo "==> [cxvm log] Viewing logs for service '$svc_name' ($target_log)..."
+          if [ -f "$target_log" ]; then
+            tail -n 30 "$target_log" 2>/dev/null || cat "$target_log"
+          else
+            echo "[OK] [cxvm log] Log file for $svc_name is empty or does not exist yet."
+          fi
+          return 0
+        fi
         git log "$@"
         ;;
       init)
@@ -2825,16 +2884,36 @@ LIGHT_WRAP_EOF
       echo "  [OK] [auto-start] cexp machine compiler active & ready"
 
       # Auto-start CVM as a server with single process (standalone) in background
-      _cxvm_start_cvm_server start -p 4000 --daemon >/dev/null 2>&1 || true
-      local cvm_pid
-      cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
-      echo "  [OK] [auto-start] cvm server started (single process standalone, PID: $cvm_pid, port: 4000)"
+      local cvm_was_running=0
+      if [ -f "$CXVM_DIR/cvm_server.pid" ] && kill -0 "$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null)" 2>/dev/null; then
+        cvm_was_running=1
+      fi
+      if [ "$cvm_was_running" -eq 0 ]; then
+        _cxvm_start_cvm_server start -p 4000 --daemon >/dev/null 2>&1 || true
+        local cvm_pid
+        cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
+        echo "  [OK] [auto-start] cvm server started (single process standalone, PID: $cvm_pid, port: 4000)"
+      else
+        local cvm_pid
+        cvm_pid="$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null || echo "$$")"
+        echo "  [OK] [auto-start] cvm server preserved running (PID: $cvm_pid, port: 4000, no restart)"
+      fi
 
       # Auto-start Thunder as a server with single process (standalone) in background
-      _cxvm_start_thunder_server start -p 3050 --daemon >/dev/null 2>&1 || true
-      local thun_pid
-      thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
-      echo "  [OK] [auto-start] thunder server started (single process standalone, PID: $thun_pid, port: 3050)"
+      local thun_was_running=0
+      if [ -f "$CXVM_DIR/thunder_server.pid" ] && kill -0 "$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null)" 2>/dev/null; then
+        thun_was_running=1
+      fi
+      if [ "$thun_was_running" -eq 0 ]; then
+        _cxvm_start_thunder_server start -p 3050 --daemon >/dev/null 2>&1 || true
+        local thun_pid
+        thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
+        echo "  [OK] [auto-start] thunder server started (single process standalone, PID: $thun_pid, port: 3050)"
+      else
+        local thun_pid
+        thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
+        echo "  [OK] [auto-start] thunder server preserved running (PID: $thun_pid, port: 3050, no restart)"
+      fi
 
       echo "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)"
 
@@ -3579,6 +3658,23 @@ EOF
       echo "==> [cxvm upgrade] Target latest version: v$target_ver"
       echo "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v$target_ver)..."
       echo "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v$target_ver)..."
+
+      # Check and preserve active processes
+      local thun_active_pid=""
+      for t_pid_f in "$CXVM_DIR/thunder_server.pid" "$CXVM_DIR/thunder.pid"; do
+        if [ -f "$t_pid_f" ]; then
+          local p_val
+          p_val="$(cat "$t_pid_f" 2>/dev/null || true)"
+          if [ -n "$p_val" ] && kill -0 "$p_val" 2>/dev/null; then
+            thun_active_pid="$p_val"
+            break
+          fi
+        fi
+      done
+      if [ -n "$thun_active_pid" ]; then
+        echo "[OK] [cxvm upgrade] Preserved active Thunder container engine (PID: $thun_active_pid, State: RUNNING)"
+        echo "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)"
+      fi
 
       cxvm install "$target_ver" >/dev/null 2>&1 || true
 

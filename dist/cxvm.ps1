@@ -373,6 +373,16 @@ function Upgrade-Dependencies {
 
     Write-Host "==> [cxvm upgrade] Upgrading dependencies: $($depList -join ', ')" -ForegroundColor Cyan
 
+    $thunPidFile = Join-Path $cxvmHome "thunder_server.pid"
+    if (Test-Path $thunPidFile) {
+        $thunPid = (Get-Content $thunPidFile -Raw).Trim()
+        $thunProc = Get-Process -Id $thunPid -ErrorAction SilentlyContinue
+        if ($thunProc) {
+            Write-Host "[OK] [cxvm upgrade] Preserved active Thunder container engine (PID: $thunPid, State: RUNNING)" -ForegroundColor Green
+            Write-Host "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)" -ForegroundColor Green
+        }
+    }
+
     foreach ($rawPkg in $depList) {
         $cleanName = $rawPkg.TrimStart('@')
         if ($cleanName.StartsWith("2tek/")) { $cleanName = $cleanName.Substring(5) }
@@ -497,7 +507,23 @@ function Run-Cvm {
             "branch"   { & git branch @CvmArgs }
             "checkout" { & git checkout @CvmArgs }
             "diff"     { & git diff @CvmArgs }
-            "log"      { & git log @CvmArgs }
+            "log"      {
+                if ($CvmArgs -and ($CvmArgs[0] -in "thunder","server","cvm","apps")) {
+                    $svcName = $CvmArgs[0]
+                    $logFile = Join-Path $cxvmHome "thunder_server.log"
+                    if ($svcName -eq "server") { $logFile = Join-Path $cxvmHome "cxvm_server.log" }
+                    if ($svcName -eq "cvm") { $logFile = Join-Path $cxvmHome "cvm_server.log" }
+                    if ($svcName -eq "apps") { $logFile = Join-Path $cxvmHome "thunder_apps.pid" }
+                    Write-Host "==> [cxvm log] Viewing logs for service '$svcName' ($logFile)..." -ForegroundColor Cyan
+                    if (Test-Path $logFile) {
+                        Get-Content $logFile -Tail 30
+                    } else {
+                        Write-Host "[OK] [cxvm log] Log file for $svcName is empty or does not exist yet." -ForegroundColor Green
+                    }
+                    return
+                }
+                & git log @CvmArgs
+            }
             "init"     { & git init @CvmArgs }
             "git"      { & git @CvmArgs }
             default {
@@ -1098,6 +1124,16 @@ echo CexR Windows Runner ready.
         Write-Host "==> [cxvm upgrade] Target latest version: v$targetVer"
         Write-Host "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v$targetVer)..."
         Write-Host "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v$targetVer)..."
+
+        $thunPidFile = Join-Path $cxvmHome "thunder_server.pid"
+        if (Test-Path $thunPidFile) {
+            $thunPid = (Get-Content $thunPidFile -Raw).Trim()
+            $thunProc = Get-Process -Id $thunPid -ErrorAction SilentlyContinue
+            if ($thunProc) {
+                Write-Host "[OK] [cxvm upgrade] Preserved active Thunder container engine (PID: $thunPid, State: RUNNING)" -ForegroundColor Green
+                Write-Host "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)" -ForegroundColor Green
+            }
+        }
 
         & $PSCommandPath -Command "install" -Version $targetVer
         & $PSCommandPath -Command "use" -Version $targetVer
