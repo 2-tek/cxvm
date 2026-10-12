@@ -1879,6 +1879,26 @@ class CxvmEngine {
             println(res->output);
             return res->success ? 0 : 1;
         }
+        if (cmd == "log") {
+            if (arg1 == "thunder" || arg1 == "server" || arg1 == "cvm" || arg1 == "apps") {
+                let svcName: string = arg1;
+                let homeEnv = getenv("HOME");
+                let homeDir: string = homeEnv != nullptr ? string(homeEnv) : "";
+                let cxvmDirEnv = getenv("CXVM_DIR");
+                let cxvmDir: string = cxvmDirEnv != nullptr ? string(cxvmDirEnv) : (homeDir + "/.cxvm");
+                let resolvedLog: string = cxvmDir + "/thunder_server.log";
+                if (svcName == "server") resolvedLog = cxvmDir + "/cxvm_server.log";
+                else if (svcName == "cvm") resolvedLog = cxvmDir + "/cvm_server.log";
+                else if (svcName == "apps") resolvedLog = cxvmDir + "/thunder_apps.pid";
+                println("==> [cxvm log] Viewing logs for service '" + svcName + "' (" + resolvedLog + ")...");
+                if (fs.exists(resolvedLog)) {
+                    system(("tail -n 30 \"" + resolvedLog + "\" 2>/dev/null || true").c_str());
+                } else {
+                    println("[OK] [cxvm log] Log file for " + svcName + " is empty or does not exist yet.");
+                }
+                return 0;
+            }
+        }
         return this.cvmCli->execute(cmd, arg1, arg2);
     }
 
