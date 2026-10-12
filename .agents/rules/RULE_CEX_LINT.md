@@ -7,7 +7,7 @@ trigger: always_on
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 85 (Lint Gate) -->
 
 > **MANDATORY ALWAYS CEX-LINT ENFORCEMENT & SYNTAX GOVERNANCE DIRECTIVE**:
-> In all `mvc-lighting`, `mvc-deepsea`, Cex, and containerized projects, workspaces, development sessions, build pipelines, and automated agent workflows:
+> In all `mvc-lighting`, `mvp-deepsea`, Cex, and containerized projects, workspaces, development sessions, build pipelines, and automated agent workflows:
 >
 > 1. **MANDATORY ALWAYS AUTOMATIC LINT GATE**:
 >     - All `.cex` files must pass `cex lint` (or `cxvm lint`) with zero errors (`exit code 0`).

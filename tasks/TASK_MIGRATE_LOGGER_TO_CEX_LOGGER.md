@@ -3,7 +3,7 @@
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 80 (Root @), Rule 82 (CXVM & Direct CexR) -->
 
 > **CANONICAL LOGGER MIGRATION DIRECTIVE**:
-> In all `mvc-lighting`, `mvc-deepsea`, and Cex project workspaces:
+> In all `mvc-lighting`, `mvp-deepsea`, and Cex project workspaces:
 > All ad-hoc, unformatted, or manual console print loggers must be unified and migrated to **`cex-logger`** (powered by `@cex-log` / `@cex-logger`), declaring `"cex-logger": "1.0.0"` in `cex-pack.json`'s `"dependencies"`, bridging `src/log.cex` to `@cex-logger`, and updating HTTP request logging to `CexLogger::info(...)`.
 
 ---

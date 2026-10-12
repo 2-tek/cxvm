@@ -3,7 +3,7 @@
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 80 (Root @), Rule 82 (CXVM & Direct CexR) -->
 
 > **CANONICAL ENVIRONMENT LOADER MIGRATION DIRECTIVE**:
-> In all `mvc-lighting`, `mvc-deepsea`, and Cex project workspaces:
+> In all `mvc-lighting`, `mvp-deepsea`, and Cex project workspaces:
 > All duplicate manual `.env` file parsing routines, raw loops, and ad-hoc loaders must be unified and migrated to **`cex-env`** (powered by `@cex-env-loader` / `@cex-env`), declaring `"cex-env": "1.0.0"` in `cex-pack.json`'s `"dependencies"`, and bridging `src/env_loader.cex` to `@cex-env`.
 
 ---

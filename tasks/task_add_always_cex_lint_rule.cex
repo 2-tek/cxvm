@@ -61,7 +61,7 @@ public:
         content += "# Mandatory Rule: Cex-Lint Code Quality & Syntax Standards (RULE_CEX_LINT)\n\n";
         content += "<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 85 (Lint Gate) -->\n\n";
         content += "> **MANDATORY ALWAYS CEX-LINT ENFORCEMENT & SYNTAX GOVERNANCE DIRECTIVE**:\n";
-        content += "> In all `mvc-lighting`, `mvc-deepsea`, Cex, and containerized projects, workspaces, development sessions, build pipelines, and automated agent workflows:\n";
+        content += "> In all `mvc-lighting`, `mvp-deepsea`, Cex, and containerized projects, workspaces, development sessions, build pipelines, and automated agent workflows:\n";
         content += ">\n";
         content += "> 1. **MANDATORY ALWAYS AUTOMATIC LINT GATE**:\n";
         content += ">    - All `.cex` files must pass `cex lint` (or `cxvm lint`) with zero errors (`exit code 0`).\n";

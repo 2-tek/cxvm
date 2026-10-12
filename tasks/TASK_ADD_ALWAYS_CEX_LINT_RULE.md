@@ -3,7 +3,7 @@
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 80 (Root @), Rule 82 (CXVM & Direct CexR), Rule 85 (Lint Gate) -->
 
 > **CANONICAL ALWAYS CEX-LINT RULE ENFORCEMENT DIRECTIVE**:
-> In all `mvc-lighting`, `mvc-deepsea`, and Cex project workspaces:
+> In all `mvc-lighting`, `mvp-deepsea`, and Cex project workspaces:
 > All projects must enforce the **Always Cex-Lint Rule** (`RULE_CEX_LINT.md` and `rule-cex-lint.md`) with frontmatter `trigger: always_on` inside `.agents/rules/`, and expose `"lint": "cxvm lint"` and `"lint:fix": "cxvm lint --fix"` in `cex-pack.json` scripts.
 
 ---
