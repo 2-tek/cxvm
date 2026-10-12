@@ -101,6 +101,41 @@ class FactoryController extends BaseController {
     }
 
     public apiUpgrade(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let deps: string = "";
+        let doRebuild: bool = false;
+        if (req->path.find("dependencies=") != -1 || req->path.find("deps=") != -1) {
+            let dPos: int = (int)req->path.find("dependencies=");
+            if (dPos != -1) {
+                deps = req->path.substr(dPos + 13);
+            } else {
+                let p2: int = (int)req->path.find("deps=");
+                if (p2 != -1) deps = req->path.substr(p2 + 5);
+            }
+            let ampPos: int = (int)deps.find("&");
+            if (ampPos != -1) deps = deps.substr(0, ampPos);
+        }
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (parsed->has("dependencies")) {
+                    deps = parsed->get("dependencies")->asString();
+                } else if (parsed->has("deps")) {
+                    deps = parsed->get("deps")->asString();
+                }
+                if (parsed->has("rebuild")) {
+                    doRebuild = parsed->get("rebuild")->asBool();
+                }
+            }
+        }
+        if (deps.length() > 0 || req->path.find("--dependencies") != -1 || req->path.find("--deps") != -1) {
+            let res: CxvmCommandResult* = cxvm->upgradeDependencies(deps, doRebuild);
+            let doc: JsonValue* = JsonDoc::obj();
+            JsonDoc::setBool(doc, "success", res->success);
+            JsonDoc::setStr(doc, "dependencies", deps);
+            JsonDoc::setStr(doc, "message", res->message);
+            JsonDoc::setStr(doc, "output", res->output);
+            return this.json(doc);
+        }
         let res: CxvmCommandResult* = cxvm->upgrade("latest");
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setBool(doc, "success", res->success);

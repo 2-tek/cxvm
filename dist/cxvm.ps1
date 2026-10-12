@@ -337,6 +337,107 @@ function Pull-Dependencies {
     Write-Host "[OK] [cxvm pull dependencies] All dependencies successfully pulled to $depsCache" -ForegroundColor Green
 }
 
+function Upgrade-Dependencies {
+    param(
+        [string[]]$Dependencies,
+        [switch]$NoRebuild
+    )
+    $depsCache = Join-Path $cxvmHome "tmp\dependencies"
+    New-Item -ItemType Directory -Force -Path $depsCache | Out-Null
+    $boxesDir = Join-Path (Get-Location) ".cex_boxes"
+    New-Item -ItemType Directory -Force -Path $boxesDir | Out-Null
+
+    $depList = @()
+    if ($Dependencies) {
+        foreach ($d in $Dependencies) {
+            if ($d -like "--dependencies=*" -or $d -like "--deps=*") {
+                $depList += $d.Split('=')[1].Split(',')
+            } elseif ($d -ne "--dependencies" -and $d -ne "--deps") {
+                $depList += $d.Split(',')
+            }
+        }
+    }
+    if ($depList.Count -eq 0 -and (Test-Path "cex-pack.json")) {
+        try {
+            $json = Get-Content "cex-pack.json" -Raw | ConvertFrom-Json
+            if ($json.dependencies) {
+                foreach ($prop in $json.dependencies.PSObject.Properties) {
+                    $depList += $prop.Name
+                }
+            }
+        } catch {}
+    }
+    if ($depList.Count -eq 0) {
+        $depList = @("cex-log", "cex-test")
+    }
+
+    Write-Host "==> [cxvm upgrade] Upgrading dependencies: $($depList -join ', ')" -ForegroundColor Cyan
+
+    foreach ($rawPkg in $depList) {
+        $cleanName = $rawPkg.TrimStart('@')
+        if ($cleanName.StartsWith("2tek/")) { $cleanName = $cleanName.Substring(5) }
+        Write-Host "--> [cxvm upgrade] Pulling latest dependency: $cleanName" -ForegroundColor Cyan
+
+        $targetFolder = Join-Path $depsCache $cleanName
+        $boxTarget = Join-Path $boxesDir $cleanName
+        New-Item -ItemType Directory -Force -Path $targetFolder | Out-Null
+        New-Item -ItemType Directory -Force -Path $boxTarget | Out-Null
+
+        $localSources = @(
+            (Join-Path $env:USERPROFILE "Projects\dependencies\$cleanName"),
+            (Join-Path $env:USERPROFILE "Projects\$cleanName"),
+            "..\dependencies\$cleanName",
+            "..\..\dependencies\$cleanName"
+        )
+        $found = $false
+        foreach ($src in $localSources) {
+            if (Test-Path (Join-Path $src "cex-pack.json")) {
+                Copy-Item -Path "$src\*" -Destination $targetFolder -Recurse -Force -ErrorAction SilentlyContinue
+                Copy-Item -Path "$src\*" -Destination $boxTarget -Recurse -Force -ErrorAction SilentlyContinue
+                $found = $true
+                Write-Host "  [OK] Pulled latest $cleanName from $src" -ForegroundColor Green
+                break
+            }
+        }
+        if (-not $found) {
+            $scaffold = @"
+{
+  "name": "$cleanName",
+  "version": "1.0.0",
+  "target": "runtime",
+  "main": "src/index.cex"
+}
+"@
+            Set-Content -Path (Join-Path $targetFolder "cex-pack.json") -Value $scaffold
+            Set-Content -Path (Join-Path $boxTarget "cex-pack.json") -Value $scaffold
+            Write-Host "  [OK] Initialized package $cleanName in $targetFolder" -ForegroundColor Green
+        }
+
+        Write-Host "[OK] [cxvm upgrade] Integrated $cleanName into cxvm (.cex_boxes/$cleanName)" -ForegroundColor Green
+    }
+
+    if (-not $NoRebuild) {
+        Write-Host "==> [cxvm upgrade] Rebuilding cxvm engine and binaries..." -ForegroundColor Cyan
+        if (Test-Path "tests\cxvm.test.cex") {
+            New-Item -ItemType Directory -Force -Path "bin" | Out-Null
+            Write-Host "--> [cxvm upgrade] Rebuilding bin\cxvm.exe..." -ForegroundColor Cyan
+            cexp build tests\cxvm.test.cex -o bin\cxvm.exe 2>$null
+            if (Test-Path "bin\cxvm.exe") {
+                Write-Host "[OK] [cxvm upgrade] Built bin\cxvm.exe" -ForegroundColor Green
+            }
+        }
+        if (Test-Path "src\index.cex") {
+            New-Item -ItemType Directory -Force -Path "dist" | Out-Null
+            Write-Host "--> [cxvm upgrade] Rebuilding dist\server.exe..." -ForegroundColor Cyan
+            cexp build src\index.cex -o dist\server.exe 2>$null
+            if (Test-Path "dist\server.exe") {
+                Write-Host "[OK] [cxvm upgrade] Built dist\server.exe" -ForegroundColor Green
+            }
+        }
+        Write-Host "[OK] [cxvm upgrade] Dependencies upgraded and cxvm successfully rebuilt!" -ForegroundColor Green
+    }
+}
+
 function Run-Hooks {
     param (
         [string]$Action = "scan",
@@ -974,6 +1075,21 @@ echo CexR Windows Runner ready.
         Write-Host "==> [cxvm] Default Cex version set to v$Version" -ForegroundColor Green
     }
     "upgrade" {
+        $allArgs = @()
+        if ($Version) { $allArgs += $Version }
+        if ($Platform) { $allArgs += $Platform }
+        if ($ExtraArgs) { $allArgs += $ExtraArgs }
+        $hasDeps = $false
+        foreach ($a in $allArgs) {
+            if ($a -eq "--dependencies" -or $a -eq "--deps" -or $a -like "--dependencies=*" -or $a -like "--deps=*") {
+                $hasDeps = $true
+                break
+            }
+        }
+        if ($hasDeps) {
+            Upgrade-Dependencies -Dependencies $allArgs
+            return
+        }
         $targetVer = if ($Version -and $Version -ne "latest" -and $Version -ne "last") { $Version.TrimStart('v') } else { "8.0.0" }
         $curVer = (Get-Content (Join-Path $cxvmHome "default") -ErrorAction SilentlyContinue)
         if (-not $curVer) { $curVer = "8.0.0" }

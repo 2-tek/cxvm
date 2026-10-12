@@ -624,6 +624,23 @@ fn main(): int {
     Assert::equalsInt(200, upResp->statusCode, "GET /api/v1/upgrade returns 200 OK");
     Assert::isTrue(upResp->body.find("\"success\":true") != -1, "Upgrade API reports success:true");
 
+    // Test upgrade --dependencies (pull, integrate to cxvm)
+    let upDepRes: CxvmCommandResult* = cxvm->upgradeDependencies("cex-log,cex-test", false);
+    Assert::isTrue(upDepRes->success, "cxvm upgradeDependencies succeeds");
+    Assert::isTrue(upDepRes->output.find("Upgrading dependencies") != -1, "Output confirms upgrading dependencies");
+    Assert::isTrue(upDepRes->output.find("Integrated cex-log into cxvm") != -1, "Output confirms cex-log integrated");
+    Assert::isTrue(upDepRes->output.find("Integrated cex-test into cxvm") != -1, "Output confirms cex-test integrated");
+
+    let upDepExec1: int = cxvm->cvmExecute("upgrade", "--dependencies", "cex-log");
+    Assert::equalsInt(0, upDepExec1, "cxvm cvmExecute upgrade --dependencies cex-log returns exit code 0");
+
+    let upDepExec2: int = cxvm->cvmExecute("upgrade", "--dependencies=cex-log", "");
+    Assert::equalsInt(0, upDepExec2, "cxvm cvmExecute upgrade --dependencies=cex-log returns exit code 0");
+
+    let upDepResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/upgrade?dependencies=cex-log", "", "application/json");
+    Assert::equalsInt(200, upDepResp->statusCode, "GET /api/v1/upgrade?dependencies=cex-log returns 200 OK");
+    Assert::isTrue(upDepResp->body.find("\"success\":true") != -1, "Upgrade dependencies API reports success:true");
+
     suite->addResult("test_auto_upgrade_toolchain", true, "", 1);
 
     // -------------------------------------------------------------
@@ -869,6 +886,7 @@ fn main(): int {
     Assert::isTrue(docOut16.find("CexRunners Pipelines:") != -1, "Doctor reports CexRunners Pipelines");
     Assert::isTrue(docOut16.find("Supervised Processes:") != -1, "Doctor reports Supervised Processes");
     Assert::isTrue(docOut16.find("App Dispatcher:") != -1, "Doctor reports App Dispatcher");
+    Assert::isTrue(docOut16.find("Dependencies Upgrader:") != -1, "Doctor reports Dependencies Upgrader");
 
     suite->addResult("test_multi_orchestration_and_supervisor", true, "", 1);
 

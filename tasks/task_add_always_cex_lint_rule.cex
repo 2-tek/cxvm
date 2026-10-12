@@ -1,0 +1,270 @@
+// 2-TEK CexR v8: Automated Task to Scan and Add/Update Always Cex-Lint Rule in MVC & MVP Projects
+// Conforms to Rule 69, Rule 29, Rule 72, Rule 80, Rule 81, Rule 82, Rule 83, Rule 85
+
+import "cpp/string";
+import "cpp/vector";
+import "cpp/iostream";
+import "c/stdio.h";
+import "c/stdlib.h";
+import fs from "fs";
+import child_process from "child_process";
+
+class AlwaysLintMigrationFinding {
+public:
+    string projectPath;
+    string targetFile;
+    string actionDescription;
+    bool fixed;
+
+    AlwaysLintMigrationFinding(string proj, string file, string desc, bool wasFixed) {
+        this.projectPath = proj;
+        this.targetFile = file;
+        this.actionDescription = desc;
+        this.fixed = wasFixed;
+    }
+}
+
+class AlwaysLintMigrationSummary {
+public:
+    int scannedProjects;
+    int updatedRules;
+    int updatedManifests;
+    int totalFindings;
+    Array<AlwaysLintMigrationFinding*>* findings;
+
+    AlwaysLintMigrationSummary() {
+        this.scannedProjects = 0;
+        this.updatedRules = 0;
+        this.updatedManifests = 0;
+        this.totalFindings = 0;
+        this.findings = new Array<AlwaysLintMigrationFinding*>();
+    }
+
+    fn addFinding(finding: AlwaysLintMigrationFinding*): void {
+        this.findings->push(finding);
+        this.totalFindings = this.totalFindings + 1;
+    }
+}
+
+class AlwaysLintMigrator {
+public:
+    bool autoFix;
+
+    AlwaysLintMigrator(bool fix) {
+        this.autoFix = fix;
+    }
+
+    fn getCanonicalRuleContent(): string {
+        let content: string = "---\n";
+        content += "trigger: always_on\n";
+        content += "---\n\n";
+        content += "# Mandatory Rule: Cex-Lint Code Quality & Syntax Standards (RULE_CEX_LINT)\n\n";
+        content += "<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 85 (Lint Gate) -->\n\n";
+        content += "> **MANDATORY ALWAYS CEX-LINT ENFORCEMENT & SYNTAX GOVERNANCE DIRECTIVE**:\n";
+        content += "> In all `mvc-lighting`, `mvc-deepsea`, Cex, and containerized projects, workspaces, development sessions, build pipelines, and automated agent workflows:\n";
+        content += ">\n";
+        content += "> 1. **MANDATORY ALWAYS AUTOMATIC LINT GATE**:\n";
+        content += ">    - All `.cex` files must pass `cex lint` (or `cxvm lint`) with zero errors (`exit code 0`).\n";
+        content += ">    - **Mandatory Timing**: Before any compilation (`v8 cexr` / `cxvm build`), test execution (`cxvm test`), or version control staging (`cvm add`, `git add`), `cxvm lint` (or `cex lint`) MUST always be executed to validate code health.\n";
+        content += ">    - If lint errors are detected, the agent/developer MUST resolve them before proceeding to testing, building, or committing.\n";
+        content += ">\n";
+        content += "> 2. **SYNTAX & CODE QUALITY STANDARDS**:\n";
+        content += ">    - **No Raw Includes (`no-raw-include`)**: Direct `#include` directives are strictly prohibited in `.cex` source files. All native headers and libraries must be loaded via `import ... from \"cpp/...\"` or `import ... from \"c/...\"`.\n";
+        content += ">    - **This-Dot Member Access (`this-dot`)**: Use `this.` member access syntax instead of pointer arrow `this->` within class bodies.\n";
+        content += ">    - **Semicolon Discipline (`semi`)**: Statements declaring variables (`let`, `const`), control flow (`return`, `break`, `continue`, `throw`), imports (`import`), and value/type operations (`copyvalue`, `copytype`) must terminate with semicolons.\n";
+        content += ">    - **EOF Integrity (Rule 29, `eol-last`)**: Every `.cex` file must terminate with exactly one trailing newline (`\\n`).\n";
+        content += ">    - **Whitespace Discipline**: Indentation must use spaces without tabs (`no-tabs`), trailing whitespace at end of lines is prohibited (`no-trailing-spaces`), and consecutive empty lines must not exceed 1 (`no-multiple-empty-lines`).\n";
+        content += ">    - **Identifier & Type Integrity**: Class names must be unique within a package (`no-duplicate-class-name`), import specifiers must not be duplicated (`no-duplicate-imports`), and class names must use PascalCase (`class-name-case`).\n";
+        content += ">\n";
+        content += "> 3. **AUTOMATED REMEDIATION & WORKFLOW**:\n";
+        content += ">    - Run `cxvm lint --fix` (or `cex lint --fix`) to automatically format, clean trailing whitespace, fix tab indentation, convert raw `#include` statements, and normalize member access.\n";
+        content += ">    - Manually inspect and resolve any remaining structural or syntax errors reported by `cex lint`.\n";
+        content += ">\n";
+        content += "> 4. **TASK & BUG TRACKING DISCIPLINE**:\n";
+        content += ">    - Any bugs or lint issues detected must be documented as tasks in `.agents/features/{DD-MM-YYYY}.md` with `bug(lint):` checkboxes (`- [ ]`) and marked completed (`- [x]`) upon clean verification.\n";
+        return content;
+    }
+
+    fn ensureRulesDirectory(projDir: string): void {
+        let agentsDir: string = projDir + "/.agents";
+        let rulesDir: string = agentsDir + "/rules";
+        if (!fs.exists(agentsDir)) {
+            child_process.execSync("mkdir -p " + agentsDir);
+        }
+        if (!fs.exists(rulesDir)) {
+            child_process.execSync("mkdir -p " + rulesDir);
+        }
+    }
+
+    fn updateRulesForProject(projDir: string, summary: AlwaysLintMigrationSummary*): void {
+        let rulesDir: string = projDir + "/.agents/rules";
+        this.ensureRulesDirectory(projDir);
+
+        let rule1Path: string = rulesDir + "/RULE_CEX_LINT.md";
+        let rule2Path: string = rulesDir + "/rule-cex-lint.md";
+        let canonical: string = this.getCanonicalRuleContent();
+
+        let needUpdate1: bool = true;
+        let needUpdate2: bool = true;
+
+        if (fs.exists(rule1Path)) {
+            let existing: string = fs.readFile(rule1Path);
+            if (existing.find("trigger: always_on") != std::string::npos && existing.find("MANDATORY ALWAYS CEX-LINT") != std::string::npos) {
+                needUpdate1 = false;
+            }
+        }
+
+        if (fs.exists(rule2Path)) {
+            let existing2: string = fs.readFile(rule2Path);
+            if (existing2.find("trigger: always_on") != std::string::npos && existing2.find("MANDATORY ALWAYS CEX-LINT") != std::string::npos) {
+                needUpdate2 = false;
+            }
+        }
+
+        if (needUpdate1) {
+            summary->addFinding(new AlwaysLintMigrationFinding(
+                projDir,
+                rule1Path,
+                "Add/Update RULE_CEX_LINT.md with always_on trigger",
+                this.autoFix
+            ));
+            if (this.autoFix) {
+                fs.writeFile(rule1Path, canonical);
+                summary->updatedRules = summary->updatedRules + 1;
+            }
+        }
+
+        if (needUpdate2) {
+            summary->addFinding(new AlwaysLintMigrationFinding(
+                projDir,
+                rule2Path,
+                "Add/Update rule-cex-lint.md with always_on trigger",
+                this.autoFix
+            ));
+            if (this.autoFix) {
+                fs.writeFile(rule2Path, canonical);
+                summary->updatedRules = summary->updatedRules + 1;
+            }
+        }
+    }
+
+    fn updateManifestLintScripts(projDir: string, summary: AlwaysLintMigrationSummary*): void {
+        let manifestPath: string = projDir + "/cex-pack.json";
+        if (!fs.exists(manifestPath)) return;
+
+        let content: string = fs.readFile(manifestPath);
+        let hasLintScript: bool = (content.find("\"lint\":") != std::string::npos);
+        let hasLintFixScript: bool = (content.find("\"lint:fix\":") != std::string::npos);
+
+        if (!hasLintScript || !hasLintFixScript) {
+            summary->addFinding(new AlwaysLintMigrationFinding(
+                projDir,
+                manifestPath,
+                "Missing 'lint' or 'lint:fix' scripts in manifest",
+                this.autoFix
+            ));
+
+            if (this.autoFix) {
+                let scriptsPos = content.find("\"scripts\": {");
+                if (scriptsPos != std::string::npos) {
+                    let insertPos = scriptsPos + 12; // after "scripts": {
+                    let injection: string = "\n    \"lint\": \"cxvm lint\",\n    \"lint:fix\": \"cxvm lint --fix\",";
+                    let updated: string = content.substr(0, insertPos) + injection + content.substr(insertPos);
+                    fs.writeFile(manifestPath, updated);
+                    summary->updatedManifests = summary->updatedManifests + 1;
+                }
+            }
+        }
+    }
+
+    fn processProject(projDir: string, summary: AlwaysLintMigrationSummary*): void {
+        if (!fs.exists(projDir)) return;
+        summary->scannedProjects = summary->scannedProjects + 1;
+        this.updateRulesForProject(projDir, summary);
+        this.updateManifestLintScripts(projDir, summary);
+    }
+
+    fn scanAndMigrate(targetProjects: Array<string>*, summary: AlwaysLintMigrationSummary*): void {
+        let count: int = (int)targetProjects->length();
+        for (let i: int = 0; i < count; i++) {
+            let projDir: string = targetProjects->get(i);
+            this.processProject(projDir, summary);
+        }
+    }
+}
+
+fn main(argc: int, argv: char**): int {
+    println("===================================================================");
+    println(" 2-TEK Cex: Automated Scan & Add Always Cex-Lint Rule to MVC & MVP  ");
+    println("===================================================================");
+
+    let autoFix: bool = false;
+    for (let i: int = 1; i < argc; i++) {
+        let arg: string = string(argv[i]);
+        if (arg == "--fix" || arg == "-f") {
+            autoFix = true;
+        }
+    }
+
+    if (!autoFix) {
+        println("==> Running in AUDIT (Dry-Run) Mode. Pass --fix to apply changes.\n");
+    } else {
+        println("==> Running in AUTOMATIC APPLY (--fix) Mode.\n");
+    }
+
+    let targetProjects: Array<string>* = new Array<string>();
+    // MVC and MVP core projects
+    targetProjects->push("MVC-Lighting");
+    targetProjects->push("MVP-DeepSea");
+    targetProjects->push("cat-store");
+    targetProjects->push("lighting-app-3055");
+    targetProjects->push("mvc-lighting-thunder");
+    targetProjects->push("dependencies/mvc-lighting");
+    targetProjects->push("RealityCex");
+
+    // All mvclt applications
+    targetProjects->push("mvclt/code-version-manager");
+    targetProjects->push("mvclt/IAM");
+    targetProjects->push("mvclt/llm-generator");
+    targetProjects->push("mvclt/remote-access");
+    targetProjects->push("mvclt/code-storm");
+    targetProjects->push("mvclt/store-selling");
+    targetProjects->push("mvclt/test-runners");
+    targetProjects->push("mvclt/thunder");
+    targetProjects->push("mvclt/thunder-browser");
+    targetProjects->push("mvclt/virtual-box");
+    targetProjects->push("mvclt/2-tek");
+
+    // Toolchain & Dependencies
+    targetProjects->push("cxvm");
+    targetProjects->push("cexr");
+    targetProjects->push("dependencies");
+
+    let migrator: AlwaysLintMigrator* = new AlwaysLintMigrator(autoFix);
+    let summary: AlwaysLintMigrationSummary* = new AlwaysLintMigrationSummary();
+
+    migrator->scanAndMigrate(targetProjects, summary);
+
+    println("===================================================================");
+    println("                    SCAN & UPDATE FINDINGS                         ");
+    println("===================================================================");
+    let totalFindings: int = (int)summary->findings->length();
+    if (totalFindings == 0) {
+        println("✔ All " + std::to_string(summary->scannedProjects) + " projects already have always_on Cex-Lint rules and scripts in place!");
+    } else {
+        for (let j: int = 0; j < totalFindings; j++) {
+            let f: AlwaysLintMigrationFinding* = summary->findings->get(j);
+            let statusTag: string = f->fixed ? "[FIXED]" : "[NEEDS UPDATE]";
+            println(statusTag + " " + f->projectPath + " -> " + f->targetFile + " (" + f->actionDescription + ")");
+        }
+    }
+
+    println("\nSummary:");
+    println("  - Projects Scanned: " + std::to_string(summary->scannedProjects));
+    println("  - Total Findings:   " + std::to_string(summary->totalFindings));
+    println("  - Rules Updated:    " + std::to_string(summary->updatedRules));
+    println("  - Manifests Updated:" + std::to_string(summary->updatedManifests));
+
+    println("===================================================================");
+    return 0;
+}

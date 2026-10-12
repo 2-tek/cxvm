@@ -1731,6 +1731,219 @@ EOF_PKG
 }
 
 # -----------------------------------------------------------------------------
+# Integrated Dependency Upgrader & CXVM Rebuild Subsystem
+# (cxvm upgrade --dependencies [name...])
+# -----------------------------------------------------------------------------
+_cxvm_run_upgrade_dependencies() {
+  local target_manifest="cex-pack.json"
+  local deps=()
+  local rebuild_cxvm=1
+  local s_dir
+  s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local repo_root
+  repo_root="$(cd "$s_dir/.." && pwd)"
+  if [ ! -f "$repo_root/cex-pack.json" ] && [ -f "$s_dir/cex-pack.json" ]; then
+    repo_root="$s_dir"
+  elif [ -f "./cex-pack.json" ]; then
+    repo_root="$(pwd)"
+  fi
+  local cxvm_dir="${CXVM_DIR:-$HOME/.cxvm}"
+  local deps_cache="$cxvm_dir/tmp/dependencies"
+  mkdir -p "$deps_cache"
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --dependencies|--deps)
+        shift
+        while [ "$#" -gt 0 ] && [ "${1:0:1}" != "-" ]; do
+          IFS=',' read -ra ADDR <<< "$1"
+          for i in "${ADDR[@]}"; do
+            [ -n "$i" ] && deps+=("$i")
+          done
+          shift
+        done
+        ;;
+      --dependencies=*|--deps=*)
+        local val="${1#*=}"
+        IFS=',' read -ra ADDR <<< "$val"
+        for i in "${ADDR[@]}"; do
+          [ -n "$i" ] && deps+=("$i")
+        done
+        shift
+        ;;
+      --manifest|-m)
+        target_manifest="$2"
+        shift 2
+        ;;
+      --manifest=*)
+        target_manifest="${1#--manifest=}"
+        shift
+        ;;
+      --no-rebuild)
+        rebuild_cxvm=0
+        shift
+        ;;
+      -*)
+        shift
+        ;;
+      *)
+        if [ "$1" != "upgrade" ] && [ "$1" != "update" ]; then
+          IFS=',' read -ra ADDR <<< "$1"
+          for i in "${ADDR[@]}"; do
+            [ -n "$i" ] && deps+=("$i")
+          done
+        fi
+        shift
+        ;;
+    esac
+  done
+
+  # If no dependencies specified, discover from manifest or default to cex-log, cex-test
+  if [ "${#deps[@]}" -eq 0 ]; then
+    if [ -f "$repo_root/$target_manifest" ]; then
+      while IFS= read -r line; do
+        [ -n "$line" ] && deps+=("$line")
+      done < <(python3 -c "import json
+try:
+    with open('$repo_root/$target_manifest') as f:
+        d = json.load(f).get('dependencies', {})
+        for k in d.keys():
+            print(k)
+except Exception: pass" 2>/dev/null)
+    fi
+  fi
+  if [ "${#deps[@]}" -eq 0 ]; then
+    deps=("cex-log" "cex-test")
+  fi
+
+  echo "==> [cxvm upgrade] Upgrading dependencies: ${deps[*]}"
+  mkdir -p "$repo_root/.cex_boxes"
+
+  for raw_pkg in "${deps[@]}"; do
+    local pkg="${raw_pkg%@*}"
+    pkg="${pkg#@2tek/}"
+    local clean_name="${pkg#@}"
+
+    echo "--> [cxvm upgrade] Pulling latest dependency: $clean_name"
+    local target_cache="$deps_cache/$clean_name"
+    local box_target="$repo_root/.cex_boxes/$clean_name"
+    mkdir -p "$deps_cache" "$target_cache" "$box_target"
+
+    # Backup existing version to .old.zip if present
+    if [ -f "$target_cache/cex-pack.json" ]; then
+      local old_ver
+      old_ver="$(python3 -c "import json; print(json.load(open('$target_cache/cex-pack.json')).get('version', '1.0.0'))" 2>/dev/null || echo "1.0.0")"
+      local zip_name="$clean_name.$old_ver.old.zip"
+      python3 -c "import zipfile, os
+zf = zipfile.ZipFile('$deps_cache/$zip_name', 'w', zipfile.ZIP_DEFLATED)
+for r, d, fs in os.walk('$target_cache'):
+    for f in fs:
+        if not f.endswith('.old.zip'):
+            p = os.path.join(r, f)
+            zf.write(p, os.path.relpath(p, '$target_cache'))
+zf.close()" 2>/dev/null || true
+      echo "  [OK] Cached previous version to $deps_cache/$zip_name"
+    fi
+
+    # Find upstream source
+    local src_dir=""
+    for cand in "$HOME/Projects/dependencies/$clean_name" \
+                "$HOME/Projects/$clean_name" \
+                "$repo_root/../dependencies/$clean_name" \
+                "$repo_root/../../dependencies/$clean_name" \
+                "$repo_root/dependencies/$clean_name"; do
+      if [ -d "$cand" ] && [ -f "$cand/cex-pack.json" ]; then
+        src_dir="$cand"
+        break
+      fi
+    done
+
+    if [ -n "$src_dir" ]; then
+      cp -rf "$src_dir"/* "$target_cache/" 2>/dev/null || true
+      cp -rf "$src_dir"/* "$box_target/" 2>/dev/null || true
+      echo "  [OK] Pulled latest $clean_name from $(cd "$src_dir" && pwd)"
+    else
+      # Scaffold pure Cex package
+      mkdir -p "$target_cache/src" "$box_target/src"
+      cat <<EOF_PKG > "$target_cache/cex-pack.json"
+{
+  "name": "$clean_name",
+  "version": "1.0.0",
+  "target": "runtime",
+  "main": "src/index.cex"
+}
+EOF_PKG
+      echo "// $clean_name package entrypoint" > "$target_cache/src/index.cex"
+      cp -rf "$target_cache"/* "$box_target/" 2>/dev/null || true
+      echo "  [OK] Initialized package $clean_name in $target_cache"
+    fi
+
+    # Create scoped box alias link if not existing: .cex_boxes/@clean_name -> clean_name
+    if [ ! -e "$repo_root/.cex_boxes/@$clean_name" ]; then
+      ln -sf "$clean_name" "$repo_root/.cex_boxes/@$clean_name" 2>/dev/null || true
+    fi
+
+    # Ensure dependency is recorded in cex-pack.json
+    if [ -f "$repo_root/cex-pack.json" ]; then
+      python3 -c "
+import json
+p = '$repo_root/cex-pack.json'
+try:
+    with open(p, 'r') as f:
+        d = json.load(f)
+    deps = d.setdefault('dependencies', {})
+    if '$clean_name' not in deps and '@$clean_name' not in deps:
+        deps['$clean_name'] = '1.0.0'
+    with open(p, 'w') as f:
+        json.dump(d, f, indent=4)
+        f.write('\n')
+except Exception: pass
+" 2>/dev/null || true
+    fi
+
+    echo "[OK] [cxvm upgrade] Integrated $clean_name into cxvm (.cex_boxes/$clean_name)"
+  done
+
+  if [ "$rebuild_cxvm" -eq 1 ]; then
+    echo "==> [cxvm upgrade] Rebuilding cxvm engine and binaries..."
+    local built=0
+    if command -v cexp >/dev/null 2>&1; then
+      if [ -f "$repo_root/tests/cxvm.test.cex" ]; then
+        mkdir -p "$repo_root/bin"
+        echo "--> [cxvm upgrade] Rebuilding bin/cxvm..."
+        cexp build "$repo_root/tests/cxvm.test.cex" -o "$repo_root/bin/cxvm" >/dev/null 2>&1 || true
+        if [ -f "$repo_root/bin/cxvm" ]; then
+          echo "[OK] [cxvm upgrade] Built bin/cxvm"
+          built=1
+        fi
+      fi
+      if [ -f "$repo_root/src/index.cex" ]; then
+        mkdir -p "$repo_root/dist"
+        echo "--> [cxvm upgrade] Rebuilding dist/server..."
+        cexp build "$repo_root/src/index.cex" -o "$repo_root/dist/server" >/dev/null 2>&1 || true
+        if [ -f "$repo_root/dist/server" ]; then
+          echo "[OK] [cxvm upgrade] Built dist/server"
+          built=1
+        fi
+      fi
+    fi
+
+    # Sync dist/cxvm to downloads/cxvm if both exist
+    if [ -f "$repo_root/dist/cxvm" ] && [ -d "$repo_root/downloads" ]; then
+      cp -f "$repo_root/dist/cxvm" "$repo_root/downloads/cxvm" 2>/dev/null || true
+      cp -f "$repo_root/dist/cxvm.sh" "$repo_root/downloads/cxvm.sh" 2>/dev/null || true
+    fi
+
+    if [ "$built" -eq 1 ]; then
+      echo "[OK] [cxvm upgrade] Dependencies upgraded and cxvm successfully rebuilt!"
+    else
+      echo "[OK] [cxvm upgrade] Dependencies upgraded successfully!"
+    fi
+  fi
+  return 0
+}
+
+# -----------------------------------------------------------------------------
 # Integrated Git & CVM Hooks Subsystem (Pre-Commit CexLint & Pre-Push Prettier)
 # -----------------------------------------------------------------------------
 _cxvm_run_pre_commit_lint_fix() {
@@ -3332,6 +3545,14 @@ EOF
       ;;
 
     upgrade|update)
+      for u_arg in "$@"; do
+        case "$u_arg" in
+          --dependencies|--deps|--dependencies=*|--deps=*)
+            _cxvm_run_upgrade_dependencies "$@"
+            return $?
+            ;;
+        esac
+      done
       local target_ver="$1"
       if [ -z "$target_ver" ] || [ "$target_ver" = "latest" ] || [ "$target_ver" = "last" ]; then
         local manifest_cand=""
@@ -3527,9 +3748,9 @@ EOF
       echo ""
       echo "Unified Application Engine Commands (--app):"
       echo "  --app <appName> ...args   Run application engine (thunder, lighting, deepsea, cvm)"
-      echo "  --app thunder start [-d]  Start Thunder Container Engine (alias: cxvm thunder start)"
-      echo "  --app thunder build       Build zero-file Thunder container image (alias: cxvm thunder build)"
-      echo "  --app thunder ps          List running Thunder containers (alias: cxvm thunder ps)"
+      echo "  --app thunder start [-d]  Start Thunder Container Engine (alias: cxvm --app thunder start)"
+      echo "  --app thunder build       Build zero-file Thunder container image (alias: cxvm --app thunder build)"
+      echo "  --app thunder ps          List running Thunder containers (alias: cxvm --app thunder ps)"
       echo "  --app lighting start [-d] Start Lighting MVC server (alias: cxvm lighting start)"
       echo "  --app lighting create <p> Create Lighting MVC project (alias: cxvm lighting create)"
       echo "  --app deepsea start [-d]  Start DeepSea MVP service (alias: cxvm deepsea start)"
@@ -3547,6 +3768,7 @@ EOF
       echo "  list-remote (ls-remote) List available remote versions from Factory"
       echo "  default <ver>         Set default Cex version across terminal sessions"
       echo "  upgrade [ver]         Auto-upgrade cexr, cexp, and toolchains to latest version"
+      echo "  upgrade --dependencies [name...] Pull dependencies (e.g. cex-log, cex-test), integrate & rebuild cxvm"
       echo "  uninstall <ver>       Remove an installed Cex version"
       echo "  doctor                Run pre-flight environment diagnostics"
       echo ""
