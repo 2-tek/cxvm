@@ -1,4 +1,5 @@
 import json from "json";
+import "@cex-log/src/log.cex";
 
 using JsonValue = json_lib::Value;
 
@@ -375,10 +376,7 @@ class MiddlewareResult {
 
 class LightingMiddleware {
     public static runLogger(req: HttpRequest*): void {
-        print("[Lighting MVC Logger] ");
-        print(req->method);
-        print(" ");
-        println(req->path);
+        CexLogger::info("[Lighting MVC Logger] " + req->method + " " + req->path);
     }
 
     public static runAuth(req: HttpRequest*): MiddlewareResult* {

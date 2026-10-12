@@ -1,0 +1,4 @@
+// Lighting Fullstack MVC: CexLog Bridge (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cex-log/src/log.cex";

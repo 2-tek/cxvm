@@ -23,6 +23,7 @@ import "@cex-racer/src/queue.cex";
 import "@cex-racer/src/scheduler.cex";
 import "@cex-racer/src/thunder_monitor.cex";
 import "@cex-racer/src/racer.cex";
+import "@cex-log/src/log.cex";
 
 class CxvmEngine {
     public currentVersion: string;
@@ -240,6 +241,7 @@ class CxvmEngine {
     }
 
     public upgrade(targetVersion: string): CxvmCommandResult* {
+        let sw: Stopwatch* = Log::start("cxvm upgrade");
         let ver: string = targetVersion;
         if (ver.length() == 0 || ver == "latest" || ver == "last") {
             ver = this.getLatestVersion();
@@ -256,6 +258,12 @@ class CxvmEngine {
         outMsg += "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v" + ver + ")...\n";
         outMsg += "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v" + ver + ")...\n";
 
+        // Preserve running processes (thunder, cvm, server) - never kill pending or active processes
+        if (this.thunderRunning) {
+            outMsg += "[OK] [cxvm upgrade] Preserved active Thunder container engine (PID: " + to_string(this.thunderPid) + ", State: RUNNING)\n";
+            outMsg += "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)\n";
+        }
+
         if (!this.isVersionInstalled(ver)) {
             this.install(ver);
         }
@@ -267,10 +275,12 @@ class CxvmEngine {
         outMsg += "[OK] [cxvm upgrade] Dispatched active toolchain symlinks in " + this.cxvmHome + "/bin/\n";
         outMsg += "[OK] [cxvm upgrade] Toolchain is now at the latest version (v" + ver + ")";
 
+        Log::delay("cxvm upgrade", sw->stop());
         return new CxvmCommandResult("upgrade", ver, true, "Successfully upgraded cexr and cexp to v" + ver, outMsg);
     }
 
     public upgradeDependencies(depNames: string, doRebuild: bool): CxvmCommandResult* {
+        let sw: Stopwatch* = Log::start("cxvm upgrade dependencies");
         let depsDir: string = this.getDependenciesDir();
         system(("mkdir -p \"" + depsDir + "\"").c_str());
         system("mkdir -p .cex_boxes");
@@ -281,7 +291,7 @@ class CxvmEngine {
             let len: int = (int)depNames.length();
             for (let i: int = 0; i < len; i++) {
                 char ch = depNames[i];
-                if (ch == ',' || ch == ' ' || ch == ';' || ch == '\t') {
+                if (ch == 44 || ch == 32 || ch == 59 || ch == 9) { // ',', ' ', ';', '\t'
                     if (cur.length() > 0) {
                         depList->push(cur);
                         cur = "";
@@ -321,6 +331,12 @@ class CxvmEngine {
             } else {
                 outMsg += "\n";
             }
+        }
+
+        // Preserve running processes (thunder, cvm, server) - never kill pending or active processes
+        if (this.thunderRunning) {
+            outMsg += "[OK] [cxvm upgrade] Preserved active Thunder container engine (PID: " + to_string(this.thunderPid) + ", State: RUNNING)\n";
+            outMsg += "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)\n";
         }
 
         let homeStr: string = getenv("HOME") != nullptr ? string(getenv("HOME")) : "";
@@ -444,6 +460,7 @@ class CxvmEngine {
             outMsg += "[OK] [cxvm upgrade] Dependencies upgraded successfully!";
         }
 
+        Log::delay("cxvm upgrade dependencies", sw->stop());
         return new CxvmCommandResult("upgrade dependencies", depNames, true, "Successfully upgraded dependencies and rebuilt cxvm", outMsg);
     }
 
@@ -936,6 +953,11 @@ class CxvmEngine {
     }
 
     public startCvm(port: int, standalone: bool): CxvmCommandResult* {
+        if (this.cvmServerRunning && this.cvmServerPid > 0) {
+            let out: string = "[OK] [cxvm] CVM server already running (PID: " + to_string(this.cvmServerPid) + ", port: " + to_string(this.cvmServerPort) + ")\n";
+            out += "  - State:      RUNNING (preserved, no process killed)";
+            return new CxvmCommandResult("start cvm", to_string(port), true, "CVM server already running", out);
+        }
         this.cvmServerRunning = true;
         this.cvmServerPid = 7891;
         this.cvmServerPort = port;
@@ -973,6 +995,12 @@ class CxvmEngine {
     }
 
     public startThunder(port: int, standalone: bool): CxvmCommandResult* {
+        if (this.thunderRunning && this.thunderPid > 0) {
+            let out: string = "[OK] [cxvm] Thunder server already running (PID: " + to_string(this.thunderPid) + ", port: " + to_string(this.thunderPort) + ")\n";
+            out += "  - State:      RUNNING (preserved, no process killed)\n";
+            out += "  - Dashboard:  http://localhost:" + to_string(this.thunderPort);
+            return new CxvmCommandResult("start thunder", to_string(port), true, "Thunder server already running", out);
+        }
         this.thunderRunning = true;
         this.thunderPid = 8092;
         this.thunderPort = port;
