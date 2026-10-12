@@ -23,7 +23,7 @@ echo "   2-TEK Cex Factory: Cross-Platform Build Pipeline Generator  "
 echo "==============================================================="
 echo "Target output directory: $DOWNLOADS_DIR"
 
-VERSIONS=("8.0.0" "6.0.0" "5.0.0" "3.0.0" "2.0.0" "1.0.0")
+VERSIONS=("8.0.0" "6.0.0" "5.0.0" "4.0.0" "3.0.0" "2.0.0" "1.0.0")
 PLATFORMS=(
   "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:CexP v8 (Native Direct Compiler)"
   "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:CexP v8 (Native Direct Compiler)"
@@ -68,6 +68,26 @@ elif [ -f "$REPO_ROOT/downloads/thunder-server" ] && [ "$DOWNLOADS_DIR" != "$REP
 fi
 chmod +x "$DOWNLOADS_DIR/thunder-server" 2>/dev/null || true
 
+# 2d. Ensure cexp (v8)
+for f in cexp cexp.cmd cexp.ps1; do
+  if [ -f "$REPO_ROOT/dist/$f" ]; then
+    cp -f "$REPO_ROOT/dist/$f" "$DOWNLOADS_DIR/$f"
+  elif [ -f "$REPO_ROOT/bin/$f" ]; then
+    cp -f "$REPO_ROOT/bin/$f" "$DOWNLOADS_DIR/$f"
+  fi
+  chmod +x "$DOWNLOADS_DIR/$f" 2>/dev/null || true
+done
+
+# 2e. Ensure cexr-v4 (v4)
+for f in cexr-v4 cexr-v4.cmd cexr-v4.ps1; do
+  if [ -f "$REPO_ROOT/dist/$f" ]; then
+    cp -f "$REPO_ROOT/dist/$f" "$DOWNLOADS_DIR/$f"
+  elif [ -f "$REPO_ROOT/bin/$f" ]; then
+    cp -f "$REPO_ROOT/bin/$f" "$DOWNLOADS_DIR/$f"
+  fi
+  chmod +x "$DOWNLOADS_DIR/$f" 2>/dev/null || true
+done
+
 # 3. Generate cxvm.cmd (Windows CMD wrapper)
 cat <<'EOF' > "$DOWNLOADS_DIR/cxvm.cmd"
 @echo off
@@ -108,17 +128,15 @@ elif [ -f "downloads/cxvm" ]; then
   cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp "downloads/cvm-server" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
   cp "downloads/thunder-server" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
-elif command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$FACTORY_URL/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || \
-  curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
-  curl -fsSL "$FACTORY_URL/downloads/cvm-server" -o "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
-  curl -fsSL "$FACTORY_URL/downloads/thunder-server" -o "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
-elif command -v wget >/dev/null 2>&1; then
-  wget -q "$FACTORY_URL/downloads/cxvm" -O "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
-  wget -q "$FACTORY_URL/downloads/cvm-server" -O "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
-  wget -q "$FACTORY_URL/downloads/thunder-server" -O "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 fi
-chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
+for tool in cexp cexp.cmd cexp.ps1 cexr-v4 cexr-v4.cmd cexr-v4.ps1; do
+  if [ -f "cxvm/downloads/$tool" ]; then
+    cp "cxvm/downloads/$tool" "$CXVM_DIR/bin/$tool" 2>/dev/null || true
+  elif [ -f "downloads/$tool" ]; then
+    cp "downloads/$tool" "$CXVM_DIR/bin/$tool" 2>/dev/null || true
+  fi
+done
+chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cex"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
 cp "$CXVM_DIR/bin/cxvm" "$CXVM_DIR/bin/cxvm.sh" 2>/dev/null || true
 
 # Run cxvm install
@@ -192,6 +210,12 @@ if (Test-Path "downloads\thunder-server") {
     Copy-Item "downloads\thunder-server" -Destination (Join-Path $cxvmDir "bin\thunder-server") -Force
 } else {
     Invoke-WebRequest -Uri "$factoryUrl/downloads/thunder-server" -OutFile (Join-Path $cxvmDir "bin\thunder-server") -UseBasicParsing -ErrorAction SilentlyContinue
+}
+
+foreach ($tool in @("cexp", "cexp.ps1", "cexp.cmd", "cexr-v4", "cexr-v4.ps1", "cexr-v4.cmd")) {
+    if (Test-Path "downloads\$tool") {
+        Copy-Item "downloads\$tool" -Destination (Join-Path $cxvmDir "bin\$tool") -Force
+    }
 }
 
 Write-Host "==> Installing default Cex Runtime v$defaultVersion via cxvm..." -ForegroundColor Green
@@ -333,6 +357,12 @@ WEOF
       cp "$DOWNLOADS_DIR/thunder-server" "$PKG_DIR/bin/thunder-server"
       chmod +x "$PKG_DIR/bin/thunder-server"
     fi
+    for tool in cexp cexp.cmd cexp.ps1 cexr-v4 cexr-v4.cmd cexr-v4.ps1; do
+      if [ -f "$DOWNLOADS_DIR/$tool" ]; then
+        cp "$DOWNLOADS_DIR/$tool" "$PKG_DIR/bin/$tool"
+        chmod +x "$PKG_DIR/bin/$tool" 2>/dev/null || true
+      fi
+    done
     cat <<'TEOF' > "$PKG_DIR/bin/thunder"
 #!/usr/bin/env bash
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
@@ -428,7 +458,7 @@ echo "Generating SHA256 checksums..."
   cd "$DOWNLOADS_DIR"
   rm -f SHA256SUMS
   sha256sum cex-v*.* > SHA256SUMS 2>/dev/null || true
-  sha256sum install.* cxvm* cvm-server thunder-server setup.* >> SHA256SUMS 2>/dev/null || true
+  sha256sum install.* cxvm* cvm-server thunder-server setup.* cexp* cexr-v4* >> SHA256SUMS 2>/dev/null || true
 )
 
 # 8. Generate manifest.json

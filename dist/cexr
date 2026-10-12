@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# 2-TEK Cex Toolchain Runner: ./bin/cexr
+# Supports:
+#   cexr <file.cex>      (Default: CexR v8 Native Runtime Engine)
+#   cexr v4 <file.cex>   (CexR v4: Native Machine Code Runtime Engine & JSON Context)
+#   cexr v6 <file.cex>   (CexR v6: High-Performance Native Server Engine)
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+# ==============================================================================
+set -e
+
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+
+# Direct version invocation: v4
+if [ "$1" = "v4" ]; then
+  shift
+  if [ -x "$BIN_DIR/cexr-v4" ]; then
+    exec "$BIN_DIR/cexr-v4" "$@"
+  elif [ -x "$CXVM_DIR/bin/cexr-v4" ]; then
+    exec "$CXVM_DIR/bin/cexr-v4" "$@"
+  elif [ -x "$CXVM_DIR/versions/v4.0.0/bin/cexr" ]; then
+    exec "$CXVM_DIR/versions/v4.0.0/bin/cexr" "$@"
+  fi
+fi
+
+# Direct version invocation: v6
+if [ "$1" = "v6" ]; then
+  shift
+  if [ -x "$CXVM_DIR/versions/v6.0.0/bin/cexr" ]; then
+    exec "$CXVM_DIR/versions/v6.0.0/bin/cexr" "$@"
+  fi
+fi
+
+# Default version: v8 / active runtime
+if [ -x "$BIN_DIR/cxvm" ]; then
+  exec "$BIN_DIR/cxvm" "$@"
+fi
+
+if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+  exec "$CXVM_DIR/current/bin/cexr" "$@"
+elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+  exec "$CXVM_DIR/bin/cexr" "$@"
+elif [ -x "$CXVM_DIR/bin/cxvm" ]; then
+  exec "$CXVM_DIR/bin/cxvm" "$@"
+fi
+
+exec cxvm "$@"

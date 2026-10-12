@@ -611,4 +611,254 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "message", res->message);
         return this.json(doc);
     }
+
+    // =========================================================================
+    // CexRunners & CexRacer REST API Handlers
+    // =========================================================================
+
+    public apiRunnersStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "engine", "CexRunners");
+        JsonDoc::setNum(doc, "bindingCount", cxvm->runners->getBindingCount());
+        JsonDoc::setNum(doc, "totalEvents", cxvm->runners->getMetrics()->totalEvents);
+        JsonDoc::setNum(doc, "dispatchedEvents", cxvm->runners->getMetrics()->dispatchedEvents);
+        JsonDoc::setNum(doc, "filteredEvents", cxvm->runners->getMetrics()->filteredEvents);
+        JsonDoc::setNum(doc, "throttledEvents", cxvm->runners->getMetrics()->throttledEvents);
+        JsonDoc::setNum(doc, "completedPipelines", cxvm->runners->getMetrics()->completedPipelines);
+        JsonDoc::setNum(doc, "averageLatencyMs", (int)cxvm->runners->getMetrics()->getAverageLatencyMs());
+        return this.json(doc);
+    }
+
+    public apiRunnersMetrics(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let m: RunnerMetrics* = cxvm->runners->getMetrics();
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setNum(doc, "totalEvents", m->totalEvents);
+        JsonDoc::setNum(doc, "dispatchedEvents", m->dispatchedEvents);
+        JsonDoc::setNum(doc, "filteredEvents", m->filteredEvents);
+        JsonDoc::setNum(doc, "throttledEvents", m->throttledEvents);
+        JsonDoc::setNum(doc, "completedPipelines", m->completedPipelines);
+        return this.json(doc);
+    }
+
+    public apiRunnersDispatch(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let target: string = req->getParam("target");
+        let eventName: string = req->getParam("event");
+        let payload: string = req->getParam("payload");
+
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (parsed->has("target")) target = parsed->get("target")->asString();
+                if (parsed->has("event")) eventName = parsed->get("event")->asString();
+                if (parsed->has("payload")) payload = parsed->get("payload")->asString();
+            }
+        }
+        if (target.length() == 0) target = "cxvm";
+        if (eventName.length() == 0) eventName = "build";
+
+        let dispatched: int = cxvm->runners->dispatchToTarget(target, eventName, payload);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "target", target);
+        JsonDoc::setStr(doc, "event", eventName);
+        JsonDoc::setNum(doc, "dispatchedPipelines", dispatched);
+        return this.json(doc);
+    }
+
+    public apiMultiBuild(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let targets: string = req->getParam("targets");
+        if (targets.length() == 0 && req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("targets")) {
+                targets = parsed->get("targets")->asString();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->multiBuild(targets, "");
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "targets", targets);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
+    public apiMultiStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let services: string = req->getParam("services");
+        let isDaemon: bool = true;
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (parsed->has("services")) services = parsed->get("services")->asString();
+                if (parsed->has("daemon")) isDaemon = parsed->get("daemon")->asBool();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->multiStart(services, isDaemon);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "services", services);
+        JsonDoc::setBool(doc, "daemon", isDaemon);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
+    public apiProcessList(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setNum(doc, "count", (int)cxvm->processes->length());
+        let listArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)cxvm->processes->length(); i++) {
+            let p: ProcessRecord* = cxvm->processes->get(i);
+            let item: JsonValue* = JsonDoc::obj();
+            JsonDoc::setStr(item, "name", p->name);
+            JsonDoc::setNum(item, "pid", p->pid);
+            JsonDoc::setStr(item, "status", p->status);
+            JsonDoc::setNum(item, "port", p->port);
+            JsonDoc::setBool(item, "isDaemon", p->isDaemon);
+            JsonDoc::setStr(item, "command", p->command);
+            listArr->push(item);
+        }
+        JsonDoc::setVal(doc, "processes", listArr);
+        return this.json(doc);
+    }
+
+    public apiProcessStart(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let name: string = req->getParam("name");
+        let cmd: string = req->getParam("command");
+        let isDaemon: bool = true;
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (parsed->has("name")) name = parsed->get("name")->asString();
+                if (parsed->has("command")) cmd = parsed->get("command")->asString();
+                if (parsed->has("daemon")) isDaemon = parsed->get("daemon")->asBool();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->startProcess(name, cmd, 0, isDaemon);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "name", name);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiProcessStop(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let name: string = req->getParam("name");
+        if (name.length() == 0 && req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("name")) {
+                name = parsed->get("name")->asString();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->stopProcess(name);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "name", name);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiProcessStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let name: string = req->getParam("name");
+        let res: CxvmCommandResult* = cxvm->statusProcess(name);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "NOT_FOUND");
+        JsonDoc::setStr(doc, "name", name);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiRacerStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "engine", "CexRacer");
+        JsonDoc::setStr(doc, "clockIso", Clock::nowIso());
+        JsonDoc::setNum(doc, "clockEpochMs", (int)Clock::nowMs());
+        JsonDoc::setNum(doc, "queuesCount", 8);
+        JsonDoc::setStr(doc, "thunderSupervisor", "ACTIVE");
+        JsonDoc::setNum(doc, "watchdogIntervalMs", 1800000);
+        return this.json(doc);
+    }
+
+    public apiRacerQueues(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        let qArr: JsonValue* = JsonDoc::arr();
+        auto stats = cxvm->racer->scheduler->getAllStats();
+        for (const auto& s : stats) {
+            let item: JsonValue* = JsonDoc::obj();
+            JsonDoc::setStr(item, "name", s->name);
+            JsonDoc::setNum(item, "concurrency", s->concurrency);
+            JsonDoc::setNum(item, "pendingCount", s->pendingCount);
+            JsonDoc::setNum(item, "runningCount", s->runningCount);
+            JsonDoc::setNum(item, "completedCount", s->completedCount);
+            qArr->push(item);
+        }
+        JsonDoc::setVal(doc, "queues", qArr);
+        return this.json(doc);
+    }
+
+    public apiRacerTasks(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        auto stats = cxvm->racer->scheduler->getAllStats();
+        let pending: int = 0;
+        let running: int = 0;
+        let completed: int = 0;
+        for (const auto& s : stats) {
+            pending += s->pendingCount;
+            running += s->runningCount;
+            completed += s->completedCount;
+        }
+        JsonDoc::setNum(doc, "totalScheduled", pending);
+        JsonDoc::setNum(doc, "totalRunning", running);
+        JsonDoc::setNum(doc, "totalCompleted", completed);
+        return this.json(doc);
+    }
+
+    public apiRacerSchedule(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let name: string = req->getParam("name");
+        let interval: string = req->getParam("interval");
+        let cmd: string = req->getParam("command");
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (parsed->has("name")) name = parsed->get("name")->asString();
+                if (parsed->has("interval")) interval = parsed->get("interval")->asString();
+                if (parsed->has("command")) cmd = parsed->get("command")->asString();
+            }
+        }
+        if (name.length() == 0) name = "scheduled-task";
+        if (interval.length() == 0) interval = "30m";
+        if (cmd.length() == 0) cmd = "cxvm status";
+
+        cxvm->racer->scheduleCommand(name, "default", cmd, interval, RACER_PRIORITY_NORMAL, true);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "name", name);
+        JsonDoc::setStr(doc, "interval", interval);
+        return this.json(doc);
+    }
+
+    public apiRacerRun(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let cmd: string = req->getParam("command");
+        let queueName: string = req->getParam("queue");
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (parsed->has("command")) cmd = parsed->get("command")->asString();
+                if (parsed->has("queue")) queueName = parsed->get("queue")->asString();
+            }
+        }
+        if (cmd.length() == 0) cmd = "echo 'racer test'";
+        if (queueName.length() == 0) queueName = "default";
+
+        let res: int = cxvm->racer->runCommand(queueName, cmd, RACER_PRIORITY_NORMAL);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res == 0 ? "SUCCESS" : "ERROR");
+        JsonDoc::setNum(doc, "exitCode", res);
+        JsonDoc::setStr(doc, "queue", queueName);
+        return this.json(doc);
+    }
 }

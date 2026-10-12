@@ -29,17 +29,15 @@ elif [ -f "downloads/cxvm" ]; then
   cp "downloads/cxvm" "$CXVM_DIR/bin/cxvm"
   cp "downloads/cvm-server" "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
   cp "downloads/thunder-server" "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
-elif command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$FACTORY_URL/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || \
-  curl -fsSL "https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/cxvm" -o "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
-  curl -fsSL "$FACTORY_URL/downloads/cvm-server" -o "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
-  curl -fsSL "$FACTORY_URL/downloads/thunder-server" -o "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
-elif command -v wget >/dev/null 2>&1; then
-  wget -q "$FACTORY_URL/downloads/cxvm" -O "$CXVM_DIR/bin/cxvm" 2>/dev/null || true
-  wget -q "$FACTORY_URL/downloads/cvm-server" -O "$CXVM_DIR/bin/cvm-server" 2>/dev/null || true
-  wget -q "$FACTORY_URL/downloads/thunder-server" -O "$CXVM_DIR/bin/thunder-server" 2>/dev/null || true
 fi
-chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
+for tool in cexp cexp.cmd cexp.ps1 cexr-v4 cexr-v4.cmd cexr-v4.ps1; do
+  if [ -f "cxvm/downloads/$tool" ]; then
+    cp "cxvm/downloads/$tool" "$CXVM_DIR/bin/$tool" 2>/dev/null || true
+  elif [ -f "downloads/$tool" ]; then
+    cp "downloads/$tool" "$CXVM_DIR/bin/$tool" 2>/dev/null || true
+  fi
+done
+chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cex"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
 cp "$CXVM_DIR/bin/cxvm" "$CXVM_DIR/bin/cxvm.sh" 2>/dev/null || true
 
 # Run cxvm install

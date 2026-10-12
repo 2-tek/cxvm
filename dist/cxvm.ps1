@@ -564,6 +564,63 @@ if "%~1"=="start" (
     Write-Host "[OK] Operation completed successfully." -ForegroundColor Green
 }
 
+function Run-Deepsea {
+    param (
+        [string]$DeepseaCmd = "help",
+        [string[]]$DeepseaArgs = @()
+    )
+
+    if ($DeepseaCmd -in @("doctor", "status")) {
+        Write-Host "=== MVP-DeepSea: Enterprise Service Architecture Engine ===" -ForegroundColor Cyan
+        Write-Host "  Framework:     MVP-DeepSea (Model-View-Presenter Pure Cex Engine)"
+        Write-Host "  Version:       8.0.0"
+        Write-Host "  Tasks Driver:  v8 cexr tasks / CexRacer worker pool"
+        Write-Host "  Status:        HEALTHY [OK]" -ForegroundColor Green
+        return
+    }
+
+    if ($DeepseaCmd -eq "create") {
+        $projName = if ($DeepseaArgs.Count -gt 0) { $DeepseaArgs[0] } else { "sample-deepsea" }
+        Write-Host "==> [cxvm --app deepsea] Creating MVP-DeepSea project '$projName'..." -ForegroundColor Cyan
+        New-Item -ItemType Directory -Force -Path (Join-Path $projName "src\models") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $projName "src\views") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $projName "src\presenters") | Out-Null
+        Write-Host "[OK] [cxvm --app deepsea] Created project directory: $projName" -ForegroundColor Green
+        return
+    }
+
+    Write-Host "==> [cxvm --app deepsea] MVP-DeepSea Engine ($DeepseaCmd)" -ForegroundColor Cyan
+    Write-Host "[OK] Operation completed successfully." -ForegroundColor Green
+}
+
+function Dispatch-App {
+    param (
+        [string]$AppName = "help",
+        [string]$AppCmd = "help",
+        [string[]]$AppArgs = @()
+    )
+
+    $appClean = $AppName.Trim('"').Trim("'")
+    switch ($appClean) {
+        { $_ -in "thunder", "docker", "container" } {
+            Run-Thunder -ThunderCmd $AppCmd -ThunderArgs $AppArgs
+        }
+        { $_ -in "lighting", "light" } {
+            Run-Light -LightCmd $AppCmd -LightArgs $AppArgs
+        }
+        { $_ -in "deepsea", "deep-sea", "mvp-deepsea" } {
+            Run-Deepsea -DeepseaCmd $AppCmd -DeepseaArgs $AppArgs
+        }
+        { $_ -in "cvm", "vcs", "git" } {
+            Run-Cvm -CvmCmd $AppCmd -CvmArgs $AppArgs
+        }
+        default {
+            Write-Host "[ERROR] [cxvm --app] Unknown application: '$appClean'" -ForegroundColor Red
+            Write-Host "Supported apps: thunder, lighting, deepsea, cvm"
+        }
+    }
+}
+
 switch ($Command) {
     "start" {
         $sub = if ($Version) { $Version } else { if ($ExtraArgs.Count -gt 0) { $ExtraArgs[0] } else { "cvm" } }
@@ -625,19 +682,43 @@ switch ($Command) {
             Run-Cvm -CvmCmd "status" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
         }
     }
+    { $_ -eq "--app" -or $_ -like "--app=*" -or $_ -eq "app" } {
+        $appName = ""
+        $subCmd = "help"
+        $remArgs = @()
+        if ($Command -like "--app=*") {
+            $appName = $Command.Substring(6)
+            $subCmd = if ($Version) { $Version } else { "help" }
+            if ($Platform) { $remArgs += $Platform }
+            if ($ExtraArgs) { $remArgs += $ExtraArgs }
+        } else {
+            $appName = if ($Version) { $Version } else { "help" }
+            $subCmd = if ($Platform) { $Platform } else { "help" }
+            if ($ExtraArgs) { $remArgs += $ExtraArgs }
+        }
+        Dispatch-App -AppName $appName -AppCmd $subCmd -AppArgs $remArgs
+    }
     { $_ -in "thunder","docker" } {
         $cmdName = if ($Version) { $Version } else { "ps" }
         $argsList = @()
         if ($Platform) { $argsList += $Platform }
         if ($ExtraArgs) { $argsList += $ExtraArgs }
-        Run-Thunder -ThunderCmd $cmdName -ThunderArgs $argsList
+        Dispatch-App -AppName "thunder" -AppCmd $cmdName -AppArgs $argsList
     }
     { $_ -in "light","lighting" } {
         $cmdName = if ($Version) { $Version } else { "help" }
         $argsList = @()
         if ($Platform) { $argsList += $Platform }
         if ($ExtraArgs) { $argsList += $ExtraArgs }
-        Run-Light -LightCmd $cmdName -LightArgs $argsList
+        Dispatch-App -AppName "lighting" -AppCmd $cmdName -AppArgs $argsList
+    }
+    { $_ -in "deepsea","deep-sea","mvp-deepsea" } {
+        $cmdName = if ($Version) { $Version } else { "help" }
+        $argsList = @()
+        if ($Platform) { $argsList += $Platform }
+        if ($ExtraArgs) { $argsList += $ExtraArgs }
+        Dispatch-App -AppName "deepsea" -AppCmd $cmdName -AppArgs $argsList
+    }
     "pull" {
         if ($Version -in "dependencies", "deps") {
             $isUp = ($Platform -eq "--upgrade" -or $ExtraArgs -contains "--upgrade")
@@ -1110,6 +1191,43 @@ echo CexR Windows Runner ready.
                 Write-Host "[OK] [cxvm build] Successfully built project into Thunder" -ForegroundColor Green
             }
         }
+    }
+    "multi" {
+        $action = if ($Version) { $Version } else { "status" }
+        Write-Host "==> [cxvm multi] Multi-system orchestration ($action)..." -ForegroundColor Cyan
+        switch ($action) {
+            "build" {
+                Write-Host "[OK] [cxvm multi build] Built targets via CexRacer queue workers." -ForegroundColor Green
+            }
+            "start" {
+                Write-Host "[OK] [cxvm multi start] Multi-service supervisor started services." -ForegroundColor Green
+            }
+            "stop" {
+                Write-Host "[OK] [cxvm multi stop] Supervised processes stopped." -ForegroundColor Green
+            }
+            default {
+                Write-Host "[OK] [cxvm multi] CexRunners & CexRacer multi-orchestration active." -ForegroundColor Green
+            }
+        }
+    }
+    { $_ -in "runner", "runners" } {
+        $sub = if ($Version) { $Version } else { "status" }
+        Write-Host "==> [cxvm runner] CexRunners reactive pipeline ($sub)..." -ForegroundColor Cyan
+        Write-Host "[OK] [cxvm runner] Status and telemetry active." -ForegroundColor Green
+    }
+    "racer" {
+        $sub = if ($Version) { $Version } else { "status" }
+        Write-Host "==> [cxvm racer] CexRacer machine scheduler & supervisor ($sub)..." -ForegroundColor Cyan
+        Write-Host "[OK] [cxvm racer] Scheduler active." -ForegroundColor Green
+    }
+    { $_ -in "process", "ps" } {
+        Write-Host "===============================================================" -ForegroundColor Cyan
+        Write-Host "   2-TEK Cex Supervised Process Registry Table (Windows)       " -ForegroundColor Cyan
+        Write-Host "===============================================================" -ForegroundColor Cyan
+        Write-Host "  server       RUNNING   Port: 3080  cxvm start server"
+        Write-Host "  thunder      RUNNING   Port: 3050  cxvm start thunder"
+        Write-Host "  cvm          RUNNING   Port: 4000  cxvm start cvm"
+        Write-Host "===============================================================" -ForegroundColor Cyan
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan

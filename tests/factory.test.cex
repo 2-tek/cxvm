@@ -73,10 +73,13 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/cxvm.sh"), "cxvm.sh exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm.ps1"), "cxvm.ps1 exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm.cmd"), "cxvm.cmd exists in downloads");
+    Assert::isTrue(fs.exists(downDir + "/cexp"), "cexp exists in downloads");
+    Assert::isTrue(fs.exists(downDir + "/cexr-v4"), "cexr-v4 exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/manifest.json"), "manifest.json exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
     Assert::isTrue(fs.exists("dist") && fs.exists("dist/cex-v8.0.0-linux-x86_64.tar.gz"), "dist/ directory contains cross-platform distribution bundles");
     Assert::isTrue(fs.exists("dist/manifest.json") && fs.exists("dist/cxvm"), "dist/ contains cxvm and manifest.json");
+    Assert::isTrue(fs.exists("dist/cexp") && fs.exists("dist/cexr-v4"), "dist/ contains cexp and cexr-v4 binaries");
     suite->addResult("test_distribution_builder_and_artifacts", true, "", 1);
 
     // -------------------------------------------------------------

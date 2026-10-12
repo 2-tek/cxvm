@@ -147,11 +147,11 @@ cxvm use 6.0.0
 | `cxvm start [target] [-d         | --daemon]`                 | `npm start`                                                                                                                                                                                                         | Starts production binary or server in foreground or background daemon mode                                                |
 | `cxvm status server`             | -                          | Inspects status of running server daemon                                                                                                                                                                            |
 | `cxvm stop server`               | -                          | Stops background server daemon                                                                                                                                                                                      |
-| `cxvm lighting start [-d]`       | `npm start`                | Starts Lighting MVC production server (redirects 'light start' -> 'lighting start', supports --daemon)                                                                                                              |
+| `cxvm --app lighting start [-d]` | `npm start`                | Starts Lighting MVC production server (redirects 'light start' -> 'lighting start', supports --daemon)                                                                                                              |
 | `cxvm light start [-d]`          | `npm start`                | Automatically redirects to 'lighting start' per project standard (supports --daemon)                                                                                                                                |
 | `cxvm light build`               | `npm run build`            | Compiles Lighting project with `cexp` direct machine compiler                                                                                                                                                       |
 | `cxvm light doctor`              | -                          | Runs Lighting engine diagnostic and verification                                                                                                                                                                    |
-| `cxvm thunder <cmd>`             | Docker CLI (`docker`)      | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`)                                                                                                                                           |
+| `cxvm --app thunder <cmd>`       | Docker CLI (`docker`)      | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`)                                                                                                                                           |
 | `cxvm docker <cmd>`              | Docker CLI (`docker`)      | Docker compatibility alias for Thunder                                                                                                                                                                              |
 | `cxvm start thunder [-p <port>]` | -                          | Starts Thunder container engine daemon with single process (standalone)                                                                                                                                             |
 | `cxvm status thunder`            | -                          | Inspects status of standalone Thunder server                                                                                                                                                                        |
@@ -260,16 +260,16 @@ Thunder enables building, isolating, executing, and orchestrating native contain
 
 ### Thunder CLI Commands:
 
-| Command                                      | Action                                                             | Example                                              |
-| :------------------------------------------- | :----------------------------------------------------------------- | :--------------------------------------------------- |
-| `cxvm thunder ps` / `cxvm docker ps`         | List running containers with IDs, names, images, ports, and status | `cxvm thunder ps`                                    |
-| `cxvm thunder run <image>`                   | Run container workload inside virtual microkernel isolation        | `cxvm thunder run @2tek/cxvm:latest`                 |
-| `cxvm thunder stop <id>`                     | Gracefully stop running container instance                         | `cxvm thunder stop cxt-1a8f9`                        |
-| `cxvm thunder images` / `cxvm docker images` | List local OCI container images in cache                           | `cxvm thunder images`                                |
-| `cxvm thunder stats`                         | Inspect real-time virtual CPU, memory, vFS, and network metrics    | `cxvm thunder stats`                                 |
-| `cxvm start thunder [-p <port>]`             | Start Thunder as a single-process standalone daemon in background  | `cxvm start thunder` \| `cxvm start thunder -p 3050` |
-| `cxvm status thunder`                        | Check status of single-process standalone Thunder daemon           | `cxvm status thunder`                                |
-| `cxvm stop thunder`                          | Stop background standalone Thunder daemon                          | `cxvm stop thunder`                                  |
+| Command                                            | Action                                                             | Example                                              |
+| :------------------------------------------------- | :----------------------------------------------------------------- | :--------------------------------------------------- |
+| `cxvm --app thunder ps` / `cxvm docker ps`         | List running containers with IDs, names, images, ports, and status | `cxvm --app thunder ps`                              |
+| `cxvm --app thunder run <image>`                   | Run container workload inside virtual microkernel isolation        | `cxvm --app thunder run @2tek/cxvm:latest`           |
+| `cxvm --app thunder stop <id>`                     | Gracefully stop running container instance                         | `cxvm --app thunder stop cxt-1a8f9`                  |
+| `cxvm --app thunder images` / `cxvm docker images` | List local OCI container images in cache                           | `cxvm --app thunder images`                          |
+| `cxvm --app thunder stats`                         | Inspect real-time virtual CPU, memory, vFS, and network metrics    | `cxvm --app thunder stats`                           |
+| `cxvm start thunder [-p <port>]`                   | Start Thunder as a single-process standalone daemon in background  | `cxvm start thunder` \| `cxvm start thunder -p 3050` |
+| `cxvm status thunder`                              | Check status of single-process standalone Thunder daemon           | `cxvm status thunder`                                |
+| `cxvm stop thunder`                                | Stop background standalone Thunder daemon                          | `cxvm stop thunder`                                  |
 
 ### Standalone Single-Process Thunder Daemon (`cxvm start thunder`):
 
@@ -351,7 +351,7 @@ cxvm lighting create my-awesome-app
 
 ```bash
 cd my-awesome-app
-lighting start           # Or cxvm lighting start (starts server on port 3080)
+lighting start           # Or cxvm --app lighting start (starts server on port 3080)
 cxvm start --daemon      # Start server in background daemon mode
 cxvm status server       # Check status of running server daemon
 cxvm stop server         # Stop background server daemon

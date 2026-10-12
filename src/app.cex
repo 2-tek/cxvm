@@ -88,6 +88,26 @@ class FactoryApp {
         this.router->post("/api/v1/dependencies/pull", "factory.apiPullDependencies");
         this.router->get("/api/v1/hooks/scan", "factory.apiHooksScan");
         this.router->post("/api/v1/hooks/install", "factory.apiHooksInstall");
+
+        // CexRunners & Multi Orchestration
+        this.router->get("/api/v1/runners/status", "factory.apiRunnersStatus");
+        this.router->get("/api/v1/runners/metrics", "factory.apiRunnersMetrics");
+        this.router->post("/api/v1/runners/dispatch", "factory.apiRunnersDispatch");
+        this.router->post("/api/v1/multi/build", "factory.apiMultiBuild");
+        this.router->post("/api/v1/multi/start", "factory.apiMultiStart");
+
+        // Process Supervisor
+        this.router->get("/api/v1/process/list", "factory.apiProcessList");
+        this.router->post("/api/v1/process/start", "factory.apiProcessStart");
+        this.router->post("/api/v1/process/stop", "factory.apiProcessStop");
+        this.router->get("/api/v1/process/status", "factory.apiProcessStatus");
+
+        // CexRacer Multi-Queue & Scheduler
+        this.router->get("/api/v1/racer/status", "factory.apiRacerStatus");
+        this.router->get("/api/v1/racer/queues", "factory.apiRacerQueues");
+        this.router->get("/api/v1/racer/tasks", "factory.apiRacerTasks");
+        this.router->post("/api/v1/racer/schedule", "factory.apiRacerSchedule");
+        this.router->post("/api/v1/racer/run", "factory.apiRacerRun");
     }
 
     public start(): void {
@@ -277,6 +297,65 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiHooksInstall") {
             return this.controller->apiHooksInstall(req, this.cxvm);
+        }
+
+        // CexRunners & Multi Orchestration
+        if (route->handlerId === "factory.apiRunnersStatus") {
+            return this.controller->apiRunnersStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiRunnersMetrics") {
+            return this.controller->apiRunnersMetrics(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiRunnersDispatch") {
+            return this.controller->apiRunnersDispatch(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiMultiBuild") {
+            return this.controller->apiMultiBuild(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiMultiStart") {
+            return this.controller->apiMultiStart(req, this.cxvm);
+        }
+
+        // Process Supervisor
+        if (route->handlerId === "factory.apiProcessList") {
+            return this.controller->apiProcessList(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiProcessStart") {
+            return this.controller->apiProcessStart(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiProcessStop") {
+            return this.controller->apiProcessStop(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiProcessStatus") {
+            return this.controller->apiProcessStatus(req, this.cxvm);
+        }
+
+        // CexRacer Multi-Queue & Scheduler
+        if (route->handlerId === "factory.apiRacerStatus") {
+            return this.controller->apiRacerStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiRacerQueues") {
+            return this.controller->apiRacerQueues(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiRacerTasks") {
+            return this.controller->apiRacerTasks(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiRacerSchedule") {
+            return this.controller->apiRacerSchedule(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiRacerRun") {
+            return this.controller->apiRacerRun(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

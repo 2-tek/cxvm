@@ -100,3 +100,41 @@ class FactoryStats {
         this.lastBuildTimestamp = "2026-10-07T00:00:00Z";
     }
 }
+
+class ProcessRecord {
+    public name: string;
+    public pid: int;
+    public command: string;
+    public status: string;
+    public port: int;
+    public isDaemon: bool;
+    public uptimeSeconds: int;
+
+    public constructor(name: string, pid: int, cmd: string, status: string, port: int, isDaemon: bool) {
+        this.name = name;
+        this.pid = pid;
+        this.command = cmd;
+        this.status = status;
+        this.port = port;
+        this.isDaemon = isDaemon;
+        this.uptimeSeconds = 0;
+    }
+}
+
+class MultiBuildTarget {
+    public name: string;
+    public targetPath: string;
+    public binaryPath: string;
+    public success: bool;
+    public durationMs: double;
+    public output: string;
+
+    public constructor(name: string, targetPath: string, binPath: string) {
+        this.name = name;
+        this.targetPath = targetPath;
+        this.binaryPath = binPath;
+        this.success = false;
+        this.durationMs = 0.0;
+        this.output = "";
+    }
+}

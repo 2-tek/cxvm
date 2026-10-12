@@ -1,0 +1,225 @@
+// ==============================================================================
+// 2-TEK Ecosystem: Migrate cxvm app aliases to 'cxvm --app {appName}' (Pure Cex)
+// Rule Conformance: Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+// ==============================================================================
+
+import fs from "fs";
+import child_process from "child_process";
+
+class AppAliasMigrator {
+    public targetDir: string;
+    public fixMode: bool;
+    public scannedCount: int;
+    public modifiedCount: int;
+    public replacementCount: int;
+
+    public constructor(targetDir: string, fixMode: bool) {
+        this.targetDir = targetDir.length() == 0 ? "." : targetDir;
+        this.fixMode = fixMode;
+        this.scannedCount = 0;
+        this.modifiedCount = 0;
+        this.replacementCount = 0;
+    }
+
+    public isIgnoredPath(p: string): bool {
+        if (p.find("/.git") != -1 || p.rfind(".git", 0) == 0) return true;
+        if (p.find("/.cvm") != -1 || p.rfind(".cvm", 0) == 0) return true;
+        if (p.find("/node_modules") != -1) return true;
+        if (p.find("/.cex_cache") != -1) return true;
+        if (p.find("/.cex_boxes") != -1) return true;
+        if (p.find("/tmp") != -1) return true;
+        if (p.find("/dist/") != -1 || p == "dist" || p.rfind("dist/", 0) == 0) return true;
+        if (p.find("/downloads/") != -1 || p == "downloads" || p.rfind("downloads/", 0) == 0) return true;
+        if (p.find("/bin/") != -1 || p == "bin" || p.rfind("bin/", 0) == 0) return true;
+        if (p.find("migrate_cxvm_app_alias") != -1) return true;
+        return false;
+    }
+
+    public isTextFile(p: string): bool {
+        if (p.find(".tar.gz") != -1 || p.find(".zip") != -1) return false;
+        if (p.find(".png") != -1 || p.find(".jpg") != -1 || p.find(".ico") != -1) return false;
+        return p.find(".cex") != -1 ||
+               p.find(".json") != -1 ||
+               p.find(".sh") != -1 ||
+               p.find(".ps1") != -1 ||
+               p.find(".cmd") != -1 ||
+               p.find(".md") != -1 ||
+               p.find(".yml") != -1 ||
+               p.find(".yaml") != -1;
+    }
+
+    public migrateContent(content: string, outReplCount: int*): string {
+        string res = "";
+        int repls = 0;
+        size_t pos = 0;
+        size_t len = content.length();
+
+        while (pos < len) {
+            size_t matchPos = content.find("cxvm ", pos);
+            if (matchPos == string::npos) {
+                res += content.substr(pos);
+                break;
+            }
+
+            // Avoid replacing log tags like '[cxvm thunder]' or definition mentions like 'alias: cxvm thunder'
+            if (matchPos > 0 && content[matchPos - 1] == '[') {
+                res += content.substr(pos, matchPos - pos + 5);
+                pos = matchPos + 5;
+                continue;
+            }
+            if (matchPos >= 7 && content.substr(matchPos - 7, 7) == "alias: ") {
+                res += content.substr(pos, matchPos - pos + 5);
+                pos = matchPos + 5;
+                continue;
+            }
+
+            res += content.substr(pos, matchPos - pos);
+
+            // Check what follows "cxvm "
+            size_t afterMatch = matchPos + 5;
+            string remainder = content.substr(afterMatch);
+
+            // Avoid replacing already migrated 'cxvm --app' or 'cxvm app'
+            if (remainder.rfind("--app", 0) == 0 || remainder.rfind("app ", 0) == 0) {
+                res += "cxvm ";
+                pos = afterMatch;
+                continue;
+            }
+
+            if (remainder.rfind("thunder", 0) == 0) {
+                // Ensure boundary
+                size_t afterWord = afterMatch + 7;
+                char nextChar = afterWord < len ? content[afterWord] : ' ';
+                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
+                    res += "cxvm --app thunder";
+                    repls++;
+                    pos = afterWord;
+                    continue;
+                }
+            } else if (remainder.rfind("lighting", 0) == 0) {
+                size_t afterWord = afterMatch + 8;
+                char nextChar = afterWord < len ? content[afterWord] : ' ';
+                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
+                    res += "cxvm --app lighting";
+                    repls++;
+                    pos = afterWord;
+                    continue;
+                }
+            } else if (remainder.rfind("deepsea", 0) == 0) {
+                size_t afterWord = afterMatch + 7;
+                char nextChar = afterWord < len ? content[afterWord] : ' ';
+                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
+                    res += "cxvm --app deepsea";
+                    repls++;
+                    pos = afterWord;
+                    continue;
+                }
+            }
+
+            res += "cxvm ";
+            pos = afterMatch;
+        }
+
+        *outReplCount = repls;
+        return res;
+    }
+
+    public processFile(filePath: string): void {
+        this.scannedCount++;
+        let content: string = fs.readFile(filePath);
+        int fileRepls = 0;
+        let newContent: string = this.migrateContent(content, &fileRepls);
+
+        if (fileRepls > 0) {
+            this.modifiedCount++;
+            this.replacementCount += fileRepls;
+            if (this.fixMode) {
+                fs.writeFile(filePath, newContent);
+                println("  [OK] Migrated: " + filePath + " (" + to_string(fileRepls) + " alias occurrence(s) updated)");
+            } else {
+                println("  [DRY-RUN] Found: " + filePath + " (" + to_string(fileRepls) + " alias occurrence(s) to migrate)");
+            }
+        }
+    }
+
+    public run(): int {
+        println("===============================================================================");
+        println("       2-TEK Ecosystem: Migrate cxvm app aliases to 'cxvm --app {appName}'     ");
+        println("===============================================================================");
+        println("  Target Directory: " + this.targetDir);
+        println("  Execution Mode:   " + (this.fixMode ? "FIX (In-Place File Updates)" : "CHECK (Dry-Run Preview)"));
+        println("  Target Aliases:   'cxvm thunder', 'cxvm lighting', 'cxvm deepsea'");
+        println("  Replacement:      'cxvm --app {appName}'");
+        println("-------------------------------------------------------------------------------");
+
+        // Use python or find to get file paths cleanly
+        string findCmd = "python3 -c \"import os; [print(os.path.join(root, f)) for root, dirs, files in os.walk('" + this.targetDir + "') for f in files]\" 2>/dev/null";
+        string allFilesRaw = child_process.execSync(findCmd);
+        
+        std::stringstream ss(allFilesRaw);
+        string line;
+        while (std::getline(ss, line)) {
+            while (!line.empty() && (line.back() == '\r' || line.back() == '\n' || line.back() == ' ')) {
+                line.pop_back();
+            }
+            if (line.empty()) continue;
+            if (this.isIgnoredPath(line)) continue;
+            if (!this.isTextFile(line)) continue;
+
+            this.processFile(line);
+        }
+
+        println("-------------------------------------------------------------------------------");
+        println("=== Migration Summary ===");
+        println("  Files Scanned:    " + to_string(this.scannedCount));
+        println("  Files To Migrate: " + to_string(this.modifiedCount));
+        println("  Total Aliases:    " + to_string(this.replacementCount));
+        if (this.fixMode) {
+            println("[OK] All legacy cxvm aliases successfully migrated to 'cxvm --app {appName}'!");
+        } else {
+            if (this.modifiedCount > 0) {
+                println("[WARN] Dry-run found " + to_string(this.modifiedCount) + " file(s) requiring migration. Run with --fix to apply.");
+            } else {
+                println("[OK] All files already conform to 'cxvm --app {appName}'. No changes needed.");
+            }
+        }
+        println("===============================================================================");
+        return 0;
+    }
+}
+
+fn main(): int {
+    let args: Array<string>* = process.argv;
+    let targetPath: string = ".";
+    let fixMode: bool = false;
+
+    let len: int = (int)args->length();
+    for (let i: int = 1; i < len; i++) {
+        let a: string = args->get(i);
+        if (a == "--fix" || a == "-f" || a == "--write") {
+            fixMode = true;
+        } else if (a == "--check" || a == "--dry-run") {
+            fixMode = false;
+        } else if (a == "--path" || a == "-p") {
+            if (i + 1 < len) {
+                targetPath = args->get(i + 1);
+                i++;
+            }
+        } else if (a.rfind("--path=", 0) == 0) {
+            targetPath = a.substr(7);
+        } else if (a == "--help" || a == "-h") {
+            println("Usage: cexr tasks/migrate_cxvm_app_alias.cex [options]");
+            println("Options:");
+            println("  --path <dir>     Target directory to scan (default: .)");
+            println("  --fix            Apply migration in-place");
+            println("  --check          Dry-run preview without modifying files (default)");
+            println("  --help           Show this help message");
+            return 0;
+        } else if (a.length() > 0 && a.front() != '-') {
+            targetPath = a;
+        }
+    }
+
+    let migrator: AppAliasMigrator* = new AppAliasMigrator(targetPath, fixMode);
+    return migrator->run();
+}

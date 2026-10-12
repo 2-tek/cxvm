@@ -49,6 +49,12 @@ if (Test-Path "downloads\thunder-server") {
     Invoke-WebRequest -Uri "$factoryUrl/downloads/thunder-server" -OutFile (Join-Path $cxvmDir "bin\thunder-server") -UseBasicParsing -ErrorAction SilentlyContinue
 }
 
+foreach ($tool in @("cexp", "cexp.ps1", "cexp.cmd", "cexr-v4", "cexr-v4.ps1", "cexr-v4.cmd")) {
+    if (Test-Path "downloads\$tool") {
+        Copy-Item "downloads\$tool" -Destination (Join-Path $cxvmDir "bin\$tool") -Force
+    }
+}
+
 Write-Host "==> Installing default Cex Runtime v$defaultVersion via cxvm..." -ForegroundColor Green
 if (Test-Path $scriptPath) {
     & $scriptPath -Command "install" -Version $defaultVersion

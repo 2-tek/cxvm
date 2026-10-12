@@ -73,10 +73,13 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/cxvm.sh"), "cxvm.sh exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm.ps1"), "cxvm.ps1 exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm.cmd"), "cxvm.cmd exists in downloads");
+    Assert::isTrue(fs.exists(downDir + "/cexp"), "cexp exists in downloads");
+    Assert::isTrue(fs.exists(downDir + "/cexr-v4"), "cexr-v4 exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/manifest.json"), "manifest.json exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
     Assert::isTrue(fs.exists("dist") && fs.exists("dist/cex-v8.0.0-linux-x86_64.tar.gz"), "dist/ directory contains cross-platform distribution bundles");
     Assert::isTrue(fs.exists("dist/manifest.json") && fs.exists("dist/cxvm"), "dist/ contains cxvm and manifest.json");
+    Assert::isTrue(fs.exists("dist/cexp") && fs.exists("dist/cexr-v4"), "dist/ contains cexp and cexr-v4 binaries");
     suite->addResult("test_distribution_builder_and_artifacts", true, "", 1);
 
     // -------------------------------------------------------------
@@ -112,9 +115,15 @@ fn main(): int {
     Assert::isTrue(downAllRes->output.find("windows-x64.zip") != -1, "downloadAll output mentions windows zip");
     Assert::isTrue(downAllRes->output.find("darwin-arm64.tar.gz") != -1, "downloadAll output mentions macOS tarball");
 
+    Assert::isTrue(cxvm->isVersionAvailable("4.0.0"), "cxvm recognizes version 4.0.0 in catalog");
+    let downV4Res: CxvmCommandResult* = cxvm->download("4.0.0", "linux-x86_64");
+    Assert::isTrue(downV4Res->success, "cxvm download 4.0.0 linux-x86_64 succeeds");
+    Assert::isTrue(downV4Res->output.find("cex-v4.0.0-linux-x86_64.tar.gz") != -1, "download output mentions v4 linux tarball");
+
     let docOut: string = cxvm->doctor();
     Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
     Assert::isTrue(docOut.find("CexR Runtime:      v8") != -1, "cxvm doctor reports CexR v8 runtime");
+    Assert::isTrue(docOut.find("CexR v4 Runtime:   v4") != -1, "cxvm doctor reports CexR v4 runtime");
     Assert::isTrue(docOut.find("CexP Compiler:     v8") != -1, "cxvm doctor reports CexP v8 compiler");
     Assert::isTrue(docOut.find("Pure Cex Native Engine") != -1, "cxvm doctor reports Pure Cex Native Engine");
     Assert::isTrue(docOut.find("Cross-Platform") != -1, "cxvm doctor reports cross-platform support");
@@ -204,6 +213,14 @@ fn main(): int {
 
     let resCxvmCmd: HttpResponse* = app->simulateRequest("GET", "/downloads/cxvm.cmd", "", "");
     Assert::equalsInt(200, resCxvmCmd->statusCode, "GET /downloads/cxvm.cmd returns 200 OK");
+
+    let resCexp: HttpResponse* = app->simulateRequest("GET", "/downloads/cexp", "", "");
+    Assert::equalsInt(200, resCexp->statusCode, "GET /downloads/cexp returns 200 OK");
+    Assert::isTrue(resCexp->body.find("CexP") != -1, "Downloaded cexp contains CexP logic");
+
+    let resCexrV4: HttpResponse* = app->simulateRequest("GET", "/downloads/cexr-v4", "", "");
+    Assert::equalsInt(200, resCexrV4->statusCode, "GET /downloads/cexr-v4 returns 200 OK");
+    Assert::isTrue(resCexrV4->body.find("CexR v4") != -1, "Downloaded cexr-v4 contains CexR v4 logic");
 
     let resBundle: HttpResponse* = app->simulateRequest("GET", "/downloads/cex-v8.0.0-linux-x86_64.tar.gz", "", "");
     Assert::equalsInt(200, resBundle->statusCode, "GET /downloads/cex-v8.0.0-linux-x86_64.tar.gz returns 200 OK");
@@ -411,6 +428,16 @@ fn main(): int {
     let thExecDocker: int = cxvm->cvmExecute("docker", "ps", "");
     Assert::equalsInt(0, thExecDocker, "cxvm cvmExecute docker ps returns exit code 0");
 
+    // Unified Application Engine (--app) routing
+    let thAppExec: int = cxvm->cvmExecute("--app", "thunder", "ps");
+    Assert::equalsInt(0, thAppExec, "cxvm cvmExecute --app thunder ps returns exit code 0");
+
+    let thAppEqExec: int = cxvm->cvmExecute("--app=thunder", "ps", "");
+    Assert::equalsInt(0, thAppEqExec, "cxvm cvmExecute --app=thunder ps returns exit code 0");
+
+    let thDispatchDirect: int = cxvm->dispatchApp("thunder", "ps", "");
+    Assert::equalsInt(0, thDispatchDirect, "cxvm dispatchApp thunder ps returns exit code 0");
+
     // 5. REST Endpoints for Thunder
     let resThStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/status", "", "application/json");
     Assert::equalsInt(200, resThStatus->statusCode, "GET /api/v1/thunder/status returns 200 OK");
@@ -465,6 +492,16 @@ fn main(): int {
 
     let lightingExecCreate: int = cxvm->cvmExecute("lighting", "create", "test-lighting-app");
     Assert::equalsInt(0, lightingExecCreate, "cxvm cvmExecute lighting create returns exit code 0");
+
+    // Unified Application Engine (--app) routing for lighting and deepsea
+    let lightAppExec: int = cxvm->cvmExecute("--app", "lighting", "status");
+    Assert::equalsInt(0, lightAppExec, "cxvm cvmExecute --app lighting status returns exit code 0");
+
+    let deepAppExec: int = cxvm->cvmExecute("--app", "deepsea", "doctor");
+    Assert::equalsInt(0, deepAppExec, "cxvm cvmExecute --app deepsea doctor returns exit code 0");
+
+    let deepDispatchDirect: int = cxvm->dispatchApp("deepsea", "doctor", "");
+    Assert::equalsInt(0, deepDispatchDirect, "cxvm dispatchApp deepsea doctor returns exit code 0");
 
     // 3. REST API /api/v1/light/status
     let resLightStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/light/status", "", "application/json");
@@ -672,6 +709,163 @@ fn main(): int {
     Assert::isTrue(docHooks.find("pre-commit (cex-lint --fix)") != -1, "Doctor reports pre-commit hook active");
 
     suite->addResult("test_git_and_cvm_hooks_subsystem", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 14: CexRunners Multi-Event Reactive Pipelines & Metrics
+    // -------------------------------------------------------------
+    println("\n[Test Suite 14: CexRunners Multi-Event Reactive Pipelines & Metrics]");
+
+    Assert::isTrue(cxvm->runners !== nullptr, "cxvm->runners is initialized");
+    Assert::isTrue(cxvm->runners->getBindingCount() >= 3, "cxvm->runners has at least 3 event bindings (build, start, process)");
+
+    let runnerDispatchCount: int = cxvm->runners->dispatchToTarget("cxvm", "build", "{\"targets\":\"dist/server\"}");
+    Assert::isTrue(runnerDispatchCount >= 1, "dispatchToTarget dispatches to build pipeline");
+
+    let rMetrics: RunnerMetrics* = cxvm->runners->getMetrics();
+    Assert::isTrue(rMetrics->totalEvents >= 1, "Runner metrics track totalEvents");
+    Assert::isTrue(rMetrics->dispatchedEvents >= 1, "Runner metrics track dispatchedEvents");
+
+    // CLI execution via cvmExecute
+    let runnerExec1: int = cxvm->cvmExecute("runner", "status", "");
+    Assert::equalsInt(0, runnerExec1, "cxvm cvmExecute runner status returns exit code 0");
+
+    let runnerExec2: int = cxvm->cvmExecute("runner", "metrics", "");
+    Assert::equalsInt(0, runnerExec2, "cxvm cvmExecute runner metrics returns exit code 0");
+
+    let runnerExec3: int = cxvm->cvmExecute("runner", "dispatch", "cxvm build test");
+    Assert::equalsInt(0, runnerExec3, "cxvm cvmExecute runner dispatch returns exit code 0");
+
+    // REST API GET /api/v1/runners/status
+    let resRunnersStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/runners/status", "", "application/json");
+    Assert::equalsInt(200, resRunnersStatus->statusCode, "GET /api/v1/runners/status returns 200 OK");
+    Assert::isTrue(resRunnersStatus->body.find("CexRunners") != -1, "Runners status reports CexRunners");
+    Assert::isTrue(resRunnersStatus->body.find("\"bindingCount\":") != -1, "Runners status reports bindingCount");
+
+    // REST API GET /api/v1/runners/metrics
+    let resRunnersMetrics: HttpResponse* = app->simulateRequest("GET", "/api/v1/runners/metrics", "", "application/json");
+    Assert::equalsInt(200, resRunnersMetrics->statusCode, "GET /api/v1/runners/metrics returns 200 OK");
+    Assert::isTrue(resRunnersMetrics->body.find("dispatchedEvents") != -1, "Runners metrics reports dispatchedEvents");
+
+    // REST API POST /api/v1/runners/dispatch
+    let resRunnersDispatch: HttpResponse* = app->simulateRequest("POST", "/api/v1/runners/dispatch", "{\"target\":\"cxvm\",\"event\":\"build\",\"payload\":\"{}\"}", "application/json");
+    Assert::equalsInt(200, resRunnersDispatch->statusCode, "POST /api/v1/runners/dispatch returns 200 OK");
+    Assert::isTrue(resRunnersDispatch->body.find("SUCCESS") != -1, "Runners dispatch reports SUCCESS");
+
+    suite->addResult("test_cex_runners_reactive_pipelines", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 15: CexRacer Multi-Queue Machine Scheduler & Supervisor
+    // -------------------------------------------------------------
+    println("\n[Test Suite 15: CexRacer Multi-Queue Machine Scheduler & Supervisor]");
+
+    Assert::isTrue(cxvm->racer !== nullptr, "cxvm->racer is initialized");
+    Assert::isTrue(cxvm->racer->scheduler !== nullptr, "cxvm->racer->scheduler is initialized");
+
+    let racerExec1: int = cxvm->racerExecute("status", "", "");
+    Assert::equalsInt(0, racerExec1, "cxvm racerExecute status returns exit code 0");
+
+    let racerExec2: int = cxvm->racerExecute("queues", "", "");
+    Assert::equalsInt(0, racerExec2, "cxvm racerExecute queues returns exit code 0");
+
+    let racerExec3: int = cxvm->racerExecute("tasks", "", "");
+    Assert::equalsInt(0, racerExec3, "cxvm racerExecute tasks returns exit code 0");
+
+    let racerExec4: int = cxvm->racerExecute("run", "echo racer test", "");
+    Assert::equalsInt(0, racerExec4, "cxvm racerExecute run returns exit code 0");
+
+    let racerExec5: int = cxvm->racerExecute("schedule", "test-sched", "--interval 15m");
+    Assert::equalsInt(0, racerExec5, "cxvm racerExecute schedule returns exit code 0");
+
+    // REST API GET /api/v1/racer/status
+    let resRacerStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/racer/status", "", "application/json");
+    Assert::equalsInt(200, resRacerStatus->statusCode, "GET /api/v1/racer/status returns 200 OK");
+    Assert::isTrue(resRacerStatus->body.find("CexRacer") != -1, "Racer status reports CexRacer");
+    Assert::isTrue(resRacerStatus->body.find("clockIso") != -1, "Racer status reports clockIso");
+
+    // REST API GET /api/v1/racer/queues
+    let resRacerQueues: HttpResponse* = app->simulateRequest("GET", "/api/v1/racer/queues", "", "application/json");
+    Assert::equalsInt(200, resRacerQueues->statusCode, "GET /api/v1/racer/queues returns 200 OK");
+    Assert::isTrue(resRacerQueues->body.find("queues") != -1, "Racer queues reports queues");
+
+    // REST API GET /api/v1/racer/tasks
+    let resRacerTasks: HttpResponse* = app->simulateRequest("GET", "/api/v1/racer/tasks", "", "application/json");
+    Assert::equalsInt(200, resRacerTasks->statusCode, "GET /api/v1/racer/tasks returns 200 OK");
+    Assert::isTrue(resRacerTasks->body.find("totalScheduled") != -1, "Racer tasks reports totalScheduled");
+
+    // REST API POST /api/v1/racer/run
+    let resRacerRun: HttpResponse* = app->simulateRequest("POST", "/api/v1/racer/run", "{\"command\":\"echo test\",\"queue\":\"default\"}", "application/json");
+    Assert::equalsInt(200, resRacerRun->statusCode, "POST /api/v1/racer/run returns 200 OK");
+    Assert::isTrue(resRacerRun->body.find("SUCCESS") != -1, "Racer run reports SUCCESS");
+
+    suite->addResult("test_cex_racer_scheduler_and_queues", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 16: Multi-Build, Multi-Start & Process Supervisor Orchestration
+    // -------------------------------------------------------------
+    println("\n[Test Suite 16: Multi-Build, Multi-Start & Process Supervisor Orchestration]");
+
+    Assert::isTrue(cxvm->processes !== nullptr, "cxvm->processes is initialized");
+    Assert::isTrue(cxvm->listProcesses() !== nullptr, "cxvm->listProcesses returns process records");
+
+    // Test process management
+    let procStartRes: CxvmCommandResult* = cxvm->startProcess("worker-task", "echo worker", 0, true);
+    Assert::isTrue(procStartRes->success, "cxvm startProcess succeeds");
+
+    let procStatRes: CxvmCommandResult* = cxvm->statusProcess("worker-task");
+    Assert::isTrue(procStatRes->success, "cxvm statusProcess succeeds");
+
+    let procStopRes: CxvmCommandResult* = cxvm->stopProcess("worker-task");
+    Assert::isTrue(procStopRes->success, "cxvm stopProcess succeeds");
+
+    // Test multiBuild
+    let mbRes: CxvmCommandResult* = cxvm->multiBuild("dist/server", "");
+    Assert::isTrue(mbRes->success, "cxvm multiBuild succeeds");
+    Assert::isTrue(mbRes->output.find("Built target:") != -1, "Output confirms target built");
+
+    // Test multiStart
+    let msRes: CxvmCommandResult* = cxvm->multiStart("server,cvm", true);
+    Assert::isTrue(msRes->success, "cxvm multiStart succeeds in daemon mode");
+    Assert::isTrue(msRes->output.find("Started service: server") != -1, "Output confirms server service started");
+
+    // Test CLI executions
+    let multiExec1: int = cxvm->cvmExecute("multi", "build", "");
+    Assert::equalsInt(0, multiExec1, "cxvm cvmExecute multi build returns exit code 0");
+
+    let multiExec2: int = cxvm->cvmExecute("multi", "process", "");
+    Assert::equalsInt(0, multiExec2, "cxvm cvmExecute multi process returns exit code 0");
+
+    let psExec: int = cxvm->cvmExecute("ps", "", "");
+    Assert::equalsInt(0, psExec, "cxvm cvmExecute ps returns exit code 0");
+
+    let buildRacerExec: int = cxvm->cvmExecute("build", "--racer", "");
+    Assert::equalsInt(0, buildRacerExec, "cxvm cvmExecute build --racer returns exit code 0");
+
+    let startRacerExec: int = cxvm->cvmExecute("start", "--racer", "");
+    Assert::equalsInt(0, startRacerExec, "cxvm cvmExecute start --racer returns exit code 0");
+
+    // REST API GET /api/v1/process/list
+    let resProcList: HttpResponse* = app->simulateRequest("GET", "/api/v1/process/list", "", "application/json");
+    Assert::equalsInt(200, resProcList->statusCode, "GET /api/v1/process/list returns 200 OK");
+    Assert::isTrue(resProcList->body.find("processes") != -1, "Process list reports processes array");
+
+    // REST API POST /api/v1/multi/build
+    let resApiMultiBuild: HttpResponse* = app->simulateRequest("POST", "/api/v1/multi/build", "{\"targets\":\"dist/server\"}", "application/json");
+    Assert::equalsInt(200, resApiMultiBuild->statusCode, "POST /api/v1/multi/build returns 200 OK");
+    Assert::isTrue(resApiMultiBuild->body.find("SUCCESS") != -1, "Multi build reports SUCCESS");
+
+    // REST API POST /api/v1/multi/start
+    let resApiMultiStart: HttpResponse* = app->simulateRequest("POST", "/api/v1/multi/start", "{\"services\":\"server,thunder\",\"daemon\":true}", "application/json");
+    Assert::equalsInt(200, resApiMultiStart->statusCode, "POST /api/v1/multi/start returns 200 OK");
+    Assert::isTrue(resApiMultiStart->body.find("SUCCESS") != -1, "Multi start reports SUCCESS");
+
+    // Doctor verification of CexRunners & CexRacer
+    let docOut16: string = cxvm->doctor();
+    Assert::isTrue(docOut16.find("CexRacer Scheduler:") != -1, "Doctor reports CexRacer Scheduler");
+    Assert::isTrue(docOut16.find("CexRunners Pipelines:") != -1, "Doctor reports CexRunners Pipelines");
+    Assert::isTrue(docOut16.find("Supervised Processes:") != -1, "Doctor reports Supervised Processes");
+    Assert::isTrue(docOut16.find("App Dispatcher:") != -1, "Doctor reports App Dispatcher");
+
+    suite->addResult("test_multi_orchestration_and_supervisor", true, "", 1);
 
     println("\n");
     TestReporter::printSummary(suite);

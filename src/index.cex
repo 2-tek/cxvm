@@ -95,7 +95,7 @@ fn main(): int {
     print("    Result: "); println(srvStopRes->success ? "PASSED [OK]" : "FAILED");
 
     // 3c. Testing Integrated Thunder Container Engine Commands
-    println("\n[3c. Testing Integrated Thunder Engine (cxvm thunder, cxvm docker, cxvm start thunder)]");
+    println("\n[3c. Testing Integrated Thunder Engine (cxvm --app thunder, cxvm docker, cxvm start thunder)]");
     println("  --> Simulating: cxvm start thunder (standalone single process)");
     let thStartRes: CxvmCommandResult* = app->cxvm->startThunder(3050, true);
     print("    Result: "); println(thStartRes->success ? "PASSED [OK]" : "FAILED");
@@ -105,7 +105,7 @@ fn main(): int {
     let thStatRes: CxvmCommandResult* = app->cxvm->statusThunder();
     println("    " + thStatRes->output);
 
-    println("  --> Simulating: cxvm thunder ps");
+    println("  --> Simulating: cxvm --app thunder ps");
     let thPsCode: int = app->cxvm->thunderExecute("ps", "", "");
     print("    Result: "); println(thPsCode == 0 ? "PASSED [OK]" : "FAILED");
 
