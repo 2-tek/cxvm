@@ -101,23 +101,16 @@ public:
         this.ensureRulesDirectory(projDir);
 
         let rule1Path: string = rulesDir + "/RULE_CEX_LINT.md";
-        let rule2Path: string = rulesDir + "/rule-cex-lint.md";
+        // Legacy kebab-case twin: duplicates are merged into RULE_CEX_LINT.md and must not be regenerated.
+        let legacyPath: string = rulesDir + "/rule-cex-lint.md";
         let canonical: string = this.getCanonicalRuleContent();
 
         let needUpdate1: bool = true;
-        let needUpdate2: bool = true;
 
         if (fs.exists(rule1Path)) {
             let existing: string = fs.readFile(rule1Path);
             if (existing.find("trigger: always_on") != std::string::npos && existing.find("MANDATORY ALWAYS CEX-LINT") != std::string::npos) {
                 needUpdate1 = false;
-            }
-        }
-
-        if (fs.exists(rule2Path)) {
-            let existing2: string = fs.readFile(rule2Path);
-            if (existing2.find("trigger: always_on") != std::string::npos && existing2.find("MANDATORY ALWAYS CEX-LINT") != std::string::npos) {
-                needUpdate2 = false;
             }
         }
 
@@ -134,15 +127,15 @@ public:
             }
         }
 
-        if (needUpdate2) {
+        if (fs.exists(legacyPath)) {
             summary->addFinding(new AlwaysLintMigrationFinding(
                 projDir,
-                rule2Path,
-                "Add/Update rule-cex-lint.md with always_on trigger",
+                legacyPath,
+                "Remove duplicate rule-cex-lint.md (merged into RULE_CEX_LINT.md)",
                 this.autoFix
             ));
             if (this.autoFix) {
-                fs.writeFile(rule2Path, canonical);
+                child_process.execSync("rm -f \"" + legacyPath + "\"");
                 summary->updatedRules = summary->updatedRules + 1;
             }
         }
