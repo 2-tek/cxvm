@@ -25,6 +25,9 @@ import "@cex-racer/src/thunder_monitor.cex";
 import "@cex-racer/src/racer.cex";
 import "@cex-log/src/log.cex";
 
+#define DEFAULT_CVM_SERVER_PORT 4000
+#define DEFAULT_THUNDER_PORT 3050
+
 class CxvmEngine {
     public currentVersion: string;
     public defaultVersion: string;
@@ -59,12 +62,13 @@ class CxvmEngine {
         this.cxvmHome = "$HOME/.cxvm";
         this.cvmRepo = new Repository(".", "main");
         this.cvmCli = new CvmCLI(this.cvmRepo);
-        this.cvmServerRunning = false;
-        this.cvmServerPid = 0;
-        this.cvmServerPort = 4000;
+
+        char* cvmPortEnv = getenv("CVM_PORT");
+        this.cvmServerPort = (cvmPortEnv != nullptr && string(cvmPortEnv).length() > 0) ? atoi(cvmPortEnv) : DEFAULT_CVM_SERVER_PORT;
         this.thunderRunning = false;
         this.thunderPid = 0;
-        this.thunderPort = 3050;
+        char* thPortEnv = getenv("THUNDER_PORT");
+        this.thunderPort = (thPortEnv != nullptr && string(thPortEnv).length() > 0) ? atoi(thPortEnv) : DEFAULT_THUNDER_PORT;
         this.thunderContainersRunning = 5;
         this.thunderTotalImages = 7;
         this.serverRunning = false;
