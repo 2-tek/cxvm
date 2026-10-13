@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 2-TEK CexP v8: Pure Cex Direct Machine Compiler & ELF/PE Generator
+# 2-TEK cexp v8: Pure Cex Direct Machine Compiler & ELF/PE Generator
 # Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
 # ==============================================================================
 set -e
@@ -11,13 +11,13 @@ export CXVM_DIR
 export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." 2>/dev/null && pwd || echo "$CXVM_DIR/current")}"
 
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexP v8.0.0 (Pure Cex Direct Machine Compiler & ELF/PE Generator)"
+  echo "cexp v8.0.0 (Pure Cex Direct Machine Compiler & ELF/PE Generator)"
   exit 0
 fi
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
   echo "==============================================================="
-  echo "   2-TEK Cex Toolchain (CexP v8.0.0 Direct Machine Compiler)   "
+  echo "   2-TEK Cex Toolchain (cexp v8.0.0 Direct Machine Compiler)   "
   echo "==============================================================="
   echo "Usage: cexp <command> [options]"
   echo ""
@@ -25,17 +25,17 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
   echo "  build <file.cex> [-o <out>]    Compile Cex file to native machine binary"
   echo "  compile <file.cex> [-o <out>]  Compile project or source to executable"
   echo "  doctor                         Run pre-flight compiler diagnostics"
-  echo "  version                        Display CexP compiler version"
+  echo "  version                        Display cexp compiler version"
   echo "  help                           Display this help documentation"
   exit 0
 fi
 
 if [ "$1" = "doctor" ]; then
   echo "==============================================================="
-  echo "   CexP Toolchain Doctor (v8.0.0 Direct Machine Compiler)      "
+  echo "   cexp Toolchain Doctor (v8.0.0 Direct Machine Compiler)      "
   echo "==============================================================="
   echo "  CEX_HOME:          $CEX_HOME"
-  echo "  CexP Compiler:     v8.0.0 [READY]"
+  echo "  cexp Compiler:     v8.0.0 [READY]"
   echo "  Architecture:      $(uname -m)"
   echo "  Platform:          $(uname -s)"
   echo "  Toolchain Model:   Pure Cex Direct Machine Compiler & ELF/PE Generator"
@@ -71,5 +71,5 @@ elif [ -x "$CEX_BIN_DIR/cexr" ]; then
   exec "$CEX_BIN_DIR/cexr" build "$@"
 fi
 
-echo "[CexP v8.0.0] Compiled target successfully."
+echo "[cexp v8.0.0] Compiled target successfully."
 exit 0

@@ -12,7 +12,7 @@ $cmd = if ($Args.Count -gt 0) { $Args[0] } else { "" }
 function Show-V4Banner {
     Write-Host "==============================================================================="
     Write-Host "   2-TEK CexR v4: Native Machine Code Runtime Engine & JSON File Context CLI   "
-    Write-Host "   Target: use C-ex to execute machine code directly via CexP/v4, with auto-  "
+    Write-Host "   Target: use C-ex to execute machine code directly via cexp/v4, with auto-  "
     Write-Host "           bundling of .cex_boxes dependencies first & @{name} alias support   "
     Write-Host "==============================================================================="
 }
@@ -36,14 +36,14 @@ if ($cmd -eq "" -or $cmd -eq "--help" -or $cmd -eq "-h" -or $cmd -eq "help") {
 
 if ($cmd -eq "--version" -or $cmd -eq "-v" -or $cmd -eq "version") {
     Write-Host "CexR v4.0.0 (Native Machine Code Runtime Engine & JSON File Context)"
-    Write-Host "Target: use C-ex to execute machine code directly via CexP/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
+    Write-Host "Target: use C-ex to execute machine code directly via cexp/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
     exit 0
 }
 
 if ($cmd -eq "doctor") {
     Show-V4Banner
     Write-Host "[Doctor]: Runtime Engine: HEALTHY [OK]"
-    Write-Host "[Doctor]: Target:         use C-ex to execute machine code directly via CexP/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
+    Write-Host "[Doctor]: Target:         use C-ex to execute machine code directly via cexp/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
     Write-Host "[Doctor]: JSON Subsystem: File Context Reader Active [OK]"
     Write-Host "[Doctor]: Bundler:        Dependency Auto-Bundler & Alias Resolver v4 Active [OK]"
     exit 0
@@ -66,5 +66,5 @@ if ($cmd -eq "read-json") {
     exit 0
 }
 
-Write-Host "[CexR v4 Engine] Ready | Version: 4.0.0 | Target: use C-ex to execute machine code directly via CexP/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
+Write-Host "[CexR v4 Engine] Ready | Version: 4.0.0 | Target: use C-ex to execute machine code directly via cexp/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
 exit 0

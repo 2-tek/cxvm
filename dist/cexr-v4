@@ -13,7 +13,7 @@ export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." 2>/dev/null && pwd || echo "
 print_banner() {
   echo "==============================================================================="
   echo "   2-TEK CexR v4: Native Machine Code Runtime Engine & JSON File Context CLI   "
-  echo "   Target: use C-ex to execute machine code directly via CexP/v4, with auto-  "
+  echo "   Target: use C-ex to execute machine code directly via cexp/v4, with auto-  "
   echo "           bundling of .cex_boxes dependencies first & @{name} alias support   "
   echo "==============================================================================="
 }
@@ -39,7 +39,7 @@ cmd="$1"
 
 if [ "$cmd" = "--version" ] || [ "$cmd" = "-v" ] || [ "$cmd" = "version" ]; then
   echo "CexR v4.0.0 (Native Machine Code Runtime Engine & JSON File Context)"
-  echo "Target: use C-ex to execute machine code directly via CexP/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
+  echo "Target: use C-ex to execute machine code directly via cexp/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
   exit 0
 fi
 
@@ -51,7 +51,7 @@ fi
 if [ "$cmd" = "doctor" ]; then
   print_banner
   echo "[Doctor]: Runtime Engine: HEALTHY [OK]"
-  echo "[Doctor]: Target:         use C-ex to execute machine code directly via CexP/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
+  echo "[Doctor]: Target:         use C-ex to execute machine code directly via cexp/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
   echo "[Doctor]: JSON Subsystem: File Context Reader Active [OK]"
   echo "[Doctor]: Bundler:        Dependency Auto-Bundler & Alias Resolver v4 Active [OK]"
   exit 0
@@ -86,7 +86,7 @@ else
 fi
 
 if [ -f "$target_file" ]; then
-  echo "[CexR v4 Engine] Ready | Version: 4.0.0 | Target: use C-ex to execute machine code directly via CexP/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
+  echo "[CexR v4 Engine] Ready | Version: 4.0.0 | Target: use C-ex to execute machine code directly via cexp/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
   # If system cexr is available, execute through it
   if command -v cexr >/dev/null 2>&1; then
     exec cexr "$target_file" "$@"

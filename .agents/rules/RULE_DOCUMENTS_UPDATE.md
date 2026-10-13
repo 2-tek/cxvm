@@ -20,7 +20,7 @@ trigger: always_on
     - Projects resolve the documentation repository dynamically at `../documents`.
     - The documentation book organizes chapters by project name:
         - `documents/src/cxvm/` for CXVM distribution and version manager features.
-        - `documents/src/cexp/` for CexP direct machine compiler features.
+        - `documents/src/cexp/` for cexp direct machine compiler features.
         - `documents/src/cexr/` for CexR runtime engine features.
         - `documents/src/packages/{packageName}/` for Cex ecosystem packages (e.g., `cex-pack`, `cex-cli`, `cex-cvm`, `cex-cvm-cli`).
 3. **Table of Contents Synchronization**:

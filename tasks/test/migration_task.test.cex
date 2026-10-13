@@ -6,7 +6,7 @@ import "@cex-test/src/runner.cex";
 import "../migrate_cexp_to_v8_cexr.cex";
 
 fn main(): int {
-    let suite: TestSuite* = new TestSuite("CexP to CexR v8 Migration Task Test Suite");
+    let suite: TestSuite* = new TestSuite("cexp to CexR v8 Migration Task Test Suite");
     cex::GC::pin(suite);
 
     println("===============================================================================");

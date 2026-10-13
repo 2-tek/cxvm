@@ -24,12 +24,12 @@ fn main(): int {
 
     let versions: Array<string> = ["8.0.0", "6.0.0", "5.0.0", "3.0.0", "2.0.0", "1.0.0"];
     let platforms: Array<string> = [
-        "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:CexP v8 (Native Direct Compiler)",
-        "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:CexP v8 (Native Direct Compiler)",
-        "darwin-arm64:darwin:arm64:tar.gz:aarch64-apple-darwin:CexP v8 (Native Direct Compiler)",
-        "darwin-x86_64:darwin:x86_64:tar.gz:x86_64-apple-darwin:CexP v8 (Native Direct Compiler)",
-        "windows-x64:windows:x64:zip:x86_64-pc-windows-msvc:CexP v8 (Native Direct Compiler)",
-        "windows-arm64:windows:arm64:zip:aarch64-pc-windows-msvc:CexP v8 (Native Direct Compiler)"
+        "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:cexp v8 (Native Direct Compiler)",
+        "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:cexp v8 (Native Direct Compiler)",
+        "darwin-arm64:darwin:arm64:tar.gz:aarch64-apple-darwin:cexp v8 (Native Direct Compiler)",
+        "darwin-x86_64:darwin:x86_64:tar.gz:x86_64-apple-darwin:cexp v8 (Native Direct Compiler)",
+        "windows-x64:windows:x64:zip:x86_64-pc-windows-msvc:cexp v8 (Native Direct Compiler)",
+        "windows-arm64:windows:arm64:zip:aarch64-pc-windows-msvc:cexp v8 (Native Direct Compiler)"
     ];
 
     let scratchDir: string = ".cex_cache/scratch_factory";
@@ -61,7 +61,7 @@ fn main(): int {
             system(("chmod +x " + pkgDir + "/bin/cexr").c_str());
 
             // 2. bin/cexp
-            let cexpScript: string = "#!/usr/bin/env bash\n# CexP Direct Machine Compiler Wrapper for " + pid + "\nCEX_BIN_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\nexec \"$CEX_BIN_DIR/cexr\" \"$@\"\n";
+            let cexpScript: string = "#!/usr/bin/env bash\n# cexp Direct Machine Compiler Wrapper for " + pid + "\nCEX_BIN_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\nexec \"$CEX_BIN_DIR/cexr\" \"$@\"\n";
             fs.writeFile(pkgDir + "/bin/cexp", cexpScript);
             system(("chmod +x " + pkgDir + "/bin/cexp").c_str());
 

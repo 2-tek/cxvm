@@ -254,12 +254,12 @@ RUNNER_SCRIPT
   if [ ! -x "$target_ver_dir/bin/cexp" ]; then
     cat <<'COMPILER_SCRIPT' > "$target_ver_dir/bin/cexp"
 #!/usr/bin/env bash
-# CexP: Direct Native Machine Compiler
+# cexp: Direct Native Machine Compiler
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexP v8.0.0 (Direct Native Machine Compiler; Pure Cex Toolchain)"
+  echo "cexp v8.0.0 (Direct Native Machine Compiler; Pure Cex Toolchain)"
   exit 0
 fi
-echo "--> [CexP v8.0.0] Compiling: $@"
+echo "--> [cexp v8.0.0] Compiling: $@"
 exit 0
 COMPILER_SCRIPT
     chmod +x "$target_ver_dir/bin/cexp"

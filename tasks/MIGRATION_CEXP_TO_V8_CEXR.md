@@ -1,4 +1,4 @@
-# Migration Task Suite: Migrating Codebases from CexP to CexR v8 Syntax & Toolchain
+# Migration Task Suite: Migrating Codebases from cexp to CexR v8 Syntax & Toolchain
 
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 81 (Native Syntax), Rule 82 (CXVM & Direct CexR), Rule 83 (Import cpp/c Replace #include), Rule 84 (No C++ in v8), RULE_AGENTS_MVC_MVP_V8_CEXR_TASKS -->
 
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Rationale
 
-| Dimension              | Legacy CexP Standard                               | Canonical CexR v8 Standard                        | Migration Action                               |
+| Dimension              | Legacy cexp Standard                               | Canonical CexR v8 Standard                        | Migration Action                               |
 | :--------------------- | :------------------------------------------------- | :------------------------------------------------ | :--------------------------------------------- |
 | **Runtime Engine**     | Direct `cexp` / `cexp v3` compiler invocations     | Unified `v8 cexr` with native GC & JIT tiering    | Replace `cexp` invocations with `cexr`         |
 | **Command Syntax**     | `cexr run <file.cex>` / `cexp run <file.cex>`      | `cexr <file.cex>` (**NO `run` SUBCOMMAND**)       | Strip `run` subcommand across all commands     |
@@ -112,6 +112,7 @@
 
 - **Objective**: Automate the execution of migration tasks as managed background queues.
 - **Commands**:
+
     ```bash
     # Execute migration task on default queue
     cxvm racer run "cexr tasks/migrate_cexp_to_v8_cexr.cex" --queue default

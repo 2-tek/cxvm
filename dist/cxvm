@@ -3744,15 +3744,32 @@ EOF
 
       if [ -d "bin" ]; then
         if [ -f "bin/cexr" ]; then
-          echo "--> [cxvm upgrade] Synchronized project ./bin/cexr dispatcher"
+          echo "--> [cxvm upgrade] Synchronized project ./bin/cexr dispatcher ($(pwd)/bin/cexr)"
         fi
         if [ -f "bin/cexp" ]; then
-          echo "--> [cxvm upgrade] Synchronized project ./bin/cexp dispatcher"
+          echo "--> [cxvm upgrade] Synchronized project ./bin/cexp dispatcher ($(pwd)/bin/cexp)"
         fi
       fi
 
-      echo "[OK] [cxvm upgrade] cexr runtime engine upgraded to v$target_ver"
-      echo "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v$target_ver"
+      local cexr_bin="$CXVM_DIR/bin/cexr"
+      local cexp_bin="$CXVM_DIR/bin/cexp"
+      local cexr_desc="$cexr_bin"
+      local cexp_desc="$cexp_bin"
+      if [ -L "$cexr_bin" ]; then
+        local cexr_link
+        cexr_link="$(readlink "$cexr_bin" 2>/dev/null || true)"
+        [ -n "$cexr_link" ] && cexr_desc="$cexr_bin -> $cexr_link"
+      fi
+      if [ -L "$cexp_bin" ]; then
+        local cexp_link
+        cexp_link="$(readlink "$cexp_bin" 2>/dev/null || true)"
+        [ -n "$cexp_link" ] && cexp_desc="$cexp_bin -> $cexp_link"
+      fi
+
+      echo "--> [cxvm upgrade] cexr binary path: $cexr_desc"
+      echo "--> [cxvm upgrade] cexp binary path: $cexp_desc"
+      echo "[OK] [cxvm upgrade] cexr runtime engine upgraded to v$target_ver ($cexr_bin)"
+      echo "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v$target_ver ($cexp_bin)"
       echo "[OK] [cxvm upgrade] Dispatched active toolchain symlinks in $CXVM_DIR/bin/"
       echo "[OK] [cxvm upgrade] Cex toolchain successfully upgraded to latest version (v$target_ver)"
       return 0

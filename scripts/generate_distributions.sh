@@ -25,12 +25,12 @@ echo "Target output directory: $DOWNLOADS_DIR"
 
 VERSIONS=("8.0.0" "6.0.0" "5.0.0" "4.0.0" "3.0.0" "2.0.0" "1.0.0")
 PLATFORMS=(
-  "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:CexP v8 (Native Direct Compiler)"
-  "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:CexP v8 (Native Direct Compiler)"
-  "darwin-arm64:darwin:arm64:tar.gz:aarch64-apple-darwin:CexP v8 (Native Direct Compiler)"
-  "darwin-x86_64:darwin:x86_64:tar.gz:x86_64-apple-darwin:CexP v8 (Native Direct Compiler)"
-  "windows-x64:windows:x64:zip:x86_64-pc-windows-msvc:CexP v8 (Native Direct Compiler)"
-  "windows-arm64:windows:arm64:zip:aarch64-pc-windows-msvc:CexP v8 (Native Direct Compiler)"
+  "linux-x86_64:linux:x86_64:tar.gz:x86_64-unknown-linux-gnu:cexp v8 (Native Direct Compiler)"
+  "linux-aarch64:linux:aarch64:tar.gz:aarch64-unknown-linux-gnu:cexp v8 (Native Direct Compiler)"
+  "darwin-arm64:darwin:arm64:tar.gz:aarch64-apple-darwin:cexp v8 (Native Direct Compiler)"
+  "darwin-x86_64:darwin:x86_64:tar.gz:x86_64-apple-darwin:cexp v8 (Native Direct Compiler)"
+  "windows-x64:windows:x64:zip:x86_64-pc-windows-msvc:cexp v8 (Native Direct Compiler)"
+  "windows-arm64:windows:arm64:zip:aarch64-pc-windows-msvc:cexp v8 (Native Direct Compiler)"
 )
 
 # 1. Ensure cxvm (bash), cxvm.sh, cxvm.ps1, and cvm-server exist in DOWNLOADS_DIR
@@ -303,7 +303,7 @@ if [ "\$1" = "run" ]; then
 fi
 
 echo "2-TEK Cex Toolchain v${ver} (${pid})"
-echo "CexR v8 Native Machine Code Runtime & CexP v8 Direct Compiler ready."
+echo "CexR v8 Native Machine Code Runtime & cexp v8 Direct Compiler ready."
 CEOF
     chmod +x "$PKG_DIR/bin/cexr"
 
@@ -334,7 +334,7 @@ if "%~1"=="doctor" (
     exit /b 0
 )
 echo 2-TEK Cex Toolchain v${ver} (${pid})
-echo CexR v8 Native Machine Code Runtime & CexP v8 Direct Compiler ready.
+echo CexR v8 Native Machine Code Runtime & cexp v8 Direct Compiler ready.
 WEOF
       cat <<WEOF > "$PKG_DIR/bin/cex.cmd"
 @echo off
@@ -408,7 +408,7 @@ WEOF
     
     # 6b. Header files
     cat <<HEOF > "$PKG_DIR/include/cex/runtime.h"
-// Cex Pure Native Runtime Definitions v${ver} for ${pid} (CexR + CexP)
+// Cex Pure Native Runtime Definitions v${ver} for ${pid} (CexR + cexp)
 #ifndef CEX_RUNTIME_H
 #define CEX_RUNTIME_H
 #define CEX_VERSION "${ver}"
@@ -471,7 +471,7 @@ manifest = {
     "version": "2.0.0",
     "updatedAt": "2026-10-08T00:00:00Z",
     "defaultVersion": "8.0.0",
-    "defaultRuntime": "CexR v8 + CexP v8 (Pure Cex Native Engine)",
+    "defaultRuntime": "CexR v8 + cexp v8 (Pure Cex Native Engine)",
     "toolchain": "cexr + cexp (zero C++ dependency)",
     "versions": ["8.0.0", "6.0.0", "5.0.0", "3.0.0", "2.0.0", "1.0.0"],
     "platforms": ["linux-x86_64", "linux-aarch64", "darwin-arm64", "darwin-x86_64", "windows-x64", "windows-arm64"],

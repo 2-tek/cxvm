@@ -1139,8 +1139,15 @@ echo CexR Windows Runner ready.
         & $PSCommandPath -Command "use" -Version $targetVer
         & $PSCommandPath -Command "default" -Version $targetVer
 
-        Write-Host "[OK] [cxvm upgrade] cexr runtime engine upgraded to v$targetVer" -ForegroundColor Green
-        Write-Host "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v$targetVer" -ForegroundColor Green
+        $cexrBin = Join-Path $cxvmHome "bin\cexr"
+        $cexpBin = Join-Path $cxvmHome "bin\cexp"
+        $cexrTarget = Join-Path $cxvmHome "versions\v$targetVer\bin\cexr"
+        $cexpTarget = Join-Path $cxvmHome "versions\v$targetVer\bin\cexp"
+
+        Write-Host "--> [cxvm upgrade] cexr binary path: $cexrBin -> $cexrTarget" -ForegroundColor Cyan
+        Write-Host "--> [cxvm upgrade] cexp binary path: $cexpBin -> $cexpTarget" -ForegroundColor Cyan
+        Write-Host "[OK] [cxvm upgrade] cexr runtime engine upgraded to v$targetVer ($cexrBin)" -ForegroundColor Green
+        Write-Host "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v$targetVer ($cexpBin)" -ForegroundColor Green
         Write-Host "[OK] [cxvm upgrade] Dispatched active toolchain symlinks in $cxvmHome\bin\" -ForegroundColor Green
         Write-Host "[OK] [cxvm upgrade] Cex toolchain successfully upgraded to latest version (v$targetVer)" -ForegroundColor Green
     }

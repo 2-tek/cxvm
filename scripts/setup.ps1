@@ -24,7 +24,7 @@ function Show-SetupWindow {
   Write-Host "  Platform:    Windows (x64 / arm64 PowerShell)" -ForegroundColor White
   Write-Host "  CXVM Home:   $CxvmDir" -ForegroundColor Blue
   Write-Host "  Project:     $ProjectRoot" -ForegroundColor White
-  Write-Host "  Default:     CexR v$DefaultVersion & CexP v8 (Pure Cex Native Engine: cexr + cexp)" -ForegroundColor Green
+  Write-Host "  Default:     CexR v$DefaultVersion & cexp v8 (Pure Cex Native Engine: cexr + cexp)" -ForegroundColor Green
   Write-Host "  Runtime v4:  CexR v$V4Version (Native Machine Code & JSON Context)" -ForegroundColor Green
   Write-Host "  Secondary:   CexR v$SecondaryVersion (LTS Native Engine & JIT)" -ForegroundColor Magenta
   Write-Host "  Source Mode: 100% Offline-Ready from Local Sources (No Download Needed)" -ForegroundColor Cyan
@@ -106,9 +106,9 @@ try {
 Write-Host "`n[3/5] Setting up Cex Runtime Engines (v8, v4, v6) from Sources..." -ForegroundColor White
 $cxvmScript = Join-Path $binDir "cxvm.ps1"
 if (Test-Path $cxvmScript) {
-  Write-Host "  --> Installing Cex v$DefaultVersion & CexP v8 (Pure Cex Native Engine)..." -ForegroundColor Gray
+  Write-Host "  --> Installing Cex v$DefaultVersion & cexp v8 (Pure Cex Native Engine)..." -ForegroundColor Gray
   & $cxvmScript install $DefaultVersion | Out-Null
-  Write-Host "  [OK] CexR v$DefaultVersion & CexP v8 installed." -ForegroundColor Green
+  Write-Host "  [OK] CexR v$DefaultVersion & cexp v8 installed." -ForegroundColor Green
 
   Write-Host "  --> Installing Cex v$V4Version (Native Machine Code & JSON Context)..." -ForegroundColor Gray
   & $cxvmScript install $V4Version | Out-Null
@@ -236,7 +236,7 @@ Write-Host "    2-TEK CXVM: Windows Installation & Setup Complete [OK]          
 Write-Host "================================================================================" -ForegroundColor Cyan
 Write-Host "  CXVM Directory:    $CxvmDir" -ForegroundColor White
 Write-Host "  Active Runtime:    CexR v$DefaultVersion (Pure Cex Default)" -ForegroundColor Green
-Write-Host "  Compiler Engine:   CexP v8.0.0 (Direct Machine Compiler & ELF/PE Generator)" -ForegroundColor Green
+Write-Host "  Compiler Engine:   cexp v8.0.0 (Direct Machine Compiler & ELF/PE Generator)" -ForegroundColor Green
 Write-Host "  Runtime v4 Engine: CexR v$V4Version (Native Machine Code & JSON Context)" -ForegroundColor Green
 Write-Host "  Secondary Runtime: CexR v$SecondaryVersion (LTS)" -ForegroundColor Magenta
 Write-Host "  Source Mode:       100% Offline-Ready from Local Sources (No Download Needed)" -ForegroundColor Cyan

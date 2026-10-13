@@ -78,7 +78,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
 | Version              | `2.0.0`                | Pure Cex Native Engine Standard                         |
 | Target               | `"target": "runtime"`  | Strictly Immutable (Rule 69)                            |
 | Runtime Requirement  | `"cexr": "^8"`         | CexR v8 .cex_boxes Dist Loader Engine                   |
-| Compiler Requirement | `"cexp": "^8"`         | CexP v8 Direct Machine Compiler                         |
+| Compiler Requirement | `"cexp": "^8"`         | cexp v8 Direct Machine Compiler                         |
 | Server Port          | `3080`                 | Factory MVC Default Port                                |
 | Primary Store        | `dist/` & `downloads/` | **Keep `dist/` with downloads of cxvm cross platforms** |
 

@@ -28,21 +28,21 @@ class DistBuilder {
     }
 
     private initPlatforms(): void {
-        this.platforms->push(new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8 (Native Direct Compiler)", "tar.gz", "Linux x86_64 (Intel/AMD)"));
-        this.platforms->push(new PlatformModel("linux-aarch64", "linux", "aarch64", "aarch64-unknown-linux-gnu", "CexP v8 (Native Direct Compiler)", "tar.gz", "Linux ARM64 (aarch64)"));
-        this.platforms->push(new PlatformModel("darwin-arm64", "darwin", "arm64", "aarch64-apple-darwin", "CexP v8 (Native Direct Compiler)", "tar.gz", "macOS Apple Silicon (M1-M4)"));
-        this.platforms->push(new PlatformModel("darwin-x86_64", "darwin", "x86_64", "x86_64-apple-darwin", "CexP v8 (Native Direct Compiler)", "tar.gz", "macOS Intel 64-bit"));
-        this.platforms->push(new PlatformModel("windows-x64", "windows", "x64", "x86_64-pc-windows-msvc", "CexP v8 (Native Direct Compiler)", "zip", "Windows 64-bit (x64)"));
-        this.platforms->push(new PlatformModel("windows-arm64", "windows", "arm64", "aarch64-pc-windows-msvc", "CexP v8 (Native Direct Compiler)", "zip", "Windows ARM64"));
+        this.platforms->push(new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "cexp v8 (Native Direct Compiler)", "tar.gz", "Linux x86_64 (Intel/AMD)"));
+        this.platforms->push(new PlatformModel("linux-aarch64", "linux", "aarch64", "aarch64-unknown-linux-gnu", "cexp v8 (Native Direct Compiler)", "tar.gz", "Linux ARM64 (aarch64)"));
+        this.platforms->push(new PlatformModel("darwin-arm64", "darwin", "arm64", "aarch64-apple-darwin", "cexp v8 (Native Direct Compiler)", "tar.gz", "macOS Apple Silicon (M1-M4)"));
+        this.platforms->push(new PlatformModel("darwin-x86_64", "darwin", "x86_64", "x86_64-apple-darwin", "cexp v8 (Native Direct Compiler)", "tar.gz", "macOS Intel 64-bit"));
+        this.platforms->push(new PlatformModel("windows-x64", "windows", "x64", "x86_64-pc-windows-msvc", "cexp v8 (Native Direct Compiler)", "zip", "Windows 64-bit (x64)"));
+        this.platforms->push(new PlatformModel("windows-arm64", "windows", "arm64", "aarch64-pc-windows-msvc", "cexp v8 (Native Direct Compiler)", "zip", "Windows ARM64"));
     }
 
     private initVersions(): void {
-        this.versions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & CexP v8 Pure Engine", "CexR v8 Native .cex_boxes Dist Loader Runtime & CexP v8 Direct Machine Compiler (Default)", true));
-        this.versions->push(new VersionModel("6.0.0", "LTS", "2026-10-07", "CexR v6 & CexP v6 Pure Engine", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler", false));
-        this.versions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "CexR v5 & CexP v5 Pure Engine", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
-        this.versions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "CexR v3 & CexP v3 Pure Engine", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler", false));
-        this.versions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "CexR v2 & CexP v2 Pure Engine", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
-        this.versions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "CexR v1 & CexP v1 Pure Engine", "CexR v1 Native Machine Runtime & Standard Libraries", false));
+        this.versions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & cexp v8 Pure Engine", "CexR v8 Native .cex_boxes Dist Loader Runtime & cexp v8 Direct Machine Compiler (Default)", true));
+        this.versions->push(new VersionModel("6.0.0", "LTS", "2026-10-07", "CexR v6 & cexp v6 Pure Engine", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler", false));
+        this.versions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "CexR v5 & cexp v5 Pure Engine", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
+        this.versions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "CexR v3 & cexp v3 Pure Engine", "CexR v3 Native Machine Engine & cexp v3 Direct Compiler", false));
+        this.versions->push(new VersionModel("2.0.0", "LTS", "2026-09-01", "CexR v2 & cexp v2 Pure Engine", "CexR v2 Multi-Source Compiler & Self-Hosted Engine", false));
+        this.versions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "CexR v1 & cexp v1 Pure Engine", "CexR v1 Native Machine Runtime & Standard Libraries", false));
     }
 
     public refreshArtifacts(): void {

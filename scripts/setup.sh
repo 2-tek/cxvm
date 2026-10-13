@@ -265,12 +265,12 @@ install_runtime_version() {
 # CexR v4: Native Machine Code Runtime Engine & JSON File Context
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
   echo "CexR v4.0.0 (Native Machine Code Runtime Engine & JSON File Context)"
-  echo "Target: use C-ex to execute machine code directly via CexP/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
+  echo "Target: use C-ex to execute machine code directly via cexp/v4, with auto-bundling of .cex_boxes dependencies first and @{name} alias resolving to @{name}/{cex-pack.json -> output}"
   exit 0
 fi
 if [ "$1" = "doctor" ]; then
   echo "[Doctor]: Runtime Engine: HEALTHY [OK]"
-  echo "[Doctor]: Target: use C-ex to execute machine code directly via CexP/v4"
+  echo "[Doctor]: Target: use C-ex to execute machine code directly via cexp/v4"
   exit 0
 fi
 echo "--> [CexR v4.0.0] Executing: $@"
@@ -326,12 +326,12 @@ RUNNER_SCRIPT
   if [ ! -x "$target_ver_dir/bin/cexp" ]; then
     cat <<'COMPILER_SCRIPT' > "$target_ver_dir/bin/cexp"
 #!/usr/bin/env bash
-# CexP: Direct Native Machine Compiler
+# cexp: Direct Native Machine Compiler
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexP v8.0.0 (Pure Cex Direct Machine Compiler & ELF/PE Generator)"
+  echo "cexp v8.0.0 (Pure Cex Direct Machine Compiler & ELF/PE Generator)"
   exit 0
 fi
-echo "--> [CexP v8.0.0] Compiling: $@"
+echo "--> [cexp v8.0.0] Compiling: $@"
 exit 0
 COMPILER_SCRIPT
     chmod +x "$target_ver_dir/bin/cexp"
@@ -468,7 +468,7 @@ echo "    2-TEK CXVM: Installation & Setup Complete [OK]                        
 echo "================================================================================"
 echo "  CXVM Directory:    $CXVM_DIR"
 echo "  cxvm Binary:       $CXVM_DIR/bin/cxvm [READY]"
-echo "  CexP Compiler:     v8.0.0 ($CXVM_DIR/bin/cexp [READY])"
+echo "  cexp Compiler:     v8.0.0 ($CXVM_DIR/bin/cexp [READY])"
 echo "  Active Runtime:    CexR v${DEFAULT_VER} (Pure Cex Default)"
 echo "  Runtime v4:        CexR v${V4_VER} ($CXVM_DIR/bin/cexr-v4 [READY])"
 echo "  Secondary Runtime: CexR v${SECONDARY_VER} (LTS)"

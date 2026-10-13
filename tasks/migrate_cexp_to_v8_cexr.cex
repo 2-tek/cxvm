@@ -1,4 +1,4 @@
-// 2-TEK CexR v8: CexP -> CexR v8 Automated Migration Task
+// 2-TEK CexR v8: cexp -> CexR v8 Automated Migration Task
 // Conforms to Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 81 (Native Syntax), Rule 82 (CXVM & Direct CexR), Rule 83 (Import cpp/c Replace #include)
 
 import "cpp/string";
