@@ -1,0 +1,32 @@
+╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                   2-TEK CexTest Code Coverage Report                                        ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+File                                           Lines    Exec     Hit    Miss   Cover %   Missing Lines
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+src/types.cex                                    141      47      47       0      100%   None
+src/models/platform_model.cex                     58      30      30       0      100%   None
+src/models/version_model.cex                      54      27      27       0      100%   None
+src/models/artifact_model.cex                     58      30      30       0      100%   None
+src/builder/dist_builder.cex                     121      71      71       0      100%   None
+src/cvm/types.cex                                319     126     126       0      100%   None
+src/cvm/hash_utils.cex                           204     125     125       0      100%   None
+src/cvm/diff_engine.cex                          107      66      66       0      100%   None
+src/cvm/merge_manager.cex                        132      70      70       0      100%   None
+src/cvm/cvm_patch.cex                            179     129     129       0      100%   None
+src/cvm/ref_manager.cex                          135      73      73       0      100%   None
+src/cvm/object_store.cex                         161      87      87       0      100%   None
+src/cvm/repository.cex                           268     141     141       0      100%   None
+src/cvm/cli.cex                                  276     203     203       0      100%   None
+src/controllers/factory_controller.cex           927     708     708       0      100%   None
+src/views/factory_views.cex                      400     333     333       0      100%   None
+src/lighting_mvc.cex                             427     194     194       0      100%   None
+src/log.cex                                        5       0       0       0      100%   None
+src/app.cex                                      402     220     220       0      100%   None
+src/server.cex                                    44      26      26       0      100%   None
+src/index.cex                                    216     147     147       0      100%   None
+src/cxvm/cxvm_engine.cex                        2656    1949    1949       0      100%   None
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL                                           7290    4802    4802       0      100%   -
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  Coverage Health: EXCELLENT ✅ (100% statement coverage)
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────

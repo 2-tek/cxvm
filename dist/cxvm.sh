@@ -3823,13 +3823,20 @@ EOF
         fi
       done
 
-      # Ensure compiler fallback from system if not yet copied
-      if [ -x "$HOME/bin/cex/compiler/v1/cex" ]; then
+      # Ensure compiler fallback from system if not yet copied (minimum cexp >= v3)
+      fallback_compiler=""
+      for comp in "$HOME/Projects/cexp/bin/cexp" "$HOME/.cex/bin/cexp-v3" "$HOME/.cex/bin/3.0.1/cexp" "$HOME/bin/cex/compiler/v3/cex" "$HOME/bin/cex/compiler/v6/cex"; do
+        if [ -x "$comp" ]; then
+          fallback_compiler="$comp"
+          break
+        fi
+      done
+      if [ -n "$fallback_compiler" ]; then
         if [ ! -f "$CXVM_DIR/bin/cexr" ] || [ ! -s "$CXVM_DIR/bin/cexr" ]; then
-          cp -f "$HOME/bin/cex/compiler/v1/cex" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+          cp -f "$fallback_compiler" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
         fi
         if [ ! -f "$CXVM_DIR/bin/cexp" ] || [ ! -s "$CXVM_DIR/bin/cexp" ]; then
-          cp -f "$HOME/bin/cex/compiler/v1/cex" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+          cp -f "$fallback_compiler" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
         fi
       fi
 

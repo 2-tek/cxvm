@@ -1,6 +1,6 @@
 {
     "name": "cxvm",
-    "version": "2.0.14",
+    "version": "2.0.15",
     "description": "cxvm v2: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (Pure Cex: cexr + cexp, zero C++ dependency), powered by Lighting MVC",
     "main": "src/index.cex",
     "author": "2-TEK Ecosystem",
@@ -73,14 +73,14 @@
     "dependencies": {
         "cex-env": "1.0.0",
         "cex-logger": "1.0.0",
-        "cex-test": "1.0.10",
+        "cex-test": "1.0.0",
         "cex-service": "1.0.0",
         "cex-lint": "1.0.0",
         "cex-pack": "1.0.0",
         "cex-cli": "1.0.0",
         "cex-racer": "1.0.0",
         "cex-runners": "1.0.0",
-        "cex-log": "1.0.11"
+        "cex-log": "1.0.0"
     },
     "includeDirs": ["./src"],
     "lint": {
