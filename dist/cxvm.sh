@@ -1922,17 +1922,50 @@ zf.close()" 2>/dev/null || true
       fi
     done
 
+    local latest_ver=""
     if [ -n "$src_dir" ]; then
+      # 1. Check last version in cvm or git
+      if [ -d "$src_dir/.git" ]; then
+        latest_ver="$(git -C "$src_dir" tag -l --sort=-v:refname 2>/dev/null | grep -E '^v?[0-9]' | head -n 1 | sed 's/^v//')"
+      fi
+      if [ -z "$latest_ver" ] && [ -d "$src_dir/.cvm" ]; then
+        latest_ver="$(cvm -C "$src_dir" tag 2>/dev/null | grep -E '^v?[0-9]' | head -n 1 | sed 's/^v//')"
+      fi
+      if [ -z "$latest_ver" ] && [ -f "$src_dir/cex-pack.json" ]; then
+        latest_ver="$(python3 -c "import json; print(json.load(open('$src_dir/cex-pack.json')).get('version', ''))" 2>/dev/null || echo "")"
+      fi
+      if [ -z "$latest_ver" ]; then
+        latest_ver="1.0.0"
+      fi
+
+      echo "  [OK] Checked cvm/git last version for $clean_name: v$latest_ver"
       cp -rf "$src_dir"/* "$target_cache/" 2>/dev/null || true
       cp -rf "$src_dir"/* "$box_target/" 2>/dev/null || true
-      echo "  [OK] Pulled latest $clean_name from $(cd "$src_dir" && pwd)"
+
+      for m_cand in "$target_cache/cex-pack.json" "$box_target/cex-pack.json"; do
+        if [ -f "$m_cand" ]; then
+          python3 -c "
+import json
+try:
+    with open('$m_cand', 'r') as f:
+        d = json.load(f)
+    d['version'] = '$latest_ver'
+    with open('$m_cand', 'w') as f:
+        json.dump(d, f, indent=4)
+        f.write('\n')
+except Exception: pass
+" 2>/dev/null || true
+        fi
+      done
+      echo "  [OK] Installed $clean_name (v$latest_ver) to dependencies path: $target_cache"
     else
+      latest_ver="1.0.0"
       # Scaffold pure Cex package
       mkdir -p "$target_cache/src" "$box_target/src"
       cat <<EOF_PKG > "$target_cache/cex-pack.json"
 {
   "name": "$clean_name",
-  "version": "1.0.0",
+  "version": "$latest_ver",
   "target": "runtime",
   "main": "src/index.cex"
 }
@@ -1947,7 +1980,7 @@ EOF_PKG
       ln -sf "$clean_name" "$repo_root/.cex_boxes/@$clean_name" 2>/dev/null || true
     fi
 
-    # Ensure dependency is recorded in cex-pack.json
+    # Fetch and rewrite with the last version in project cex-pack.json
     if [ -f "$repo_root/cex-pack.json" ]; then
       python3 -c "
 import json
@@ -1956,13 +1989,16 @@ try:
     with open(p, 'r') as f:
         d = json.load(f)
     deps = d.setdefault('dependencies', {})
-    if '$clean_name' not in deps and '@$clean_name' not in deps:
-        deps['$clean_name'] = '1.0.0'
+    key = '$clean_name'
+    if '@$clean_name' in deps:
+        key = '@$clean_name'
+    deps[key] = '$latest_ver'
     with open(p, 'w') as f:
         json.dump(d, f, indent=4)
         f.write('\n')
 except Exception: pass
 " 2>/dev/null || true
+      echo "  [OK] Fetched and rewrote $clean_name dependency in cex-pack.json with last version: v$latest_ver"
     fi
 
     echo "[OK] [cxvm upgrade] Integrated $clean_name into cxvm (.cex_boxes/$clean_name)"
@@ -3446,6 +3482,18 @@ INDEX_EOF
       ;;
 
     test)
+      local cextest_ver=""
+      local cextest_pack=""
+      for cp in ".cex_boxes/cex-test/cex-pack.json" "$CXVM_DIR/tmp/dependencies/cex-test/cex-pack.json"; do
+        if [ -f "$cp" ]; then cextest_pack="$cp"; break; fi
+      done
+      if [ -n "$cextest_pack" ]; then
+        cextest_ver="$(python3 -c "import json; print(json.load(open('$cextest_pack')).get('version', ''))" 2>/dev/null || true)"
+      fi
+      if [ -n "$cextest_ver" ]; then
+        echo "==> [cxvm test] Test runner powered by cex-test (v$cextest_ver)"
+      fi
+
       if [ -n "$1" ]; then
         local t_cexr
         t_cexr="$(_cxvm_get_runner)"
@@ -3654,11 +3702,7 @@ EOF
         pkg_name="$(_cxvm_detect_package_name .)"
         if [ -z "$pkg_name" ]; then pkg_name="app"; fi
         mkdir -p bin
-        if [ "$pkg_name" = "cxvm" ]; then
-          out_bin="bin/cxvm-server"
-        else
-          out_bin="bin/$pkg_name"
-        fi
+        out_bin="bin/$pkg_name"
       fi
 
       echo "==> [cxvm build] Compiling $main_file -> $out_bin with native Cex compiler..."

@@ -28,7 +28,7 @@ trigger: always_on
 | **Web Setup Window**            | `curl http://localhost:3080/setup` \| browser at `:3080/setup`      | Open full visual Lighting MVC desktop window UI                                         |
 | **Run Test Suites**             | `cexr run tests/cxvm.test.cex` & `cexr run tests/factory.test.cex`  | Execute full regression test suites                                                     |
 | **Generate Distributions**      | `bash scripts/generate_distributions.sh`                            | Build and package 36 platform bundles into `downloads/` & `dist/`                       |
-| **Compile Native Binary**       | `./bin/cex build src/index.cex -o bin/cxvm-server`                  | Compile Cex code directly via `cexp`                                                    |
+| **Compile Native Binary**       | `./bin/cex build src/index.cex -o bin/cxvm`                         | Compile Cex code directly via `cexp`                                                    |
 | **Auto-Lint & Dev Runner**      | `cxvm dev` \| `cxvm light dev`                                      | Automatically lints code with CexLint before launching dev server                       |
 | **Lint Codebase**               | `cxvm lint [paths...]` \| `cxvm lint --fix`                         | Execute CexLint across include paths and auto-repair formatting                         |
 | **Environment Doctor**          | `./bin/cex doctor` \| `./bin/cxvm doctor`                           | Inspect environment, paths, active runtime, and toolchains                              |

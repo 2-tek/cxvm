@@ -406,18 +406,50 @@ class CxvmEngine {
             localSources->push("../../dependencies/" + baseName);
             localSources->push("dependencies/" + baseName);
 
+            let latestVer: string = "1.0.0";
+            let foundSrc: string = "";
             let sCount: int = (int)localSources->length();
             for (let s: int = 0; s < sCount; s++) {
                 let cand: string = localSources->get(s);
                 if (fs.exists(cand + "/cex-pack.json")) {
-                    system(("cp -rf \"" + cand + "\"/* \"" + targetCache + "/\" 2>/dev/null").c_str());
-                    system(("cp -rf \"" + cand + "\"/* \"" + boxTarget + "/\" 2>/dev/null").c_str());
+                    foundSrc = cand;
                     localFound = true;
                     break;
                 }
             }
 
-            if (!localFound) {
+            if (localFound) {
+                let tmpVerFile: string = "/tmp/cxvm_dep_ver_" + baseName + ".txt";
+                let pyVerCmd: string = "python3 -c \"import subprocess, json, sys; cand = '" + foundSrc + "'; ver = ''; ";
+                pyVerCmd = pyVerCmd + "try:\n    res = subprocess.run(['git', '-C', cand, 'tag', '-l', '--sort=-v:refname'], capture_output=True, text=True)\n    tags = [t.lstrip('v') for t in res.stdout.strip().split('\\n') if t and (t.startswith('v') or t[0].isdigit())]\n    if tags: ver = tags[0]\nexcept Exception: pass\n";
+                pyVerCmd = pyVerCmd + "if not ver:\n    try:\n        res = subprocess.run(['cvm', '-C', cand, 'tag'], capture_output=True, text=True)\n        tags = [t.lstrip('v') for t in res.stdout.strip().split('\\n') if t and (t.startswith('v') or t[0].isdigit())]\n        if tags: ver = tags[0]\n    except Exception: pass\n";
+                pyVerCmd = pyVerCmd + "if not ver:\n    try: ver = json.load(open(cand + '/cex-pack.json')).get('version', '')\n    except Exception: pass\n";
+                pyVerCmd = pyVerCmd + "open('" + tmpVerFile + "', 'w').write(ver or '1.0.0')\" 2>/dev/null";
+                system(pyVerCmd.c_str());
+                if (fs.exists(tmpVerFile)) {
+                    latestVer = fs.readFile(tmpVerFile);
+                    while (latestVer.length() > 0 && (latestVer.substr(latestVer.length() - 1) == "\n" || latestVer.substr(latestVer.length() - 1) == "\r")) {
+                        latestVer = latestVer.substr(0, latestVer.length() - 1);
+                    }
+                    system(("rm -f \"" + tmpVerFile + "\"").c_str());
+                }
+                if (latestVer.length() == 0) {
+                    latestVer = "1.0.0";
+                }
+
+                outMsg += "  [OK] Checked cvm/git last version for " + baseName + ": v" + latestVer + "\n";
+                system(("cp -rf \"" + foundSrc + "\"/* \"" + targetCache + "/\" 2>/dev/null").c_str());
+                system(("cp -rf \"" + foundSrc + "\"/* \"" + boxTarget + "/\" 2>/dev/null").c_str());
+                outMsg += "  [OK] Installed " + baseName + " (v" + latestVer + ") to dependencies path: " + targetCache + "\n";
+
+                let pyRewrite: string = "python3 -c \"import json\n";
+                pyRewrite = pyRewrite + "for p in ['" + targetCache + "/cex-pack.json', '" + boxTarget + "/cex-pack.json']:\n";
+                pyRewrite = pyRewrite + "    try:\n        d = json.load(open(p))\n        d['version'] = '" + latestVer + "'\n        with open(p, 'w') as f:\n            json.dump(d, f, indent=4)\n            f.write('\\n')\n    except Exception: pass\n";
+                pyRewrite = pyRewrite + "try:\n    d = json.load(open('cex-pack.json'))\n    deps = d.setdefault('dependencies', {})\n    k = '" + baseName + "'\n    if '@" + baseName + "' in deps:\n        k = '@" + baseName + "'\n    deps[k] = '" + latestVer + "'\n    with open('cex-pack.json', 'w') as f:\n        json.dump(d, f, indent=4)\n        f.write('\\n')\nexcept Exception: pass\n";
+                pyRewrite = pyRewrite + "\" 2>/dev/null";
+                system(pyRewrite.c_str());
+                outMsg += "  [OK] Fetched and rewrote " + baseName + " dependency in cex-pack.json with last version: v" + latestVer + "\n";
+            } else {
                 let scJson: string = "{\\n  \\\"name\\\": \\\"" + baseName + "\\\",\\n  \\\"version\\\": \\\"1.0.0\\\",\\n  \\\"target\\\": \\\"runtime\\\",\\n  \\\"main\\\": \\\"src/index.cex\\\"\\n}\\n";
                 system(("printf \"" + scJson + "\" > \"" + targetCache + "/cex-pack.json\"").c_str());
                 system(("mkdir -p \"" + targetCache + "/src\"").c_str());
@@ -428,22 +460,6 @@ class CxvmEngine {
             // Create symlink for @baseName if not exists
             if (!fs.exists(".cex_boxes/@" + baseName)) {
                 system(("cd .cex_boxes && ln -sf \"" + baseName + "\" \"@" + baseName + "\" 2>/dev/null || true").c_str());
-            }
-
-            // Update cex-pack.json dependencies
-            if (fs.exists("cex-pack.json")) {
-                let mText: string = fs.readFile("cex-pack.json");
-                if (mText.find("\"" + baseName + "\"") == -1 && mText.find("\"@" + baseName + "\"") == -1) {
-                    let dPos: int = (int)mText.find("\"dependencies\"");
-                    if (dPos != -1) {
-                        let openB: int = (int)mText.find("{", dPos);
-                        if (openB != -1) {
-                            let ins: string = "\n        \"" + baseName + "\": \"1.0.0\",";
-                            mText.insert(openB + 1, ins);
-                            fs.writeFile("cex-pack.json", mText);
-                        }
-                    }
-                }
             }
 
             outMsg += "[OK] [cxvm upgrade] Integrated " + baseName + " into cxvm (.cex_boxes/" + baseName + ")\n";

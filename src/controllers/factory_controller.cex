@@ -436,7 +436,7 @@ class FactoryController extends BaseController {
         let res: CxvmCommandResult* = cxvm->startServer(".", true);
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setStr(doc, "service", "cxvm-server");
+        JsonDoc::setStr(doc, "service", "cxvm");
         JsonDoc::setStr(doc, "mode", "daemon (background)");
         JsonDoc::setNum(doc, "pid", cxvm->serverPid);
         JsonDoc::setStr(doc, "message", res->message);

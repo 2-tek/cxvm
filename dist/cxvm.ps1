@@ -400,12 +400,24 @@ function Upgrade-Dependencies {
             "..\..\dependencies\$cleanName"
         )
         $found = $false
+        $latestVer = "1.0.0"
         foreach ($src in $localSources) {
             if (Test-Path (Join-Path $src "cex-pack.json")) {
+                if (Test-Path (Join-Path $src ".git")) {
+                    $gitTag = git -C $src tag -l --sort=-v:refname 2>$null | Select-Object -First 1
+                    if ($gitTag) { $latestVer = $gitTag.TrimStart('v') }
+                }
+                if ($latestVer -eq "1.0.0" -and (Test-Path (Join-Path $src "cex-pack.json"))) {
+                    try {
+                        $pJson = Get-Content (Join-Path $src "cex-pack.json") -Raw | ConvertFrom-Json
+                        if ($pJson.version) { $latestVer = $pJson.version }
+                    } catch {}
+                }
                 Copy-Item -Path "$src\*" -Destination $targetFolder -Recurse -Force -ErrorAction SilentlyContinue
                 Copy-Item -Path "$src\*" -Destination $boxTarget -Recurse -Force -ErrorAction SilentlyContinue
                 $found = $true
-                Write-Host "  [OK] Pulled latest $cleanName from $src" -ForegroundColor Green
+                Write-Host "  [OK] Checked cvm/git last version for $cleanName: v$latestVer" -ForegroundColor Green
+                Write-Host "  [OK] Installed $cleanName (v$latestVer) to dependencies path: $targetFolder" -ForegroundColor Green
                 break
             }
         }
@@ -413,7 +425,7 @@ function Upgrade-Dependencies {
             $scaffold = @"
 {
   "name": "$cleanName",
-  "version": "1.0.0",
+  "version": "$latestVer",
   "target": "runtime",
   "main": "src/index.cex"
 }
@@ -421,6 +433,22 @@ function Upgrade-Dependencies {
             Set-Content -Path (Join-Path $targetFolder "cex-pack.json") -Value $scaffold
             Set-Content -Path (Join-Path $boxTarget "cex-pack.json") -Value $scaffold
             Write-Host "  [OK] Initialized package $cleanName in $targetFolder" -ForegroundColor Green
+        } else {
+            if (Test-Path "cex-pack.json") {
+                try {
+                    $mJson = Get-Content "cex-pack.json" -Raw | ConvertFrom-Json
+                    if (-not $mJson.dependencies) { $mJson | Add-Member -MemberType NoteProperty -Name "dependencies" -Value (New-Object PSObject) }
+                    $targetKey = $cleanName
+                    if ($mJson.dependencies.PSObject.Properties["@$cleanName"]) { $targetKey = "@$cleanName" }
+                    if ($mJson.dependencies.PSObject.Properties[$targetKey]) {
+                        $mJson.dependencies.$targetKey = $latestVer
+                    } else {
+                        $mJson.dependencies | Add-Member -MemberType NoteProperty -Name $targetKey -Value $latestVer
+                    }
+                    $mJson | ConvertTo-Json -Depth 10 | Set-Content "cex-pack.json"
+                    Write-Host "  [OK] Fetched and rewrote $cleanName dependency in cex-pack.json with last version: v$latestVer" -ForegroundColor Green
+                } catch {}
+            }
         }
 
         Write-Host "[OK] [cxvm upgrade] Integrated $cleanName into cxvm (.cex_boxes/$cleanName)" -ForegroundColor Green
