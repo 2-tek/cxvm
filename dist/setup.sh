@@ -237,12 +237,12 @@ install_runtime_version() {
   fi
 
   # 4. Integrate version-specific executables
-  if [ "$ver" = "8.0.0" ]; then
-    # v8 cexp direct machine compiler
+  if [ "$ver" = "8.0.0" ] || [ "$ver" = "6.0.0" ]; then
+    # v8 / v6 cexp direct machine compiler (at least v6)
     if [ -f "$CXVM_DIR/bin/cexp" ]; then
       cp -f "$CXVM_DIR/bin/cexp" "$target_ver_dir/bin/cexp"
     fi
-    # v8 cexr runtime
+    # cexr runtime
     if [ -f "$CXVM_DIR/bin/cexr" ]; then
       cp -f "$CXVM_DIR/bin/cexr" "$target_ver_dir/bin/cexr"
     fi
@@ -252,7 +252,11 @@ install_runtime_version() {
       cp -f "$CXVM_DIR/bin/cexr-v4" "$target_ver_dir/bin/cexr"
       cp -f "$CXVM_DIR/bin/cexr-v4" "$target_ver_dir/bin/cexr-v4"
     fi
-    if [ -f "$CXVM_DIR/bin/cexp" ]; then
+    if [ -f "$CXVM_DIR/bin/cexp-v4" ]; then
+      cp -f "$CXVM_DIR/bin/cexp-v4" "$target_ver_dir/bin/cexp"
+    elif [ -f "$HOME/.cex/bin/4.0.0/cexp" ]; then
+      cp -f "$HOME/.cex/bin/4.0.0/cexp" "$target_ver_dir/bin/cexp"
+    elif [ -f "$CXVM_DIR/bin/cexp" ]; then
       cp -f "$CXVM_DIR/bin/cexp" "$target_ver_dir/bin/cexp"
     fi
   fi
@@ -352,7 +356,8 @@ install_runtime_version "$SECONDARY_VER"
 
 # Link active default version to current
 ln -sfn "$CXVM_DIR/versions/v${DEFAULT_VER}" "$CXVM_DIR/current"
-ln -sf "$CXVM_DIR/versions/v8.0.0/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+ln -sf "$CXVM_DIR/versions/v4.0.0/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+ln -sf "$CXVM_DIR/versions/v4.0.0/bin/cexp" "$CXVM_DIR/bin/cexp-v4" 2>/dev/null || true
 ln -sf "$CXVM_DIR/versions/v4.0.0/bin/cexr" "$CXVM_DIR/bin/cexr-v4" 2>/dev/null || true
 ln -sf "$CXVM_DIR/versions/v8.0.0/bin/cexr" "$CXVM_DIR/bin/cexr-v8" 2>/dev/null || true
 ln -sf "$CXVM_DIR/current/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
@@ -468,7 +473,7 @@ echo "    2-TEK CXVM: Installation & Setup Complete [OK]                        
 echo "================================================================================"
 echo "  CXVM Directory:    $CXVM_DIR"
 echo "  cxvm Binary:       $CXVM_DIR/bin/cxvm [READY]"
-echo "  cexp Compiler:     v8.0.0 ($CXVM_DIR/bin/cexp [READY])"
+echo "  cexp Compiler:     v4.0.0 (default compile is v4) ($CXVM_DIR/bin/cexp [READY])"
 echo "  Active Runtime:    CexR v${DEFAULT_VER} (Pure Cex Default)"
 echo "  Runtime v4:        CexR v${V4_VER} ($CXVM_DIR/bin/cexr-v4 [READY])"
 echo "  Secondary Runtime: CexR v${SECONDARY_VER} (LTS)"

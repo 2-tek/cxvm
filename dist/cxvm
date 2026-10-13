@@ -526,21 +526,128 @@ _cxvm_detect_package_name() {
   echo "app"
 }
 
+_cxvm_is_v6_plus_compiler() {
+  local comp="$1"
+  [ -x "$comp" ] || return 1
+  case "$comp" in
+    *cexp-v8*|*/8.0.0/*|*v8.0.0*|*cexp-v7*|*/7.0.0/*|*v7.0.0*|*cexp-v6*|*/6.0.0/*|*v6.0.0*|*/6.0.1/*|*v6.0.1*)
+      return 0
+      ;;
+    *cexp-v5*|*cexp-v4*|*cexp-v3*|*cexp-v2*|*cexp-v1*|*/5.0.0/*|*/4.0.0/*|*/3.0.0/*|*/3.0.1/*|*/2.0.0/*|*/1.0.0/*)
+      return 1
+      ;;
+  esac
+  local ver_out
+  ver_out="$("$comp" --version 2>&1 || true)"
+  if echo "$ver_out" | grep -qE "CexP v[6-9]\.|CexP v[1-9][0-9]\.|Cex v[6-9]\.|v[6-9]\.|v[1-9][0-9]\.|[6-9]\.[0-9]\.[0-9]"; then
+    return 0
+  fi
+  local major_ver
+  major_ver=$(echo "$ver_out" | grep -oE "v[0-9]+" | head -n1 | tr -d 'v')
+  if [ -n "$major_ver" ] && [ "$major_ver" -ge 6 ] 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+_cxvm_find_v6_compiler() {
+  local candidates=(
+    "$CXVM_DIR/bin/cexp"
+    "$CXVM_DIR/current/bin/cexp"
+    "$CXVM_DIR/versions/v8.0.0/bin/cexp"
+    "$CXVM_DIR/versions/v8/bin/cexp"
+    "$CXVM_DIR/versions/v6.0.0/bin/cexp"
+    "$CXVM_DIR/versions/v6/bin/cexp"
+    "$CXVM_DIR/bin/cexp-v8"
+    "$CXVM_DIR/bin/cexp-v6"
+    "$HOME/.cex/bin/cexp-v6"
+    "$HOME/.cex/bin/6.0.1/cexp"
+    "$HOME/.cex/bin/6.0.0/cexp"
+    "$HOME/Projects/cexp/v6/bin/cexp"
+    "$HOME/Projects/cexp/v6/bin/cex"
+  )
+  for cand in "${candidates[@]}"; do
+    if _cxvm_is_v6_plus_compiler "$cand"; then
+      echo "$cand"
+      return 0
+    fi
+  done
+  if command -v cexp >/dev/null 2>&1; then
+    local sys_comp
+    sys_comp="$(command -v cexp)"
+    if _cxvm_is_v6_plus_compiler "$sys_comp"; then
+      echo "$sys_comp"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+_cxvm_upgrade_to_cexp_v6_plus() {
+  echo "==> [cxvm] Ensuring cexp v6+ compiler is installed and activated (at least v6 cexp required for compile to binary code)..." >&2
+  local v6_src=""
+  for cand in \
+    "$CXVM_DIR/versions/v8.0.0/bin/cexp" \
+    "$CXVM_DIR/versions/v8/bin/cexp" \
+    "$CXVM_DIR/versions/v6.0.0/bin/cexp" \
+    "$CXVM_DIR/versions/v6/bin/cexp" \
+    "$HOME/.cex/bin/cexp-v6" \
+    "$HOME/.cex/bin/6.0.1/cexp" \
+    "$HOME/.cex/bin/6.0.0/cexp" \
+    "$HOME/Projects/cexp/v6/bin/cexp" \
+    "$HOME/Projects/cexp/v6/bin/cex"; do
+    if [ -x "$cand" ] && _cxvm_is_v6_plus_compiler "$cand"; then
+      v6_src="$cand"
+      break
+    fi
+  done
+
+  if [ -z "$v6_src" ] && [ -d "$HOME/Projects/cexp/v6" ]; then
+    echo "--> [cxvm] Building cexp v6 from local repository $HOME/Projects/cexp/v6..." >&2
+    (cd "$HOME/Projects/cexp/v6" && (cexp build src/index.cex -o bin/cexp 2>/dev/null || bash build.sh 2>/dev/null || true))
+    if [ -x "$HOME/Projects/cexp/v6/bin/cexp" ]; then
+      v6_src="$HOME/Projects/cexp/v6/bin/cexp"
+    fi
+  fi
+
+  if [ -n "$v6_src" ]; then
+    mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/current/bin"
+    ln -sf "$v6_src" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+    ln -sf "$v6_src" "$CXVM_DIR/current/bin/cexp" 2>/dev/null || true
+    echo "[OK] [cxvm upgrade] Activated cexp compiler (at least v6) at $CXVM_DIR/bin/cexp" >&2
+    echo "$CXVM_DIR/bin/cexp"
+    return 0
+  fi
+  return 1
+}
+
 _cxvm_get_compiler() {
-  if [ -x "$CXVM_DIR/current/bin/cex" ]; then
-    echo "$CXVM_DIR/current/bin/cex"
-  elif [ -x "$CXVM_DIR/bin/cex" ]; then
-    echo "$CXVM_DIR/bin/cex"
+  local v6_comp
+  v6_comp="$(_cxvm_find_v6_compiler)"
+  if [ -n "$v6_comp" ]; then
+    echo "$v6_comp"
+    return 0
+  fi
+
+  # If not found or < v6, ensure/upgrade to cexp at least v6
+  local upgraded_v6
+  upgraded_v6="$(_cxvm_upgrade_to_cexp_v6_plus)"
+  if [ -n "$upgraded_v6" ] && [ -x "$upgraded_v6" ]; then
+    echo "$upgraded_v6"
+    return 0
+  fi
+
+  # Fallback to general lookup if v6+ is somehow not available
+  if [ -x "$CXVM_DIR/bin/cexp" ]; then
+    echo "$CXVM_DIR/bin/cexp"
   elif [ -x "$CXVM_DIR/current/bin/cexp" ]; then
     echo "$CXVM_DIR/current/bin/cexp"
-  elif [ -x "$CXVM_DIR/bin/cexp" ]; then
-    echo "$CXVM_DIR/bin/cexp"
-  elif command -v cex >/dev/null 2>&1; then
-    command -v cex
   elif command -v cexp >/dev/null 2>&1; then
     command -v cexp
+  elif command -v cex >/dev/null 2>&1; then
+    command -v cex
   else
-    echo "cex"
+    echo "cexp"
   fi
 }
 
@@ -3806,37 +3913,60 @@ EOF
         fi
       done
 
-      # Sync and compile latest cexp if local repo is found
+      # Sync and compile cexp compiler (at least v6 required for compile to binary code)
+      local comp_configured=0
       for cand_p in "$s_dir/../cexp" "$s_dir/../../cexp" "$HOME/Projects/cexp"; do
-        if [ -d "$cand_p" ] && [ -f "$cand_p/cex-pack.json" ]; then
-          echo "--> [cxvm upgrade] Found local cexp repository at $(cd "$cand_p" && pwd)"
-          if [ -f "$cand_p/src/index.cex" ] && command -v cexp >/dev/null 2>&1; then
-            mkdir -p "$cand_p/bin"
-            cexp build "$cand_p/src/index.cex" -o "$cand_p/bin/cexp" >/dev/null 2>&1 || true
-            if [ -f "$cand_p/bin/cexp" ]; then
-              cp -f "$cand_p/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
-              mkdir -p "$CXVM_DIR/versions/v$target_ver/bin"
-              cp -f "$cand_p/bin/cexp" "$CXVM_DIR/versions/v$target_ver/bin/cexp" 2>/dev/null || true
-            fi
+        if [ -d "$cand_p/v6" ] && [ -f "$cand_p/v6/src/index.cex" ]; then
+          echo "--> [cxvm upgrade] Found local cexp v6 repository at $(cd "$cand_p/v6" && pwd)"
+          mkdir -p "$cand_p/v6/bin"
+          if command -v cexp >/dev/null 2>&1; then
+            cexp build "$cand_p/v6/src/index.cex" -o "$cand_p/v6/bin/cexp" >/dev/null 2>&1 || true
           fi
-          break
+          if [ -x "$cand_p/v6/bin/cexp" ]; then
+            mkdir -p "$CXVM_DIR/versions/v6.0.0/bin" "$CXVM_DIR/versions/v$target_ver/bin" "$HOME/.cex/bin/6.0.0"
+            cp -f "$cand_p/v6/bin/cexp" "$CXVM_DIR/versions/v6.0.0/bin/cexp" 2>/dev/null || true
+            cp -f "$cand_p/v6/bin/cexp" "$HOME/.cex/bin/6.0.0/cexp" 2>/dev/null || true
+            chmod +x "$CXVM_DIR/versions/v6.0.0/bin/cexp" "$HOME/.cex/bin/6.0.0/cexp" 2>/dev/null || true
+            ln -sf "$CXVM_DIR/versions/v6.0.0/bin/cexp" "$CXVM_DIR/bin/cexp-v6" 2>/dev/null || true
+            ln -sf "$CXVM_DIR/versions/v6.0.0/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+            ln -sf "$CXVM_DIR/versions/v6.0.0/bin/cexp" "$CXVM_DIR/current/bin/cexp" 2>/dev/null || true
+            cp -f "$cand_p/v6/bin/cexp" "$CXVM_DIR/versions/v$target_ver/bin/cexp" 2>/dev/null || true
+            comp_configured=1
+            break
+          fi
         fi
       done
 
-      # Ensure compiler fallback from system if not yet copied (minimum cexp >= v3)
-      fallback_compiler=""
-      for comp in "$HOME/Projects/cexp/bin/cexp" "$HOME/.cex/bin/cexp-v3" "$HOME/.cex/bin/3.0.1/cexp" "$HOME/bin/cex/compiler/v3/cex" "$HOME/bin/cex/compiler/v6/cex"; do
-        if [ -x "$comp" ]; then
-          fallback_compiler="$comp"
-          break
-        fi
-      done
-      if [ -n "$fallback_compiler" ]; then
-        if [ ! -f "$CXVM_DIR/bin/cexr" ] || [ ! -s "$CXVM_DIR/bin/cexr" ]; then
-          cp -f "$fallback_compiler" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
-        fi
-        if [ ! -f "$CXVM_DIR/bin/cexp" ] || [ ! -s "$CXVM_DIR/bin/cexp" ]; then
-          cp -f "$fallback_compiler" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+      # Fallback to existing v6+ compiler on system (v8 or v6)
+      if [ $comp_configured -eq 0 ]; then
+        for comp in "$CXVM_DIR/versions/v8.0.0/bin/cexp" "$CXVM_DIR/versions/v8/bin/cexp" "$HOME/.cex/bin/cexp-v6" "$HOME/.cex/bin/6.0.1/cexp" "$HOME/.cex/bin/6.0.0/cexp" "$HOME/Projects/cexp/v6/bin/cexp" "$HOME/Projects/cexp/v6/bin/cex" "$CXVM_DIR/versions/v6.0.0/bin/cexp"; do
+          if [ -x "$comp" ] && _cxvm_is_v6_plus_compiler "$comp"; then
+            mkdir -p "$CXVM_DIR/versions/v8.0.0/bin" "$CXVM_DIR/versions/v$target_ver/bin"
+            cp -f "$comp" "$CXVM_DIR/versions/v$target_ver/bin/cexp" 2>/dev/null || true
+            ln -sf "$comp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+            ln -sf "$comp" "$CXVM_DIR/current/bin/cexp" 2>/dev/null || true
+            comp_configured=1
+            break
+          fi
+        done
+      fi
+
+      # Fallback to general system compiler if not yet copied (ensuring at least v6)
+      if [ $comp_configured -eq 0 ]; then
+        fallback_compiler=""
+        for comp in "$HOME/Projects/cexp/bin/cexp" "$HOME/bin/cex/compiler/v6/cex" "$CXVM_DIR/bin/cexp" "$(command -v cexp 2>/dev/null || true)"; do
+          if [ -x "$comp" ] && _cxvm_is_v6_plus_compiler "$comp"; then
+            fallback_compiler="$comp"
+            break
+          fi
+        done
+        if [ -n "$fallback_compiler" ]; then
+          if [ ! -f "$CXVM_DIR/bin/cexr" ] || [ ! -s "$CXVM_DIR/bin/cexr" ]; then
+            cp -f "$fallback_compiler" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+          fi
+          if [ ! -f "$CXVM_DIR/bin/cexp" ] || [ ! -s "$CXVM_DIR/bin/cexp" ]; then
+            cp -f "$fallback_compiler" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+          fi
         fi
       fi
 
