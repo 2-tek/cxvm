@@ -74,12 +74,20 @@ class DistBuilder {
 
     public buildAll(): int {
         let scriptPath: string = fs.exists("cxvm/scripts/generate_distributions.cex") ? "cxvm/scripts/generate_distributions.cex" : (fs.exists("packages/cxvm/scripts/generate_distributions.cex") ? "packages/cxvm/scripts/generate_distributions.cex" : "scripts/generate_distributions.cex");
-        if (fs.exists(scriptPath)) {
-            let cmd: string = "cexr " + scriptPath + " " + this.downloadsDir;
-            child_process.execSync(cmd);
-        } else if (fs.exists("scripts/generate_distributions.sh")) {
-            let cmd: string = "bash scripts/generate_distributions.sh " + this.downloadsDir;
-            child_process.execSync(cmd);
+        let buildMode: int = fs.exists(scriptPath) ? 1 : (fs.exists("scripts/generate_distributions.sh") ? 2 : 0);
+        switch (buildMode) {
+            case 1: {
+                let cmd: string = "cexr " + scriptPath + " " + this.downloadsDir;
+                child_process.execSync(cmd);
+                break;
+            }
+            case 2: {
+                let cmd: string = "bash scripts/generate_distributions.sh " + this.downloadsDir;
+                child_process.execSync(cmd);
+                break;
+            }
+            default:
+            break;
         }
         this.refreshArtifacts();
         return (int)this.artifacts->length();

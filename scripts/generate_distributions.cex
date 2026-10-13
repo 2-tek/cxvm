@@ -10,10 +10,16 @@ fn main(): int {
     println("===============================================================");
 
     let rawDir: string = "downloads";
-    if (fs.exists("cxvm/downloads")) {
+    let dirChoice: int = fs.exists("cxvm/downloads") ? 1 : (fs.exists("packages/cxvm/downloads") ? 2 : 0);
+    switch (dirChoice) {
+        case 1:
         rawDir = "cxvm/downloads";
-    } else if (fs.exists("packages/cxvm/downloads")) {
+        break;
+        case 2:
         rawDir = "packages/cxvm/downloads";
+        break;
+        default:
+        break;
     }
 
     if (!fs.exists(rawDir)) {

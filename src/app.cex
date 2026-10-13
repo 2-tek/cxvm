@@ -111,6 +111,14 @@ class FactoryApp {
         this.router->get("/api/v1/racer/tasks", "factory.apiRacerTasks");
         this.router->post("/api/v1/racer/schedule", "factory.apiRacerSchedule");
         this.router->post("/api/v1/racer/run", "factory.apiRacerRun");
+
+        // Cex-CLI Multi-Version cexp, cexr & Toolchain Builder
+        this.router->get("/api/v1/build/cexp", "factory.apiBuildCexp");
+        this.router->post("/api/v1/build/cexp", "factory.apiBuildCexp");
+        this.router->get("/api/v1/build/cexr", "factory.apiBuildCexr");
+        this.router->post("/api/v1/build/cexr", "factory.apiBuildCexr");
+        this.router->get("/api/v1/build/toolchain", "factory.apiBuildToolchain");
+        this.router->post("/api/v1/build/toolchain", "factory.apiBuildToolchain");
     }
 
     public start(): void {
@@ -371,6 +379,18 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiRacerRun") {
             return this.controller->apiRacerRun(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiBuildCexp") {
+            return this.controller->apiBuildCexp(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiBuildCexr") {
+            return this.controller->apiBuildCexr(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiBuildToolchain") {
+            return this.controller->apiBuildToolchain(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

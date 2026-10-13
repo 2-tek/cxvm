@@ -791,6 +791,53 @@ function Run-CexCli {
     Write-Host "[ERROR] [cxvm --app cli] cex-cli not found to handle command '$CliCmd'" -ForegroundColor Red
 }
 
+function Run-CexTest {
+    param (
+        [string]$TestCmd = "run",
+        [string[]]$TestArgs = @()
+    )
+
+    $sub = if ($TestCmd -in @("run", "pipeline", "coverage", "doctor", "status", "version", "--version", "-v", "help", "--help", "-h")) { $TestCmd } else { "run" }
+    $targets = if ($TestCmd -eq $sub) { $TestArgs } else { @($TestCmd) + $TestArgs }
+
+    $testBin = Join-Path $cxvmHome "bin\cex-test.exe"
+    if (-not (Test-Path $testBin)) { $testBin = Join-Path $cxvmHome "bin\cex-test" }
+    if (-not (Test-Path $testBin) -and (Test-Path ".cex_boxes\cex-test\bin\cex-test.exe")) { $testBin = ".cex_boxes\cex-test\bin\cex-test.exe" }
+    if (-not (Test-Path $testBin) -and (Test-Path ".cex_boxes\cex-test\bin\cex-test")) { $testBin = ".cex_boxes\cex-test\bin\cex-test" }
+
+    if ($sub -in @("doctor", "status")) {
+        Write-Host "=== 2-TEK CexTest: Native Test & Coverage Engine (cxvm --app test) ===" -ForegroundColor Cyan
+        Write-Host "  Binary:          $testBin"
+        Write-Host "  Execution Mode:  Forced New Process (isolated child process per suite)"
+        Write-Host "  Invocation:      cxvm --app test run <suite.test.cex> | cxvm test <suite.test.cex>"
+        Write-Host "  Status:          READY [OK]" -ForegroundColor Green
+        return
+    }
+
+    Write-Host "==> [cxvm --app test] Forced test runner powered by cex-test in new process" -ForegroundColor Cyan
+    if (Test-Path $testBin) {
+        $allArgs = @($sub) + $targets
+        Write-Host "==> [cxvm --app test] Spawning new process: $testBin $($allArgs -join ' ')" -ForegroundColor Cyan
+        $proc = Start-Process -FilePath $testBin -ArgumentList $allArgs -NoNewWindow -Wait -PassThru
+        if ($proc.ExitCode -eq 0) {
+            Write-Host "[OK] [cxvm --app test] Isolated cex-test process completed successfully." -ForegroundColor Green
+        } else {
+            Write-Host "[FAIL] [cxvm --app test] Isolated cex-test process failed with exit code $($proc.ExitCode)." -ForegroundColor Red
+            exit $proc.ExitCode
+        }
+        return
+    }
+
+    $entry = ".cex_boxes\cex-test\src\index.cex"
+    if (Test-Path $entry) {
+        $allArgs = @($entry, $sub) + $targets
+        Write-Host "==> [cxvm --app test] Spawning new process: cexr $($allArgs -join ' ')" -ForegroundColor Cyan
+        & cexr @allArgs
+        return
+    }
+    Write-Host "[ERROR] [cxvm --app test] cex-test not found to handle command '$sub'" -ForegroundColor Red
+}
+
 function Dispatch-App {
     param (
         [string]$AppName = "help",
@@ -815,9 +862,13 @@ function Dispatch-App {
         { $_ -in "cli", "@cli", "cex-cli" } {
             Run-CexCli -CliCmd $AppCmd -CliArgs $AppArgs
         }
+        { $_ -in "test", "@test", "cex-test", "@cex-test" } {
+            $tCmd = if ($AppCmd -eq "help" -and $AppArgs.Count -eq 0) { "run" } else { $AppCmd }
+            Run-CexTest -TestCmd $tCmd -TestArgs $AppArgs
+        }
         default {
             Write-Host "[ERROR] [cxvm --app] Unknown application: '$appClean'" -ForegroundColor Red
-            Write-Host "Supported apps: thunder, lighting, deepsea, cvm, cli"
+            Write-Host "Supported apps: thunder, lighting, deepsea, cvm, cli, test"
         }
     }
 }
@@ -1431,7 +1482,49 @@ echo CexR Windows Runner ready.
             Write-Host "[OK] Development server active at $mainFile" -ForegroundColor Green
         }
     }
+    "build:cexp" {
+        $verArgs = @()
+        if ($Version) { $verArgs += $Version }
+        if ($Platform) { $verArgs += $Platform }
+        if ($ExtraArgs) { $verArgs += $ExtraArgs }
+        Run-CexCli -CliCmd "build:cexp" -CliArgs $verArgs
+    }
+    "build:cexr" {
+        $verArgs = @()
+        if ($Version) { $verArgs += $Version }
+        if ($Platform) { $verArgs += $Platform }
+        if ($ExtraArgs) { $verArgs += $ExtraArgs }
+        Run-CexCli -CliCmd "build:cexr" -CliArgs $verArgs
+    }
+    { $_ -in "build:toolchain", "toolchain" } {
+        $verArgs = @()
+        if ($Version) { $verArgs += $Version }
+        if ($Platform) { $verArgs += $Platform }
+        if ($ExtraArgs) { $verArgs += $ExtraArgs }
+        Run-CexCli -CliCmd "build:toolchain" -CliArgs $verArgs
+    }
     "build" {
+        if ($Version -in "cexp", "compiler") {
+            $verArgs = @()
+            if ($Platform) { $verArgs += $Platform }
+            if ($ExtraArgs) { $verArgs += $ExtraArgs }
+            Run-CexCli -CliCmd "build:cexp" -CliArgs $verArgs
+            return
+        }
+        if ($Version -in "cexr", "runtime") {
+            $verArgs = @()
+            if ($Platform) { $verArgs += $Platform }
+            if ($ExtraArgs) { $verArgs += $ExtraArgs }
+            Run-CexCli -CliCmd "build:cexr" -CliArgs $verArgs
+            return
+        }
+        if ($Version -in "toolchain", "both", "cexp+cexr") {
+            $verArgs = @()
+            if ($Platform) { $verArgs += $Platform }
+            if ($ExtraArgs) { $verArgs += $ExtraArgs }
+            Run-CexCli -CliCmd "build:toolchain" -CliArgs $verArgs
+            return
+        }
         $mainFile = "src\index.cex"
         if (Test-Path "cex-pack.json") {
             $mContent = Get-Content "cex-pack.json" -Raw
@@ -1488,6 +1581,14 @@ echo CexR Windows Runner ready.
         Write-Host "  thunder      RUNNING   Port: 3050  cxvm start thunder"
         Write-Host "  cvm          RUNNING   Port: 4000  cxvm start cvm"
         Write-Host "===============================================================" -ForegroundColor Cyan
+    }
+    { $_ -in "test", "@test", "cex-test", "@cex-test" } {
+        Write-Host "==> [cxvm test] Forcing test from cex-test in new process (cxvm --app test run)" -ForegroundColor Cyan
+        $tSub = if ($Version) { $Version } else { "run" }
+        $tExtra = @()
+        if ($Platform) { $tExtra += $Platform }
+        if ($ExtraArgs) { $tExtra += $ExtraArgs }
+        Dispatch-App -AppName "test" -AppCmd $tSub -AppArgs $tExtra
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan

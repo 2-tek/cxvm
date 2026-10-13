@@ -10,7 +10,7 @@ import fs from "fs";
 import child_process from "child_process";
 
 class AlwaysLintMigrationFinding {
-public:
+    public:
     string projectPath;
     string targetFile;
     string actionDescription;
@@ -25,7 +25,7 @@ public:
 }
 
 class AlwaysLintMigrationSummary {
-public:
+    public:
     int scannedProjects;
     int updatedRules;
     int updatedManifests;
@@ -47,7 +47,7 @@ public:
 }
 
 class AlwaysLintMigrator {
-public:
+    public:
     bool autoFix;
 
     AlwaysLintMigrator(bool fix) {

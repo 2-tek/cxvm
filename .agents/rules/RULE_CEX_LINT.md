@@ -21,6 +21,7 @@ trigger: always_on
 >     - **EOF Integrity (Rule 29, `eol-last`)**: Every `.cex` file must terminate with exactly one trailing newline (`\n`).
 >     - **Whitespace Discipline**: Indentation must use spaces without tabs (`no-tabs`), trailing whitespace at end of lines is prohibited (`no-trailing-spaces`), and consecutive empty lines must not exceed 1 (`no-multiple-empty-lines`).
 >     - **Identifier & Type Integrity**: Class names must be unique within a package (`no-duplicate-class-name`), import specifiers must not be duplicated (`no-duplicate-imports`), and class names must use PascalCase (`class-name-case`).
+>     - **No Multiple If-Else (`no-multiple-if-else` / `RULE_NO_MULTIPLE_IF_ELSE`)**: Chained `if (...) { ... } else if (...) { ... }` ladders are prohibited; replace multi-branch conditional chains with `switch - case` dispatch blocks.
 > 3. **AUTOMATED REMEDIATION & WORKFLOW**:
 >     - Run `cxvm lint --fix` (or `cex lint --fix`) to automatically format, clean trailing whitespace, fix tab indentation, convert raw `#include` statements, and normalize member access.
 >     - Manually inspect and resolve any remaining structural or syntax errors reported by `cex lint`.

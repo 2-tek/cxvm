@@ -30,7 +30,7 @@ fn main(): int {
     // Test 2: Purged Legacy Cex-programing Invariants
     // -------------------------------------------------------------
     Assert::reset();
-    Assert::isFalse(fs.exists("/home/viettd/Projects/Cex-programing"), "Legacy Cex-programing directory is purged");
+    Assert::isFalse(fs.exists("../Cex-programing"), "Legacy Cex-programing directory is purged");
     Assert::isTrue(fs.readFile("cex-pack.json").find("Cex-programing") == -1, "cex-pack.json free of Cex-programing");
     Assert::isTrue(fs.readFile("src/cxvm/cxvm_engine.cex").find("Cex-programing") == -1, "cxvm_engine.cex free of Cex-programing");
     suite->addResult("test_zero_cex_programing_invariants", Assert::getFailures() == 0, "", 1);

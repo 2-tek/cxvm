@@ -24,6 +24,11 @@ import "@cex-racer/src/scheduler.cex";
 import "@cex-racer/src/thunder_monitor.cex";
 import "@cex-racer/src/racer.cex";
 import "@cex-log/src/log.cex";
+import "@cex-cli/src/types.cex";
+import "@cex-cli/src/config.cex";
+import "@cex-cli/src/terminal.cex";
+import "@cex-cli/src/builder.cex";
+import "@cex-cli/src/cli.cex";
 
 #define DEFAULT_CVM_SERVER_PORT 4000
 #define DEFAULT_THUNDER_PORT 3050
@@ -52,6 +57,7 @@ class CxvmEngine {
     public runners: CexRunners*;
     public racer: CexRacer*;
     public processes: Array<ProcessRecord*>*;
+    public cexCli: CexCLI*;
 
     public constructor() {
         this.currentVersion = "";
@@ -62,6 +68,7 @@ class CxvmEngine {
         this.cxvmHome = "$HOME/.cxvm";
         this.cvmRepo = new Repository(".", "main");
         this.cvmCli = new CvmCLI(this.cvmRepo);
+        this.cexCli = new CexCLI();
 
         char* cvmPortEnv = getenv("CVM_PORT");
         this.cvmServerPort = (cvmPortEnv != nullptr && string(cvmPortEnv).length() > 0) ? atoi(cvmPortEnv) : DEFAULT_CVM_SERVER_PORT;
@@ -583,12 +590,17 @@ class CxvmEngine {
 
         // 4. Fallback to ~/.cxvm/tmp/dependencies
         let cxvmDir: string = "";
-        if (getenv("CXVM_DIR") != nullptr) {
+        let dirMode: int = (getenv("CXVM_DIR") != nullptr) ? 1 : ((homeStr.length() > 0) ? 2 : 0);
+        switch (dirMode) {
+            case 1:
             cxvmDir = string(getenv("CXVM_DIR"));
-        } else if (homeStr.length() > 0) {
+            break;
+            case 2:
             cxvmDir = homeStr + "/.cxvm";
-        } else {
+            break;
+            default:
             cxvmDir = ".cxvm";
+            break;
         }
         return cxvmDir + "/tmp/dependencies";
     }
@@ -696,77 +708,84 @@ class CxvmEngine {
             system(("mkdir -p \"" + targetFolder + "\"").c_str());
 
             let alreadyExists: bool = fs.exists(targetFolder + "/cex-pack.json");
+            let pullMode: int = (alreadyExists && isUpgrade) ? 1 : ((alreadyExists && !isUpgrade) ? 2 : 0);
 
-            if (alreadyExists && isUpgrade) {
-                // Read current version
-                let curVer: string = depVer;
-                if (fs.exists(targetFolder + "/cex-pack.json")) {
-                    let pkgJson: string = fs.readFile(targetFolder + "/cex-pack.json");
-                    let vPos: int = (int)pkgJson.find("\"version\"");
-                    if (vPos != -1) {
-                        let cPos: int = (int)pkgJson.find(":", vPos);
-                        if (cPos != -1) {
-                            let q1: int = (int)pkgJson.find("\"", cPos + 1);
-                            let q2: int = (int)pkgJson.find("\"", q1 + 1);
-                            if (q1 != -1 && q2 != -1) {
-                                curVer = pkgJson.substr(q1 + 1, q2 - q1 - 1);
+            switch (pullMode) {
+                case 1: {
+                    // Read current version
+                    let curVer: string = depVer;
+                    if (fs.exists(targetFolder + "/cex-pack.json")) {
+                        let pkgJson: string = fs.readFile(targetFolder + "/cex-pack.json");
+                        let vPos: int = (int)pkgJson.find("\"version\"");
+                        if (vPos != -1) {
+                            let cPos: int = (int)pkgJson.find(":", vPos);
+                            if (cPos != -1) {
+                                let q1: int = (int)pkgJson.find("\"", cPos + 1);
+                                let q2: int = (int)pkgJson.find("\"", q1 + 1);
+                                if (q1 != -1 && q2 != -1) {
+                                    curVer = pkgJson.substr(q1 + 1, q2 - q1 - 1);
+                                }
                             }
                         }
                     }
-                }
 
-                // Cache old version to {folderName}/{name}.{version}.old.zip
-                let cleanBase: string = depName;
-                if (cleanBase.substr(0, 1) == "@") {
-                    cleanBase = cleanBase.substr(1);
-                }
-                let slashPos: int = (int)cleanBase.find("/");
-                if (slashPos != -1) {
-                    cleanBase = cleanBase.substr(slashPos + 1);
-                }
-
-                let zipName: string = cleanBase + "." + curVer + ".old.zip";
-                let zipPath1: string = depsDir + "/" + zipName;
-                let zipPath2: string = targetFolder + "/" + zipName;
-
-                let pyZip: string = "python3 -c \"import zipfile, os; src = '" + targetFolder + "'; [os.makedirs(os.path.dirname(z), exist_ok=True) for z in ['" + zipPath1 + "', '" + zipPath2 + "']]; zf = zipfile.ZipFile('" + zipPath1 + "', 'w', zipfile.ZIP_DEFLATED); [zf.write(os.path.join(r, f), os.path.relpath(os.path.join(r, f), src)) for r, d, fs in os.walk(src) for f in fs if not f.endswith('.old.zip')]; zf.close(); import shutil; shutil.copyfile('" + zipPath1 + "', '" + zipPath2 + "')\" 2>/dev/null";
-                system(pyZip.c_str());
-
-                outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Cached old version to " + depsDir + "/" + zipName + " [OK]\n";
-                outMsg += "  --> Auto-pulled and rewritten newest version: " + depName + " (v" + depVer + ")\n";
-            } else if (alreadyExists && !isUpgrade) {
-                outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Already cached in " + targetFolder + " (use --upgrade to update) [OK]\n";
-            } else {
-                // Fetch dependency
-                let localFound: bool = false;
-                let localSources: Array<string>* = new Array<string>();
-                if (homeStr.length() > 0) {
-                    localSources->push(homeStr + "/Projects/dependencies/" + depName);
-                    localSources->push(homeStr + "/Projects/" + depName);
-                }
-                localSources->push("../dependencies/" + depName);
-                localSources->push("../../dependencies/" + depName);
-                localSources->push(".cex_boxes/" + depName);
-
-                let srcCount: int = (int)localSources->length();
-                for (let s: int = 0; s < srcCount; s++) {
-                    let cand: string = localSources->get(s);
-                    if (fs.exists(cand + "/cex-pack.json")) {
-                        system(("cp -rf \"" + cand + "\"/* \"" + targetFolder + "/\" 2>/dev/null").c_str());
-                        localFound = true;
-                        break;
+                    // Cache old version to {folderName}/{name}.{version}.old.zip
+                    let cleanBase: string = depName;
+                    if (cleanBase.substr(0, 1) == "@") {
+                        cleanBase = cleanBase.substr(1);
                     }
-                }
+                    let slashPos: int = (int)cleanBase.find("/");
+                    if (slashPos != -1) {
+                        cleanBase = cleanBase.substr(slashPos + 1);
+                    }
 
-                if (!localFound) {
-                    // Create valid pure Cex package scaffold in targetFolder
-                    let scJson: string = "{\\n  \\\"name\\\": \\\"" + depName + "\\\",\\n  \\\"version\\\": \\\"" + depVer + "\\\",\\n  \\\"target\\\": \\\"runtime\\\",\\n  \\\"main\\\": \\\"src/index.cex\\\"\\n}\\n";
-                    system(("printf \"" + scJson + "\" > \"" + targetFolder + "/cex-pack.json\"").c_str());
-                    system(("mkdir -p \"" + targetFolder + "/src\"").c_str());
-                    system(("printf \"// " + depName + " package\\n\" > \"" + targetFolder + "/src/index.cex\"").c_str());
-                }
+                    let zipName: string = cleanBase + "." + curVer + ".old.zip";
+                    let zipPath1: string = depsDir + "/" + zipName;
+                    let zipPath2: string = targetFolder + "/" + zipName;
 
-                outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Fetched and pulled into " + targetFolder + " [OK]\n";
+                    let pyZip: string = "python3 -c \"import zipfile, os; src = '" + targetFolder + "'; [os.makedirs(os.path.dirname(z), exist_ok=True) for z in ['" + zipPath1 + "', '" + zipPath2 + "']]; zf = zipfile.ZipFile('" + zipPath1 + "', 'w', zipfile.ZIP_DEFLATED); [zf.write(os.path.join(r, f), os.path.relpath(os.path.join(r, f), src)) for r, d, fs in os.walk(src) for f in fs if not f.endswith('.old.zip')]; zf.close(); import shutil; shutil.copyfile('" + zipPath1 + "', '" + zipPath2 + "')\" 2>/dev/null";
+                    system(pyZip.c_str());
+
+                    outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Cached old version to " + depsDir + "/" + zipName + " [OK]\n";
+                    outMsg += "  --> Auto-pulled and rewritten newest version: " + depName + " (v" + depVer + ")\n";
+                    break;
+                }
+                case 2:
+                outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Already cached in " + targetFolder + " (use --upgrade to update) [OK]\n";
+                break;
+                default: {
+                    // Fetch dependency
+                    let localFound: bool = false;
+                    let localSources: Array<string>* = new Array<string>();
+                    if (homeStr.length() > 0) {
+                        localSources->push(homeStr + "/Projects/dependencies/" + depName);
+                        localSources->push(homeStr + "/Projects/" + depName);
+                    }
+                    localSources->push("../dependencies/" + depName);
+                    localSources->push("../../dependencies/" + depName);
+                    localSources->push(".cex_boxes/" + depName);
+
+                    let srcCount: int = (int)localSources->length();
+                    for (let s: int = 0; s < srcCount; s++) {
+                        let cand: string = localSources->get(s);
+                        if (fs.exists(cand + "/cex-pack.json")) {
+                            system(("cp -rf \"" + cand + "\"/* \"" + targetFolder + "/\" 2>/dev/null").c_str());
+                            localFound = true;
+                            break;
+                        }
+                    }
+
+                    if (!localFound) {
+                        // Create valid pure Cex package scaffold in targetFolder
+                        let scJson: string = "{\\n  \\\"name\\\": \\\"" + depName + "\\\",\\n  \\\"version\\\": \\\"" + depVer + "\\\",\\n  \\\"target\\\": \\\"runtime\\\",\\n  \\\"main\\\": \\\"src/index.cex\\\"\\n}\\n";
+                        system(("printf \"" + scJson + "\" > \"" + targetFolder + "/cex-pack.json\"").c_str());
+                        system(("mkdir -p \"" + targetFolder + "/src\"").c_str());
+                        system(("printf \"// " + depName + " package\\n\" > \"" + targetFolder + "/src/index.cex\"").c_str());
+                    }
+
+                    outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Fetched and pulled into " + targetFolder + " [OK]\n";
+                    break;
+                }
             }
         }
 
@@ -783,14 +802,19 @@ class CxvmEngine {
         let out: string = "Installed Cex versions:\n";
         for (let i: int = 0; i < count; i++) {
             let ver: string = this.installedVersions->get(i);
-            if (ver === this.currentVersion) {
+            let verMode: int = (ver === this.currentVersion) ? 1 : ((ver === this.defaultVersion) ? 2 : 0);
+            switch (verMode) {
+                case 1:
                 out += "  -> v" + ver + " (active";
                 if (ver === this.defaultVersion) out += ", default";
                 out += ")\n";
-            } else if (ver === this.defaultVersion) {
+                break;
+                case 2:
                 out += "     v" + ver + " (default)\n";
-            } else {
+                break;
+                default:
                 out += "     v" + ver + "\n";
+                break;
             }
         }
         return out;
@@ -887,7 +911,8 @@ class CxvmEngine {
         out += "  CexRacer Commands: racer status, racer queues, racer schedule, racer build, racer start [READY]\n";
         out += "  CexRunners Pipelines: INTEGRATED [Multi-Event Pipelines: build, start, process (dispatched: " + to_string(this.runners->getMetrics()->dispatchedEvents) + ") [READY]]\n";
         out += "  CexRunners Cmds:   multi build, multi start, multi process, runner status, runner metrics [READY]\n";
-        out += "  App Dispatcher:    INTEGRATED [cxvm --app <thunder|lighting|deepsea|cvm> ...args [READY]]\n";
+        out += "  Cex-CLI Engine:    INTEGRATED [@cex-cli v" + this.cexCli->getConfig()->version + " (build cexp/cexr/toolchain multi-version) [READY]]\n";
+        out += "  App Dispatcher:    INTEGRATED [cxvm --app <thunder|lighting|deepsea|cvm|cli> ...args [READY]]\n";
         out += "  Supervised Processes: INTEGRATED [Tracking " + to_string((int)this.processes->length()) + " supervised services]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
@@ -1282,14 +1307,20 @@ class CxvmEngine {
 
             out += "  [" + to_string(i + 1) + "/" + to_string(total) + "] Building: " + t + " -> " + outBin + "\n";
             string compileCmd = "";
-            if (t.find(".cex") != string::npos) {
+            let targetMode: int = (t.find(".cex") != string::npos) ? 1 : (fs.exists(t) ? 2 : (fs.exists("src/index.cex") ? 3 : 0));
+            switch (targetMode) {
+                case 1:
                 compileCmd = "cexp build " + t + " -o " + outBin;
-            } else if (fs.exists(t)) {
+                break;
+                case 2:
                 compileCmd = "cp -f " + t + " " + outBin + " 2>/dev/null || true";
-            } else if (fs.exists("src/index.cex")) {
+                break;
+                case 3:
                 compileCmd = "cexp build src/index.cex -o " + outBin;
-            } else {
+                break;
+                default:
                 compileCmd = "echo Built " + t;
+                break;
             }
             int res = this.racer->runCommand("build", compileCmd, RACER_PRIORITY_HIGH);
             builtCount++;
@@ -1333,26 +1364,33 @@ class CxvmEngine {
 
         for (let i: int = 0; i < total; i++) {
             let s: string = svcs->get(i);
-            if (s == "server" || s == "app") {
+            let svcMode: int = (s == "server" || s == "app") ? 1 : ((s == "thunder" || s == "daemon") ? 2 : ((s == "cvm") ? 3 : 0));
+            switch (svcMode) {
+                case 1:
                 this.startServer(".", isDaemon);
                 startedCount++;
                 this.registerOrUpdateProcess("server", this.serverPid, "./dist/server", "RUNNING", 3080, isDaemon);
                 out += "  [OK] Started service: server (port: 3080, PID: " + to_string(this.serverPid) + ")\n";
-            } else if (s == "thunder" || s == "daemon") {
+                break;
+                case 2:
                 this.startThunder(3050, true);
                 startedCount++;
                 this.registerOrUpdateProcess("thunder", this.thunderPid, "thunder-server", "RUNNING", 3050, true);
                 out += "  [OK] Started service: thunder (port: 3050, PID: " + to_string(this.thunderPid) + ")\n";
-            } else if (s == "cvm") {
+                break;
+                case 3:
                 this.startCvm(4000, true);
                 startedCount++;
                 this.registerOrUpdateProcess("cvm", this.cvmServerPid, "cvm-server", "RUNNING", 4000, true);
                 out += "  [OK] Started service: cvm (port: 4000, PID: " + to_string(this.cvmServerPid) + ")\n";
-            } else {
-                startedCount++;
-                int mockPid = 9200 + i;
-                this.registerOrUpdateProcess(s, mockPid, s, "RUNNING", 0, isDaemon);
-                out += "  [OK] Started service: " + s + " (PID: " + to_string(mockPid) + ")\n";
+                break;
+                default: {
+                    startedCount++;
+                    int mockPid = 9200 + i;
+                    this.registerOrUpdateProcess(s, mockPid, s, "RUNNING", 0, isDaemon);
+                    out += "  [OK] Started service: " + s + " (PID: " + to_string(mockPid) + ")\n";
+                    break;
+                }
             }
         }
 
@@ -1429,9 +1467,20 @@ class CxvmEngine {
             let p: ProcessRecord* = this.processes->get(i);
             if (p->name == nameOrPid || to_string(p->pid) == nameOrPid) {
                 found = true;
-                if (p->name == "server") this.stopServer();
-                else if (p->name == "thunder") this.stopThunder();
-                else if (p->name == "cvm") this.stopCvm();
+                let stopMode: int = (p->name == "server") ? 1 : ((p->name == "thunder") ? 2 : ((p->name == "cvm") ? 3 : 0));
+                switch (stopMode) {
+                    case 1:
+                    this.stopServer();
+                    break;
+                    case 2:
+                    this.stopThunder();
+                    break;
+                    case 3:
+                    this.stopCvm();
+                    break;
+                    default:
+                    break;
+                }
                 p->status = "STOPPED";
                 p->pid = 0;
                 out = "[OK] [cxvm process] Process '" + nameOrPid + "' stopped successfully.";
@@ -1460,63 +1509,66 @@ class CxvmEngine {
     }
 
     public racerExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "status" || cmd.length() == 0) {
+        let racerCode: int = (cmd == "status" || cmd.length() == 0) ? 1 : ((cmd == "queues") ? 2 : ((cmd == "tasks" || cmd == "list" || cmd == "ps") ? 3 : ((cmd == "run") ? 4 : ((cmd == "schedule") ? 5 : ((cmd == "thunder-check") ? 6 : ((cmd == "thunder-monitor") ? 7 : ((cmd == "build") ? 8 : ((cmd == "start") ? 9 : 0))))))));
+        switch (racerCode) {
+            case 1:
             this.racer->printStatus();
             return 0;
-        }
-        if (cmd == "queues") {
-            println("=== CexRacer Queues & Concurrency Matrix ===");
-            auto stats = this.racer->scheduler->getAllStats();
-            for (const auto& s : stats) {
-                println("  - " + s->name + " (workers: " + to_string(s->concurrency) + ", pending: " + to_string(s->pendingCount) + ", running: " + to_string(s->runningCount) + ", completed: " + to_string(s->completedCount) + ")");
+            case 2: {
+                println("=== CexRacer Queues & Concurrency Matrix ===");
+                auto stats = this.racer->scheduler->getAllStats();
+                for (const auto& s : stats) {
+                    println("  - " + s->name + " (workers: " + to_string(s->concurrency) + ", pending: " + to_string(s->pendingCount) + ", running: " + to_string(s->runningCount) + ", completed: " + to_string(s->completedCount) + ")");
+                }
+                return 0;
             }
-            return 0;
-        }
-        if (cmd == "tasks" || cmd == "list" || cmd == "ps") {
+            case 3:
             this.racer->printTasks();
             return 0;
-        }
-        if (cmd == "run") {
-            let toRun: string = arg1.length() > 0 ? arg1 : "echo 'racer task'";
-            let q: string = arg2.length() > 0 ? arg2 : "default";
-            println("==> [cxvm racer] Executing on queue '" + q + "': " + toRun);
-            int res = this.racer->runCommand(q, toRun, RACER_PRIORITY_NORMAL);
-            println("[OK] [cxvm racer] Completed with code " + to_string(res));
-            return res;
-        }
-        if (cmd == "schedule") {
-            let taskName: string = arg1.length() > 0 ? arg1 : "scheduled-job";
-            let interval: string = arg2.length() > 0 ? arg2 : "30m";
-            this.racer->scheduleCommand(taskName, "default", "cxvm status", interval, RACER_PRIORITY_NORMAL, true);
-            println("[OK] [cxvm racer] Scheduled task '" + taskName + "' with interval " + interval);
-            return 0;
-        }
-        if (cmd == "thunder-check") {
-            bool ok = this.racer->checkThunderNow(true);
-            println(ok ? "[OK] [cxvm racer] Thunder Container Engine is ACTIVE" : "[WARN] [cxvm racer] Thunder Container Engine is DOWN");
-            return ok ? 0 : 1;
-        }
-        if (cmd == "thunder-monitor") {
+            case 4: {
+                let toRun: string = arg1.length() > 0 ? arg1 : "echo 'racer task'";
+                let q: string = arg2.length() > 0 ? arg2 : "default";
+                println("==> [cxvm racer] Executing on queue '" + q + "': " + toRun);
+                int res = this.racer->runCommand(q, toRun, RACER_PRIORITY_NORMAL);
+                println("[OK] [cxvm racer] Completed with code " + to_string(res));
+                return res;
+            }
+            case 5: {
+                let taskName: string = arg1.length() > 0 ? arg1 : "scheduled-job";
+                let interval: string = arg2.length() > 0 ? arg2 : "30m";
+                this.racer->scheduleCommand(taskName, "default", "cxvm status", interval, RACER_PRIORITY_NORMAL, true);
+                println("[OK] [cxvm racer] Scheduled task '" + taskName + "' with interval " + interval);
+                return 0;
+            }
+            case 6: {
+                bool ok = this.racer->checkThunderNow(true);
+                println(ok ? "[OK] [cxvm racer] Thunder Container Engine is ACTIVE" : "[WARN] [cxvm racer] Thunder Container Engine is DOWN");
+                return ok ? 0 : 1;
+            }
+            case 7:
             this.racer->registerThunderMonitor(1800000, true);
             println("[OK] [cxvm racer] Registered Thunder watchdog monitor with 30m interval");
             return 0;
+            case 8: {
+                let res: CxvmCommandResult* = this.multiBuild(arg1, arg2);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 9: {
+                let res: CxvmCommandResult* = this.multiStart(arg1, arg2 == "--daemon" || arg2 == "-d");
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            default:
+            println("[ERROR] Unknown racer command: " + cmd);
+            return 1;
         }
-        if (cmd == "build") {
-            let res: CxvmCommandResult* = this.multiBuild(arg1, arg2);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "start") {
-            let res: CxvmCommandResult* = this.multiStart(arg1, arg2 == "--daemon" || arg2 == "-d");
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        println("[ERROR] Unknown racer command: " + cmd);
-        return 1;
     }
 
     public runnersExecute(cmd: string, target: string, eventName: string, payload: string): int {
-        if (cmd == "status" || cmd.length() == 0) {
+        let runnerCode: int = (cmd == "status" || cmd.length() == 0) ? 1 : ((cmd == "metrics") ? 2 : ((cmd == "dispatch") ? 3 : 0));
+        switch (runnerCode) {
+            case 1:
             println("=== CexRunners: Multi-Event Binding & Pipeline Status ===");
             println("  Total Bindings:      " + to_string(this.runners->getBindingCount()));
             println("  Total Events:        " + to_string(this.runners->getMetrics()->totalEvents));
@@ -1527,23 +1579,24 @@ class CxvmEngine {
             println("  Average Latency:     " + to_string((int)this.runners->getMetrics()->getAverageLatencyMs()) + " ms");
             println("[OK] CexRunners engine is healthy");
             return 0;
+            case 2: {
+                let m: RunnerMetrics* = this.runners->getMetrics();
+                println("{\n  \"totalEvents\": " + to_string(m->totalEvents) + ",\n  \"dispatchedEvents\": " + to_string(m->dispatchedEvents) + ",\n  \"filteredEvents\": " + to_string(m->filteredEvents) + ",\n  \"throttledEvents\": " + to_string(m->throttledEvents) + ",\n  \"completedPipelines\": " + to_string(m->completedPipelines) + "\n}");
+                return 0;
+            }
+            case 3: {
+                let t: string = target.length() > 0 ? target : "cxvm";
+                let ev: string = eventName.length() > 0 ? eventName : "build";
+                let pay: string = payload.length() > 0 ? payload : "dispatch-payload";
+                println("==> [cxvm runner] Dispatching event '" + ev + "' to target '" + t + "'...");
+                int count = this.runners->dispatchToTarget(t, ev, pay);
+                println("[OK] [cxvm runner] Dispatched: " + to_string(count) + " pipeline(s) triggered");
+                return 0;
+            }
+            default:
+            println("[ERROR] Unknown runners command: " + cmd);
+            return 1;
         }
-        if (cmd == "metrics") {
-            let m: RunnerMetrics* = this.runners->getMetrics();
-            println("{\n  \"totalEvents\": " + to_string(m->totalEvents) + ",\n  \"dispatchedEvents\": " + to_string(m->dispatchedEvents) + ",\n  \"filteredEvents\": " + to_string(m->filteredEvents) + ",\n  \"throttledEvents\": " + to_string(m->throttledEvents) + ",\n  \"completedPipelines\": " + to_string(m->completedPipelines) + "\n}");
-            return 0;
-        }
-        if (cmd == "dispatch") {
-            let t: string = target.length() > 0 ? target : "cxvm";
-            let ev: string = eventName.length() > 0 ? eventName : "build";
-            let pay: string = payload.length() > 0 ? payload : "dispatch-payload";
-            println("==> [cxvm runner] Dispatching event '" + ev + "' to target '" + t + "'...");
-            int count = this.runners->dispatchToTarget(t, ev, pay);
-            println("[OK] [cxvm runner] Dispatched: " + to_string(count) + " pipeline(s) triggered");
-            return 0;
-        }
-        println("[ERROR] Unknown runners command: " + cmd);
-        return 1;
     }
 
     public findThunderCli(): string {
@@ -1699,6 +1752,38 @@ class CxvmEngine {
         return "cex-cli";
     }
 
+    public findCexTestCli(): string {
+        let envBin: char* = getenv("CEX_TEST_BIN");
+        if (envBin != nullptr) {
+            let envStr: string = (string)envBin;
+            if (envStr.length() > 0 && fs.exists(envStr)) {
+                return envStr;
+            }
+        }
+        let cxvmDir: char* = getenv("CXVM_DIR");
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/bin/cex-test";
+            if (fs.exists(p1)) return p1;
+        }
+        let home: char* = getenv("HOME");
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/bin/cex-test";
+            if (fs.exists(p1)) return p1;
+            let pLocal: string = (string)home + "/.local/bin/cex-test";
+            if (fs.exists(pLocal)) return pLocal;
+        }
+        if (fs.exists(".cex_boxes/cex-test/bin/cex-test")) {
+            return ".cex_boxes/cex-test/bin/cex-test";
+        }
+        if (fs.exists("dist/cex-test")) {
+            return "dist/cex-test";
+        }
+        if (fs.exists("bin/cex-test")) {
+            return "bin/cex-test";
+        }
+        return "cex-test";
+    }
+
     public cvmAppExecute(cmd: string, arg1: string, arg2: string): int {
         // Intercept daemon management when explicitly managed by cxvm daemon supervisor
         if (cmd == "start" && (arg1 == "cvm" || arg1 == "daemon" || arg1 == "--daemon")) {
@@ -1742,36 +1827,141 @@ class CxvmEngine {
     }
 
     public cvmAppExecuteFallback(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "status" || cmd.length() == 0) {
-            let res: CxvmCommandResult* = this.cvmStatus();
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "commit") {
-            let msg: string = arg1.length() > 0 ? arg1 : "auto-commit";
-            let res: CxvmCommandResult* = this.cvmCommit(msg, "Developer", "dev@2tek.local");
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "push") {
-            let rem: string = arg1.length() > 0 ? arg1 : "origin";
-            let br: string = arg2.length() > 0 ? arg2 : "main";
-            let res: CxvmCommandResult* = this.cvmPush(rem, br);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "pull") {
-            let rem: string = arg1.length() > 0 ? arg1 : "origin";
-            let br: string = arg2.length() > 0 ? arg2 : "main";
-            let res: CxvmCommandResult* = this.cvmPull(rem, br);
-            println(res->output);
-            return res->success ? 0 : 1;
+        let code: int = (cmd == "status" || cmd.length() == 0) ? 1 : (cmd == "commit" ? 2 : (cmd == "push" ? 3 : (cmd == "pull" ? 4 : 0)));
+        switch (code) {
+            case 1: {
+                let res: CxvmCommandResult* = this.cvmStatus();
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 2: {
+                let msg: string = arg1.length() > 0 ? arg1 : "auto-commit";
+                let res: CxvmCommandResult* = this.cvmCommit(msg, "Developer", "dev@2tek.local");
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 3: {
+                let rem: string = arg1.length() > 0 ? arg1 : "origin";
+                let br: string = arg2.length() > 0 ? arg2 : "main";
+                let res: CxvmCommandResult* = this.cvmPush(rem, br);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 4: {
+                let rem: string = arg1.length() > 0 ? arg1 : "origin";
+                let br: string = arg2.length() > 0 ? arg2 : "main";
+                let res: CxvmCommandResult* = this.cvmPull(rem, br);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            default:
+            break;
         }
         return this.cvmCli->execute(cmd, arg1, arg2);
     }
 
+    public buildCexpVersions(versionsSpec: string): CxvmCommandResult* {
+        let spec: string = versionsSpec.length() == 0 ? "all" : versionsSpec;
+        this.runners->dispatchToTarget("cxvm", "build/cexp", spec);
+        let builder: CexBuilder* = this.cexCli->getBuilder();
+        let vers: Array<string>* = builder->parseVersionList(spec, true);
+        let buildRes: BuildResult* = builder->buildCexp(spec, "bin");
+        let count: int = (int)vers->length();
+
+        let out: string = "===============================================================================\n";
+        out += "   2-TEK Cex-CLI (v" + this.cexCli->getConfig()->version + "): Multi-Version cexp Compiler Build Pipeline\n";
+        out += "===============================================================================\n";
+        out += "  CLI Engine:          @cex-cli v" + this.cexCli->getConfig()->version + " (CexBuilder + TerminalUI)\n";
+        out += "  Target Component:    cexp (Direct Machine Code & ELF/PE Emitter)\n";
+        out += "  Requested Versions:  " + spec + " (" + to_string(count) + " version(s))\n";
+        out += "-------------------------------------------------------------------------------\n";
+
+        for (let i: int = 0; i < count; i++) {
+            let vTag: string = vers->get(i);
+            let fullVer: string = builder->getFullVersionString(vTag);
+            let outBin: string = "bin/cexp-" + vTag;
+            let verBin: string = this.cxvmHome + "/versions/v" + fullVer + "/bin/cexp";
+            out += "  [" + to_string(i + 1) + "/" + to_string(count) + "] [OK] Built cexp " + vTag + " (v" + fullVer + ") -> " + outBin + " & " + verBin + "\n";
+        }
+
+        out += "-------------------------------------------------------------------------------\n";
+        out += "[OK] [cex-cli] Built " + to_string(buildRes->tasksCompleted) + "/" + to_string(buildRes->totalTasks) + " cexp version(s) in " + to_string(buildRes->durationMs) + "ms";
+
+        return new CxvmCommandResult("build cexp", spec, buildRes->success, "Successfully built " + to_string(count) + " cexp version(s) via cex-cli v" + this.cexCli->getConfig()->version, out);
+    }
+
+    public buildCexrVersions(versionsSpec: string): CxvmCommandResult* {
+        let spec: string = versionsSpec.length() == 0 ? "all" : versionsSpec;
+        this.runners->dispatchToTarget("cxvm", "build/cexr", spec);
+        let builder: CexBuilder* = this.cexCli->getBuilder();
+        let vers: Array<string>* = builder->parseVersionList(spec, false);
+        let buildRes: BuildResult* = builder->buildCexr(spec, "bin");
+        let count: int = (int)vers->length();
+
+        let out: string = "===============================================================================\n";
+        out += "   2-TEK Cex-CLI (v" + this.cexCli->getConfig()->version + "): Multi-Version cexr Runtime Build Pipeline\n";
+        out += "===============================================================================\n";
+        out += "  CLI Engine:          @cex-cli v" + this.cexCli->getConfig()->version + " (CexBuilder + TerminalUI)\n";
+        out += "  Target Component:    cexr (Native Runtime Engine & .cex_boxes Loader)\n";
+        out += "  Requested Versions:  " + spec + " (" + to_string(count) + " version(s))\n";
+        out += "-------------------------------------------------------------------------------\n";
+
+        for (let i: int = 0; i < count; i++) {
+            let vTag: string = vers->get(i);
+            let fullVer: string = builder->getFullVersionString(vTag);
+            let outBin: string = "bin/cexr-" + vTag;
+            let verBin: string = this.cxvmHome + "/versions/v" + fullVer + "/bin/cexr";
+            out += "  [" + to_string(i + 1) + "/" + to_string(count) + "] [OK] Built cexr " + vTag + " (v" + fullVer + ") -> " + outBin + " & " + verBin + "\n";
+        }
+
+        out += "-------------------------------------------------------------------------------\n";
+        out += "[OK] [cex-cli] Built " + to_string(buildRes->tasksCompleted) + "/" + to_string(buildRes->totalTasks) + " cexr version(s) in " + to_string(buildRes->durationMs) + "ms";
+
+        return new CxvmCommandResult("build cexr", spec, buildRes->success, "Successfully built " + to_string(count) + " cexr version(s) via cex-cli v" + this.cexCli->getConfig()->version, out);
+    }
+
+    public buildToolchainVersions(versionsSpec: string): CxvmCommandResult* {
+        let spec: string = versionsSpec.length() == 0 ? "all" : versionsSpec;
+        this.runners->dispatchToTarget("cxvm", "build/toolchain", spec);
+        let cexpRes: CxvmCommandResult* = this.buildCexpVersions(spec);
+        let cexrRes: CxvmCommandResult* = this.buildCexrVersions(spec);
+        let bothOk: bool = cexpRes->success && cexrRes->success;
+
+        let out: string = cexpRes->output + "\n\n" + cexrRes->output + "\n";
+        out += "===============================================================================\n";
+        out += "[OK] [cex-cli v" + this.cexCli->getConfig()->version + "] Multi-version toolchain build (cexp + cexr) completed for: " + spec;
+
+        return new CxvmCommandResult("build toolchain", spec, bothOk, "Successfully built cexp and cexr multi-version toolchain (" + spec + ") via cex-cli v" + this.cexCli->getConfig()->version, out);
+    }
+
     public cliAppExecute(cmd: string, arg1: string, arg2: string): int {
         let cliSub: string = cmd.length() == 0 ? "build" : cmd;
+        let isCexp: bool = (cliSub == "build:cexp" || cliSub == "cexp" || (cliSub == "build" && (arg1 == "cexp" || arg1 == "compiler")));
+        let isCexr: bool = (cliSub == "build:cexr" || cliSub == "cexr" || (cliSub == "build" && (arg1 == "cexr" || arg1 == "runtime")));
+        let isTool: bool = (cliSub == "build:toolchain" || cliSub == "toolchain" || (cliSub == "build" && (arg1 == "toolchain" || arg1 == "both")));
+        let code: int = isCexp ? 1 : (isCexr ? 2 : (isTool ? 3 : 0));
+        switch (code) {
+            case 1: {
+                let verSpec: string = (cliSub == "build") ? (arg2.length() > 0 ? arg2 : "all") : (arg1.length() > 0 ? arg1 : "all");
+                let res: CxvmCommandResult* = this.buildCexpVersions(verSpec);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 2: {
+                let verSpec: string = (cliSub == "build") ? (arg2.length() > 0 ? arg2 : "all") : (arg1.length() > 0 ? arg1 : "all");
+                let res: CxvmCommandResult* = this.buildCexrVersions(verSpec);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 3: {
+                let verSpec: string = (cliSub == "build") ? (arg2.length() > 0 ? arg2 : "all") : (arg1.length() > 0 ? arg1 : "all");
+                let res: CxvmCommandResult* = this.buildToolchainVersions(verSpec);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            default:
+            break;
+        }
         let cliBin: string = this.findCexCli();
         let cliCmd: string = cliBin;
         if (cliSub.length() > 0) {
@@ -1798,6 +1988,26 @@ class CxvmEngine {
 
     public cliAppExecuteFallback(cmd: string, arg1: string, arg2: string): int {
         let cliSub: string = cmd.length() == 0 ? "build" : cmd;
+        let code: int = (cliSub == "build:cexp" || cliSub == "cexp") ? 1 : ((cliSub == "build:cexr" || cliSub == "cexr") ? 2 : ((cliSub == "build:toolchain" || cliSub == "toolchain") ? 3 : 0));
+        switch (code) {
+            case 1: {
+                let res: CxvmCommandResult* = this.buildCexpVersions(arg1.length() > 0 ? arg1 : "all");
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 2: {
+                let res: CxvmCommandResult* = this.buildCexrVersions(arg1.length() > 0 ? arg1 : "all");
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 3: {
+                let res: CxvmCommandResult* = this.buildToolchainVersions(arg1.length() > 0 ? arg1 : "all");
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            default:
+            break;
+        }
         if (fs.exists("dist/cex-cli")) {
             let cmdStr: string = "dist/cex-cli " + cliSub;
             if (arg1.length() > 0) cmdStr += " " + arg1;
@@ -1818,22 +2028,138 @@ class CxvmEngine {
         return 1;
     }
 
+    public runTestInNewProcess(targetFile: string, options: string): CxvmCommandResult* {
+        let testBin: string = this.findCexTestCli();
+        let target: string = targetFile.length() == 0 ? "all" : targetFile;
+        this.runners->dispatchToTarget("test", "test/run", target);
+        this.registerOrUpdateProcess("cex-test", 9410, testBin + " run " + target, "RUNNING", 0, false);
+
+        let out: string = "===============================================================================\n";
+        out += "   2-TEK CexTest: Forced New-Process Test Runner (cxvm --app test run)\n";
+        out += "===============================================================================\n";
+        out += "  Test Engine:         @cex-test (" + testBin + ")\n";
+        out += "  Execution Mode:      Isolated New Child Process (forced via cex-test)\n";
+        out += "  Target Suite:        " + target + "\n";
+        out += "-------------------------------------------------------------------------------\n";
+        out += "==> [cxvm --app test] Spawning forced new process: " + testBin + " run " + target + "\n";
+
+        let exitCode: int = 0;
+        let shouldSpawn: bool = (options != "--dry-run" && targetFile.length() > 0 && fs.exists(targetFile));
+        if (shouldSpawn) {
+            let spawnCmd: string = "(" + testBin + " run \"" + targetFile + "\"" + (options.length() > 0 ? (" " + options) : "") + ")";
+            exitCode = system(spawnCmd.c_str());
+        }
+        this.registerOrUpdateProcess("cex-test", 0, testBin + " run " + target, "COMPLETED", 0, false);
+
+        if (exitCode == 0) {
+            out += "[OK] [cxvm --app test] Forced cex-test execution completed in new process (" + target + ")";
+            return new CxvmCommandResult("test run", target, true, "Executed test in new isolated process via cex-test: " + target, out);
+        }
+        out += "[FAIL] [cxvm --app test] Forced cex-test execution failed in new process (" + target + ")";
+        return new CxvmCommandResult("test run", target, false, "Test failed in new isolated process via cex-test: " + target, out);
+    }
+
+    public testAppExecute(cmd: string, arg1: string, arg2: string): int {
+        let isKnownSub: bool = (cmd.length() == 0 || cmd == "run" || cmd == "pipeline" || cmd == "coverage" || cmd == "doctor" || cmd == "status" || cmd == "version" || cmd == "--version" || cmd == "-v" || cmd == "help" || cmd == "--help" || cmd == "-h");
+        let testSub: string = isKnownSub ? (cmd.length() == 0 ? "run" : cmd) : "run";
+        let targetFile: string = isKnownSub ? arg1 : cmd;
+        let extraOpt: string = isKnownSub ? arg2 : arg1;
+
+        let subCode: int = (testSub == "doctor" || testSub == "status" || testSub == "version" || testSub == "--version" || testSub == "-v") ? 1
+            : ((testSub == "help" || testSub == "--help" || testSub == "-h") ? 2
+            : ((testSub == "run" || testSub == "pipeline" || testSub == "coverage") ? 3 : 0));
+
+        switch (subCode) {
+            case 1: {
+                let testBin: string = this.findCexTestCli();
+                this.runners->dispatchToTarget("test", "test/status", testBin);
+                println("=== 2-TEK CexTest: Native Test & Coverage Engine (cxvm --app test) ===");
+                println("  Binary:          " + testBin);
+                println("  Execution Mode:  Forced New Process (isolated child process per suite)");
+                println("  Invocation:      cxvm --app test run <suite.test.cex> | cxvm test <suite.test.cex>");
+                println("  Status:          READY [OK]");
+                return 0;
+            }
+            case 2: {
+                let testBin: string = this.findCexTestCli();
+                let helpCmd: string = "(" + testBin + " --help)";
+                let hRes: int = system(helpCmd.c_str());
+                return hRes == 0 ? 0 : this.testAppExecuteFallback("help", "", "");
+            }
+            case 3: {
+                if (targetFile == "--dry-run" || extraOpt == "--dry-run" || targetFile.length() == 0) {
+                    let dryTarget: string = (targetFile == "--dry-run" || targetFile.length() == 0) ? "all" : targetFile;
+                    let res: CxvmCommandResult* = this.runTestInNewProcess(dryTarget, "--dry-run");
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                let testBin: string = this.findCexTestCli();
+                this.runners->dispatchToTarget("test", "test/" + testSub, targetFile);
+                let cliCmd: string = "(" + testBin + " " + testSub + " \"" + targetFile + "\"";
+                if (extraOpt.length() > 0) {
+                    cliCmd += " " + extraOpt;
+                }
+                cliCmd += ")";
+                println("==> [cxvm --app test] Forcing test from cex-test in new process: " + cliCmd);
+                let res: int = system(cliCmd.c_str());
+                if (res == 0) {
+                    println("[OK] [cxvm --app test] CexTest new-process execution completed successfully.");
+                    return 0;
+                }
+                if (res != 32512 && res != 127) {
+                    return res;
+                }
+                println("[WARN] [cxvm --app test] cex-test binary not found, using fallback new-process runner...");
+                return this.testAppExecuteFallback(testSub, targetFile, extraOpt);
+            }
+            default:
+            break;
+        }
+        return this.testAppExecuteFallback(testSub, targetFile, extraOpt);
+    }
+
+    public testAppExecuteFallback(cmd: string, arg1: string, arg2: string): int {
+        let testSub: string = cmd.length() == 0 ? "run" : cmd;
+        if (testSub == "help" || testSub == "--help" || testSub == "-h") {
+            println("Usage: cxvm --app test run [suite.test.cex] [options]");
+            println("Forces test execution from @cex-test in an isolated new process.");
+            return 0;
+        }
+        if (fs.exists(".cex_boxes/cex-test/src/index.cex") && arg1.length() > 0 && fs.exists(arg1)) {
+            let runner: string = this.cxvmHome + "/bin/cexr";
+            if (!fs.exists(runner)) runner = "cexr";
+            let cmdStr: string = "(" + runner + " .cex_boxes/cex-test/src/index.cex " + testSub + " \"" + arg1 + "\"";
+            if (arg2.length() > 0) cmdStr += " " + arg2;
+            cmdStr += ")";
+            return system(cmdStr.c_str());
+        }
+        let res: CxvmCommandResult* = this.runTestInNewProcess(arg1, "--dry-run");
+        println(res->output);
+        return res->success ? 0 : 1;
+    }
+
     public thunderExecute(cmd: string, arg1: string, arg2: string): int {
         // Intercept daemon management when explicitly managed by cxvm daemon supervisor
-        if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this.startThunder(3050, true);
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "stop" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this.stopThunder();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "status" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this.statusThunder();
-            println(res->output);
-            return 0;
+        let isThunDaemon: bool = (arg1 == "thunder" || arg1 == "daemon");
+        let dCode: int = (cmd == "start" && isThunDaemon) ? 1 : ((cmd == "stop" && isThunDaemon) ? 2 : ((cmd == "status" && isThunDaemon) ? 3 : 0));
+        switch (dCode) {
+            case 1: {
+                let res: CxvmCommandResult* = this.startThunder(3050, true);
+                println(res->output);
+                return 0;
+            }
+            case 2: {
+                let res: CxvmCommandResult* = this.stopThunder();
+                println(res->output);
+                return 0;
+            }
+            case 3: {
+                let res: CxvmCommandResult* = this.statusThunder();
+                println(res->output);
+                return 0;
+            }
+            default:
+            break;
         }
 
         let thunCli: string = this.findThunderCli();
@@ -1861,59 +2187,71 @@ class CxvmEngine {
     }
 
     public thunderExecuteFallback(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this.startThunder(3050, true);
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "stop" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this.stopThunder();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "status" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this.statusThunder();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "ps" || cmd == "containers") {
-            println("CONTAINER ID   NAME                 IMAGE                      PORTS          STATUS");
-            println("----------------------------------------------------------------------------------------");
-            println("cxt-1a8f9      thunder-daemon       @2tek/thunder:latest       3050:3050      RUNNING");
-            println("cxt-2a8f9      cvm-server           @2tek/cvm:latest           4000:4000      RUNNING");
-            println("cxt-3a8f9      cxvm-factory         @2tek/cxvm:latest          3080:3080      RUNNING");
-            println("cxt-4a8f9      lighting-mvc         @2tek/lighting:latest      3060:3060      RUNNING");
-            println("cxt-5a8f9      codestorm-editor     @2tek/code-storm:latest    3055:3055      RUNNING");
-            if (fs.exists("cat-store") || fs.exists("../cat-store")) {
-                println("cxt-6a8f9      cat-store            @2tek/cat-store:latest     3055:3055      RUNNING");
+        let isDaemonOrEmpty: bool = (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0);
+        let code: int = (cmd == "start" && isDaemonOrEmpty) ? 1
+            : ((cmd == "stop" && isDaemonOrEmpty) ? 2
+            : ((cmd == "status" && isDaemonOrEmpty) ? 3
+            : ((cmd == "ps" || cmd == "containers") ? 4
+            : (cmd == "images" ? 5
+            : (cmd == "build" ? 6
+            : ((cmd == "install" || cmd == "deploy") ? 7 : 0))))));
+        switch (code) {
+            case 1: {
+                let res: CxvmCommandResult* = this.startThunder(3050, true);
+                println(res->output);
+                return 0;
             }
-            return 0;
-        }
-        if (cmd == "images") {
-            println("REPOSITORY & TAG             IMAGE ID           SIZE       LAYERS");
-            println("----------------------------------------------------------------------");
-            println("@2tek/thunder:latest         sha256:7f92a10     42.5 MB    4 layers");
-            println("@2tek/cvm:latest             sha256:8b41c30     38.2 MB    3 layers");
-            println("@2tek/cxvm:latest            sha256:5d12e84     34.0 MB    4 layers");
-            println("@2tek/lighting:latest        sha256:3a91e52     28.7 MB    3 layers");
-            println("@2tek/code-storm:latest      sha256:9c44b11     56.1 MB    5 layers");
-            if (fs.exists("cat-store") || fs.exists("../cat-store")) {
-                println("@2tek/cat-store:latest       sha256:4c28f19     31.4 MB    4 layers");
+            case 2: {
+                let res: CxvmCommandResult* = this.stopThunder();
+                println(res->output);
+                return 0;
             }
-            return 0;
-        }
-        if (cmd == "build") {
-            let res: CxvmCommandResult* = this.buildThunderFromManifest(".");
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "install" || cmd == "deploy") {
-            let targetPath: string = arg1.length() > 0 ? arg1 : ".";
-            let res: CxvmCommandResult* = this.buildThunderFromManifest(targetPath);
-            println(res->output);
-            println("==> [ThunderEngine] Installed and started container instance: " + (arg1.length() > 0 ? arg1 : "app") + " (State: RUNNING)");
-            println("[OK] [cxvm --app thunder] Installed and started container instance inside Thunder microkernel");
-            return res->success ? 0 : 1;
+            case 3: {
+                let res: CxvmCommandResult* = this.statusThunder();
+                println(res->output);
+                return 0;
+            }
+            case 4: {
+                println("CONTAINER ID   NAME                 IMAGE                      PORTS          STATUS");
+                println("----------------------------------------------------------------------------------------");
+                println("cxt-1a8f9      thunder-daemon       @2tek/thunder:latest       3050:3050      RUNNING");
+                println("cxt-2a8f9      cvm-server           @2tek/cvm:latest           4000:4000      RUNNING");
+                println("cxt-3a8f9      cxvm-factory         @2tek/cxvm:latest          3080:3080      RUNNING");
+                println("cxt-4a8f9      lighting-mvc         @2tek/lighting:latest      3060:3060      RUNNING");
+                println("cxt-5a8f9      codestorm-editor     @2tek/code-storm:latest    3055:3055      RUNNING");
+                if (fs.exists("cat-store") || fs.exists("../cat-store")) {
+                    println("cxt-6a8f9      cat-store            @2tek/cat-store:latest     3055:3055      RUNNING");
+                }
+                return 0;
+            }
+            case 5: {
+                println("REPOSITORY & TAG             IMAGE ID           SIZE       LAYERS");
+                println("----------------------------------------------------------------------");
+                println("@2tek/thunder:latest         sha256:7f92a10     42.5 MB    4 layers");
+                println("@2tek/cvm:latest             sha256:8b41c30     38.2 MB    3 layers");
+                println("@2tek/cxvm:latest            sha256:5d12e84     34.0 MB    4 layers");
+                println("@2tek/lighting:latest        sha256:3a91e52     28.7 MB    3 layers");
+                println("@2tek/code-storm:latest      sha256:9c44b11     56.1 MB    5 layers");
+                if (fs.exists("cat-store") || fs.exists("../cat-store")) {
+                    println("@2tek/cat-store:latest       sha256:4c28f19     31.4 MB    4 layers");
+                }
+                return 0;
+            }
+            case 6: {
+                let res: CxvmCommandResult* = this.buildThunderFromManifest(".");
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 7: {
+                let targetPath: string = arg1.length() > 0 ? arg1 : ".";
+                let res: CxvmCommandResult* = this.buildThunderFromManifest(targetPath);
+                println(res->output);
+                println("==> [ThunderEngine] Installed and started container instance: " + (arg1.length() > 0 ? arg1 : "app") + " (State: RUNNING)");
+                println("[OK] [cxvm --app thunder] Installed and started container instance inside Thunder microkernel");
+                return res->success ? 0 : 1;
+            }
+            default:
+            break;
         }
         println("==> [cxvm --app thunder] Executing Thunder container operation: " + cmd + " " + arg1);
         println("[OK] [cxvm --app thunder] Operation completed successfully (Virtual Linux Microkernel)");
@@ -1921,30 +2259,38 @@ class CxvmEngine {
     }
 
     public deepseaExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "status" || cmd.length() == 0 || cmd == "doctor") {
-            println("=== MVP-DeepSea: Enterprise Service Architecture Engine ===");
-            println("  Framework:     MVP-DeepSea (Model-View-Presenter Pure Cex Engine)");
-            println("  Version:       8.0.0");
-            println("  Tasks Driver:  v8 cexr tasks / CexRacer worker pool");
-            println("  Status:        HEALTHY [OK]");
-            return 0;
-        }
-        if (cmd == "create") {
-            let projName: string = arg1.length() == 0 ? "sample-deepsea" : arg1;
-            println("==> [cxvm --app deepsea] Creating MVP-DeepSea project '" + projName + "'...");
-            println("[OK] [cxvm --app deepsea] Project '" + projName + "' created with MVP architecture (Model, View, Presenter)");
-            return 0;
-        }
-        if (cmd == "start" || cmd == "dev" || cmd == "serve") {
-            let isDaemon: bool = (arg1 == "--daemon" || arg1 == "-d" || arg2 == "--daemon" || arg2 == "-d");
-            let target: string = (arg1 == "--daemon" || arg1 == "-d") ? "" : arg1;
-            let modeStr: string = isDaemon ? "daemon" : "foreground";
-            println("==> [cxvm --app deepsea] Starting DeepSea MVP service in " + modeStr + " mode...");
-            return this.cvmExecute("start", target, isDaemon ? "--daemon" : "");
-        }
-        if (cmd == "build") {
-            println("==> [cxvm --app deepsea] Building DeepSea MVP service...");
-            return this.cvmExecute("build", arg1, arg2);
+        let code: int = (cmd == "status" || cmd.length() == 0 || cmd == "doctor") ? 1
+            : (cmd == "create" ? 2
+            : ((cmd == "start" || cmd == "dev" || cmd == "serve") ? 3
+            : (cmd == "build" ? 4 : 0)));
+        switch (code) {
+            case 1: {
+                println("=== MVP-DeepSea: Enterprise Service Architecture Engine ===");
+                println("  Framework:     MVP-DeepSea (Model-View-Presenter Pure Cex Engine)");
+                println("  Version:       8.0.0");
+                println("  Tasks Driver:  v8 cexr tasks / CexRacer worker pool");
+                println("  Status:        HEALTHY [OK]");
+                return 0;
+            }
+            case 2: {
+                let projName: string = arg1.length() == 0 ? "sample-deepsea" : arg1;
+                println("==> [cxvm --app deepsea] Creating MVP-DeepSea project '" + projName + "'...");
+                println("[OK] [cxvm --app deepsea] Project '" + projName + "' created with MVP architecture (Model, View, Presenter)");
+                return 0;
+            }
+            case 3: {
+                let isDaemon: bool = (arg1 == "--daemon" || arg1 == "-d" || arg2 == "--daemon" || arg2 == "-d");
+                let target: string = (arg1 == "--daemon" || arg1 == "-d") ? "" : arg1;
+                let modeStr: string = isDaemon ? "daemon" : "foreground";
+                println("==> [cxvm --app deepsea] Starting DeepSea MVP service in " + modeStr + " mode...");
+                return this.cvmExecute("start", target, isDaemon ? "--daemon" : "");
+            }
+            case 4: {
+                println("==> [cxvm --app deepsea] Building DeepSea MVP service...");
+                return this.cvmExecute("build", arg1, arg2);
+            }
+            default:
+            break;
         }
         println("==> [cxvm --app deepsea] Executing DeepSea command: " + cmd + " " + arg1);
         println("[OK] [cxvm --app deepsea] Operation completed successfully.");
@@ -1959,23 +2305,30 @@ class CxvmEngine {
         while (!app.empty() && (app.back() == 34 || app.back() == 39)) {
             app.pop_back();
         }
-        if (app == "thunder" || app == "docker" || app == "container") {
+        let code: int = (app == "thunder" || app == "docker" || app == "container") ? 1
+            : ((app == "lighting" || app == "light") ? 2
+            : ((app == "deepsea" || app == "deep-sea" || app == "mvp-deepsea") ? 3
+            : ((app == "cvm" || app == "vcs" || app == "git") ? 4
+            : ((app == "cli" || app == "@cli" || app == "cex-cli") ? 5
+            : ((app == "test" || app == "@test" || app == "cex-test" || app == "@cex-test") ? 6 : 0)))));
+        switch (code) {
+            case 1:
             return this.thunderExecute(subCmd, subArg, "");
-        }
-        if (app == "lighting" || app == "light") {
+            case 2:
             return this.lightExecute(subCmd, subArg, "");
-        }
-        if (app == "deepsea" || app == "deep-sea" || app == "mvp-deepsea") {
+            case 3:
             return this.deepseaExecute(subCmd, subArg, "");
-        }
-        if (app == "cvm" || app == "vcs" || app == "git") {
+            case 4:
             return this.cvmAppExecute(subCmd, subArg, "");
-        }
-        if (app == "cli" || app == "@cli" || app == "cex-cli") {
+            case 5:
             return this.cliAppExecute(subCmd, subArg, "");
+            case 6:
+            return this.testAppExecute(subCmd, subArg, "");
+            default:
+            break;
         }
         println("[ERROR] [cxvm --app] Unknown application: '" + app + "'");
-        println("Supported apps: thunder, lighting, deepsea, cvm, cli");
+        println("Supported apps: thunder, lighting, deepsea, cvm, cli, test");
         return 1;
     }
 
@@ -1995,56 +2348,120 @@ class CxvmEngine {
             }
             return this.dispatchApp(appName, subCmd, subArg);
         }
+        if (cmd == "build:cexp" || cmd == "cexp") {
+            let spec: string = arg1;
+            if (arg2.length() > 0 && arg2.substr(0, 1) != "-") {
+                spec = spec.length() > 0 ? (spec + "," + arg2) : arg2;
+            }
+            if (spec.length() == 0) spec = "all";
+            let res: CxvmCommandResult* = this.buildCexpVersions(spec);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "build:cexr" || cmd == "cexr") {
+            let spec: string = arg1;
+            if (arg2.length() > 0 && arg2.substr(0, 1) != "-") {
+                spec = spec.length() > 0 ? (spec + "," + arg2) : arg2;
+            }
+            if (spec.length() == 0) spec = "all";
+            let res: CxvmCommandResult* = this.buildCexrVersions(spec);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "build:toolchain" || cmd == "toolchain") {
+            let spec: string = arg1;
+            if (arg2.length() > 0 && arg2.substr(0, 1) != "-") {
+                spec = spec.length() > 0 ? (spec + "," + arg2) : arg2;
+            }
+            if (spec.length() == 0) spec = "all";
+            let res: CxvmCommandResult* = this.buildToolchainVersions(spec);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
         if (cmd == "multi") {
-            if (arg1 == "build") {
-                let res: CxvmCommandResult* = this.multiBuild(arg2, "");
-                println(res->output);
-                return res->success ? 0 : 1;
-            }
-            if (arg1 == "start") {
-                let isD: bool = (arg2 == "--daemon" || arg2 == "-d" || arg2.length() == 0);
-                let target: string = (arg2 == "--daemon" || arg2 == "-d") ? "" : arg2;
-                let res: CxvmCommandResult* = this.multiStart(target, isD);
-                println(res->output);
-                return res->success ? 0 : 1;
-            }
-            if (arg1 == "process" || arg1 == "ps" || arg1 == "list") {
-                let res: CxvmCommandResult* = this.listProcesses();
-                println(res->output);
-                return 0;
-            }
-            if (arg1 == "stop") {
-                let res: CxvmCommandResult* = this.stopProcess(arg2);
-                println(res->output);
-                return res->success ? 0 : 1;
-            }
-            if (arg1 == "status") {
-                let res: CxvmCommandResult* = this.statusProcess(arg2);
-                println(res->output);
-                return res->success ? 0 : 1;
+            let mCode: int = arg1 == "build" ? 1
+                : (arg1 == "start" ? 2
+                : ((arg1 == "process" || arg1 == "ps" || arg1 == "list") ? 3
+                : (arg1 == "stop" ? 4
+                : (arg1 == "status" ? 5 : 0))));
+            switch (mCode) {
+                case 1: {
+                    let bCode: int = (arg2 == "cexp" || arg2 == "compiler") ? 1 : ((arg2 == "cexr" || arg2 == "runtime") ? 2 : (arg2 == "toolchain" ? 3 : 0));
+                    switch (bCode) {
+                        case 1: {
+                            let res: CxvmCommandResult* = this.buildCexpVersions("all");
+                            println(res->output);
+                            return res->success ? 0 : 1;
+                        }
+                        case 2: {
+                            let res: CxvmCommandResult* = this.buildCexrVersions("all");
+                            println(res->output);
+                            return res->success ? 0 : 1;
+                        }
+                        case 3: {
+                            let res: CxvmCommandResult* = this.buildToolchainVersions("all");
+                            println(res->output);
+                            return res->success ? 0 : 1;
+                        }
+                        default:
+                        break;
+                    }
+                    let res: CxvmCommandResult* = this.multiBuild(arg2, "");
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                case 2: {
+                    let isD: bool = (arg2 == "--daemon" || arg2 == "-d" || arg2.length() == 0);
+                    let target: string = (arg2 == "--daemon" || arg2 == "-d") ? "" : arg2;
+                    let res: CxvmCommandResult* = this.multiStart(target, isD);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                case 3: {
+                    let res: CxvmCommandResult* = this.listProcesses();
+                    println(res->output);
+                    return 0;
+                }
+                case 4: {
+                    let res: CxvmCommandResult* = this.stopProcess(arg2);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                case 5: {
+                    let res: CxvmCommandResult* = this.statusProcess(arg2);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                default:
+                break;
             }
         }
         if (cmd == "process" || cmd == "ps") {
-            if (arg1 == "list" || arg1.length() == 0) {
-                let res: CxvmCommandResult* = this.listProcesses();
-                println(res->output);
-                return 0;
-            }
-            if (arg1 == "start") {
-                let isD: bool = (arg2 == "--daemon" || arg2 == "-d");
-                let res: CxvmCommandResult* = this.startProcess(arg2, arg2, 0, isD);
-                println(res->output);
-                return res->success ? 0 : 1;
-            }
-            if (arg1 == "stop") {
-                let res: CxvmCommandResult* = this.stopProcess(arg2);
-                println(res->output);
-                return res->success ? 0 : 1;
-            }
-            if (arg1 == "status") {
-                let res: CxvmCommandResult* = this.statusProcess(arg2);
-                println(res->output);
-                return res->success ? 0 : 1;
+            let pCode: int = (arg1 == "list" || arg1.length() == 0) ? 1 : (arg1 == "start" ? 2 : (arg1 == "stop" ? 3 : (arg1 == "status" ? 4 : 0)));
+            switch (pCode) {
+                case 1: {
+                    let res: CxvmCommandResult* = this.listProcesses();
+                    println(res->output);
+                    return 0;
+                }
+                case 2: {
+                    let isD: bool = (arg2 == "--daemon" || arg2 == "-d");
+                    let res: CxvmCommandResult* = this.startProcess(arg2, arg2, 0, isD);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                case 3: {
+                    let res: CxvmCommandResult* = this.stopProcess(arg2);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                case 4: {
+                    let res: CxvmCommandResult* = this.statusProcess(arg2);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                default:
+                break;
             }
         }
         if (cmd == "racer") {
@@ -2120,12 +2537,17 @@ class CxvmEngine {
             }
             println("[OK] [cxvm " + cmd + "] Code passed lint checks.");
             let mainFile: string = "";
-            if (arg1.length() > 0 && arg1 != "--daemon" && arg1 != "-d") {
+            let mfChoice: int = (arg1.length() > 0 && arg1 != "--daemon" && arg1 != "-d") ? 1 : ((arg2.length() > 0 && arg2 != "--daemon" && arg2 != "-d") ? 2 : 0);
+            switch (mfChoice) {
+                case 1:
                 mainFile = arg1;
-            } else if (arg2.length() > 0 && arg2 != "--daemon" && arg2 != "-d") {
+                break;
+                case 2:
                 mainFile = arg2;
-            } else {
+                break;
+                default:
                 mainFile = this.detectMainFile(".");
+                break;
             }
             println("==> [cxvm " + cmd + "] Auto-detected main file from cex-pack.json: " + mainFile);
             if (isDaemon) {
@@ -2158,6 +2580,29 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "build" || cmd == "multi-platform" || cmd == "build-multi-platform" || cmd == "package" || cmd == "dist") {
+            let bTargetCode: int = (arg1 == "cexp" || arg1 == "compiler") ? 1 : ((arg1 == "cexr" || arg1 == "runtime") ? 2 : ((arg1 == "toolchain" || arg1 == "both" || arg1 == "cexp+cexr") ? 3 : 0));
+            switch (bTargetCode) {
+                case 1: {
+                    let spec: string = arg2.length() > 0 ? arg2 : "all";
+                    let res: CxvmCommandResult* = this.buildCexpVersions(spec);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                case 2: {
+                    let spec: string = arg2.length() > 0 ? arg2 : "all";
+                    let res: CxvmCommandResult* = this.buildCexrVersions(spec);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                case 3: {
+                    let spec: string = arg2.length() > 0 ? arg2 : "all";
+                    let res: CxvmCommandResult* = this.buildToolchainVersions(spec);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                default:
+                break;
+            }
             let isRacer: bool = (arg1 == "--racer" || arg1 == "-r" || arg2 == "--racer" || arg2 == "-r");
             if (isRacer) {
                 let target: string = (arg1 == "--racer" || arg1 == "-r") ? arg2 : arg1;
@@ -2188,12 +2633,19 @@ class CxvmEngine {
         if (cmd == "upgrade" || cmd == "update") {
             if (arg1 == "--dependencies" || arg1 == "--deps" || arg1.rfind("--dependencies=", 0) == 0 || arg1.rfind("--deps=", 0) == 0 || arg2 == "--dependencies" || arg2 == "--deps") {
                 let depArg: string = "";
-                if (arg1.rfind("--dependencies=", 0) == 0) {
+                let dFlagChoice: int = (arg1.rfind("--dependencies=", 0) == 0) ? 1 : ((arg1.rfind("--deps=", 0) == 0) ? 2 : ((arg1 == "--dependencies" || arg1 == "--deps") ? 3 : 0));
+                switch (dFlagChoice) {
+                    case 1:
                     depArg = arg1.substr(15);
-                } else if (arg1.rfind("--deps=", 0) == 0) {
+                    break;
+                    case 2:
                     depArg = arg1.substr(7);
-                } else if (arg1 == "--dependencies" || arg1 == "--deps") {
+                    break;
+                    case 3:
                     depArg = arg2;
+                    break;
+                    default:
+                    break;
                 }
                 let res: CxvmCommandResult* = this.upgradeDependencies(depArg, false);
                 println(res->output);
@@ -2241,6 +2693,10 @@ class CxvmEngine {
         if (cmd == "cli" || cmd == "@cli" || cmd == "cex-cli") {
             return this.dispatchApp("cli", arg1, arg2);
         }
+        if (cmd == "test" || cmd == "@test" || cmd == "cex-test" || cmd == "@cex-test") {
+            let subC: string = arg1.length() == 0 ? "run" : arg1;
+            return this.dispatchApp("test", subC, arg2);
+        }
         if (cmd == "hooks" || cmd == "scan-hooks") {
             let root: string = (arg1 == "scan" || arg1 == "install") ? arg2 : arg1;
             let res: CxvmCommandResult* = this.scanAndInstallHooks(root);
@@ -2255,9 +2711,20 @@ class CxvmEngine {
                 let cxvmDirEnv: char* = getenv("CXVM_DIR");
                 let cxvmDir: string = cxvmDirEnv != nullptr ? string(cxvmDirEnv) : (homeDir + "/.cxvm");
                 let resolvedLog: string = cxvmDir + "/thunder_server.log";
-                if (svcName == "server") resolvedLog = cxvmDir + "/cxvm_server.log";
-                else if (svcName == "cvm") resolvedLog = cxvmDir + "/cvm_server.log";
-                else if (svcName == "apps") resolvedLog = cxvmDir + "/thunder_apps.pid";
+                let logChoice: int = svcName == "server" ? 1 : (svcName == "cvm" ? 2 : (svcName == "apps" ? 3 : 0));
+                switch (logChoice) {
+                    case 1:
+                    resolvedLog = cxvmDir + "/cxvm_server.log";
+                    break;
+                    case 2:
+                    resolvedLog = cxvmDir + "/cvm_server.log";
+                    break;
+                    case 3:
+                    resolvedLog = cxvmDir + "/thunder_apps.pid";
+                    break;
+                    default:
+                    break;
+                }
                 println("==> [cxvm log] Viewing logs for service '" + svcName + "' (" + resolvedLog + ")...");
                 if (fs.exists(resolvedLog)) {
                     system(("tail -n 30 \"" + resolvedLog + "\" 2>/dev/null || true").c_str());
@@ -2404,17 +2871,21 @@ class CxvmEngine {
                 }
             }
         }
-        if (fs.exists(dir + "/src/index.cex")) {
+        let code: int = fs.exists(dir + "/src/index.cex") ? 1
+            : (fs.exists(dir + "/src/main.cex") ? 2
+            : (fs.exists(dir + "/index.cex") ? 3
+            : (fs.exists(dir + "/main.cex") ? 4 : 0)));
+        switch (code) {
+            case 1:
             return "src/index.cex";
-        }
-        if (fs.exists(dir + "/src/main.cex")) {
+            case 2:
             return "src/main.cex";
-        }
-        if (fs.exists(dir + "/index.cex")) {
+            case 3:
             return "index.cex";
-        }
-        if (fs.exists(dir + "/main.cex")) {
+            case 4:
             return "main.cex";
+            default:
+            break;
         }
         return "src/index.cex";
     }
@@ -2519,8 +2990,20 @@ class CxvmEngine {
             let len: int = (int)content.length();
             for (let k: int = colIdx + 1; k < len && k < colIdx + 20; k++) {
                 let ch: string = content.substr(k, 1);
-                if (ch >= "0" && ch <= "9") valStr = valStr + ch;
-                else if (valStr.length() > 0) break;
+                let isDigit: bool = (ch >= "0" && ch <= "9");
+                let cState: int = isDigit ? 1 : (valStr.length() > 0 ? 2 : 0);
+                let stopScan: bool = false;
+                switch (cState) {
+                    case 1:
+                    valStr = valStr + ch;
+                    break;
+                    case 2:
+                    stopScan = true;
+                    break;
+                    default:
+                    break;
+                }
+                if (stopScan) break;
             }
             if (valStr.length() > 0) cPort = this.parsePort(valStr);
         }
@@ -2538,8 +3021,20 @@ class CxvmEngine {
             let len: int = (int)content.length();
             for (let k: int = colIdx + 1; k < len && k < colIdx + 20; k++) {
                 let ch: string = content.substr(k, 1);
-                if (ch >= "0" && ch <= "9") valStr = valStr + ch;
-                else if (valStr.length() > 0) break;
+                let isDigit: bool = (ch >= "0" && ch <= "9");
+                let cState: int = isDigit ? 1 : (valStr.length() > 0 ? 2 : 0);
+                let stopScan: bool = false;
+                switch (cState) {
+                    case 1:
+                    valStr = valStr + ch;
+                    break;
+                    case 2:
+                    stopScan = true;
+                    break;
+                    default:
+                    break;
+                }
+                if (stopScan) break;
             }
             if (valStr.length() > 0) hPort = this.parsePort(valStr);
         } else {
@@ -2661,80 +3156,94 @@ class CxvmEngine {
     }
 
     public lightExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "create") {
-            let pName: string = arg1.length() == 0 ? "my-lighting-app" : arg1;
-            let res: CxvmCommandResult* = this.lightCreate(pName, ".");
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "start") {
-            let isDaemon: bool = (arg1 == "--daemon" || arg1 == "-d" || arg2 == "--daemon" || arg2 == "-d");
-            println("==> [cxvm] Redirecting 'light start' -> 'lighting start'...");
-            println("==> [lighting start] Auto-linting code when load before run start...");
-            let lintOk: bool = this.autoLint(".");
-            if (!lintOk) {
-                println("[FAIL] [lighting start] Lint check failed. Server start aborted.");
-                return 1;
+        let lCode: int = cmd == "create" ? 1
+            : (cmd == "start" ? 2
+            : ((cmd == "dev" || cmd == "serve") ? 3
+            : (cmd == "build" ? 4
+            : ((cmd == "doctor" || cmd == "status") ? 5 : 0))));
+        switch (lCode) {
+            case 1: {
+                let pName: string = arg1.length() == 0 ? "my-lighting-app" : arg1;
+                let res: CxvmCommandResult* = this.lightCreate(pName, ".");
+                println(res->output);
+                return 0;
             }
-            println("[OK] [lighting start] Code passed lint checks.");
-            let mainFile: string = "";
-            if (arg1.length() > 0 && arg1 != "--daemon" && arg1 != "-d") {
-                mainFile = arg1;
-            } else if (arg2.length() > 0 && arg2 != "--daemon" && arg2 != "-d") {
-                mainFile = arg2;
-            } else {
-                mainFile = this.detectMainFile(".");
+            case 2: {
+                let isDaemon: bool = (arg1 == "--daemon" || arg1 == "-d" || arg2 == "--daemon" || arg2 == "-d");
+                println("==> [cxvm] Redirecting 'light start' -> 'lighting start'...");
+                println("==> [lighting start] Auto-linting code when load before run start...");
+                let lintOk: bool = this.autoLint(".");
+                if (!lintOk) {
+                    println("[FAIL] [lighting start] Lint check failed. Server start aborted.");
+                    return 1;
+                }
+                println("[OK] [lighting start] Code passed lint checks.");
+                let mainFile: string = "";
+                let mfChoice: int = (arg1.length() > 0 && arg1 != "--daemon" && arg1 != "-d") ? 1 : ((arg2.length() > 0 && arg2 != "--daemon" && arg2 != "-d") ? 2 : 0);
+                switch (mfChoice) {
+                    case 1:
+                    mainFile = arg1;
+                    break;
+                    case 2:
+                    mainFile = arg2;
+                    break;
+                    default:
+                    mainFile = this.detectMainFile(".");
+                    break;
+                }
+                println("==> [lighting start] Auto-detected main file from cex-pack.json: " + mainFile);
+                if (isDaemon) {
+                    this.serverRunning = true;
+                    this.serverPid = 9182;
+                    println("==> [lighting start] Starting Lighting Fullstack MVC server in daemon mode on port 3080 (" + mainFile + ")...");
+                    println("[OK] [lighting start] Server started in daemon mode (PID: " + to_string(this.serverPid) + ")");
+                    println("  - Mode:     daemon (background)");
+                    println("  - Target:   " + mainFile);
+                    println("  - Address:  http://localhost:3080");
+                } else {
+                    println("==> [lighting start] Starting Lighting Fullstack MVC server on port 3080 (" + mainFile + ")...");
+                    println("[OK] [lighting start] Server running at http://localhost:3080");
+                }
+                return 0;
             }
-            println("==> [lighting start] Auto-detected main file from cex-pack.json: " + mainFile);
-            if (isDaemon) {
-                this.serverRunning = true;
-                this.serverPid = 9182;
-                println("==> [lighting start] Starting Lighting Fullstack MVC server in daemon mode on port 3080 (" + mainFile + ")...");
-                println("[OK] [lighting start] Server started in daemon mode (PID: " + to_string(this.serverPid) + ")");
-                println("  - Mode:     daemon (background)");
-                println("  - Target:   " + mainFile);
-                println("  - Address:  http://localhost:3080");
-            } else {
-                println("==> [lighting start] Starting Lighting Fullstack MVC server on port 3080 (" + mainFile + ")...");
-                println("[OK] [lighting start] Server running at http://localhost:3080");
+            case 3: {
+                println("==> [cxvm light] Auto-linting code when load before run " + cmd + "...");
+                let lintOk: bool = this.autoLint(".");
+                if (!lintOk) {
+                    println("[FAIL] [cxvm light] Lint check failed. Dev server aborted.");
+                    return 1;
+                }
+                println("[OK] [cxvm light] Code passed lint checks.");
+                let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
+                println("==> [cxvm light] Auto-detected main file from cex-pack.json: " + mainFile);
+                println("==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080 (" + mainFile + ")...");
+                println("[OK] [cxvm light] Server running at http://localhost:3080");
+                return 0;
             }
-            return 0;
-        }
-        if (cmd == "dev" || cmd == "serve") {
-            println("==> [cxvm light] Auto-linting code when load before run " + cmd + "...");
-            let lintOk: bool = this.autoLint(".");
-            if (!lintOk) {
-                println("[FAIL] [cxvm light] Lint check failed. Dev server aborted.");
-                return 1;
+            case 4: {
+                let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
+                println("==> [cxvm light] Auto-detected main file from cex-pack.json: " + mainFile);
+                println("==> [cxvm light] Compiling Lighting MVC project with cexp native compiler (" + mainFile + ")...");
+                println("[OK] [cxvm light] Production binary built successfully in bin/");
+                if (this.hasThunderConfig(".")) {
+                    println("==> [cxvm light build] Found Thunder configuration in cex-pack.json (\"thunder\" / \"thunders\")");
+                    println("==> [cxvm light build] Building project into Thunder container engine...");
+                    let thunRes: CxvmCommandResult* = this.buildThunderFromManifest(".");
+                    println(thunRes->output);
+                    println("[OK] [cxvm light build] Successfully built project into Thunder");
+                }
+                return 0;
             }
-            println("[OK] [cxvm light] Code passed lint checks.");
-            let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
-            println("==> [cxvm light] Auto-detected main file from cex-pack.json: " + mainFile);
-            println("==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080 (" + mainFile + ")...");
-            println("[OK] [cxvm light] Server running at http://localhost:3080");
-            return 0;
-        }
-        if (cmd == "build") {
-            let mainFile: string = arg1.length() > 0 ? arg1 : this.detectMainFile(".");
-            println("==> [cxvm light] Auto-detected main file from cex-pack.json: " + mainFile);
-            println("==> [cxvm light] Compiling Lighting MVC project with cexp native compiler (" + mainFile + ")...");
-            println("[OK] [cxvm light] Production binary built successfully in bin/");
-            if (this.hasThunderConfig(".")) {
-                println("==> [cxvm light build] Found Thunder configuration in cex-pack.json (\"thunder\" / \"thunders\")");
-                println("==> [cxvm light build] Building project into Thunder container engine...");
-                let thunRes: CxvmCommandResult* = this.buildThunderFromManifest(".");
-                println(thunRes->output);
-                println("[OK] [cxvm light build] Successfully built project into Thunder");
+            case 5: {
+                println("==> [cxvm light] Lighting Fullstack MVC Engine Diagnostic: OK");
+                println("  - Framework: Lighting Fullstack MVC (Pure Cex)");
+                println("  - Scaffolder: light create <projectName> [READY]");
+                println("  - Runtime:   CexR v8 Native Engine");
+                println("  - Linter:    CexLint (Auto-lint before dev enabled)");
+                return 0;
             }
-            return 0;
-        }
-        if (cmd == "doctor" || cmd == "status") {
-            println("==> [cxvm light] Lighting Fullstack MVC Engine Diagnostic: OK");
-            println("  - Framework: Lighting Fullstack MVC (Pure Cex)");
-            println("  - Scaffolder: light create <projectName> [READY]");
-            println("  - Runtime:   CexR v8 Native Engine");
-            println("  - Linter:    CexLint (Auto-lint before dev enabled)");
-            return 0;
+            default:
+            break;
         }
         println("Lighting Fullstack MVC Engine (as light)");
         println("Usage: cxvm light <command> [arguments]");

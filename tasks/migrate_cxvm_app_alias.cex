@@ -62,7 +62,7 @@ class AppAliasMigrator {
             }
 
             // Avoid replacing log tags like '[cxvm thunder]' or definition mentions like 'alias: cxvm thunder'
-            if (matchPos > 0 && content[matchPos - 1] == '[') {
+            if (matchPos > 0 && content.substr(matchPos - 1, 1) == "[") {
                 res += content.substr(pos, matchPos - pos + 5);
                 pos = matchPos + 5;
                 continue;
@@ -86,52 +86,73 @@ class AppAliasMigrator {
                 continue;
             }
 
-            if (remainder.rfind("thunder", 0) == 0) {
-                // Ensure boundary
-                size_t afterWord = afterMatch + 7;
-                char nextChar = afterWord < len ? content[afterWord] : ' ';
-                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
-                    res += "cxvm --app thunder";
-                    repls++;
-                    pos = afterWord;
-                    continue;
+            let rKind: int = remainder.rfind("thunder", 0) == 0 ? 1
+                : (remainder.rfind("lighting", 0) == 0 ? 2
+                : (remainder.rfind("deepsea", 0) == 0 ? 3
+                : (remainder.rfind("cvm", 0) == 0 ? 4
+                : (remainder.rfind("cli", 0) == 0 ? 5 : 0))));
+            let matchedWord: bool = false;
+            switch (rKind) {
+                case 1: {
+                    size_t afterWord = afterMatch + 7;
+                    string nextChar = afterWord < len ? content.substr(afterWord, 1) : " ";
+                    if (nextChar == " " || nextChar == "\t" || nextChar == "\n" || nextChar == "\"" || nextChar == "'" || nextChar == ";" || nextChar == ")") {
+                        res += "cxvm --app thunder";
+                        repls++;
+                        pos = afterWord;
+                        matchedWord = true;
+                    }
+                    break;
                 }
-            } else if (remainder.rfind("lighting", 0) == 0) {
-                size_t afterWord = afterMatch + 8;
-                char nextChar = afterWord < len ? content[afterWord] : ' ';
-                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
-                    res += "cxvm --app lighting";
-                    repls++;
-                    pos = afterWord;
-                    continue;
+                case 2: {
+                    size_t afterWord = afterMatch + 8;
+                    string nextChar = afterWord < len ? content.substr(afterWord, 1) : " ";
+                    if (nextChar == " " || nextChar == "\t" || nextChar == "\n" || nextChar == "\"" || nextChar == "'" || nextChar == ";" || nextChar == ")") {
+                        res += "cxvm --app lighting";
+                        repls++;
+                        pos = afterWord;
+                        matchedWord = true;
+                    }
+                    break;
                 }
-            } else if (remainder.rfind("deepsea", 0) == 0) {
-                size_t afterWord = afterMatch + 7;
-                char nextChar = afterWord < len ? content[afterWord] : ' ';
-                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
-                    res += "cxvm --app deepsea";
-                    repls++;
-                    pos = afterWord;
-                    continue;
+                case 3: {
+                    size_t afterWord = afterMatch + 7;
+                    string nextChar = afterWord < len ? content.substr(afterWord, 1) : " ";
+                    if (nextChar == " " || nextChar == "\t" || nextChar == "\n" || nextChar == "\"" || nextChar == "'" || nextChar == ";" || nextChar == ")") {
+                        res += "cxvm --app deepsea";
+                        repls++;
+                        pos = afterWord;
+                        matchedWord = true;
+                    }
+                    break;
                 }
-            } else if (remainder.rfind("cvm", 0) == 0) {
-                size_t afterWord = afterMatch + 3;
-                char nextChar = afterWord < len ? content[afterWord] : ' ';
-                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
-                    res += "cxvm --app cvm";
-                    repls++;
-                    pos = afterWord;
-                    continue;
+                case 4: {
+                    size_t afterWord = afterMatch + 3;
+                    string nextChar = afterWord < len ? content.substr(afterWord, 1) : " ";
+                    if (nextChar == " " || nextChar == "\t" || nextChar == "\n" || nextChar == "\"" || nextChar == "'" || nextChar == ";" || nextChar == ")") {
+                        res += "cxvm --app cvm";
+                        repls++;
+                        pos = afterWord;
+                        matchedWord = true;
+                    }
+                    break;
                 }
-            } else if (remainder.rfind("cli", 0) == 0) {
-                size_t afterWord = afterMatch + 3;
-                char nextChar = afterWord < len ? content[afterWord] : ' ';
-                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
-                    res += "cxvm --app cli";
-                    repls++;
-                    pos = afterWord;
-                    continue;
+                case 5: {
+                    size_t afterWord = afterMatch + 3;
+                    string nextChar = afterWord < len ? content.substr(afterWord, 1) : " ";
+                    if (nextChar == " " || nextChar == "\t" || nextChar == "\n" || nextChar == "\"" || nextChar == "'" || nextChar == ";" || nextChar == ")") {
+                        res += "cxvm --app cli";
+                        repls++;
+                        pos = afterWord;
+                        matchedWord = true;
+                    }
+                    break;
                 }
+                default:
+                break;
+            }
+            if (matchedWord) {
+                continue;
             }
 
             res += "cxvm ";
@@ -173,11 +194,11 @@ class AppAliasMigrator {
         // Use python or find to get file paths cleanly
         string findCmd = "python3 -c \"import os; [print(os.path.join(root, f)) for root, dirs, files in os.walk('" + this.targetDir + "') for f in files]\" 2>/dev/null";
         string allFilesRaw = child_process.execSync(findCmd);
-        
+
         std::stringstream ss(allFilesRaw);
         string line;
         while (std::getline(ss, line)) {
-            while (!line.empty() && (line.back() == '\r' || line.back() == '\n' || line.back() == ' ')) {
+            while (!line.empty() && (line.substr(line.length() - 1, 1) == "\r" || line.substr(line.length() - 1, 1) == "\n" || line.substr(line.length() - 1, 1) == " ")) {
                 line.pop_back();
             }
             if (line.empty()) continue;
@@ -214,18 +235,29 @@ fn main(): int {
     let len: int = (int)args->length();
     for (let i: int = 1; i < len; i++) {
         let a: string = args->get(i);
-        if (a == "--fix" || a == "-f" || a == "--write") {
+        let aCode: int = (a == "--fix" || a == "-f" || a == "--write") ? 1
+            : ((a == "--check" || a == "--dry-run") ? 2
+            : ((a == "--path" || a == "-p") ? 3
+            : (a.rfind("--path=", 0) == 0 ? 4
+            : ((a == "--help" || a == "-h") ? 5
+            : ((a.length() > 0 && a.substr(0, 1) != "-") ? 6 : 0)))));
+        switch (aCode) {
+            case 1:
             fixMode = true;
-        } else if (a == "--check" || a == "--dry-run") {
+            break;
+            case 2:
             fixMode = false;
-        } else if (a == "--path" || a == "-p") {
+            break;
+            case 3:
             if (i + 1 < len) {
                 targetPath = args->get(i + 1);
                 i++;
             }
-        } else if (a.rfind("--path=", 0) == 0) {
+            break;
+            case 4:
             targetPath = a.substr(7);
-        } else if (a == "--help" || a == "-h") {
+            break;
+            case 5:
             println("Usage: cexr tasks/migrate_cxvm_app_alias.cex [options]");
             println("Options:");
             println("  --path <dir>     Target directory to scan (default: .)");
@@ -233,8 +265,11 @@ fn main(): int {
             println("  --check          Dry-run preview without modifying files (default)");
             println("  --help           Show this help message");
             return 0;
-        } else if (a.length() > 0 && a.front() != '-') {
+            case 6:
             targetPath = a;
+            break;
+            default:
+            break;
         }
     }
 

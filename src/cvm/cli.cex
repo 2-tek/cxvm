@@ -14,34 +14,36 @@ class CvmCLI {
     }
 
     public execute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "status" || cmd == "") {
+        let cmdCode: int = (cmd == "status" || cmd == "") ? 1 : (cmd == "init" ? 2 : (cmd == "add" ? 3 : (cmd == "commit" ? 4 : (cmd == "push" ? 5 : (cmd == "pull" ? 6 : (cmd == "branch" ? 7 : (cmd == "checkout" ? 8 : (cmd == "log" ? 9 : (cmd == "diff" ? 10 : (cmd == "cvm" ? 11 : (cmd == "mr" ? 12 : ((cmd == "help" || cmd == "--help" || cmd == "-h") ? 13 : 0))))))))))));
+        switch (cmdCode) {
+            case 1:
             return this.cmdStatus();
-        } else if (cmd == "init") {
+            case 2:
             return this.cmdInit(arg1);
-        } else if (cmd == "add") {
+            case 3:
             return this.cmdAdd(arg1);
-        } else if (cmd == "commit") {
+            case 4:
             return this.cmdCommit(arg1);
-        } else if (cmd == "push") {
+            case 5:
             return this.cmdPush(arg1, arg2);
-        } else if (cmd == "pull") {
+            case 6:
             return this.cmdPull(arg1, arg2);
-        } else if (cmd == "branch") {
+            case 7:
             return this.cmdBranch(arg1);
-        } else if (cmd == "checkout") {
+            case 8:
             return this.cmdCheckout(arg1);
-        } else if (cmd == "log") {
+            case 9:
             return this.cmdLog();
-        } else if (cmd == "diff") {
+            case 10:
             return this.cmdDiff();
-        } else if (cmd == "cvm") {
+            case 11:
             return this.cmdCvm(arg1, arg2);
-        } else if (cmd == "mr") {
+            case 12:
             return this.cmdMr(arg1, arg2);
-        } else if (cmd == "help" || cmd == "--help" || cmd == "-h") {
+            case 13:
             this.printHelp();
             return 0;
-        } else {
+            default:
             print("[CVM CLI] Unknown command: "); println(cmd);
             this.printHelp();
             return 1;
@@ -204,41 +206,50 @@ class CvmCLI {
     }
 
     private cmdCvm(subAction: string, arg: string): int {
-        if (subAction == "diff") {
-            let author: GitUser* = new GitUser("2-TEK Developer", "dev@2tek.local");
-            let patch: CvmPatch* = this.repo->generateCvmPatch("cvm_patch_" + to_string(1), "Working changes patch", author);
-            CvmPatchEngine::preview(patch);
-            return 0;
-        } else if (subAction == "preview") {
-            if (arg == "") {
-                println("Usage: cvm cvm preview <file.cvm>");
-                return 1;
+        let subCode: int = (subAction == "diff") ? 1 : ((subAction == "preview") ? 2 : ((subAction == "apply") ? 3 : 0));
+        switch (subCode) {
+            case 1: {
+                let author: GitUser* = new GitUser("2-TEK Developer", "dev@2tek.local");
+                let patch: CvmPatch* = this.repo->generateCvmPatch("cvm_patch_" + to_string(1), "Working changes patch", author);
+                CvmPatchEngine::preview(patch);
+                return 0;
             }
-            let patch: CvmPatch* = CvmPatchEngine::parsePatch(arg);
-            CvmPatchEngine::preview(patch);
-            return 0;
-        } else if (subAction == "apply") {
-            let patch: CvmPatch* = CvmPatchEngine::parsePatch(arg);
-            this.repo->applyCvmPatch(patch);
-            println("Applied .cvm patch successfully.");
-            return 0;
+            case 2: {
+                if (arg == "") {
+                    println("Usage: cvm cvm preview <file.cvm>");
+                    return 1;
+                }
+                let patch: CvmPatch* = CvmPatchEngine::parsePatch(arg);
+                CvmPatchEngine::preview(patch);
+                return 0;
+            }
+            case 3: {
+                let patch: CvmPatch* = CvmPatchEngine::parsePatch(arg);
+                this.repo->applyCvmPatch(patch);
+                println("Applied .cvm patch successfully.");
+                return 0;
+            }
+            default:
+            println("Unknown cvm subcommand. Options: diff, preview, apply");
+            return 1;
         }
-        println("Unknown cvm subcommand. Options: diff, preview, apply");
-        return 1;
     }
 
     private cmdMr(subAction: string, arg: string): int {
-        if (subAction == "list" || subAction == "") {
-            let mrs: Array<MergeRequest*>* = this.repo->mergeManager->listRequests();
-            let count: int = (int)mrs->length();
-            println("Merge Requests:");
-            for (let i: int = 0; i < count; i++) {
-                let mr: MergeRequest* = mrs->get(i);
-                print("  * "); print(mr->id); print(" ["); print(mr->status); print("]: ");
-                print(mr->title); print(" ("); print(mr->sourceBranch); print(" -> "); print(mr->targetBranch); println(")");
+        let mrCode: int = (subAction == "list" || subAction == "") ? 1 : ((subAction == "merge") ? 2 : 0);
+        switch (mrCode) {
+            case 1: {
+                let mrs: Array<MergeRequest*>* = this.repo->mergeManager->listRequests();
+                let count: int = (int)mrs->length();
+                println("Merge Requests:");
+                for (let i: int = 0; i < count; i++) {
+                    let mr: MergeRequest* = mrs->get(i);
+                    print("  * "); print(mr->id); print(" ["); print(mr->status); print("]: ");
+                    print(mr->title); print(" ("); print(mr->sourceBranch); print(" -> "); print(mr->targetBranch); println(")");
+                }
+                return 0;
             }
-            return 0;
-        } else if (subAction == "merge") {
+            case 2:
             if (this.repo->mergeManager->executeMerge(arg, "admin@2tek.local")) {
                 print("Successfully merged: "); println(arg);
                 return 0;
@@ -246,8 +257,9 @@ class CvmCLI {
                 print("Failed to merge: "); println(arg);
                 return 1;
             }
+            default:
+            return 0;
         }
-        return 0;
     }
 
     private printHelp(): void {

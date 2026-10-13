@@ -39,10 +39,16 @@ class DiffEngine {
         let oldLen: int = (int)oldLines->length();
         let newLen: int = (int)newLines->length();
 
-        if (oldText == "" && newText != "") {
+        let fileStateCode: int = (oldText == "" && newText != "") ? 1 : ((oldText != "" && newText == "") ? 2 : 0);
+        switch (fileStateCode) {
+            case 1:
             diff->isNew = true;
-        } else if (oldText != "" && newText == "") {
+            break;
+            case 2:
             diff->isDeleted = true;
+            break;
+            default:
+            break;
         }
 
         let hunk: DiffHunk* = new DiffHunk(1, oldLen, 1, newLen, "@@ -1," + to_string(oldLen) + " +1," + to_string(newLen) + " @@");
@@ -51,33 +57,41 @@ class DiffEngine {
         let n: int = 0;
 
         while (o < oldLen || n < newLen) {
-            if (o < oldLen && n < newLen && oldLines->get(o) == newLines->get(n)) {
+            let stepCode: int = (o < oldLen && n < newLen && oldLines->get(o) == newLines->get(n)) ? 1 : ((o < oldLen && (n >= newLen || oldLines->get(o) != newLines->get(n))) ? 2 : ((n < newLen) ? 3 : 0));
+            switch (stepCode) {
+                case 1:
                 hunk->addLine(new DiffLine("normal", oldLines->get(o), o + 1, n + 1));
                 o++;
                 n++;
-            } else if (o < oldLen && (n >= newLen || oldLines->get(o) != newLines->get(n))) {
-                // Check if old line is deleted
-                let foundAhead: bool = false;
-                for (let look: int = n; look < newLen && look < n + 5; look++) {
-                    if (oldLines->get(o) == newLines->get(look)) {
-                        foundAhead = true;
-                        break;
+                break;
+                case 2: {
+                    // Check if old line is deleted
+                    let foundAhead: bool = false;
+                    for (let look: int = n; look < newLen && look < n + 5; look++) {
+                        if (oldLines->get(o) == newLines->get(look)) {
+                            foundAhead = true;
+                            break;
+                        }
                     }
-                }
 
-                if (foundAhead && n < newLen) {
-                    hunk->addLine(new DiffLine("add", newLines->get(n), 0, n + 1));
-                    diff->additions++;
-                    n++;
-                } else {
-                    hunk->addLine(new DiffLine("delete", oldLines->get(o), o + 1, 0));
-                    diff->deletions++;
-                    o++;
+                    if (foundAhead && n < newLen) {
+                        hunk->addLine(new DiffLine("add", newLines->get(n), 0, n + 1));
+                        diff->additions++;
+                        n++;
+                    } else {
+                        hunk->addLine(new DiffLine("delete", oldLines->get(o), o + 1, 0));
+                        diff->deletions++;
+                        o++;
+                    }
+                    break;
                 }
-            } else if (n < newLen) {
+                case 3:
                 hunk->addLine(new DiffLine("add", newLines->get(n), 0, n + 1));
                 diff->additions++;
                 n++;
+                break;
+                default:
+                break;
             }
         }
 
@@ -91,12 +105,17 @@ class DiffEngine {
         let linesCount: int = (int)hunk->lines->length();
         for (let i: int = 0; i < linesCount; i++) {
             let l: DiffLine* = hunk->lines->get(i);
-            if (l->type == "add") {
+            let lineTypeCode: int = (l->type == "add") ? 1 : ((l->type == "delete") ? 2 : 0);
+            switch (lineTypeCode) {
+                case 1:
                 unified = unified + "+" + l->content + "\n";
-            } else if (l->type == "delete") {
+                break;
+                case 2:
                 unified = unified + "-" + l->content + "\n";
-            } else {
+                break;
+                default:
                 unified = unified + " " + l->content + "\n";
+                break;
             }
         }
 

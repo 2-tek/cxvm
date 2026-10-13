@@ -85,56 +85,77 @@ class CvmPatchEngine {
 
         for (let i: int = 0; i < totalLines; i++) {
             let line: string = lines->get(i);
-
-            if (line.substr(0, 9) == "VERSION: ") {
+            let lineCode: int = (line.substr(0, 9) == "VERSION: ") ? 1 : ((line.substr(0, 4) == "ID: ") ? 2 : ((line.substr(0, 8) == "AUTHOR: ") ? 3 : ((line.substr(0, 6) == "DATE: ") ? 4 : ((line.substr(0, 8) == "BRANCH: ") ? 5 : ((line.substr(0, 13) == "BASE_COMMIT: ") ? 6 : ((line.substr(0, 9) == "MESSAGE: ") ? 7 : ((line.substr(0, 10) == "--- FILE: ") ? 8 : ((line.substr(0, 11) == "ADDITIONS: ") ? 9 : ((line.substr(0, 11) == "DELETIONS: ") ? 10 : ((line.substr(0, 13) == "PAYLOAD_B64: ") ? 11 : ((line == "DIFF_START") ? 12 : ((line == "DIFF_END") ? 13 : ((line == "--- END FILE ---") ? 14 : (inDiff ? 15 : 0))))))))))))));
+            switch (lineCode) {
+                case 1:
                 version = line.substr(9);
-            } else if (line.substr(0, 4) == "ID: ") {
+                break;
+                case 2:
                 id = line.substr(4);
-            } else if (line.substr(0, 8) == "AUTHOR: ") {
-                let authorStr: string = line.substr(8);
-                let openAngle: int = (int)authorStr.find("<");
-                let closeAngle: int = (int)authorStr.find(">");
-                if (openAngle >= 0 && closeAngle > openAngle) {
-                    authorName = authorStr.substr(0, openAngle - 1);
-                    authorEmail = authorStr.substr(openAngle + 1, closeAngle - openAngle - 1);
-                } else {
-                    authorName = authorStr;
+                break;
+                case 3: {
+                    let authorStr: string = line.substr(8);
+                    let openAngle: int = (int)authorStr.find("<");
+                    let closeAngle: int = (int)authorStr.find(">");
+                    if (openAngle >= 0 && closeAngle > openAngle) {
+                        authorName = authorStr.substr(0, openAngle - 1);
+                        authorEmail = authorStr.substr(openAngle + 1, closeAngle - openAngle - 1);
+                    } else {
+                        authorName = authorStr;
+                    }
+                    break;
                 }
-            } else if (line.substr(0, 6) == "DATE: ") {
+                case 4:
                 date = line.substr(6);
-            } else if (line.substr(0, 8) == "BRANCH: ") {
+                break;
+                case 5:
                 branch = line.substr(8);
-            } else if (line.substr(0, 13) == "BASE_COMMIT: ") {
+                break;
+                case 6:
                 baseCommit = line.substr(13);
-            } else if (line.substr(0, 9) == "MESSAGE: ") {
+                break;
+                case 7:
                 message = line.substr(9);
-            } else if (line.substr(0, 10) == "--- FILE: ") {
-                let endMarker: int = (int)line.find(" ---");
-                if (endMarker > 10) {
-                    currentFile = line.substr(10, endMarker - 10);
+                break;
+                case 8: {
+                    let endMarker: int = (int)line.find(" ---");
+                    if (endMarker > 10) {
+                        currentFile = line.substr(10, endMarker - 10);
+                    }
+                    currentAdditions = 0;
+                    currentDeletions = 0;
+                    currentPayloadB64 = "";
+                    currentDiff = "";
+                    inDiff = false;
+                    break;
                 }
-                currentAdditions = 0;
-                currentDeletions = 0;
-                currentPayloadB64 = "";
-                currentDiff = "";
-                inDiff = false;
-            } else if (line.substr(0, 11) == "ADDITIONS: ") {
+                case 9:
                 currentAdditions = (int)atoi(line.substr(11).c_str());
-            } else if (line.substr(0, 11) == "DELETIONS: ") {
+                break;
+                case 10:
                 currentDeletions = (int)atoi(line.substr(11).c_str());
-            } else if (line.substr(0, 13) == "PAYLOAD_B64: ") {
+                break;
+                case 11:
                 currentPayloadB64 = line.substr(13);
-            } else if (line == "DIFF_START") {
+                break;
+                case 12:
                 inDiff = true;
-            } else if (line == "DIFF_END") {
+                break;
+                case 13:
                 inDiff = false;
-            } else if (line == "--- END FILE ---") {
-                let decodedPayload: string = Base64::decode(currentPayloadB64);
-                let entry: CvmFileEntry* = new CvmFileEntry(currentFile, "100644", currentAdditions, currentDeletions, currentDiff, decodedPayload, false);
-                parsedFiles->push(entry);
-                currentFile = "";
-            } else if (inDiff) {
+                break;
+                case 14: {
+                    let decodedPayload: string = Base64::decode(currentPayloadB64);
+                    let entry: CvmFileEntry* = new CvmFileEntry(currentFile, "100644", currentAdditions, currentDeletions, currentDiff, decodedPayload, false);
+                    parsedFiles->push(entry);
+                    currentFile = "";
+                    break;
+                }
+                case 15:
                 currentDiff = currentDiff + line + "\n";
+                break;
+                default:
+                break;
             }
         }
 

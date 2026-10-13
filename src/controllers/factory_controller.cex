@@ -117,10 +117,16 @@ class FactoryController extends BaseController {
         if (req->body.length() > 0 && req->body.find("{") != -1) {
             let parsed: JsonValue* = JsonDoc::parse(req->body);
             if (parsed != nullptr) {
-                if (parsed->has("dependencies")) {
+                let depKeyCode: int = parsed->has("dependencies") ? 1 : (parsed->has("deps") ? 2 : 0);
+                switch (depKeyCode) {
+                    case 1:
                     deps = parsed->get("dependencies")->asString();
-                } else if (parsed->has("deps")) {
+                    break;
+                    case 2:
                     deps = parsed->get("deps")->asString();
+                    break;
+                    default:
+                    break;
                 }
                 if (parsed->has("rebuild")) {
                     doRebuild = parsed->get("rebuild")->asBool();
@@ -269,18 +275,26 @@ class FactoryController extends BaseController {
         }
         let content: string = fs.readFile(fullPath);
         let cType: string = "application/octet-stream";
-        if (filename.find(".tar.gz") != -1) {
+        let extCode: int = (filename.find(".tar.gz") != -1) ? 1 : ((filename.find(".zip") != -1) ? 2 : ((filename.find(".sh") != -1 || filename === "cxvm") ? 3 : ((filename.find(".ps1") != -1) ? 4 : ((filename.find(".cmd") != -1 || filename.find(".bat") != -1) ? 5 : ((filename.find(".json") != -1) ? 6 : 0)))));
+        switch (extCode) {
+            case 1:
             cType = "application/gzip";
-        } else if (filename.find(".zip") != -1) {
+            break;
+            case 2:
             cType = "application/zip";
-        } else if (filename.find(".sh") != -1 || filename === "cxvm") {
+            break;
+            case 3:
             cType = "text/x-shellscript";
-        } else if (filename.find(".ps1") != -1) {
+            break;
+            case 4:
+            case 5:
             cType = "text/plain";
-        } else if (filename.find(".cmd") != -1 || filename.find(".bat") != -1) {
-            cType = "text/plain";
-        } else if (filename.find(".json") != -1) {
+            break;
+            case 6:
             cType = "application/json";
+            break;
+            default:
+            break;
         }
         return HttpResponse::ok(content, cType);
     }
@@ -921,6 +935,72 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "status", res == 0 ? "SUCCESS" : "ERROR");
         JsonDoc::setNum(doc, "exitCode", res);
         JsonDoc::setStr(doc, "queue", queueName);
+        return this.json(doc);
+    }
+
+    public apiBuildCexp(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let versions: string = req->getParam("versions");
+        if (versions.length() == 0 && req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("versions")) {
+                versions = parsed->get("versions")->asString();
+            }
+        }
+        if (versions.length() == 0) {
+            versions = "all";
+        }
+        let res: CxvmCommandResult* = cxvm->buildCexpVersions(versions);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "cliEngine", "@cex-cli v" + cxvm->cexCli->getConfig()->version);
+        JsonDoc::setStr(doc, "target", "cexp");
+        JsonDoc::setStr(doc, "versions", versions);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
+    public apiBuildCexr(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let versions: string = req->getParam("versions");
+        if (versions.length() == 0 && req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("versions")) {
+                versions = parsed->get("versions")->asString();
+            }
+        }
+        if (versions.length() == 0) {
+            versions = "all";
+        }
+        let res: CxvmCommandResult* = cxvm->buildCexrVersions(versions);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "cliEngine", "@cex-cli v" + cxvm->cexCli->getConfig()->version);
+        JsonDoc::setStr(doc, "target", "cexr");
+        JsonDoc::setStr(doc, "versions", versions);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
+    public apiBuildToolchain(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let versions: string = req->getParam("versions");
+        if (versions.length() == 0 && req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("versions")) {
+                versions = parsed->get("versions")->asString();
+            }
+        }
+        if (versions.length() == 0) {
+            versions = "all";
+        }
+        let res: CxvmCommandResult* = cxvm->buildToolchainVersions(versions);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "cliEngine", "@cex-cli v" + cxvm->cexCli->getConfig()->version);
+        JsonDoc::setStr(doc, "target", "toolchain");
+        JsonDoc::setStr(doc, "versions", versions);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
         return this.json(doc);
     }
 }

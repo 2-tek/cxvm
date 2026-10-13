@@ -10,45 +10,45 @@ import fs from "fs";
 import child_process from "child_process";
 
 class AliasPurgeFinding {
-public:
+    public:
     string filePath;
     string aliasKey;
     bool fixed;
 
     AliasPurgeFinding(string path, string key, bool wasFixed) {
-        this->filePath = path;
-        this->aliasKey = key;
-        this->fixed = wasFixed;
+        this.filePath = path;
+        this.aliasKey = key;
+        this.fixed = wasFixed;
     }
 }
 
 class AliasPurgeSummary {
-public:
+    public:
     int scannedManifests;
     int affectedManifests;
     int purgedAliasesCount;
     Array<AliasPurgeFinding*>* findings;
 
     AliasPurgeSummary() {
-        this->scannedManifests = 0;
-        this->affectedManifests = 0;
-        this->purgedAliasesCount = 0;
-        this->findings = new Array<AliasPurgeFinding*>();
+        this.scannedManifests = 0;
+        this.affectedManifests = 0;
+        this.purgedAliasesCount = 0;
+        this.findings = new Array<AliasPurgeFinding*>();
     }
 
     fn addFinding(finding: AliasPurgeFinding*): void {
-        this->findings->push(finding);
-        this->purgedAliasesCount = this->purgedAliasesCount + 1;
+        this.findings->push(finding);
+        this.purgedAliasesCount = this.purgedAliasesCount + 1;
     }
 }
 
 class ManifestAliasCleaner {
-private:
+    private:
     bool autoFix;
 
-public:
+    public:
     ManifestAliasCleaner(bool fix) {
-        this->autoFix = fix;
+        this.autoFix = fix;
     }
 
     // Cleans the "alias" block of a manifest string
@@ -68,15 +68,23 @@ public:
         let closeBrace: size_t = std::string::npos;
         for (let i: size_t = openBrace + 1; i < content.length(); i++) {
             let ch = content.substr(i, 1);
-            if (ch == "{") {
+            let bCode: int = ch == "{" ? 1 : (ch == "}" ? 2 : 0);
+            let doneBrace: bool = false;
+            switch (bCode) {
+                case 1:
                 depth++;
-            } else if (ch == "}") {
+                break;
+                case 2:
                 depth--;
                 if (depth == 0) {
                     closeBrace = i;
-                    break;
+                    doneBrace = true;
                 }
+                break;
+                default:
+                break;
             }
+            if (doneBrace) break;
         }
 
         if (closeBrace == std::string::npos) {
@@ -95,7 +103,7 @@ public:
             let lineLen: size_t = (nextNl == std::string::npos) ? (len - start) : (nextNl - start);
             let line = aliasBody.substr(start, lineLen);
 
-            let trimmed = this->trim(line);
+            let trimmed = this.trim(line);
             if (trimmed.length() > 0 && trimmed.substr(0, 1) == "\"") {
                 let quoteEnd = trimmed.find("\"", 1);
                 if (quoteEnd != std::string::npos) {
@@ -105,7 +113,7 @@ public:
                     let isRootAlias: bool = (key == "@" || (key.length() >= 2 && key.substr(0, 2) == "@/"));
                     if (!isRootAlias) {
                         // This is a package @name alias to remove!
-                        summary->addFinding(new AliasPurgeFinding(filePath, key, this->autoFix));
+                        summary->addFinding(new AliasPurgeFinding(filePath, key, this.autoFix));
                         hasRemovals = true;
                     } else {
                         if (cleanedLines.length() > 0) {
@@ -141,7 +149,7 @@ public:
         summary->affectedManifests = summary->affectedManifests + 1;
 
         // Format cleaned lines ensuring trailing commas are removed from last entry
-        cleanedLines = this->fixTrailingCommas(cleanedLines);
+        cleanedLines = this.fixTrailingCommas(cleanedLines);
 
         let before = content.substr(0, openBrace + 1);
         let after = content.substr(closeBrace);
@@ -157,7 +165,7 @@ public:
             let nextNl = block.find("\n", start);
             let lineLen: size_t = (nextNl == std::string::npos) ? (len - start) : (nextNl - start);
             let line = block.substr(start, lineLen);
-            if (this->trim(line).length() > 0) {
+            if (this.trim(line).length() > 0) {
                 lines->push(line);
             }
             if (nextNl == std::string::npos) break;
@@ -168,7 +176,7 @@ public:
         let count: int = (int)lines->length();
         for (let i: int = 0; i < count; i++) {
             let l = lines->get(i);
-            let t = this->trim(l);
+            let t = this.trim(l);
             if (i < count - 1) {
                 // Ensure comma at end
                 if (t.substr(t.length() - 1) != ",") {
@@ -203,19 +211,19 @@ public:
         println("===============================================================================");
         println("      2-TEK CexR v8: Remove Package (@name) Aliases from cex-pack.json         ");
         println("===============================================================================");
-        println("Target Path: " + targetPath + " (Auto-fix: " + (this->autoFix ? "ENABLED" : "DRY-RUN") + ")\n");
+        println("Target Path: " + targetPath + " (Auto-fix: " + (this.autoFix ? "ENABLED" : "DRY-RUN") + ")\n");
 
         if (fs.exists(targetPath)) {
             if (fs.isDir(targetPath)) {
-                this->scanDir(targetPath, summary);
+                this.scanDir(targetPath, summary);
             } else {
-                this->processManifest(targetPath, summary);
+                this.processManifest(targetPath, summary);
             }
         } else {
             println("[ERROR] Path does not exist: " + targetPath);
         }
 
-        this->printReport(summary);
+        this.printReport(summary);
         return summary;
     }
 
@@ -227,10 +235,16 @@ public:
                 continue;
             }
             let fullPath = dirPath + "/" + name;
-            if (fs.isDir(fullPath)) {
-                this->scanDir(fullPath, summary);
-            } else if (name == "cex-pack.json") {
-                this->processManifest(fullPath, summary);
+            let entryKind: int = fs.isDir(fullPath) ? 1 : (name == "cex-pack.json" ? 2 : 0);
+            switch (entryKind) {
+                case 1:
+                thisthis.Dir(fullPath, summary);
+                break;
+                case 2:
+                thisthis.essManifest(fullPath, summary);
+                break;
+                default:
+                break;
             }
         }
     }
@@ -238,9 +252,9 @@ public:
     fn processManifest(filePath: string, summary: AliasPurgeSummary*): void {
         summary->scannedManifests = summary->scannedManifests + 1;
         let content: string = fs.readFile(filePath);
-        let cleaned: string = this->cleanManifestAliasContent(content, filePath, summary);
+        let cleaned: string = this.cleanManifestAliasContent(content, filePath, summary);
 
-        if (this->autoFix && cleaned != content) {
+        if (this.autoFix && cleaned != content) {
             fs.writeFile(filePath, cleaned);
             println("[FIXED] Purged (@name) aliases in: " + filePath);
         }
@@ -261,12 +275,17 @@ public:
             println(status + " " + f->filePath + " -> removed key '" + f->aliasKey + "'");
         }
 
-        if (summary->purgedAliasesCount == 0) {
+        let rState: int = summary->purgedAliasesCount == 0 ? 1 : (this.autoFix ? 2 : 0);
+        switch (rState) {
+            case 1:
             println("SUCCESS: All manifests strictly conform to RULE_NO_PACKAGE_AT_NAME_IN_ALIAS!");
-        } else if (this->autoFix) {
+            break;
+            case 2:
             println("SUCCESS: Successfully purged all (@name) package aliases from manifests!");
-        } else {
+            break;
+            default:
             println("NOTICE: Run with '--fix' to apply automated removals.");
+            break;
         }
         println("===============================================================================");
     }
@@ -278,13 +297,19 @@ fn main(argc: int, argv: char**): int {
 
     for (let i: int = 1; i < argc; i++) {
         let arg: string = string(argv[i]);
-        if (arg == "--fix" || arg == "-f") {
+        let aCode: int = (arg == "--fix" || arg == "-f") ? 1 : ((arg == "--path" || arg == "-p") ? 2 : 0);
+        switch (aCode) {
+            case 1:
             fixMode = true;
-        } else if (arg == "--path" || arg == "-p") {
+            break;
+            case 2:
             if (i + 1 < argc) {
                 targetPath = string(argv[i + 1]);
                 i++;
             }
+            break;
+            default:
+            break;
         }
     }
 

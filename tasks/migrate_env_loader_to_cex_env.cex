@@ -10,22 +10,22 @@ import fs from "fs";
 import child_process from "child_process";
 
 class EnvMigrationFinding {
-public:
+    public:
     string projectPath;
     string targetFile;
     string actionDescription;
     bool fixed;
 
     EnvMigrationFinding(string proj, string file, string desc, bool wasFixed) {
-        this->projectPath = proj;
-        this->targetFile = file;
-        this->actionDescription = desc;
-        this->fixed = wasFixed;
+        this.projectPath = proj;
+        this.targetFile = file;
+        this.actionDescription = desc;
+        this.fixed = wasFixed;
     }
 }
 
 class EnvMigrationSummary {
-public:
+    public:
     int scannedProjects;
     int modifiedManifests;
     int modifiedEnvBridges;
@@ -33,26 +33,26 @@ public:
     Array<EnvMigrationFinding*>* findings;
 
     EnvMigrationSummary() {
-        this->scannedProjects = 0;
-        this->modifiedManifests = 0;
-        this->modifiedEnvBridges = 0;
-        this->totalFindings = 0;
-        this->findings = new Array<EnvMigrationFinding*>();
+        this.scannedProjects = 0;
+        this.modifiedManifests = 0;
+        this.modifiedEnvBridges = 0;
+        this.totalFindings = 0;
+        this.findings = new Array<EnvMigrationFinding*>();
     }
 
     fn addFinding(finding: EnvMigrationFinding*): void {
-        this->findings->push(finding);
-        this->totalFindings = this->totalFindings + 1;
+        this.findings->push(finding);
+        this.totalFindings = this.totalFindings + 1;
     }
 }
 
 class EnvMigrator {
-private:
+    private:
     bool autoFix;
 
-public:
+    public:
     EnvMigrator(bool fix) {
-        this->autoFix = fix;
+        this.autoFix = fix;
     }
 
     // Integrate "cex-env": "1.0.0" into dependencies block of cex-pack.json
@@ -99,12 +99,12 @@ public:
         let manifestPath = projDir + "/cex-pack.json";
         if (fs.exists(manifestPath)) {
             let content = fs.readFile(manifestPath);
-            let updated = this->updateManifestDependencies(content);
+            let updated = this.updateManifestDependencies(content);
             if (updated != content) {
                 summary->modifiedManifests = summary->modifiedManifests + 1;
-                let finding = new EnvMigrationFinding(projDir, manifestPath, "Add \"cex-env\": \"1.0.0\" to dependencies", this->autoFix);
+                let finding = new EnvMigrationFinding(projDir, manifestPath, "Add \"cex-env\": \"1.0.0\" to dependencies", this.autoFix);
                 summary->addFinding(finding);
-                if (this->autoFix) {
+                if (this.autoFix) {
                     fs.writeFile(manifestPath, updated);
                     println("[FIXED] Added cex-env to: " + manifestPath);
                 }
@@ -118,11 +118,11 @@ public:
             if (!fs.exists(targetBox)) {
                 let sourceBox = boxesDir + "/cex-env-loader";
                 if (fs.exists(sourceBox)) {
-                    if (this->autoFix) {
+                    if (this.autoFix) {
                         child_process.execSync("ln -sfn cex-env-loader " + targetBox);
                         println("[FIXED] Linked " + targetBox + " -> cex-env-loader");
                     }
-                    let finding = new EnvMigrationFinding(projDir, targetBox, "Link .cex_boxes/cex-env -> cex-env-loader", this->autoFix);
+                    let finding = new EnvMigrationFinding(projDir, targetBox, "Link .cex_boxes/cex-env -> cex-env-loader", this.autoFix);
                     summary->addFinding(finding);
                 }
             }
@@ -132,12 +132,12 @@ public:
         let envLoaderPath = projDir + "/src/env_loader.cex";
         if (fs.exists(envLoaderPath)) {
             let currentContent = fs.readFile(envLoaderPath);
-            let newContent = this->generateEnvBridgeContent();
+            let newContent = this.generateEnvBridgeContent();
             if (currentContent != newContent) {
                 summary->modifiedEnvBridges = summary->modifiedEnvBridges + 1;
-                let finding = new EnvMigrationFinding(projDir, envLoaderPath, "Migrate duplicate env_loader to unified @cex-env bridge", this->autoFix);
+                let finding = new EnvMigrationFinding(projDir, envLoaderPath, "Migrate duplicate env_loader to unified @cex-env bridge", this.autoFix);
                 summary->addFinding(finding);
-                if (this->autoFix) {
+                if (this.autoFix) {
                     fs.writeFile(envLoaderPath, newContent);
                     println("[FIXED] Upgraded env_loader bridge in: " + envLoaderPath);
                 }
@@ -156,9 +156,9 @@ public:
             if (fs.isDir(fullPath)) {
                 let packPath = fullPath + "/cex-pack.json";
                 if (fs.exists(packPath)) {
-                    this->processProject(fullPath, summary);
+                    this.processProject(fullPath, summary);
                 }
-                this->scanDir(fullPath, summary);
+                this.scanDir(fullPath, summary);
             }
         }
     }
@@ -168,23 +168,23 @@ public:
         println("      2-TEK CexR v8: EnvLoader -> Cex-Env Automated Migration Task             ");
         println("===============================================================================");
         println("Target Path:  " + targetPath);
-        let modeStr: string = this->autoFix ? "APPLY (--fix)" : "AUDIT (Dry-Run)";
+        let modeStr: string = this.autoFix ? "APPLY (--fix)" : "AUDIT (Dry-Run)";
         println("Mode:         " + modeStr);
         println("-------------------------------------------------------------------------------");
 
         let summary = new EnvMigrationSummary();
         if (fs.exists(targetPath)) {
             if (fs.exists(targetPath + "/cex-pack.json")) {
-                this->processProject(targetPath, summary);
+                this.processProject(targetPath, summary);
             }
             if (fs.isDir(targetPath)) {
-                this->scanDir(targetPath, summary);
+                this.scanDir(targetPath, summary);
             }
         } else {
             println("[ERROR] Path does not exist: " + targetPath);
         }
 
-        this->printReport(summary);
+        this.printReport(summary);
         return summary;
     }
 
@@ -204,12 +204,17 @@ public:
             println(status + " " + f->projectPath + " -> " + f->actionDescription);
         }
 
-        if (summary->totalFindings == 0) {
+        let rState: int = summary->totalFindings == 0 ? 1 : (this.autoFix ? 2 : 0);
+        switch (rState) {
+            case 1:
             println("SUCCESS: All projects already comply with cex-env standards!");
-        } else if (this->autoFix) {
+            break;
+            case 2:
             println("SUCCESS: Successfully applied all cex-env migrations!");
-        } else {
+            break;
+            default:
             println("NOTICE: Run with '--fix' to apply automated migrations.");
+            break;
         }
         println("===============================================================================");
     }
@@ -221,13 +226,19 @@ fn main(argc: int, argv: char**): int {
 
     for (let i: int = 1; i < argc; i++) {
         let arg: string = string(argv[i]);
-        if (arg == "--fix" || arg == "-f") {
+        let aCode: int = (arg == "--fix" || arg == "-f") ? 1 : ((arg == "--path" || arg == "-p") ? 2 : 0);
+        switch (aCode) {
+            case 1:
             fixMode = true;
-        } else if (arg == "--path" || arg == "-p") {
+            break;
+            case 2:
             if (i + 1 < argc) {
                 targetPath = string(argv[i + 1]);
                 i++;
             }
+            break;
+            default:
+            break;
         }
     }
 

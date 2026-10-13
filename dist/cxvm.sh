@@ -3673,7 +3673,37 @@ INDEX_EOF
       _cxvm_run_cex_cli agents "$@"
       ;;
 
+    build:cexp)
+      _cxvm_run_cex_cli build:cexp "$@"
+      return $?
+      ;;
+
+    build:cexr)
+      _cxvm_run_cex_cli build:cexr "$@"
+      return $?
+      ;;
+
+    build:toolchain|toolchain)
+      _cxvm_run_cex_cli build:toolchain "$@"
+      return $?
+      ;;
+
     build|multi-platform|package|dist)
+      if [ "$1" = "cexp" ] || [ "$1" = "compiler" ]; then
+        shift
+        _cxvm_run_cex_cli build:cexp "$@"
+        return $?
+      fi
+      if [ "$1" = "cexr" ] || [ "$1" = "runtime" ]; then
+        shift
+        _cxvm_run_cex_cli build:cexr "$@"
+        return $?
+      fi
+      if [ "$1" = "toolchain" ] || [ "$1" = "both" ] || [ "$1" = "cexp+cexr" ]; then
+        shift
+        _cxvm_run_cex_cli build:toolchain "$@"
+        return $?
+      fi
       if [ "$1" = "cvm" ] || [ "$1" = "thunder" ]; then
         echo "==> [cxvm build] Building $1 subsystem..."
         return 0
@@ -4125,6 +4155,7 @@ EOF
       fi
       echo "  CexRacer Engine:     $racer_status"
       echo "  CexRacer Commands:   racer, racer status, racer thunder-monitor, racer schedule [READY]"
+      echo "  Cex-CLI Engine:      INTEGRATED [@cex-cli v1.0.1 (build cexp/cexr/toolchain multi-version) [READY]]"
       echo "  Code Linter:         $([ -x "$CXVM_DIR/current/bin/cex" ] || command -v cex >/dev/null 2>&1 && echo "CexLint [Auto-lint on load/dev ENABLED]" || echo "CexLint v1.0.0 [READY]")"
       echo "  Git & CVM Hooks:     pre-commit (cex-lint --fix), pre-push (prettier verification) [ACTIVE]"
       echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
@@ -4182,8 +4213,14 @@ EOF
       echo "  racer thunder-check   Run immediate Thunder health check & restart if stopped"
       echo "  racer start           Start multi-queue scheduler loop with machine clock"
       echo ""
-      echo "Integrated Cex-CLI Build Runner & Task Automation Commands:"
-      echo "  cli <args...>         Run commands via integrated @2tek/cli dispatcher"
+      echo "Integrated Cex-CLI (v1.0.1) Multi-Version Build Runner & Task Automation Commands:"
+      echo "  cli <args...>         Run commands via integrated @cex-cli dispatcher"
+      echo "  build cexp [versions] Build cexp compiler across versions (all, last, v8, v6, v5, v4, v3, v2, v1)"
+      echo "  build cexr [versions] Build cexr runtime across versions (all, last, v8, v7, v6, v5, v4, v3, v2, v1)"
+      echo "  build toolchain [ver] Build both cexp & cexr toolchains across specified versions via cex-cli"
+      echo "  build:cexp [versions] Alias for 'cxvm build cexp [versions]'"
+      echo "  build:cexr [versions] Alias for 'cxvm build cexr [versions]'"
+      echo "  build:toolchain [ver] Alias for 'cxvm build toolchain [versions]'"
       echo "  compile [file] [-o out] Compile full project or Cex file via integrated Cex compiler"
       echo "  build                 Compile application or trigger cex-cli build pipeline"
       echo "  test                  Run test suites via cex-cli runner"

@@ -29,10 +29,16 @@ fn main(): int {
     println("[OK] Directory structure initialized.");
 
     // 2. Install cxvm launcher script to $CXVM_DIR/bin/cxvm
-    if (fs.exists("dist/cxvm")) {
+    let launcherChoice: int = fs.exists("dist/cxvm") ? 1 : (fs.exists("downloads/cxvm") ? 2 : 0);
+    switch (launcherChoice) {
+        case 1:
         system(("cp -f dist/cxvm \"" + cxvmDir + "/bin/cxvm\" && chmod +x \"" + cxvmDir + "/bin/cxvm\"").c_str());
-    } else if (fs.exists("downloads/cxvm")) {
+        break;
+        case 2:
         system(("cp -f downloads/cxvm \"" + cxvmDir + "/bin/cxvm\" && chmod +x \"" + cxvmDir + "/bin/cxvm\"").c_str());
+        break;
+        default:
+        break;
     }
 
     // 3. Install default runtimes

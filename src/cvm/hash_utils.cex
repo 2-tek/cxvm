@@ -74,18 +74,24 @@ class GitHash {
                 let f: int = 0;
                 let k: int = 0;
 
-                if (t < 20) {
+                let roundStage: int = t / 20;
+                switch (roundStage) {
+                    case 0:
                     f = (b & c_reg) | ((~b) & d);
                     k = 1518500249; // 0x5A827999
-                } else if (t < 40) {
+                    break;
+                    case 1:
                     f = b ^ c_reg ^ d;
                     k = 1859775393; // 0x6ED9EBA1
-                } else if (t < 60) {
+                    break;
+                    case 2:
                     f = (b & c_reg) | (b & d) | (c_reg & d);
                     k = -1894007588; // 0x8F1BBCDC
-                } else {
+                    break;
+                    default:
                     f = b ^ c_reg ^ d;
                     k = -899497514; // 0xCA62C1D6
+                    break;
                 }
 
                 let temp: int = ((a << 5) | ((a >> 27) & 31)) + f + e + k + w->get(t);

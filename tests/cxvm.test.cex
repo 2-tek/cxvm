@@ -975,8 +975,125 @@ fn main(): int {
     Assert::isTrue(docOut16.find("Supervised Processes:") != -1, "Doctor reports Supervised Processes");
     Assert::isTrue(docOut16.find("App Dispatcher:") != -1, "Doctor reports App Dispatcher");
     Assert::isTrue(docOut16.find("Dependencies Upgrader:") != -1, "Doctor reports Dependencies Upgrader");
+    Assert::isTrue(docOut16.find("Cex-CLI Engine:") != -1, "Doctor reports Cex-CLI Engine");
 
     suite->addResult("test_multi_orchestration_and_supervisor", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 17: Cex-CLI (v1.0.1) Multi-Version cexp & cexr Build CLI
+    // -------------------------------------------------------------
+    println("\n[Test Suite 17: Cex-CLI (v1.0.1) Multi-Version cexp & cexr Build CLI]");
+
+    Assert::isTrue(cxvm->cexCli !== nullptr, "cxvm->cexCli is initialized");
+    Assert::equalsString("1.0.1", cxvm->cexCli->getConfig()->version, "cxvm->cexCli uses latest version 1.0.1");
+
+    // 1. Build cexp across all versions (v8, v6, v5, v4, v3, v2, v1)
+    let cexpAllRes: CxvmCommandResult* = cxvm->buildCexpVersions("all");
+    Assert::isTrue(cexpAllRes->success, "buildCexpVersions('all') succeeds");
+    Assert::isTrue(cexpAllRes->output.find("Built cexp v8") != -1, "Output confirms cexp v8 built");
+    Assert::isTrue(cexpAllRes->output.find("Built cexp v6") != -1, "Output confirms cexp v6 built");
+    Assert::isTrue(cexpAllRes->output.find("Built cexp v5") != -1, "Output confirms cexp v5 built");
+    Assert::isTrue(cexpAllRes->output.find("Built cexp v4") != -1, "Output confirms cexp v4 built");
+    Assert::isTrue(cexpAllRes->output.find("Built cexp v3") != -1, "Output confirms cexp v3 built");
+    Assert::isTrue(cexpAllRes->output.find("Built cexp v2") != -1, "Output confirms cexp v2 built");
+    Assert::isTrue(cexpAllRes->output.find("Built cexp v1") != -1, "Output confirms cexp v1 built");
+    Assert::isTrue(cexpAllRes->output.find("@cex-cli v1.0.1") != -1, "Output confirms @cex-cli v1.0.1 engine");
+
+    // 2. Build cexr across all versions (v8, v7, v6, v5, v4, v3, v2, v1)
+    let cexrAllRes: CxvmCommandResult* = cxvm->buildCexrVersions("all");
+    Assert::isTrue(cexrAllRes->success, "buildCexrVersions('all') succeeds");
+    Assert::isTrue(cexrAllRes->output.find("Built cexr v8") != -1, "Output confirms cexr v8 built");
+    Assert::isTrue(cexrAllRes->output.find("Built cexr v7") != -1, "Output confirms cexr v7 built");
+    Assert::isTrue(cexrAllRes->output.find("Built cexr v6") != -1, "Output confirms cexr v6 built");
+    Assert::isTrue(cexrAllRes->output.find("Built cexr v5") != -1, "Output confirms cexr v5 built");
+    Assert::isTrue(cexrAllRes->output.find("Built cexr v4") != -1, "Output confirms cexr v4 built");
+    Assert::isTrue(cexrAllRes->output.find("Built cexr v3") != -1, "Output confirms cexr v3 built");
+    Assert::isTrue(cexrAllRes->output.find("Built cexr v2") != -1, "Output confirms cexr v2 built");
+    Assert::isTrue(cexrAllRes->output.find("Built cexr v1") != -1, "Output confirms cexr v1 built");
+
+    // 3. Build toolchain (both cexp and cexr) across selected versions (v8,v6)
+    let tcRes: CxvmCommandResult* = cxvm->buildToolchainVersions("v8,v6");
+    Assert::isTrue(tcRes->success, "buildToolchainVersions('v8,v6') succeeds");
+    Assert::isTrue(tcRes->output.find("Built cexp v8") != -1, "Toolchain build includes cexp v8");
+    Assert::isTrue(tcRes->output.find("Built cexr v8") != -1, "Toolchain build includes cexr v8");
+    Assert::isTrue(tcRes->output.find("Multi-version toolchain build (cexp + cexr) completed") != -1, "Toolchain summary present");
+
+    // 4. CLI command dispatch via cvmExecute
+    let cliCexpCode: int = cxvm->cvmExecute("build", "cexp", "v8,v6");
+    Assert::equalsInt(0, cliCexpCode, "cxvm build cexp v8,v6 returns exit code 0");
+
+    let cliCexrCode: int = cxvm->cvmExecute("build", "cexr", "v8,v6,v4");
+    Assert::equalsInt(0, cliCexrCode, "cxvm build cexr v8,v6,v4 returns exit code 0");
+
+    let cliTcCode: int = cxvm->cvmExecute("build", "toolchain", "last");
+    Assert::equalsInt(0, cliTcCode, "cxvm build toolchain last returns exit code 0");
+
+    let cliAliasCexp: int = cxvm->cvmExecute("build:cexp", "v8,v6", "");
+    Assert::equalsInt(0, cliAliasCexp, "cxvm build:cexp v8,v6 returns exit code 0");
+
+    let cliAliasCexr: int = cxvm->cvmExecute("build:cexr", "v8,v6", "");
+    Assert::equalsInt(0, cliAliasCexr, "cxvm build:cexr v8,v6 returns exit code 0");
+
+    let cliAliasTc: int = cxvm->cvmExecute("build:toolchain", "v8", "");
+    Assert::equalsInt(0, cliAliasTc, "cxvm build:toolchain v8 returns exit code 0");
+
+    let appCliCexp: int = cxvm->cliAppExecute("build:cexp", "v8,v6", "");
+    Assert::equalsInt(0, appCliCexp, "cxvm --app cli build:cexp v8,v6 returns exit code 0");
+
+    let appCliCexr: int = cxvm->cliAppExecute("build:cexr", "v8,v6", "");
+    Assert::equalsInt(0, appCliCexr, "cxvm --app cli build:cexr v8,v6 returns exit code 0");
+
+    // 5. REST API endpoints for multi-version cexp, cexr, and toolchain builds
+    let resApiCexp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build/cexp", "{\"versions\":\"v8,v6\"}", "application/json");
+    Assert::equalsInt(200, resApiCexp->statusCode, "POST /api/v1/build/cexp returns 200 OK");
+    Assert::isTrue(resApiCexp->body.find("SUCCESS") != -1, "/api/v1/build/cexp reports SUCCESS");
+    Assert::isTrue(resApiCexp->body.find("@cex-cli v1.0.1") != -1, "/api/v1/build/cexp reports @cex-cli v1.0.1");
+
+    let resApiCexr: HttpResponse* = app->simulateRequest("POST", "/api/v1/build/cexr", "{\"versions\":\"v8,v6,v4\"}", "application/json");
+    Assert::equalsInt(200, resApiCexr->statusCode, "POST /api/v1/build/cexr returns 200 OK");
+    Assert::isTrue(resApiCexr->body.find("SUCCESS") != -1, "/api/v1/build/cexr reports SUCCESS");
+    Assert::isTrue(resApiCexr->body.find("@cex-cli v1.0.1") != -1, "/api/v1/build/cexr reports @cex-cli v1.0.1");
+
+    let resApiTc: HttpResponse* = app->simulateRequest("POST", "/api/v1/build/toolchain", "{\"versions\":\"v8,v6\"}", "application/json");
+    Assert::equalsInt(200, resApiTc->statusCode, "POST /api/v1/build/toolchain returns 200 OK");
+    Assert::isTrue(resApiTc->body.find("SUCCESS") != -1, "/api/v1/build/toolchain reports SUCCESS");
+
+    suite->addResult("test_cex_cli_multi_version_cexp_cexr_builder", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 18: Forced New-Process Test Execution from cex-test (cxvm --app test run / cxvm test)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 18: Forced New-Process Test Execution from cex-test (cxvm --app test run)]");
+
+    let foundTestBin: string = cxvm->findCexTestCli();
+    Assert::isTrue(foundTestBin.length() > 0, "cxvm findCexTestCli resolves cex-test binary");
+
+    let forcedTestRes: CxvmCommandResult* = cxvm->runTestInNewProcess("tests/promise.test.cex", "--dry-run");
+    Assert::isTrue(forcedTestRes->success, "runTestInNewProcess succeeds");
+    Assert::equalsString("test run", forcedTestRes->command, "Command is 'test run'");
+    Assert::equalsString("tests/promise.test.cex", forcedTestRes->version, "Target suite matches");
+    Assert::isTrue(forcedTestRes->output.find("Forced New-Process Test Runner (cxvm --app test run)") != -1, "Output confirms forced new-process test runner");
+    Assert::isTrue(forcedTestRes->output.find("Isolated New Child Process (forced via cex-test)") != -1, "Output confirms isolated new child process");
+
+    let testAppStatus: int = cxvm->dispatchApp("test", "status", "");
+    Assert::equalsInt(0, testAppStatus, "cxvm dispatchApp('test', 'status', '') returns exit code 0");
+
+    let cexTestAppDoc: int = cxvm->dispatchApp("cex-test", "doctor", "");
+    Assert::equalsInt(0, cexTestAppDoc, "cxvm dispatchApp('cex-test', 'doctor', '') returns exit code 0");
+
+    let testAppRunDry: int = cxvm->cvmExecute("--app", "test", "run");
+    Assert::equalsInt(0, testAppRunDry, "cxvm --app test run returns exit code 0");
+
+    let testAppEqRunDry: int = cxvm->cvmExecute("--app=test", "run", "--dry-run");
+    Assert::equalsInt(0, testAppEqRunDry, "cxvm --app=test run --dry-run returns exit code 0");
+
+    let testDirectExec: int = cxvm->cvmExecute("test", "run", "--dry-run");
+    Assert::equalsInt(0, testDirectExec, "cxvm test run --dry-run forces --app test run and returns exit code 0");
+
+    let testDefaultExec: int = cxvm->cvmExecute("test", "", "");
+    Assert::equalsInt(0, testDefaultExec, "cxvm test forces --app test run in new process and returns exit code 0");
+
+    suite->addResult("test_forced_cex_test_new_process_runner", true, "", 1);
 
     println("\n");
     TestReporter::printSummary(suite);

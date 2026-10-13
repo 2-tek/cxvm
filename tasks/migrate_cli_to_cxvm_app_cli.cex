@@ -70,7 +70,7 @@ class CliMigrationTask {
                 pos = matchPos + 8;
                 continue;
             }
-            if (matchPos > 0 && content[matchPos - 1] == '[') {
+            if (matchPos > 0 && content.substr(matchPos - 1, 1) == "[") {
                 res += content.substr(pos, matchPos - pos + 8);
                 pos = matchPos + 8;
                 continue;
@@ -78,8 +78,8 @@ class CliMigrationTask {
 
             // Ensure boundary after 'cli'
             size_t afterMatch = matchPos + 8;
-            char nextChar = afterMatch < len ? content[afterMatch] : ' ';
-            if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
+            string nextChar = afterMatch < len ? content.substr(afterMatch, 1) : " ";
+            if (nextChar == " " || nextChar == "\t" || nextChar == "\n" || nextChar == "\"" || nextChar == "'" || nextChar == ";" || nextChar == ")") {
                 res += content.substr(pos, matchPos - pos);
                 res += "cxvm --app cli";
                 repls++;
@@ -124,10 +124,16 @@ class CliMigrationTask {
             let fullPath: string = dir == "." ? entry : (dir + "/" + entry);
             if (this.isIgnoredPath(fullPath)) continue;
 
-            if (fs.isDirectory(fullPath)) {
+            let kind: int = fs.isDirectory(fullPath) ? 1 : (this.isTargetFile(fullPath) ? 2 : 0);
+            switch (kind) {
+                case 1:
                 this.scanDirectory(fullPath);
-            } else if (this.isTargetFile(fullPath)) {
+                break;
+                case 2:
                 this.processFile(fullPath);
+                break;
+                default:
+                break;
             }
         }
     }
@@ -146,7 +152,7 @@ class CliMigrationTask {
 
             if (this.fixMode) {
                 // Preserve trailing single newline (Rule 29)
-                while (!updated.empty() && updated.back() == '\n') {
+                while (!updated.empty() && updated.substr(updated.length() - 1, 1) == "\n") {
                     updated.pop_back();
                 }
                 updated += "\n";
@@ -196,19 +202,32 @@ fn main(argc: int, argv: Array<string>): int {
 
     for (let i: int = 1; i < (int)argv.length(); i++) {
         let arg: string = argv[i];
-        if (arg == "--fix" || arg == "-f" || arg == "--write") {
+        let aCode: int = (arg == "--fix" || arg == "-f" || arg == "--write") ? 1
+            : ((arg == "--check" || arg == "--dry-run") ? 2
+            : ((arg == "--path" || arg == "-p") ? 3
+            : (arg.rfind("--path=", 0) == 0 ? 4
+            : ((!arg.empty() && arg.substr(0, 1) != "-") ? 5 : 0))));
+        switch (aCode) {
+            case 1:
             fixMode = true;
-        } else if (arg == "--check" || arg == "--dry-run") {
+            break;
+            case 2:
             fixMode = false;
-        } else if (arg == "--path" || arg == "-p") {
+            break;
+            case 3:
             if (i + 1 < (int)argv.length()) {
                 targetDir = argv[i + 1];
                 i++;
             }
-        } else if (arg.rfind("--path=", 0) == 0) {
+            break;
+            case 4:
             targetDir = arg.substr(7);
-        } else if (!arg.empty() && arg[0] != '-') {
+            break;
+            case 5:
             targetDir = arg;
+            break;
+            default:
+            break;
         }
     }
 

@@ -53,16 +53,22 @@ class MergeEngine {
             let tLine: string = i < tLen ? theirsLines->get(i) : "";
             let bLine: string = i < bLen ? baseLines->get(i) : "";
 
-            if (oLine == tLine) {
+            let mergeCase: int = (oLine == tLine) ? 1 : ((oLine == bLine && i < tLen) ? 2 : ((tLine == bLine && i < oLen) ? 3 : 0));
+            switch (mergeCase) {
+                case 1:
                 merged = merged + oLine + "\n";
-            } else if (oLine == bLine && i < tLen) {
+                break;
+                case 2:
                 merged = merged + tLine + "\n";
-            } else if (tLine == bLine && i < oLen) {
+                break;
+                case 3:
                 merged = merged + oLine + "\n";
-            } else {
-                // Conflict
+                break;
+                default:
+                    // Conflict
                 conflicts++;
                 merged = merged + "<<<<<<< OURS\n" + oLine + "\n=======\n" + tLine + "\n>>>>>>> THEIRS\n";
+                break;
             }
             i++;
         }

@@ -16,13 +16,20 @@ fn main(argc: int, argv: char**): int {
 
     for (let i: int = 1; i < argc; i++) {
         let arg: string = (string)argv[i];
-        if (arg == "--dry-run" || arg == "-d") {
+        let argCode: int = (arg == "--dry-run" || arg == "-d") ? 1 : ((arg == "--check" || arg == "-c") ? 2 : ((arg == "--port" && i + 1 < argc) ? 3 : 0));
+        switch (argCode) {
+            case 1:
             isDryRun = true;
-        } else if (arg == "--check" || arg == "-c") {
+            break;
+            case 2:
             isCheck = true;
-        } else if (arg == "--port" && i + 1 < argc) {
+            break;
+            case 3:
             i++;
             port = std::stoi((string)argv[i]);
+            break;
+            default:
+            break;
         }
     }
 
