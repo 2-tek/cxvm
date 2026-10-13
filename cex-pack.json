@@ -82,16 +82,11 @@
         "cex-runners": "1.0.0",
         "cex-log": "1.0.11"
     },
-    "includeDirs": [
-        "./src"
-    ],
+    "includeDirs": ["./src"],
     "lint": {
         "onBuild": true,
         "onDev": true,
-        "include": [
-            "src",
-            "tests"
-        ],
+        "include": ["src", "tests"],
         "rules": {
             "indent": {
                 "level": "error",
