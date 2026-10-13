@@ -362,7 +362,8 @@ class CxvmEngine {
             let baseName: string = cleanPkg;
             if (baseName.substr(0, 6) == "@2tek/") {
                 baseName = baseName.substr(6);
-            } else if (baseName.substr(0, 1) == "@") {
+            }
+            while (baseName.length() > 0 && baseName.substr(0, 1) == "@") {
                 baseName = baseName.substr(1);
             }
 
@@ -395,9 +396,12 @@ class CxvmEngine {
                 outMsg += "  [OK] Cached previous version to " + depsDir + "/" + zipName + "\n";
             }
 
-            // Search local sources
+            // Search local sources (prioritizing current live dependencies)
             let localFound: bool = false;
             let localSources: Array<string>* = new Array<string>();
+            if (depsDir.length() > 0 && fs.exists(depsDir + "/" + baseName)) {
+                localSources->push(depsDir + "/" + baseName);
+            }
             if (homeStr.length() > 0) {
                 localSources->push(homeStr + "/Projects/dependencies/" + baseName);
                 localSources->push(homeStr + "/Projects/" + baseName);
@@ -457,10 +461,8 @@ class CxvmEngine {
                 system(("cp -rf \"" + targetCache + "\"/* \"" + boxTarget + "/\" 2>/dev/null").c_str());
             }
 
-            // Create symlink for @baseName if not exists
-            if (!fs.exists(".cex_boxes/@" + baseName)) {
-                system(("cd .cex_boxes && ln -sf \"" + baseName + "\" \"@" + baseName + "\" 2>/dev/null || true").c_str());
-            }
+            // Clean up any legacy or invalid @ symlinks (Rule 84 invariant)
+            system("rm -f .cex_boxes/@* 2>/dev/null || true");
 
             outMsg += "[OK] [cxvm upgrade] Integrated " + baseName + " into cxvm (.cex_boxes/" + baseName + ")\n";
         }
@@ -492,11 +494,99 @@ class CxvmEngine {
     }
 
     public getDependenciesDir(): string {
+        // 1. Check environment variables (from ambient environment or loaded)
+        if (getenv("DEPENDENCIES_DIR") != nullptr && string(getenv("DEPENDENCIES_DIR")).length() > 0) {
+            let envVal: string = string(getenv("DEPENDENCIES_DIR"));
+            if (fs.exists(envVal)) return envVal;
+        }
+        if (getenv("DEPENDENCIES_PATH") != nullptr && string(getenv("DEPENDENCIES_PATH")).length() > 0) {
+            let envVal: string = string(getenv("DEPENDENCIES_PATH"));
+            if (fs.exists(envVal)) return envVal;
+        }
+        if (getenv("CEX_DEPENDENCIES_DIR") != nullptr && string(getenv("CEX_DEPENDENCIES_DIR")).length() > 0) {
+            let envVal: string = string(getenv("CEX_DEPENDENCIES_DIR"));
+            if (fs.exists(envVal)) return envVal;
+        }
+        if (getenv("CEX_DEPENDENCIES_PATH") != nullptr && string(getenv("CEX_DEPENDENCIES_PATH")).length() > 0) {
+            let envVal: string = string(getenv("CEX_DEPENDENCIES_PATH"));
+            if (fs.exists(envVal)) return envVal;
+        }
+        if (getenv("DEPENDENCIES") != nullptr && string(getenv("DEPENDENCIES")).length() > 0) {
+            let envVal: string = string(getenv("DEPENDENCIES"));
+            if (fs.exists(envVal)) return envVal;
+        }
+
+        // 2. Read from .env files
+        let envFiles: Array<string>* = new Array<string>();
+        envFiles->push(".env");
+        envFiles->push(".env.cex");
+        envFiles->push("../.env");
+        envFiles->push("../../.env");
+        let homeEnv: char* = getenv("HOME");
+        let homeStr: string = homeEnv != nullptr ? string(homeEnv) : "";
+        if (homeStr.length() > 0) {
+            envFiles->push(homeStr + "/Projects/.env");
+        }
+        let envCount: int = (int)envFiles->length();
+        for (let i: int = 0; i < envCount; i++) {
+            let ePath: string = envFiles->get(i);
+            if (fs.exists(ePath)) {
+                let eContent: string = fs.readFile(ePath);
+                let start: int = 0;
+                let cLen: int = (int)eContent.length();
+                for (let j: int = 0; j <= cLen; j++) {
+                    if (j == cLen || eContent.substr(j, 1) == "\n") {
+                        if (j > start) {
+                            let line: string = eContent.substr(start, j - start);
+                            if (line.length() > 0 && line.substr(line.length() - 1) == "\r") {
+                                line = line.substr(0, line.length() - 1);
+                            }
+                            if (line.length() > 0 && line.substr(0, 1) != "#") {
+                                let eqPos: int = (int)line.find("=");
+                                if (eqPos != -1) {
+                                    let key: string = line.substr(0, eqPos);
+                                    let val: string = line.substr(eqPos + 1);
+                                    while (key.length() > 0 && (key.substr(0, 1) == " " || key.substr(0, 1) == "\t")) key = key.substr(1);
+                                    while (key.length() > 0 && (key.substr(key.length() - 1) == " " || key.substr(key.length() - 1) == "\t")) key = key.substr(0, key.length() - 1);
+                                    while (val.length() > 0 && (val.substr(0, 1) == " " || val.substr(0, 1) == "\t")) val = val.substr(1);
+                                    while (val.length() > 0 && (val.substr(val.length() - 1) == " " || val.substr(val.length() - 1) == "\t")) val = val.substr(0, val.length() - 1);
+                                    if (key == "DEPENDENCIES_DIR" || key == "DEPENDENCIES_PATH" || key == "CEX_DEPENDENCIES_DIR" || key == "CEX_DEPENDENCIES_PATH" || key == "DEPENDENCIES") {
+                                        if (val.length() >= 2 && (val.substr(0, 1) == "\"" || val.substr(0, 1) == "'")) {
+                                            val = val.substr(1, val.length() - 2);
+                                        }
+                                        if (fs.exists(val)) {
+                                            return val;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        start = j + 1;
+                    }
+                }
+            }
+        }
+
+        // 3. Check candidate directories for current live dependencies
+        if (fs.exists("dependencies")) {
+            return "dependencies";
+        }
+        if (fs.exists("../dependencies")) {
+            return "../dependencies";
+        }
+        if (fs.exists("../../dependencies")) {
+            return "../../dependencies";
+        }
+        if (homeStr.length() > 0 && fs.exists(homeStr + "/Projects/dependencies")) {
+            return homeStr + "/Projects/dependencies";
+        }
+
+        // 4. Fallback to ~/.cxvm/tmp/dependencies
         let cxvmDir: string = "";
         if (getenv("CXVM_DIR") != nullptr) {
             cxvmDir = string(getenv("CXVM_DIR"));
-        } else if (getenv("HOME") != nullptr) {
-            cxvmDir = string(getenv("HOME")) + "/.cxvm";
+        } else if (homeStr.length() > 0) {
+            cxvmDir = homeStr + "/.cxvm";
         } else {
             cxvmDir = ".cxvm";
         }
@@ -526,6 +616,9 @@ class CxvmEngine {
             let q2: int = (int)block.find("\"", q1 + 1);
             if (q2 == -1) break;
             let depName: string = block.substr(q1 + 1, q2 - q1 - 1);
+            while (depName.length() >= 2 && depName.substr(0, 2) == "@@") {
+                depName = depName.substr(1);
+            }
             let colon: int = (int)block.find(":", q2 + 1);
             if (colon == -1) break;
             let v1: int = (int)block.find("\"", colon + 1);

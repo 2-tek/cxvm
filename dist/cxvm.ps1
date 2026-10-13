@@ -1285,8 +1285,8 @@ echo CexR Windows Runner ready.
         if ($projDir -ne ".") { New-Item -ItemType Directory -Force -Path $projDir | Out-Null }
         Write-Host "==> [cxvm init] Initializing default Cex project '$projName'..." -ForegroundColor Cyan
         New-Item -ItemType Directory -Force -Path (Join-Path $projDir "src") | Out-Null
-        New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cex_boxes\@cex-test") | Out-Null
-        New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cex_boxes\@2tek\lighting") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cex_boxes\cex-test") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cex_boxes\lighting") | Out-Null
         New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cvm\objects") | Out-Null
         New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cvm\refs\heads") | Out-Null
 

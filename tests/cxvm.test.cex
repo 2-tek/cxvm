@@ -736,7 +736,7 @@ fn main(): int {
     // -------------------------------------------------------------
     println("\n[Test Suite 12: Pull Dependencies Subsystem (cxvm pull dependencies)]");
     let depsDir: string = cxvm->getDependenciesDir();
-    Assert::isTrue(depsDir.find("tmp/dependencies") != -1, "Dependencies directory resolves to tmp/dependencies");
+    Assert::isTrue(depsDir.length() > 0 && depsDir.find("dependencies") != -1, "Dependencies directory resolves to valid dependencies path");
 
     // Test pullDependencies normal
     let pullRes1: CxvmCommandResult* = cxvm->pullDependencies("cex-pack.json", false, false, "");

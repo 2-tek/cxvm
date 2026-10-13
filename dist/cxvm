@@ -1601,7 +1601,56 @@ _cxvm_run_process() {
 }
 
 # -----------------------------------------------------------------------------
-# Integrated Cex-Pack Dependency Downloader (.cex_boxes Hook)
+# Integrated Environment & Dependency Resolver (.env & Live Dependencies)
+# -----------------------------------------------------------------------------
+_cxvm_load_env() {
+  local target_dir="${1:-.}"
+  for cand in "$target_dir/.env" "$target_dir/.env.cex" "$target_dir/../.env" "$target_dir/../../.env" "$HOME/Projects/.env"; do
+    if [ -f "$cand" ]; then
+      while IFS='=' read -r key val || [ -n "$key" ]; do
+        key="$(echo "$key" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+        if [[ "$key" =~ ^# ]] || [ -z "$key" ]; then
+          continue
+        fi
+        val="$(echo "$val" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^["'\''\(]*//' -e 's/["'\''\)]*$//')"
+        if [ -z "${!key:-}" ]; then
+          export "$key"="$val"
+        fi
+      done < "$cand"
+      break
+    fi
+  done
+}
+
+_cxvm_resolve_dependencies_dir() {
+  local target_dir="${1:-.}"
+  _cxvm_load_env "$target_dir"
+
+  # 1. Check environment variables (loaded from .env or ambient environment)
+  for env_var in DEPENDENCIES_DIR DEPENDENCIES_PATH CEX_DEPENDENCIES_DIR CEX_DEPENDENCIES_PATH DEPENDENCIES CEX_DEPENDENCIES; do
+    local val="${!env_var:-}"
+    if [ -n "$val" ] && [ -d "$val" ]; then
+      echo "$(cd "$val" && pwd)"
+      return 0
+    fi
+  done
+
+  # 2. Check candidate directories for current live dependencies
+  for cand in "$target_dir/dependencies" "$target_dir/../dependencies" "$target_dir/../../dependencies" "$HOME/Projects/dependencies"; do
+    if [ -d "$cand" ]; then
+      echo "$(cd "$cand" && pwd)"
+      return 0
+    fi
+  done
+
+  # 3. Fallback to ~/.cxvm/tmp/dependencies
+  local fallback="${CXVM_DIR:-$HOME/.cxvm}/tmp/dependencies"
+  mkdir -p "$fallback"
+  echo "$fallback"
+}
+
+# -----------------------------------------------------------------------------
+# Integrated Cex-Pack Dependency Downloader & Symlinker (.cex_boxes Hook)
 # -----------------------------------------------------------------------------
 _cxvm_sync_boxes() {
   local target_manifest="${1:-cex-pack.json}"
@@ -1612,10 +1661,14 @@ _cxvm_sync_boxes() {
   local boxes_dir="$target_dir/.cex_boxes"
   mkdir -p "$boxes_dir"
 
-  local deps_cache="${CXVM_DIR:-$HOME/.cxvm}/tmp/dependencies"
-  mkdir -p "$deps_cache"
+  # Clean up any legacy or duplicate @ symlinks in .cex_boxes (Rule 84 invariant)
+  rm -f "$boxes_dir"/@* 2>/dev/null || true
 
-  # 1. Cache-first strategy: inspect dependencies from target_manifest
+  # Resolve live dependencies root (prioritizing .env and live repository)
+  local deps_root=""
+  deps_root="$(_cxvm_resolve_dependencies_dir "$target_dir")"
+
+  # 1. Inspect dependencies from target_manifest and link directly to current live dependencies
   if [ -f "$target_manifest" ]; then
     local dep_names=()
     while IFS= read -r line; do
@@ -1627,82 +1680,59 @@ try:
             print(k)
 except Exception: pass" 2>/dev/null)
 
-    for pkg_name in "${dep_names[@]}"; do
-      local pkg_cache="$deps_cache/$pkg_name"
-      if [ ! -d "$pkg_cache" ] || [ ! -f "$pkg_cache/cex-pack.json" ]; then
-        echo "--> [cxvm downloads] Dependency '$pkg_name' not found in cache, fetching to $deps_cache..."
-        mkdir -p "$pkg_cache"
-        local found=0
-        for cand in "$HOME/Projects/dependencies/$pkg_name" "$HOME/Projects/$pkg_name" "../dependencies/$pkg_name" "../../dependencies/$pkg_name"; do
-          if [ -d "$cand" ] && [ -f "$cand/cex-pack.json" ]; then
-            cp -rf "$cand"/* "$pkg_cache/" 2>/dev/null || true
-            found=1
-            break
-          fi
-        done
-        if [ "$found" -eq 0 ]; then
-          cat <<EOF_DEP > "$pkg_cache/cex-pack.json"
-{
-  "name": "$pkg_name",
-  "version": "1.0.0",
-  "target": "runtime",
-  "main": "src/index.cex"
-}
-EOF_DEP
-          mkdir -p "$pkg_cache/src"
-          echo "// $pkg_name package entrypoint" > "$pkg_cache/src/index.cex"
-        fi
-        echo "[OK] [cxvm downloads] Stored '$pkg_name' in $deps_cache"
-      else
-        echo "[OK] [cxvm downloads] Using '$pkg_name' from cache: $deps_cache"
+    for raw_pkg in "${dep_names[@]}"; do
+      local pkg_name="${raw_pkg#@2tek/}"
+      while [[ "$pkg_name" == @* ]]; do
+        pkg_name="${pkg_name#@}"
+      done
+
+      local target_src=""
+      if [ -n "$deps_root" ] && [ -d "$deps_root/$pkg_name" ]; then
+        target_src="$deps_root/$pkg_name"
+      elif [ -d "$HOME/Projects/dependencies/$pkg_name" ]; then
+        target_src="$HOME/Projects/dependencies/$pkg_name"
+      elif [ -d "$target_dir/dependencies/$pkg_name" ]; then
+        target_src="$target_dir/dependencies/$pkg_name"
+      elif [ -d "$target_dir/../dependencies/$pkg_name" ]; then
+        target_src="$target_dir/../dependencies/$pkg_name"
+      elif [ -d "$target_dir/../../dependencies/$pkg_name" ]; then
+        target_src="$target_dir/../../dependencies/$pkg_name"
       fi
 
-      local rel_path
-      rel_path="$(python3 -c "import os.path; print(os.path.relpath('$pkg_cache', '$boxes_dir'))" 2>/dev/null || echo "$pkg_cache")"
-      if [ ! -d "$boxes_dir/$pkg_name" ] || [ -L "$boxes_dir/$pkg_name" ]; then
-        mkdir -p "$(dirname "$boxes_dir/$pkg_name")"
-        ln -sfn "$rel_path" "$boxes_dir/$pkg_name"
-      fi
-      local clean_base="$(basename "$pkg_name")"
-      clean_base="${clean_base#@}"
-      ln -sfn "$pkg_name" "$boxes_dir/@$clean_base"
-    done
-  fi
-
-  local deps_root=""
-  for cand in "$target_dir/../dependencies" "$target_dir/../../dependencies" "$HOME/Projects/dependencies"; do
-    if [ -d "$cand" ] && [ -f "$cand/cex-pack.json" ]; then
-      deps_root="$(cd "$cand" && pwd)"
-      break
-    fi
-  done
-
-  if [ -n "$deps_root" ]; then
-    for pkg_dir in "$deps_root"/cex-* "$deps_root"/mvc-*; do
-      if [ -d "$pkg_dir" ] && [ -f "$pkg_dir/cex-pack.json" ]; then
-        local pkg_name="$(basename "$pkg_dir")"
+      if [ -n "$target_src" ] && [ -d "$target_src" ]; then
         local rel_path
-        rel_path="$(python3 -c "import os.path; print(os.path.relpath('$pkg_dir', '$boxes_dir'))" 2>/dev/null || echo "$pkg_dir")"
+        rel_path="$(python3 -c "import os.path; print(os.path.relpath('$target_src', '$boxes_dir'))" 2>/dev/null || echo "$target_src")"
         if [ ! -d "$boxes_dir/$pkg_name" ] || [ -L "$boxes_dir/$pkg_name" ]; then
+          mkdir -p "$(dirname "$boxes_dir/$pkg_name")"
           ln -sfn "$rel_path" "$boxes_dir/$pkg_name"
         fi
-        ln -sfn "$pkg_name" "$boxes_dir/@$pkg_name"
+        echo "[OK] [cxvm sync] Linked '$pkg_name' -> $rel_path"
       fi
     done
   fi
 
-  # Link any additional packages found in deps_cache
-  for pkg_dir in "$deps_cache"/*; do
-    if [ -d "$pkg_dir" ] && [ -f "$pkg_dir/cex-pack.json" ]; then
-      local pkg_name="$(basename "$pkg_dir")"
-      local rel_path
-      rel_path="$(python3 -c "import os.path; print(os.path.relpath('$pkg_dir', '$boxes_dir'))" 2>/dev/null || echo "$pkg_dir")"
-      if [ ! -d "$boxes_dir/$pkg_name" ] || [ -L "$boxes_dir/$pkg_name" ]; then
-        ln -sfn "$rel_path" "$boxes_dir/$pkg_name"
+  # 2. Also link all available packages found in current dependencies root (e.g. cex-*, mvc-*)
+  if [ -n "$deps_root" ] && [ -d "$deps_root" ]; then
+    for pkg_dir in "$deps_root"/*; do
+      if [ -d "$pkg_dir" ] && [ -f "$pkg_dir/cex-pack.json" ]; then
+        local pkg_name="$(basename "$pkg_dir")"
+        pkg_name="${pkg_name#@2tek/}"
+        while [[ "$pkg_name" == @* ]]; do
+          pkg_name="${pkg_name#@}"
+        done
+        if [ "$pkg_name" != "." ] && [ "$pkg_name" != ".." ]; then
+          local rel_path
+          rel_path="$(python3 -c "import os.path; print(os.path.relpath('$pkg_dir', '$boxes_dir'))" 2>/dev/null || echo "$pkg_dir")"
+          if [ ! -d "$boxes_dir/$pkg_name" ] || [ -L "$boxes_dir/$pkg_name" ]; then
+            ln -sfn "$rel_path" "$boxes_dir/$pkg_name"
+          fi
+        fi
       fi
-      ln -sfn "$pkg_name" "$boxes_dir/@$pkg_name"
-    fi
-  done
+    done
+  fi
+
+  # Clean up any residual @ symlinks once more to strictly satisfy Rule 84
+  rm -f "$boxes_dir"/@* 2>/dev/null || true
 
   if [ ! -f "$boxes_dir/cex-pack.json" ] || [ -L "$boxes_dir/cex-pack.json" ]; then
     cat <<'CEXPACK_EOF' > "$boxes_dir/cex-pack.json"
@@ -1993,7 +2023,10 @@ except Exception: pass" 2>/dev/null)
   for raw_pkg in "${deps[@]}"; do
     local pkg="${raw_pkg%@*}"
     pkg="${pkg#@2tek/}"
-    local clean_name="${pkg#@}"
+    local clean_name="$pkg"
+    while [[ "$clean_name" == @* ]]; do
+      clean_name="${clean_name#@}"
+    done
 
     echo "--> [cxvm upgrade] Pulling latest dependency: $clean_name"
     local target_cache="$deps_cache/$clean_name"
@@ -2016,9 +2049,11 @@ zf.close()" 2>/dev/null || true
       echo "  [OK] Cached previous version to $deps_cache/$zip_name"
     fi
 
-    # Find upstream source
+    # Find upstream source (prioritizing .env and live dependencies)
+    local deps_root="$(_cxvm_resolve_dependencies_dir "$repo_root")"
     local src_dir=""
-    for cand in "$HOME/Projects/dependencies/$clean_name" \
+    for cand in "$deps_root/$clean_name" \
+                "$HOME/Projects/dependencies/$clean_name" \
                 "$HOME/Projects/$clean_name" \
                 "$repo_root/../dependencies/$clean_name" \
                 "$repo_root/../../dependencies/$clean_name" \
@@ -2082,10 +2117,8 @@ EOF_PKG
       echo "  [OK] Initialized package $clean_name in $target_cache"
     fi
 
-    # Create scoped box alias link if not existing: .cex_boxes/@clean_name -> clean_name
-    if [ ! -e "$repo_root/.cex_boxes/@$clean_name" ]; then
-      ln -sf "$clean_name" "$repo_root/.cex_boxes/@$clean_name" 2>/dev/null || true
-    fi
+    # Clean up any legacy or accidental @ links in .cex_boxes (Rule 84 invariant)
+    rm -f "$repo_root/.cex_boxes"/@* 2>/dev/null || true
 
     # Fetch and rewrite with the last version in project cex-pack.json
     if [ -f "$repo_root/cex-pack.json" ]; then
@@ -2568,7 +2601,7 @@ cxvm() {
         mkdir -p "$proj_dir"
       fi
       echo "==> [cxvm init] Initializing default Cex project '$proj_name'..."
-      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/@cex-test" "$proj_dir/.cex_boxes/@2tek/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
+      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/cex-test" "$proj_dir/.cex_boxes/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
 
       # Write cex-pack.json
       cat <<CEXPACK_EOF > "$proj_dir/cex-pack.json"
@@ -3310,7 +3343,7 @@ LIGHT_WRAP_EOF
         mkdir -p "$proj_dir"
       fi
       echo "==> [cxvm init] Initializing default Cex project '$proj_name'..."
-      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/@cex-test" "$proj_dir/.cex_boxes/@2tek/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
+      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/cex-test" "$proj_dir/.cex_boxes/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
 
       # Write cex-pack.json
       cat <<CEXPACK_EOF > "$proj_dir/cex-pack.json"
