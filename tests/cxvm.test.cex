@@ -714,8 +714,14 @@ fn main(): int {
     let testElapsed: double = testSw->stop();
     Assert::isTrue(testElapsed >= 0.0, "Stopwatch measures elapsed time >= 0");
     Log::info("Verified Log::info from cex-log");
+    Log::debug("Verified Log::debug from cex-log");
+    Log::warn("Verified Log::warn from cex-log");
+    Log::delay("test_measurement_delay", 2.5);
     CexLog::info("Verified CexLog::info from cex-log bridge");
     CexLogger::info("Verified CexLogger::info from cex-logger bridge");
+    Assert::isTrue(Log::isColorEnabled(), "Log color is enabled by default");
+    Assert::isTrue(Log::getStatusColor("INFO") == "\033[32m", "Status color for INFO is green");
+    Assert::isTrue(Log::getCurrentTime().length() == 8, "Current time format is HH:MM:SS");
 
     // Test cxvm log command for services
     let logExec1: int = cxvm->cvmExecute("log", "thunder", "");

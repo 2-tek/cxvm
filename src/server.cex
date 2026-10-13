@@ -2,6 +2,7 @@
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
 
 import "@/src/app.cex";
+import "@cex-log/src/log.cex";
 
 typedef FactoryApp FactoryServer;
 
@@ -32,14 +33,11 @@ fn main(argc: int, argv: char**): int {
 
     let app: FactoryApp* = new FactoryApp(port);
     app->start();
-    println("===============================================================================");
-    println("    2-TEK cxvm Server: Production Distribution Engine (Lighting Fullstack MVC)");
-    println("===============================================================================");
-    print("  Server Port:     "); println(app->port);
-    print("  Downloads Store: "); println(app->downloadsDir);
-    print("  Active Routes:   "); println(app->router->getRouteCount());
-    println("===============================================================================");
-    println("[OK] cxvm server initialized successfully");
+    Log::info("[cxvm server] 2-TEK cxvm Server: Production Distribution Engine (Lighting Fullstack MVC)");
+    Log::info("[cxvm server] Server Port: " + to_string(app->port));
+    Log::info("[cxvm server] Downloads Store: " + app->downloadsDir);
+    Log::info("[cxvm server] Active Routes: " + to_string(app->router->getRouteCount()));
+    Log::info("[OK] cxvm server initialized successfully");
 
     return 0;
 }
