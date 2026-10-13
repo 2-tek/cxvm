@@ -720,6 +720,49 @@ function Run-Deepsea {
     Write-Host "[OK] Operation completed successfully." -ForegroundColor Green
 }
 
+function Run-CexCli {
+    param (
+        [string]$CliCmd = "build",
+        [string[]]$CliArgs = @()
+    )
+
+    $cliBin = Join-Path $cxvmHome "bin\cex-cli.exe"
+    if (-not (Test-Path $cliBin)) { $cliBin = Join-Path $cxvmHome "bin\cex-cli" }
+    if (-not (Test-Path $cliBin) -and (Test-Path "dist\cex-cli.exe")) { $cliBin = "dist\cex-cli.exe" }
+    if (-not (Test-Path $cliBin) -and (Test-Path "dist\cex-cli")) { $cliBin = "dist\cex-cli" }
+
+    $allArgs = @($CliCmd) + $CliArgs
+    $cmdDisplay = "$cliBin " + ($allArgs -join " ")
+    Write-Host "==> [cxvm --app cli] Hook calling Cex-CLI: $cmdDisplay" -ForegroundColor Cyan
+    if (Test-Path $cliBin) {
+        & $cliBin @allArgs
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] [cxvm --app cli] Cex-CLI hook completed successfully." -ForegroundColor Green
+        }
+        return
+    }
+
+    if (Get-Command "cex-cli" -ErrorAction SilentlyContinue) {
+        & cex-cli @allArgs
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] [cxvm --app cli] Cex-CLI hook completed successfully." -ForegroundColor Green
+        }
+        return
+    }
+
+    $entry = ".cex_boxes\cex-cli\src\index.cex"
+    if (Test-Path $entry) {
+        Write-Host "==> [cxvm --app cli] Hook calling Cex-CLI script: cexr $entry $cmdDisplay" -ForegroundColor Cyan
+        & cexr $entry @allArgs
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] [cxvm --app cli] Cex-CLI hook completed successfully." -ForegroundColor Green
+        }
+        return
+    }
+
+    Write-Host "[ERROR] [cxvm --app cli] cex-cli not found to handle command '$CliCmd'" -ForegroundColor Red
+}
+
 function Dispatch-App {
     param (
         [string]$AppName = "help",
@@ -741,9 +784,12 @@ function Dispatch-App {
         { $_ -in "cvm", "vcs", "git" } {
             Run-Cvm -CvmCmd $AppCmd -CvmArgs $AppArgs
         }
+        { $_ -in "cli", "@cli", "cex-cli" } {
+            Run-CexCli -CliCmd $AppCmd -CliArgs $AppArgs
+        }
         default {
             Write-Host "[ERROR] [cxvm --app] Unknown application: '$appClean'" -ForegroundColor Red
-            Write-Host "Supported apps: thunder, lighting, deepsea, cvm"
+            Write-Host "Supported apps: thunder, lighting, deepsea, cvm, cli"
         }
     }
 }
@@ -751,62 +797,82 @@ function Dispatch-App {
 switch ($Command) {
     "start" {
         $sub = if ($Version) { $Version } else { if ($ExtraArgs.Count -gt 0) { $ExtraArgs[0] } else { "cvm" } }
-        if ($sub -eq "cvm" -or ($sub -like "-*" -and $sub -ne "thunder" -and $sub -ne "docker")) {
-            $p = 4000
-            $fg = $false
-            $all = @()
-            if ($Version -and $Version -ne "cvm") { $all += $Version }
-            if ($Platform) { $all += $Platform }
-            if ($ExtraArgs) { $all += $ExtraArgs }
-            for ($i = 0; $i -lt $all.Count; $i++) {
-                if ($all[$i] -eq "-p" -or $all[$i] -eq "--port") {
-                    $p = [int]$all[$i+1]
-                    $i++
-                } elseif ($all[$i] -eq "-f" -or $all[$i] -eq "--foreground") {
-                    $fg = $true
-                } elseif ($all[$i] -eq "-d" -or $all[$i] -eq "--daemon") {
-                    $fg = $false
+        switch ($sub) {
+            { $_ -eq "cvm" -or ($_ -like "-*" -and $_ -ne "thunder" -and $_ -ne "docker") } {
+                $p = 4000
+                $fg = $false
+                $all = @()
+                if ($Version -and $Version -ne "cvm") { $all += $Version }
+                if ($Platform) { $all += $Platform }
+                if ($ExtraArgs) { $all += $ExtraArgs }
+                for ($i = 0; $i -lt $all.Count; $i++) {
+                    switch ($all[$i]) {
+                        { $_ -in "-p", "--port" } {
+                            $p = [int]$all[$i+1]
+                            $i++
+                        }
+                        { $_ -in "-f", "--foreground" } {
+                            $fg = $true
+                        }
+                        { $_ -in "-d", "--daemon" } {
+                            $fg = $false
+                        }
+                    }
                 }
+                Start-CvmServer -Action "start" -Port $p -Foreground $fg
             }
-            Start-CvmServer -Action "start" -Port $p -Foreground $fg
-        } elseif ($sub -eq "thunder" -or $sub -eq "docker") {
-            $p = 3050
-            $fg = $false
-            $all = @()
-            if ($Platform) { $all += $Platform }
-            if ($ExtraArgs) { $all += $ExtraArgs }
-            for ($i = 0; $i -lt $all.Count; $i++) {
-                if ($all[$i] -eq "-p" -or $all[$i] -eq "--port") {
-                    $p = [int]$all[$i+1]
-                    $i++
-                } elseif ($all[$i] -eq "-f" -or $all[$i] -eq "--foreground") {
-                    $fg = $true
-                } elseif ($all[$i] -eq "-d" -or $all[$i] -eq "--daemon") {
-                    $fg = $false
+            { $_ -in "thunder", "docker" } {
+                $p = 3050
+                $fg = $false
+                $all = @()
+                if ($Platform) { $all += $Platform }
+                if ($ExtraArgs) { $all += $ExtraArgs }
+                for ($i = 0; $i -lt $all.Count; $i++) {
+                    switch ($all[$i]) {
+                        { $_ -in "-p", "--port" } {
+                            $p = [int]$all[$i+1]
+                            $i++
+                        }
+                        { $_ -in "-f", "--foreground" } {
+                            $fg = $true
+                        }
+                        { $_ -in "-d", "--daemon" } {
+                            $fg = $false
+                        }
+                    }
                 }
+                Start-ThunderServer -Action "start" -Port $p -Foreground $fg
             }
-            Start-ThunderServer -Action "start" -Port $p -Foreground $fg
-        } else {
-            Run-Cvm -CvmCmd "start" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
+            default {
+                Run-Cvm -CvmCmd "start" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
+            }
         }
     }
     "stop" {
         $sub = if ($Version) { $Version } else { "cvm" }
-        if ($sub -eq "cvm") {
-            Start-CvmServer -Action "stop"
-        } elseif ($sub -eq "thunder" -or $sub -eq "docker") {
-            Start-ThunderServer -Action "stop"
-        } else {
-            Run-Cvm -CvmCmd "stop" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
+        switch ($sub) {
+            "cvm" {
+                Start-CvmServer -Action "stop"
+            }
+            { $_ -in "thunder", "docker" } {
+                Start-ThunderServer -Action "stop"
+            }
+            default {
+                Run-Cvm -CvmCmd "stop" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
+            }
         }
     }
     "status" {
-        if ($Version -eq "cvm") {
-            Start-CvmServer -Action "status"
-        } elseif ($Version -eq "thunder" -or $Version -eq "docker") {
-            Start-ThunderServer -Action "status"
-        } else {
-            Run-Cvm -CvmCmd "status" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
+        switch ($Version) {
+            "cvm" {
+                Start-CvmServer -Action "status"
+            }
+            { $_ -in "thunder", "docker" } {
+                Start-ThunderServer -Action "status"
+            }
+            default {
+                Run-Cvm -CvmCmd "status" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
+            }
         }
     }
     { $_ -eq "--app" -or $_ -like "--app=*" -or $_ -eq "app" } {
@@ -845,6 +911,13 @@ switch ($Command) {
         if ($Platform) { $argsList += $Platform }
         if ($ExtraArgs) { $argsList += $ExtraArgs }
         Dispatch-App -AppName "deepsea" -AppCmd $cmdName -AppArgs $argsList
+    }
+    { $_ -in "cli","@cli","cex-cli" } {
+        $cmdName = if ($Version) { $Version } else { "build" }
+        $argsList = @()
+        if ($Platform) { $argsList += $Platform }
+        if ($ExtraArgs) { $argsList += $ExtraArgs }
+        Dispatch-App -AppName "cli" -AppCmd $cmdName -AppArgs $argsList
     }
     "pull" {
         if ($Version -in "dependencies", "deps") {

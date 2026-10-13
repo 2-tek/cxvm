@@ -405,6 +405,24 @@ LEOF
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" light %*
 WEOF
     fi
+
+    cat <<'CLIEOF' > "$PKG_DIR/bin/cex-cli"
+#!/usr/bin/env bash
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+exec "$CXVM_DIR/bin/cxvm" --app cli "$@"
+CLIEOF
+    chmod +x "$PKG_DIR/bin/cex-cli"
+    ln -sf "cex-cli" "$PKG_DIR/bin/cli" 2>/dev/null || true
+    if [ "$pos" = "windows" ]; then
+      cat <<'WEOF' > "$PKG_DIR/bin/cex-cli.cmd"
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" --app cli %*
+WEOF
+      cat <<'WEOF' > "$PKG_DIR/bin/cli.cmd"
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" --app cli %*
+WEOF
+    fi
     
     # 6b. Header files
     cat <<HEOF > "$PKG_DIR/include/cex/runtime.h"

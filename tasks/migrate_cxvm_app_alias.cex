@@ -123,6 +123,15 @@ class AppAliasMigrator {
                     pos = afterWord;
                     continue;
                 }
+            } else if (remainder.rfind("cli", 0) == 0) {
+                size_t afterWord = afterMatch + 3;
+                char nextChar = afterWord < len ? content[afterWord] : ' ';
+                if (nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '"' || nextChar == '\'' || nextChar == ';' || nextChar == ')') {
+                    res += "cxvm --app cli";
+                    repls++;
+                    pos = afterWord;
+                    continue;
+                }
             }
 
             res += "cxvm ";

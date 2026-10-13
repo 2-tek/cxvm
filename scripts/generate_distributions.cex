@@ -93,6 +93,11 @@ fn main(): int {
             fs.writeFile(pkgDir + "/bin/thunder", thunWrap);
             system(("chmod +x " + pkgDir + "/bin/thunder").c_str());
 
+            let cliWrap: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nexec \"$CXVM_DIR/bin/cxvm\" --app cli \"$@\"\n";
+            fs.writeFile(pkgDir + "/bin/cex-cli", cliWrap);
+            system(("chmod +x " + pkgDir + "/bin/cex-cli").c_str());
+            system(("cd \"" + pkgDir + "/bin\" && ln -sf cex-cli cli 2>/dev/null || true").c_str());
+
             // 7. Windows companions if windows platform
             if (pos == "windows") {
                 let winCexr: string = "@echo off\r\nset \"CEX_BIN_DIR=%~dp0\"\r\npushd \"%CEX_BIN_DIR%..\"\r\nset \"CEX_HOME=%CD%\"\r\npopd\r\nset \"PATH=%CEX_HOME%\\bin;%PATH%\"\r\nif \"%~1\"==\"--version\" (\r\n    echo CexR v" + ver + " (Native Cex Language Runtime Engine; Pure Cex Toolchain)\r\n    exit /b 0\r\n)\r\nif \"%~1\"==\"doctor\" (\r\n    echo Cex Toolchain Doctor: Active CEX_HOME=%CEX_HOME% [OK]\r\n    exit /b 0\r\n)\r\necho CexR Windows Runner ready.\r\n";
@@ -104,6 +109,8 @@ fn main(): int {
                 fs.writeFile(pkgDir + "/bin/light.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" light %*\r\n");
                 fs.writeFile(pkgDir + "/bin/cvm.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" cvm %*\r\n");
                 fs.writeFile(pkgDir + "/bin/thunder.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" --app thunder %*\r\n");
+                fs.writeFile(pkgDir + "/bin/cex-cli.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" --app cli %*\r\n");
+                fs.writeFile(pkgDir + "/bin/cli.cmd", "@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0cxvm.ps1\" --app cli %*\r\n");
             }
 
             // 8. Headers & Lib

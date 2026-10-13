@@ -537,6 +537,25 @@ fn main(): int {
     let deepDispatchDirect: int = cxvm->dispatchApp("deepsea", "doctor", "");
     Assert::equalsInt(0, deepDispatchDirect, "cxvm dispatchApp deepsea doctor returns exit code 0");
 
+    // Unified Application Engine (--app cli) and hook action
+    let foundCexCli: string = cxvm->findCexCli();
+    Assert::isTrue(foundCexCli.length() > 0, "cxvm findCexCli resolves cex-cli binary or fallback");
+
+    let cliAppExec: int = cxvm->cvmExecute("--app", "cli", "doctor");
+    Assert::equalsInt(0, cliAppExec, "cxvm cvmExecute --app cli doctor returns exit code 0");
+
+    let cliAppEqExec: int = cxvm->cvmExecute("--app=cli", "doctor", "");
+    Assert::equalsInt(0, cliAppEqExec, "cxvm cvmExecute --app=cli doctor returns exit code 0");
+
+    let cliAtAppExec: int = cxvm->cvmExecute("--app", "@cli", "doctor");
+    Assert::equalsInt(0, cliAtAppExec, "cxvm cvmExecute --app @cli doctor returns exit code 0");
+
+    let cliAliasExec: int = cxvm->cvmExecute("cli", "doctor", "");
+    Assert::equalsInt(0, cliAliasExec, "cxvm cvmExecute cli doctor alias redirects to --app cli and returns exit code 0");
+
+    let cliDispatchDirect: int = cxvm->dispatchApp("cli", "doctor", "");
+    Assert::equalsInt(0, cliDispatchDirect, "cxvm dispatchApp cli doctor returns exit code 0");
+
     // 3. REST API /api/v1/light/status
     let resLightStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/light/status", "", "application/json");
     Assert::equalsInt(200, resLightStatus->statusCode, "GET /api/v1/light/status returns 200 OK");

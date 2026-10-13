@@ -94,20 +94,24 @@ fn main(): int {
     // Check target root directly
     if (fs.exists(scanTarget + "/.git")) {
         let hookDir: string = scanTarget + "/.git/hooks";
-        system(("mkdir -p \"" + hookDir + "\"").c_str());
+        int _r1 = system(("mkdir -p \"" + hookDir + "\"").c_str());
+        (void)_r1;
         fs.writeFile(hookDir + "/pre-commit", preCommit);
         fs.writeFile(hookDir + "/pre-push", prePush);
-        system(("chmod +x \"" + hookDir + "/pre-commit\" \"" + hookDir + "/pre-push\"").c_str());
+        int _r2 = system(("chmod +x \"" + hookDir + "/pre-commit\" \"" + hookDir + "/pre-push\"").c_str());
+        (void)_r2;
         println("  [OK] Installed hooks in .git: " + scanTarget);
         gitCount++;
     }
 
     if (fs.exists(scanTarget + "/.cvm")) {
         let hookDir: string = scanTarget + "/.cvm/hooks";
-        system(("mkdir -p \"" + hookDir + "\"").c_str());
+        int _r3 = system(("mkdir -p \"" + hookDir + "\"").c_str());
+        (void)_r3;
         fs.writeFile(hookDir + "/pre-commit", preCommit);
         fs.writeFile(hookDir + "/pre-push", prePush);
-        system(("chmod +x \"" + hookDir + "/pre-commit\" \"" + hookDir + "/pre-push\"").c_str());
+        int _r4 = system(("chmod +x \"" + hookDir + "/pre-commit\" \"" + hookDir + "/pre-push\"").c_str());
+        (void)_r4;
         println("  [OK] Installed hooks in .cvm: " + scanTarget);
         cvmCount++;
     }
@@ -115,7 +119,8 @@ fn main(): int {
     // Helper python to scan subdirectories if scanTarget is a collection directory
     if (gitCount == 0 && cvmCount == 0) {
         let pyScan: string = "python3 << 'EOF'\nimport os, pathlib\nroot = '" + scanTarget + "'\ngit_c = 0\ncvm_c = 0\nfor dirpath, dirnames, filenames in os.walk(root):\n    if '.git' in dirnames:\n        h = os.path.join(dirpath, '.git', 'hooks')\n        os.makedirs(h, exist_ok=True)\n        print(f'  [OK] Installed hooks in .git: {dirpath}')\n        git_c += 1\n    if '.cvm' in dirnames:\n        h = os.path.join(dirpath, '.cvm', 'hooks')\n        os.makedirs(h, exist_ok=True)\n        print(f'  [OK] Installed hooks in .cvm: {dirpath}')\n        cvm_c += 1\nprint(f'{git_c}:{cvm_c}')\nEOF";
-        system(pyScan.c_str());
+        int _r5 = system(pyScan.c_str());
+        (void)_r5;
     }
 
     println("---------------------------------------------------------------");

@@ -256,7 +256,7 @@ _cxvm_run_thunder() {
     "$CXVM_DIR/bin/thunder-bin" \
     "$script_dir/../../mvclt/thunder/bin/thunder" \
     "$script_dir/../mvclt/thunder/bin/thunder" \
-    "/home/viettd/Projects/mvclt/thunder/bin/thunder" \
+    "$HOME/Projects/mvclt/thunder/bin/thunder" \
     "$script_dir/../../mvc-lighting-thunder/bin/thunder" \
     "$script_dir/../mvc-lighting-thunder/bin/thunder"; do
     if [ -f "$cand" ]; then
@@ -614,8 +614,9 @@ _cxvm_run_light() {
     return $?
   fi
 
-  # 3. Built-in Scaffolder for `cxvm light create <projectName>`
-  if [ "$light_cmd" = "create" ]; then
+  # 3. Built-in Commands via case dispatcher
+  case "$light_cmd" in
+    create)
     local proj_name="${1:-my-lighting-app}"
     echo "==> [cxvm lighting] Creating Lighting Fullstack MVC project '$proj_name'..."
     mkdir -p "$proj_name/src/controllers" "$proj_name/src/models" "$proj_name/src/views" "$proj_name/bin" "$proj_name/public"
@@ -710,9 +711,9 @@ EOF
     echo "  ./bin/lighting dev   (or: cxvm light dev)"
     echo "  ./bin/lighting build (or: cxvm light build)"
     return 0
-  fi
+    ;;
 
-  if [ "$light_cmd" = "start" ]; then
+  start)
     echo "==> [cxvm] Redirecting 'light start' -> 'lighting start'..."
     echo "==> [lighting start] Auto-linting code when load before run start..."
     _cxvm_run_lint . || return 1
@@ -781,9 +782,9 @@ EOF
       echo "[OK] [lighting start] Server running at http://localhost:3080"
     fi
     return 0
-  fi
+    ;;
 
-  if [ "$light_cmd" = "dev" ] || [ "$light_cmd" = "serve" ]; then
+  dev|serve)
     echo "==> [cxvm light] Auto-linting code when load before run $light_cmd..."
     _cxvm_run_lint . || return 1
     local main_file=""
@@ -804,9 +805,9 @@ EOF
       echo "[OK] [cxvm light] Server running at http://localhost:3080"
     fi
     return 0
-  fi
+    ;;
 
-  if [ "$light_cmd" = "build" ]; then
+  build)
     _cxvm_run_lint . || return 1
     local main_file="$(_cxvm_detect_main_file .)"
     if [ -z "$main_file" ]; then main_file="src/index.cex"; fi
@@ -827,9 +828,9 @@ EOF
       echo "[OK] [cxvm light build] Successfully built project into Thunder"
     fi
     return 0
-  fi
+    ;;
 
-  if [ "$light_cmd" = "generate" ] || [ "$light_cmd" = "g" ]; then
+  generate|g)
     local page_name="$1"
     if [ -z "$page_name" ]; then
       echo "Error: Page name required. Usage: cxvm light generate <pageName> (e.g. cxvm light generate /login)" >&2
@@ -848,9 +849,9 @@ EOF
     local t_runner
     t_runner="$(_cxvm_get_runner)"
     exec "$t_runner" "$gen_src" "$@"
-  fi
+    ;;
 
-  if [ "$light_cmd" = "doctor" ]; then
+  doctor)
     echo "==============================================================="
     echo "   Lighting Fullstack MVC Engine Diagnostic (Pure Cex)         "
     echo "==============================================================="
@@ -860,19 +861,22 @@ EOF
     echo "  Runtime:       CexR v8 Native Engine [READY]"
     echo "  Status:        HEALTHY [OK]"
     return 0
-  fi
+    ;;
 
-  echo "Lighting Fullstack MVC Engine (as lighting / light)"
-  echo "Usage: cxvm lighting <command> [arguments] (or: cxvm light <command>)"
-  echo ""
-  echo "Commands:"
-  echo "  create <projectName>   Create a new Lighting Fullstack MVC project"
-  echo "  generate <pageName>    Generate completed page from template (e.g. /login)"
-  echo "  start                  Start Lighting server (redirects 'light start' -> 'lighting start')"
-  echo "  dev                    Start local development server"
-  echo "  build                  Compile project with cexp native compiler"
-  echo "  doctor                 Run Lighting engine diagnostic"
-  return 0
+  *)
+    echo "Lighting Fullstack MVC Engine (as lighting / light)"
+    echo "Usage: cxvm lighting <command> [arguments] (or: cxvm light <command>)"
+    echo ""
+    echo "Commands:"
+    echo "  create <projectName>   Create a new Lighting Fullstack MVC project"
+    echo "  generate <pageName>    Generate completed page from template (e.g. /login)"
+    echo "  start                  Start Lighting server (redirects 'light start' -> 'lighting start')"
+    echo "  dev                    Start local development server"
+    echo "  build                  Compile project with cexp native compiler"
+    echo "  doctor                 Run Lighting engine diagnostic"
+    return 0
+    ;;
+  esac
 }
 
 # -----------------------------------------------------------------------------
@@ -998,6 +1002,10 @@ _cxvm_dispatch_app() {
       _cxvm_run_cvm "$@"
       return $?
       ;;
+    cli|@cli|cex-cli)
+      _cxvm_run_cex_cli "$@"
+      return $?
+      ;;
     *)
       # Fallback: check if $app_name binary or script exists in CXVM_DIR/bin, PATH, or local ./bin
       local app_bin=""
@@ -1028,27 +1036,34 @@ _cxvm_run_cex_cli() {
   local cli_cmd="${1:-build}"
   shift || true
 
-  # 1. Prefer compiled standalone binary
-  if [ -x "$CXVM_DIR/bin/cex-cli" ]; then
-    "$CXVM_DIR/bin/cex-cli" "$cli_cmd" "$@"
-    return $?
-  elif command -v cex-cli >/dev/null 2>&1; then
-    cex-cli "$cli_cmd" "$@"
-    return $?
-  fi
-
   local script_dir
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  for b_cand in \
-    "$script_dir/../cex-cli/bin/cex-cli" \
-    "$script_dir/../../cex-cli/bin/cex-cli" \
-    "$(pwd)/../cex-cli/bin/cex-cli" \
-    "$(pwd)/bin/cex-cli"; do
-    if [ -x "$b_cand" ]; then
-      "$b_cand" "$cli_cmd" "$@"
-      return $?
+
+  # 1. Prefer compiled standalone binary
+  local cli_bin=""
+  if [ -x "$CXVM_DIR/bin/cex-cli" ]; then
+    cli_bin="$CXVM_DIR/bin/cex-cli"
+  elif command -v cex-cli >/dev/null 2>&1; then
+    cli_bin="$(command -v cex-cli)"
+  elif [ -x "$script_dir/../cex-cli/bin/cex-cli" ]; then
+    cli_bin="$script_dir/../cex-cli/bin/cex-cli"
+  elif [ -x "$script_dir/../../cex-cli/bin/cex-cli" ]; then
+    cli_bin="$script_dir/../../cex-cli/bin/cex-cli"
+  elif [ -x "$(pwd)/dist/cex-cli" ]; then
+    cli_bin="$(pwd)/dist/cex-cli"
+  elif [ -x "$(pwd)/bin/cex-cli" ]; then
+    cli_bin="$(pwd)/bin/cex-cli"
+  fi
+
+  if [ -n "$cli_bin" ]; then
+    echo "==> [cxvm --app cli] Hook calling Cex-CLI: $cli_bin $cli_cmd $*"
+    "$cli_bin" "$cli_cmd" "$@"
+    local ret=$?
+    if [ $ret -eq 0 ]; then
+      echo "[OK] [cxvm --app cli] Cex-CLI hook completed successfully."
     fi
-  done
+    return $ret
+  fi
 
   # 2. Resolve cexr runner
   local cexr_cmd="cexr"
@@ -1078,13 +1093,17 @@ _cxvm_run_cex_cli() {
 
   for cand in "${cli_candidates[@]}"; do
     if [ -f "$cand" ]; then
-      echo "==> [cxvm] Dispatching to cex-cli ($cli_cmd)..."
+      echo "==> [cxvm --app cli] Hook calling Cex-CLI script: $cexr_cmd $cand $cli_cmd $*"
       "$cexr_cmd" "$cand" "$cli_cmd" "$@"
-      return $?
+      local ret=$?
+      if [ $ret -eq 0 ]; then
+        echo "[OK] [cxvm --app cli] Cex-CLI hook completed successfully."
+      fi
+      return $ret
     fi
   done
 
-  echo "[ERROR] cex-cli not found to handle command '$cli_cmd'"
+  echo "[ERROR] [cxvm --app cli] cex-cli not found to handle command '$cli_cmd'"
   return 1
 }
 
@@ -2081,11 +2100,14 @@ _cxvm_run_cvm() {
   shift || true
 
   # Pre-commit auto-fix with cex-lint and pre-push prettier
-  if [ "$cvm_cmd" = "commit" ]; then
-    _cxvm_run_pre_commit_lint_fix
-  elif [ "$cvm_cmd" = "push" ]; then
-    _cxvm_run_pre_push_prettier
-  fi
+  case "$cvm_cmd" in
+    commit)
+      _cxvm_run_pre_commit_lint_fix
+      ;;
+    push)
+      _cxvm_run_pre_push_prettier
+      ;;
+  esac
 
   # 1. Dynamically locate node if not in PATH (Rule 72: dynamic paths)
   if ! command -v node >/dev/null 2>&1; then
@@ -2173,20 +2195,24 @@ _cxvm_run_cvm() {
         git diff "$@"
         ;;
       log)
-        if [ "$1" = "thunder" ] || [ "$1" = "server" ] || [ "$1" = "cvm" ] || [ "$1" = "apps" ]; then
-          local svc_name="$1"
-          local target_log="$CXVM_DIR/thunder_server.log"
-          if [ "$svc_name" = "server" ]; then target_log="$CXVM_DIR/cxvm_server.log"; fi
-          if [ "$svc_name" = "cvm" ]; then target_log="$CXVM_DIR/cvm_server.log"; fi
-          if [ "$svc_name" = "apps" ]; then target_log="$CXVM_DIR/thunder_apps.pid"; fi
-          echo "==> [cxvm log] Viewing logs for service '$svc_name' ($target_log)..."
-          if [ -f "$target_log" ]; then
-            tail -n 30 "$target_log" 2>/dev/null || cat "$target_log"
-          else
-            echo "[OK] [cxvm log] Log file for $svc_name is empty or does not exist yet."
-          fi
-          return 0
-        fi
+        case "$1" in
+          thunder|server|cvm|apps)
+            local svc_name="$1"
+            local target_log="$CXVM_DIR/thunder_server.log"
+            case "$svc_name" in
+              server) target_log="$CXVM_DIR/cxvm_server.log" ;;
+              cvm)    target_log="$CXVM_DIR/cvm_server.log" ;;
+              apps)   target_log="$CXVM_DIR/thunder_apps.pid" ;;
+            esac
+            echo "==> [cxvm log] Viewing logs for service '$svc_name' ($target_log)..."
+            if [ -f "$target_log" ]; then
+              tail -n 30 "$target_log" 2>/dev/null || cat "$target_log"
+            else
+              echo "[OK] [cxvm log] Log file for $svc_name is empty or does not exist yet."
+            fi
+            return 0
+            ;;
+        esac
         git log "$@"
         ;;
       init)
@@ -2213,17 +2239,20 @@ _cxvm_run_cvm() {
 # -----------------------------------------------------------------------------
 cxvm() {
   # 0. Check for --app <appName> or --app=<appName>
-  if [ "$1" = "--app" ]; then
-    local app_name="$2"
-    shift 2 || true
-    _cxvm_dispatch_app "$app_name" "$@"
-    return $?
-  elif [[ "$1" == --app=* ]]; then
-    local app_name="${1#--app=}"
-    shift || true
-    _cxvm_dispatch_app "$app_name" "$@"
-    return $?
-  fi
+  case "$1" in
+    --app)
+      local app_name="$2"
+      shift 2 || true
+      _cxvm_dispatch_app "$app_name" "$@"
+      return $?
+      ;;
+    --app=*)
+      local app_name="${1#--app=}"
+      shift || true
+      _cxvm_dispatch_app "$app_name" "$@"
+      return $?
+      ;;
+  esac
 
   local cmd="$1"
   shift || true
@@ -2255,29 +2284,34 @@ cxvm() {
         echo "==> [cxvm $cmd --racer] Supervised start via CexRacer watchdog & scheduler..."
       fi
 
-      if [ "$1" = "cvm" ]; then
-        shift
-        local daemon_flag=()
-        [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
-        _cxvm_start_cvm_server start "${daemon_flag[@]}" "$@"
-        return $?
-      elif [ "$1" = "thunder" ] || [ "$1" = "daemon" ]; then
-        shift
-        local daemon_flag=()
-        [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
-        _cxvm_start_thunder_server start "${daemon_flag[@]}" "$@"
-        return $?
-      elif [ "$1" = "server" ] || [ "$1" = "app" ]; then
-        shift
-        is_daemon=1
-      elif [ "$1" = "servers" ] || [ "$1" = "all" ]; then
-        shift
-        local daemon_flag=()
-        [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
-        _cxvm_start_cvm_server start "${daemon_flag[@]}" "$@"
-        _cxvm_start_thunder_server start "${daemon_flag[@]}" "$@"
-        return 0
-      fi
+      case "$1" in
+        cvm)
+          shift
+          local daemon_flag=()
+          [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
+          _cxvm_start_cvm_server start "${daemon_flag[@]}" "$@"
+          return $?
+          ;;
+        thunder|daemon)
+          shift
+          local daemon_flag=()
+          [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
+          _cxvm_start_thunder_server start "${daemon_flag[@]}" "$@"
+          return $?
+          ;;
+        server|app)
+          shift
+          is_daemon=1
+          ;;
+        servers|all)
+          shift
+          local daemon_flag=()
+          [ $is_daemon -eq 1 ] && daemon_flag+=("--daemon")
+          _cxvm_start_cvm_server start "${daemon_flag[@]}" "$@"
+          _cxvm_start_thunder_server start "${daemon_flag[@]}" "$@"
+          return 0
+          ;;
+      esac
 
       echo "==> [cxvm $cmd] Auto-linting code when load before run $cmd..."
       _cxvm_run_lint . || exit 1
@@ -2357,24 +2391,30 @@ cxvm() {
 
     stop)
       local sub="$1"
-      if [ "$sub" = "cvm" ]; then
-        _cxvm_start_cvm_server stop
-        return $?
-      elif [ "$sub" = "thunder" ] || [ "$sub" = "daemon" ]; then
-        _cxvm_start_thunder_server stop
-        return $?
-      elif [ "$sub" = "server" ] || [ "$sub" = "app" ]; then
-        _cxvm_stop_server_daemon
-        return $?
-      elif [ -z "$sub" ]; then
-        _cxvm_stop_server_daemon 2>/dev/null || true
-        _cxvm_start_cvm_server stop
-        _cxvm_start_thunder_server stop
-        return 0
-      else
-        _cxvm_run_cvm "$cmd" "$sub" "$@"
-        return $?
-      fi
+      case "$sub" in
+        cvm)
+          _cxvm_start_cvm_server stop
+          return $?
+          ;;
+        thunder|daemon)
+          _cxvm_start_thunder_server stop
+          return $?
+          ;;
+        server|app)
+          _cxvm_stop_server_daemon
+          return $?
+          ;;
+        "")
+          _cxvm_stop_server_daemon 2>/dev/null || true
+          _cxvm_start_cvm_server stop
+          _cxvm_start_thunder_server stop
+          return 0
+          ;;
+        *)
+          _cxvm_run_cvm "$cmd" "$sub" "$@"
+          return $?
+          ;;
+      esac
       ;;
 
     init)
@@ -2577,6 +2617,11 @@ INDEX_EOF
       return $?
       ;;
 
+    cli|@cli|cex-cli)
+      _cxvm_dispatch_app "cli" "$@"
+      return $?
+      ;;
+
     app|--app)
       local app_name="$1"
       shift || true
@@ -2600,19 +2645,24 @@ INDEX_EOF
       ;;
 
     status)
-      if [ "$1" = "cvm" ]; then
-        _cxvm_start_cvm_server status
-        return $?
-      elif [ "$1" = "thunder" ] || [ "$1" = "daemon" ]; then
-        _cxvm_start_thunder_server status
-        return $?
-      elif [ "$1" = "server" ] || [ "$1" = "app" ]; then
-        _cxvm_status_server_daemon
-        return $?
-      else
-        _cxvm_run_cvm status "$@"
-        return $?
-      fi
+      case "$1" in
+        cvm)
+          _cxvm_start_cvm_server status
+          return $?
+          ;;
+        thunder|daemon)
+          _cxvm_start_thunder_server status
+          return $?
+          ;;
+        server|app)
+          _cxvm_status_server_daemon
+          return $?
+          ;;
+        *)
+          _cxvm_run_cvm status "$@"
+          return $?
+          ;;
+      esac
       ;;
 
     install)
@@ -3375,8 +3425,8 @@ INDEX_EOF
       exec "$t_cexr" "$cmd" "$@"
       ;;
 
-    cli)
-      _cxvm_run_cex_cli "$@"
+    cli|@cli|cex-cli)
+      _cxvm_dispatch_app "cli" "$@"
       ;;
 
     racer)
