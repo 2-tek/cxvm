@@ -352,6 +352,32 @@ class FactoryController extends BaseController {
         return HttpResponse::notFound("setup.ps1 not found");
     }
 
+    public serveOneClickSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/one-click.sh";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/x-shellscript");
+        }
+        if (fs.exists("scripts/one-click.sh")) {
+            let content: string = fs.readFile("scripts/one-click.sh");
+            return HttpResponse::ok(content, "text/x-shellscript");
+        }
+        return HttpResponse::notFound("one-click.sh not found");
+    }
+
+    public serveOneClickPs1(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/one-click.ps1";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/plain");
+        }
+        if (fs.exists("scripts/one-click.ps1")) {
+            let content: string = fs.readFile("scripts/one-click.ps1");
+            return HttpResponse::ok(content, "text/plain");
+        }
+        return HttpResponse::notFound("one-click.ps1 not found");
+    }
+
     public apiSetupGet(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "ACTIVE");
@@ -611,6 +637,40 @@ class FactoryController extends BaseController {
         JsonDoc::pushVal(arr, im5);
 
         JsonDoc::setVal(doc, "images", arr);
+        return this.json(doc);
+    }
+
+    public apiThunderLinuxSim(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let instanceName: string = req->getParam("instance");
+        if (instanceName.length() == 0) instanceName = req->getParam("instanceName");
+        let projectName: string = req->getParam("project");
+        if (projectName.length() == 0) projectName = req->getParam("projectName");
+
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            if (instanceName.length() == 0) instanceName = this.extractRawJsonStr(req->body, "instance");
+            if (instanceName.length() == 0) instanceName = this.extractRawJsonStr(req->body, "instanceName");
+            if (projectName.length() == 0) projectName = this.extractRawJsonStr(req->body, "project");
+            if (projectName.length() == 0) projectName = this.extractRawJsonStr(req->body, "projectName");
+        }
+        if (instanceName.length() == 0) instanceName = "thunder-linux-sim";
+        if (projectName.length() == 0) projectName = "example-linux-app";
+
+        let res: CxvmCommandResult* = cxvm->simulateLinuxInThunder(instanceName, projectName);
+        let simRoot: string = cxvm->getThunderLinuxSimRoot(instanceName);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "engine", "ThunderEngine");
+        JsonDoc::setStr(doc, "instanceId", "cxt-linux-sim");
+        JsonDoc::setStr(doc, "instanceName", instanceName);
+        JsonDoc::setStr(doc, "projectName", projectName);
+        JsonDoc::setStr(doc, "kernel", "6.8.0-cex-thunder-virt");
+        JsonDoc::setStr(doc, "platform", "linux-x86_64");
+        JsonDoc::setStr(doc, "rootfs", simRoot);
+        JsonDoc::setStr(doc, "cxvmBinary", simRoot + "/root/.cxvm/bin/cxvm");
+        JsonDoc::setStr(doc, "exampleBinary", simRoot + "/app/" + projectName + "/bin/" + projectName);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
         return this.json(doc);
     }
 
@@ -1093,5 +1153,107 @@ class FactoryController extends BaseController {
 
         let res: SuggestionResult* = cxvm->suggestResult(inputText, kindFilter, contextCode);
         return this.json(res->toJsonValue());
+    }
+
+    public apiSetupOneClick(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let platform: string = req->getParam("platform");
+        if (platform.length() == 0) platform = req->getParam("os");
+        let version: string = req->getParam("version");
+        if (version.length() == 0) version = req->getParam("ver");
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            if (platform.length() == 0) platform = this.extractRawJsonStr(req->body, "platform");
+            if (platform.length() == 0) platform = this.extractRawJsonStr(req->body, "os");
+            if (version.length() == 0) version = this.extractRawJsonStr(req->body, "version");
+            if (version.length() == 0) version = this.extractRawJsonStr(req->body, "ver");
+        }
+        if (version.length() == 0) version = "8.0.0";
+
+        let res: CxvmCommandResult* = cxvm->oneClickSetup(platform, version);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "platform", platform);
+        JsonDoc::setStr(doc, "version", version);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
+    public apiFix(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let targetDir: string = req->getParam("targetDir");
+        if (targetDir.length() == 0) targetDir = req->getParam("dir");
+        if (targetDir.length() == 0) targetDir = req->getParam("path");
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            if (targetDir.length() == 0) targetDir = this.extractRawJsonStr(req->body, "targetDir");
+            if (targetDir.length() == 0) targetDir = this.extractRawJsonStr(req->body, "dir");
+            if (targetDir.length() == 0) targetDir = this.extractRawJsonStr(req->body, "path");
+        }
+        if (targetDir.length() == 0) targetDir = ".";
+
+        let res: CxvmCommandResult* = cxvm->fixProject(targetDir);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "targetDir", targetDir);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
+    public apiAppsDownloads(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let manifest: string = req->getParam("manifest");
+        if (manifest.length() == 0) manifest = req->getParam("file");
+        let version: string = req->getParam("version");
+        if (version.length() == 0) version = req->getParam("ver");
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            if (manifest.length() == 0) manifest = this.extractRawJsonStr(req->body, "manifest");
+            if (manifest.length() == 0) manifest = this.extractRawJsonStr(req->body, "file");
+            if (version.length() == 0) version = this.extractRawJsonStr(req->body, "version");
+            if (version.length() == 0) version = this.extractRawJsonStr(req->body, "ver");
+        }
+        if (manifest.length() == 0) manifest = "cex-pack.json";
+        if (version.length() == 0) version = cxvm->currentVersion;
+        if (version.length() == 0) version = "8.0.0";
+
+        let res: CxvmCommandResult* = cxvm->downloadAppsFromManifest(manifest, version);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "manifest", manifest);
+        JsonDoc::setStr(doc, "version", version);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
+    public apiAppsRun(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let appName: string = req->getParam("app");
+        if (appName.length() == 0) appName = req->getParam("appName");
+        if (appName.length() == 0) appName = req->getParam("name");
+        let subCmd: string = req->getParam("cmd");
+        if (subCmd.length() == 0) subCmd = req->getParam("subCmd");
+        let subArg: string = req->getParam("arg");
+        if (subArg.length() == 0) subArg = req->getParam("subArg");
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            if (appName.length() == 0) appName = this.extractRawJsonStr(req->body, "app");
+            if (appName.length() == 0) appName = this.extractRawJsonStr(req->body, "appName");
+            if (appName.length() == 0) appName = this.extractRawJsonStr(req->body, "name");
+            if (subCmd.length() == 0) subCmd = this.extractRawJsonStr(req->body, "cmd");
+            if (subCmd.length() == 0) subCmd = this.extractRawJsonStr(req->body, "subCmd");
+            if (subArg.length() == 0) subArg = this.extractRawJsonStr(req->body, "arg");
+            if (subArg.length() == 0) subArg = this.extractRawJsonStr(req->body, "subArg");
+        }
+        if (appName.length() == 0) appName = cxvm->detectAppName(".");
+
+        let res: CxvmCommandResult* = cxvm->runInstalledApp(appName, subCmd, subArg);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "app", appName);
+        JsonDoc::setStr(doc, "command", subCmd);
+        JsonDoc::setStr(doc, "arguments", subArg);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
     }
 }

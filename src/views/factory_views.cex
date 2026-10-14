@@ -387,6 +387,26 @@ class FactoryViews {
         content += "      </div>\n";
         content += "    </div>\n";
 
+        // Section 3.5: One-Click Setup & App Runner
+        content += "    <h3 style=\"font-size: 16px; color: #f8fafc; margin-bottom: 12px;\">One-Click Cross-Platform Setup &amp; App Runner</h3>\n";
+        content += "    <div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;\">\n";
+        content += "      <div style=\"background: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #334155;\">\n";
+        content += "        <div style=\"font-size: 12px; font-weight: bold; color: #38bdf8; margin-bottom: 6px;\">One-Click Install (POSIX / Windows)</div>\n";
+        content += "        <div class=\"code-box\" style=\"margin-bottom: 8px;\"><code>curl -fsSL http://localhost:" + to_string(port) + "/one-click.sh | bash</code></div>\n";
+        content += "        <div class=\"code-box\" style=\"margin: 0;\"><code>irm http://localhost:" + to_string(port) + "/one-click.ps1 | iex</code></div>\n";
+        content += "      </div>\n";
+        content += "      <div style=\"background: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #334155;\">\n";
+        content += "        <div style=\"font-size: 12px; font-weight: bold; color: #34d399; margin-bottom: 6px;\">Quick Fix &amp; Manifest App Downloads</div>\n";
+        content += "        <div class=\"code-box\" style=\"margin-bottom: 8px;\"><code>cxvm fix</code> <span style=\"color:#64748b;\"># Auto-repair toolchain &amp; .cex_boxes</span></div>\n";
+        content += "        <div class=\"code-box\" style=\"margin: 0;\"><code>cxvm downloads</code> <span style=\"color:#64748b;\"># Download apps into ./bin/$ver/$app</span></div>\n";
+        content += "      </div>\n";
+        content += "      <div style=\"background: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #334155;\">\n";
+        content += "        <div style=\"font-size: 12px; font-weight: bold; color: #fbbf24; margin-bottom: 6px;\">Dynamic App Runner &amp; Dev Mode</div>\n";
+        content += "        <div class=\"code-box\" style=\"margin-bottom: 8px;\"><code>cxvm --app $appName</code> <span style=\"color:#64748b;\"># Run ./bin/$version/$appName</span></div>\n";
+        content += "        <div class=\"code-box\" style=\"margin: 0;\"><code>cxvm dev</code> <span style=\"color:#64748b;\"># cxvm --app cexr $cex-pack.app-name</span></div>\n";
+        content += "      </div>\n";
+        content += "    </div>\n";
+
         // Section 4: Live Diagnostic Box
         content += "    <h3 style=\"font-size: 16px; color: #f8fafc; margin-bottom: 12px;\">Live CXVM System Doctor Output</h3>\n";
         content += "    <pre style=\"background: #050811; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; font-family: var(--font-mono); font-size: 12px; color: #34d399; overflow-x: auto; white-space: pre-wrap;\">" + doctorOut + "</pre>\n";

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# 2-TEK Cex Toolchain Runner: ./bin/cex
+# Supports CexR/CexP v8 Default, v6 LTS & v4 JSON Context in ./bin/
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+# ==============================================================================
+set -e
+
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+
+case "$1" in
+  v8|v6|v4)
+    if [ "$2" = "build" ] || [ "$2" = "compile" ]; then
+      exec "$BIN_DIR/cexp" "$@"
+    fi
+    exec "$BIN_DIR/cexr" "$@"
+    ;;
+  build|compile)
+    exec "$BIN_DIR/cexp" "$@"
+    ;;
+  run|*.cex)
+    exec "$BIN_DIR/cexr" "$@"
+    ;;
+esac
+
+if [ -x "$BIN_DIR/../dist/cxvm" ]; then
+  exec "$BIN_DIR/../dist/cxvm" "$@"
+elif [ -x "$BIN_DIR/cxvm" ]; then
+  exec "$BIN_DIR/cxvm" "$@"
+elif [ -x "$CXVM_DIR/bin/cxvm" ]; then
+  exec "$CXVM_DIR/bin/cxvm" "$@"
+fi
+
+exec cxvm "$@"

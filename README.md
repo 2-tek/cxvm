@@ -116,6 +116,39 @@ cxvm use 8.0.0
 cxvm use 6.0.0
 ```
 
+### One-Click Cross-Platform Setup & App Runner:
+
+Set up `cxvm`, `cexr`, and `cexp` with a single command:
+
+```bash
+# POSIX (Linux / macOS) One-Click Setup
+curl -fsSL http://localhost:3080/one-click.sh | bash
+
+# Windows PowerShell One-Click Setup
+irm http://localhost:3080/one-click.ps1 | iex
+
+# One-Click Setup via CLI
+cxvm setup --one-click
+```
+
+### Running Applications via `cxvm --app $appName`:
+
+Execute any installed application located in `./bin/$version/$appName` or `./bin/$appName`:
+
+```bash
+# Run installed app
+cxvm --app $appName [arguments]
+
+# Development mode (automatically expands to cxvm --app cexr $cex-pack.app-name)
+cxvm dev
+
+# One-command project repair (relinks toolchains, .cex_boxes, manifest apps, and runs lint --fix)
+cxvm fix
+
+# Download and compile runnable apps declared in cex-pack.json into ./bin/$version/$appName
+cxvm downloads
+```
+
 ---
 
 ## 4. Cex Version Manager (`cxvm`) CLI (like `nvm`)

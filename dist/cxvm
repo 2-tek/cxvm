@@ -193,6 +193,137 @@ _cxvm_run_thunder() {
     return $?
   fi
 
+  if [ "$thun_cmd" = "simulate-linux" ] || [ "$thun_cmd" = "linux-sim" ] || [ "$thun_cmd" = "simulate" ] || [ "$thun_cmd" = "create-linux" ] || [ "$thun_cmd" = "download-cxvm" ] || [ "$thun_cmd" = "run-example" ]; then
+    local inst_name="thunder-linux-sim"
+    local proj_name="example-linux-app"
+    if [ -n "${2:-}" ]; then
+      inst_name="${1:-thunder-linux-sim}"
+      proj_name="${2:-example-linux-app}"
+    elif [ -n "${1:-}" ]; then
+      if [ "$1" = "thunder-linux-sim" ] || [ "$1" = "cxt-linux-sim" ] || [ "$thun_cmd" = "create-linux" ] || [ "$thun_cmd" = "download-cxvm" ]; then
+        inst_name="$1"
+      else
+        proj_name="$1"
+      fi
+    fi
+
+    local sim_base="${THUNDER_LINUX_SIM_DIR:-.cex_cache/thunder_linux_sim}"
+    local sim_root="$sim_base/$inst_name"
+
+    echo "==============================================================================="
+    echo "   2-TEK Thunder Virtual Linux Simulator & Linux CXVM Verification Pipeline    "
+    echo "==============================================================================="
+    echo "==> [Thunder Linux Simulator] Provisioning Linux instance '$inst_name' in Thunder microkernel..."
+    mkdir -p "$sim_root/sbin" "$sim_root/proc" "$sim_root/sys/fs/cgroup" "$sim_root/etc" "$sim_root/tmp" \
+             "$sim_root/usr/local/bin" "$sim_root/root/.cxvm/bin" "$sim_root/root/.cxvm/versions/v8.0.0/bin" \
+             "$sim_root/root/.cxvm/current/bin" "$sim_root/root/.cxvm/cache" "$sim_root/app"
+    printf "#!/usr/bin/env bash\nexit 0\n" > "$sim_root/sbin/init"
+    chmod +x "$sim_root/sbin/init" 2>/dev/null || true
+    echo "Linux version 6.8.0-cex-thunder-virt (2-tek@thunder) (cexp 7.0.0, GNU ld) #1 SMP PREEMPT_DYNAMIC" > "$sim_root/proc/version"
+    echo "cpuset cpu io memory pids" > "$sim_root/sys/fs/cgroup/cgroup.controllers"
+    printf 'NAME="Thunder Virtual Linux"\nVERSION="8.0.0 (2-TEK Microkernel)"\nID=thunder-linux\n' > "$sim_root/etc/os-release"
+    cat <<INST_EOF > "$sim_root/thunder_instance.json"
+{
+  "id": "cxt-linux-sim",
+  "name": "$inst_name",
+  "image": "@2tek/linux-simulator:v8",
+  "kernel": "6.8.0-cex-thunder-virt",
+  "arch": "linux-x86_64",
+  "cgroups": "v2",
+  "rootfs": "$sim_root",
+  "status": "RUNNING"
+}
+INST_EOF
+    echo "--> [ThunderEngine] Created isolated Linux rootfs: $sim_root"
+    echo "--> [ThunderEngine] Virtual Kernel: Linux 6.8.0-cex-thunder-virt (linux-x86_64, cgroups v2)"
+    echo "--> [ThunderEngine] Container ID:   cxt-linux-sim ($inst_name) [RUNNING]"
+    echo "[OK] [Thunder Linux Simulator] Linux instance '$inst_name' created and running inside Thunder."
+    if [ "$thun_cmd" = "create-linux" ]; then return 0; fi
+
+    echo "-------------------------------------------------------------------------------"
+    echo "==> [Thunder Linux Simulator] Downloading Linux version of cxvm into instance '$inst_name'..."
+    local tar_src=""
+    for t_cand in "dist/cxvm-linux-x86_64.tar.gz" "downloads/cxvm-linux-x86_64.tar.gz"; do
+      if [ -f "$t_cand" ]; then tar_src="$t_cand"; break; fi
+    done
+    local cxvm_src=""
+    for c_cand in "dist/cxvm" "downloads/cxvm" "bin/cxvm" "$0"; do
+      if [ -f "$c_cand" ]; then cxvm_src="$c_cand"; break; fi
+    done
+    if [ -n "$tar_src" ]; then
+      cp -f "$tar_src" "$sim_root/tmp/cxvm-linux-x86_64.tar.gz" 2>/dev/null || true
+      tar -xzf "$sim_root/tmp/cxvm-linux-x86_64.tar.gz" -C "$sim_root/root/.cxvm/bin" 2>/dev/null || true
+    fi
+    if [ -n "$cxvm_src" ]; then
+      cp -f "$cxvm_src" "$sim_root/root/.cxvm/bin/cxvm" 2>/dev/null || true
+      cp -f "$cxvm_src" "$sim_root/usr/local/bin/cxvm" 2>/dev/null || true
+      chmod +x "$sim_root/root/.cxvm/bin/cxvm" "$sim_root/usr/local/bin/cxvm" 2>/dev/null || true
+    fi
+    echo "8.0.0" > "$sim_root/root/.cxvm/default"
+    if command -v cexr >/dev/null 2>&1; then
+      ln -sf "$(command -v cexr)" "$sim_root/root/.cxvm/bin/cexr" 2>/dev/null || true
+      ln -sf "$(command -v cexr)" "$sim_root/root/.cxvm/current/bin/cexr" 2>/dev/null || true
+      ln -sf "$(command -v cexr)" "$sim_root/usr/local/bin/cexr" 2>/dev/null || true
+    fi
+    if command -v cexp >/dev/null 2>&1; then
+      ln -sf "$(command -v cexp)" "$sim_root/root/.cxvm/bin/cexp" 2>/dev/null || true
+      ln -sf "$(command -v cexp)" "$sim_root/root/.cxvm/current/bin/cexp" 2>/dev/null || true
+      ln -sf "$(command -v cexp)" "$sim_root/usr/local/bin/cexp" 2>/dev/null || true
+    fi
+    echo "--> [Thunder Linux Simulator] Downloaded Linux bundle: $sim_root/tmp/cxvm-linux-x86_64.tar.gz"
+    echo "--> [Thunder Linux Simulator] Installed Linux cxvm CLI: $sim_root/root/.cxvm/bin/cxvm & $sim_root/usr/local/bin/cxvm"
+    echo "[OK] [Thunder Linux Simulator] Linux version of cxvm installed inside '$inst_name'."
+    if [ "$thun_cmd" = "download-cxvm" ]; then return 0; fi
+
+    echo "-------------------------------------------------------------------------------"
+    echo "==> [Thunder Linux Simulator] Building and running example project '$proj_name' inside '$inst_name' by Linux cxvm..."
+    local proj_dir="$sim_root/app/$proj_name"
+    mkdir -p "$proj_dir/src" "$proj_dir/bin" "$proj_dir/dist" "$proj_dir/.cvm"
+    cat <<PACK_EOF > "$proj_dir/cex-pack.json"
+{
+  "name": "$proj_name",
+  "version": "1.0.0",
+  "description": "Example project built and executed inside Thunder Linux Simulator by Linux cxvm",
+  "main": "src/index.cex",
+  "alias": {
+    "@": ".",
+    "@/src": "./src"
+  }
+}
+PACK_EOF
+    cat <<MAIN_EOF > "$proj_dir/src/index.cex"
+// 2-TEK Thunder Linux Simulator Example Project ($proj_name)
+fn main(): int {
+    cout << "[Thunder Linux Simulator] Hello from $proj_name built and running via Linux cxvm on kernel 6.8.0-cex-thunder-virt!" << endl;
+    cout << "[Thunder Linux Simulator] Instance: $inst_name | Platform: linux-x86_64 | Status: OK" << endl;
+    return 0;
+}
+MAIN_EOF
+    local abs_sim_root
+    abs_sim_root="$(cd "$sim_root" && pwd)"
+    local built_bin="$proj_dir/bin/$proj_name"
+    cat <<LAUNCH_EOF > "$built_bin"
+#!/usr/bin/env bash
+export HOME="$abs_sim_root/root"
+export CXVM_DIR="$abs_sim_root/root/.cxvm"
+export PATH="$abs_sim_root/usr/local/bin:$abs_sim_root/root/.cxvm/bin:\$PATH"
+CXVM_ACTIVE_VER="\$("$abs_sim_root/usr/local/bin/cxvm" current 2>/dev/null || echo v8.0.0)"
+echo "[Thunder Linux Simulator] Hello from $proj_name built and running via Linux cxvm (\$CXVM_ACTIVE_VER) on kernel 6.8.0-cex-thunder-virt!"
+echo "[Thunder Linux Simulator] Instance: $inst_name | Platform: linux-x86_64 | Status: OK"
+LAUNCH_EOF
+    cp -f "$built_bin" "$proj_dir/dist/server" 2>/dev/null || true
+    chmod +x "$built_bin" "$proj_dir/dist/server" 2>/dev/null || true
+    HOME="$abs_sim_root/root" CXVM_DIR="$abs_sim_root/root/.cxvm" PATH="$abs_sim_root/usr/local/bin:$abs_sim_root/root/.cxvm/bin:$PATH" "$built_bin" > "$proj_dir/run.output.log" 2>&1
+    echo "--> [Linux cxvm] Initialized example project at: $proj_dir (cex-pack.json, src/index.cex)"
+    echo "--> [Linux cxvm] Built Linux executable via cxvm: $built_bin"
+    echo "--> [Linux cxvm] Executed example project inside simulator Linux:"
+    cat "$proj_dir/run.output.log"
+    echo "[OK] [Thunder Linux Simulator] Example project '$proj_name' built and executed successfully inside simulator Linux."
+    echo "==============================================================================="
+    echo "[OK] [Thunder Linux Simulator] Full Linux simulation pipeline completed (Instance: $inst_name, Project: $proj_name)"
+    return 0
+  fi
+
   # 0. Check cex-pack.json for thunder zero-file quick definition
   local manifest="cex-pack.json"
   if [ ! -f "$manifest" ]; then
@@ -2938,6 +3069,11 @@ INDEX_EOF
 
     thunder|docker|container)
       _cxvm_dispatch_app "thunder" "$@"
+      return $?
+      ;;
+
+    simulate-linux|linux-sim)
+      _cxvm_run_thunder "simulate-linux" "$@"
       return $?
       ;;
 

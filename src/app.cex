@@ -51,6 +51,8 @@ class FactoryApp {
         this.router->get("/install.ps1", "factory.installPs1");
         this.router->get("/setup.sh", "factory.setupSh");
         this.router->get("/setup.ps1", "factory.setupPs1");
+        this.router->get("/one-click.sh", "factory.oneClickSh");
+        this.router->get("/one-click.ps1", "factory.oneClickPs1");
         this.router->get("/cxvm.sh", "factory.cxvmScript");
         this.router->get("/cxvm.ps1", "factory.cxvmPs1");
         this.router->get("/cxvm.cmd", "factory.cxvmCmd");
@@ -67,6 +69,14 @@ class FactoryApp {
         this.router->get("/api/v1/manifest", "factory.manifest");
         this.router->get("/api/v1/setup", "factory.apiSetupGet");
         this.router->post("/api/v1/setup", "factory.apiSetupPost");
+        this.router->get("/api/v1/setup/one-click", "factory.apiSetupOneClick");
+        this.router->post("/api/v1/setup/one-click", "factory.apiSetupOneClick");
+        this.router->get("/api/v1/fix", "factory.apiFix");
+        this.router->post("/api/v1/fix", "factory.apiFix");
+        this.router->get("/api/v1/apps/downloads", "factory.apiAppsDownloads");
+        this.router->post("/api/v1/apps/downloads", "factory.apiAppsDownloads");
+        this.router->get("/api/v1/apps/run", "factory.apiAppsRun");
+        this.router->post("/api/v1/apps/run", "factory.apiAppsRun");
         this.router->post("/api/v1/build", "factory.build");
         this.router->get("/api/v1/cvm/status", "factory.apiCvmStatus");
         this.router->post("/api/v1/cvm/commit", "factory.apiCvmCommit");
@@ -83,6 +93,10 @@ class FactoryApp {
         this.router->post("/api/v1/thunder/server/stop", "factory.apiThunderServerStop");
         this.router->get("/api/v1/thunder/containers", "factory.apiThunderContainers");
         this.router->get("/api/v1/thunder/images", "factory.apiThunderImages");
+        this.router->get("/api/v1/thunder/linux-sim", "factory.apiThunderLinuxSim");
+        this.router->post("/api/v1/thunder/linux-sim", "factory.apiThunderLinuxSim");
+        this.router->get("/api/v1/thunder/simulate", "factory.apiThunderLinuxSim");
+        this.router->post("/api/v1/thunder/simulate", "factory.apiThunderLinuxSim");
         this.router->get("/api/v1/light/status", "factory.apiLightStatus");
         this.router->post("/api/v1/light/create", "factory.apiLightCreate");
         this.router->get("/api/v1/upgrade", "factory.apiUpgrade");
@@ -193,6 +207,14 @@ class FactoryApp {
             return this.controller->serveSetupPs1(req, this.port, this.downloadsDir);
         }
 
+        if (route->handlerId === "factory.oneClickSh") {
+            return this.controller->serveOneClickSh(req, this.port, this.downloadsDir);
+        }
+
+        if (route->handlerId === "factory.oneClickPs1") {
+            return this.controller->serveOneClickPs1(req, this.port, this.downloadsDir);
+        }
+
         if (route->handlerId === "factory.cxvmScript") {
             return this.controller->serveCxvm(req, this.downloadsDir);
         }
@@ -247,6 +269,22 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiSetupPost") {
             return this.controller->apiSetupPost(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiSetupOneClick") {
+            return this.controller->apiSetupOneClick(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiFix") {
+            return this.controller->apiFix(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiAppsDownloads") {
+            return this.controller->apiAppsDownloads(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiAppsRun") {
+            return this.controller->apiAppsRun(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.build") {
@@ -319,6 +357,10 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiThunderImages") {
             return this.controller->apiThunderImages(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderLinuxSim") {
+            return this.controller->apiThunderLinuxSim(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.apiLightStatus") {

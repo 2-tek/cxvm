@@ -3,11 +3,31 @@
 .cex_active_runtime
 .cxvm_updated
 
-# Binaries and build outputs
-bin
-bin/
-**/bin
-**/bin/
+# Binaries and build outputs (keep ./bin/.gitkeep and default cexr/cexp v8, v6 in ./bin/)
+bin/*
+!bin/.gitkeep
+!bin/8.0.0/
+!bin/8.0.0/.gitkeep
+!bin/6.0.0/
+!bin/6.0.0/.gitkeep
+!bin/cexr
+!bin/cexr-v8
+!bin/cexr-v6
+!bin/cexr-v4
+!bin/cexr.cmd
+!bin/cexr.ps1
+!bin/cexr-v4.cmd
+!bin/cexr-v4.ps1
+!bin/cexp
+!bin/cexp-v8
+!bin/cexp-v6
+!bin/cexp.cmd
+!bin/cexp.ps1
+!bin/cex
+!bin/cex.cmd
+!bin/cex.ps1
+!bin/cxvm.cmd
+!bin/cxvm.ps1
 *.bin
 *.out
 # Rule 69: target is runtime, do not use .gitignore for dist bundle file (keep dist/ with download of cxvm cross platforms)

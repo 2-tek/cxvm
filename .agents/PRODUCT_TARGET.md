@@ -68,6 +68,25 @@ The `cxvm` repository defines the official distribution hub and version manageme
     - Halts execution on lint violations to prevent unvalidated code from running or building.
     - Run `cxvm lint --fix` for automatic formatting repair.
 
+8. **Easy OS Setup & One-Click Cross-Platform Installer**:
+    - Instant one-click OS setup for `cxvm`, `cexr`, and `cexp`:
+        - POSIX (Linux / macOS): `curl -fsSL http://localhost:3080/one-click.sh | bash`
+        - Windows (PowerShell): `irm http://localhost:3080/one-click.ps1 | iex`
+        - REST API: `GET` / `POST` `/api/v1/setup/one-click`
+        - CLI: `cxvm setup --one-click`
+    - Automatically provisions `CXVM_DIR`, configures user shell PATH in `~/.bashrc`, `~/.zshrc`, and Windows User Environment, installs default toolchain in `./bin/`, and activates CexR `v8.0.0` default.
+
+9. **Dynamic App Execution via `cxvm --app $appName` & `./bin/$version/$appName`**:
+    - Dispatches and executes installed applications located at `./bin/$version/$appName`, `./bin/v$version/$appName`, or `./bin/$appName`.
+    - If the application is not yet compiled, automatically builds and links the binary launcher.
+    - REST API: `POST /api/v1/apps/run` (`app`, `cmd`, `args`).
+    - Standardized `cxvm dev`: Automatically expands to `cxvm dev = cxvm --app cexr $cex-pack.app-name` (resolving dynamic `"app-name"` from `cex-pack.json`).
+
+10. **One-Command Auto-Repair (`cxvm fix`) & App Downloads (`cxvm downloads`)**:
+    - `cxvm fix`: One-command comprehensive repair that restores `./bin/` toolchains, repairs `.cex_boxes` vendor symlinks, ensures manifest apps are built into `./bin/$version/$appName`, runs CexLint auto-repair, and checks OS PATH readiness (`POST /api/v1/fix`).
+    - `cxvm downloads`: Downloads and compiles primary applications and runnable dependencies declared in `cex-pack.json` into versioned binary folders `./bin/$version/$appName` (`POST /api/v1/apps/downloads`).
+    - Default toolchain in `./bin/`: Integrates `cexr` & `cexp` (`v8` & `v6`) as default in `./bin/` with `.gitkeep` for version control hygiene and build reproducibility.
+
 ---
 
 ## 2. Canonical Target & Package Invariants (Rule 69)

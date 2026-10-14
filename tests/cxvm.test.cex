@@ -1315,6 +1315,139 @@ fn main(): int {
 
     suite->addResult("test_upgrade_fetch_build_cexp_first_cexr_lastversion_and_cex_test_latest", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 24: Thunder Linux Instance Creation, Linux CXVM Download & Simulator Example Project Build and Run
+    // -------------------------------------------------------------
+    println("\n[Test Suite 24: Thunder Linux Instance Creation, Linux CXVM Download & Simulator Example Project Build and Run]");
+
+    let simRootPath: string = cxvm->getThunderLinuxSimRoot("thunder-linux-sim");
+    Assert::isTrue(simRootPath.find("thunder-linux-sim") != -1, "getThunderLinuxSimRoot resolves dynamic simulator path from .env");
+
+    let createLinuxRes: CxvmCommandResult* = cxvm->createThunderLinuxInstance("thunder-linux-sim");
+    Assert::isTrue(createLinuxRes->success, "createThunderLinuxInstance('thunder-linux-sim') succeeds");
+    Assert::isTrue(fs.exists(simRootPath + "/thunder_instance.json"), "Thunder Linux instance metadata thunder_instance.json exists");
+    Assert::isTrue(fs.exists(simRootPath + "/sbin/init"), "Simulator Linux /sbin/init exists");
+    Assert::isTrue(fs.exists(simRootPath + "/proc/version"), "Simulator Linux /proc/version exists");
+    Assert::isTrue(fs.exists(simRootPath + "/sys/fs/cgroup/cgroup.controllers"), "Simulator Linux cgroup v2 controllers exist");
+    Assert::isTrue(fs.exists(simRootPath + "/etc/os-release"), "Simulator Linux /etc/os-release exists");
+    Assert::isTrue(createLinuxRes->output.find("6.8.0-cex-thunder-virt") != -1, "Output confirms Thunder Virtual Linux kernel 6.8.0-cex-thunder-virt");
+
+    let dlLinuxCxvmRes: CxvmCommandResult* = cxvm->downloadLinuxCxvmInThunder("thunder-linux-sim");
+    Assert::isTrue(dlLinuxCxvmRes->success, "downloadLinuxCxvmInThunder('thunder-linux-sim') succeeds");
+    Assert::isTrue(fs.exists(simRootPath + "/tmp/cxvm-linux-x86_64.tar.gz"), "Downloaded cxvm-linux-x86_64.tar.gz exists in simulator /tmp");
+    Assert::isTrue(fs.exists(simRootPath + "/root/.cxvm/bin/cxvm"), "Linux cxvm binary installed in simulator /root/.cxvm/bin/cxvm");
+    Assert::isTrue(fs.exists(simRootPath + "/usr/local/bin/cxvm"), "Linux cxvm binary linked in simulator /usr/local/bin/cxvm");
+    Assert::isTrue(dlLinuxCxvmRes->output.find("Downloaded Linux bundle:") != -1, "Output confirms Linux cxvm bundle downloaded");
+
+    let buildRunExRes: CxvmCommandResult* = cxvm->buildAndRunExampleInThunderLinux("thunder-linux-sim", "example-linux-app");
+    Assert::isTrue(buildRunExRes->success, "buildAndRunExampleInThunderLinux('thunder-linux-sim', 'example-linux-app') succeeds");
+    Assert::isTrue(fs.exists(simRootPath + "/app/example-linux-app/cex-pack.json"), "Example project cex-pack.json exists inside simulator Linux /app");
+    Assert::isTrue(fs.exists(simRootPath + "/app/example-linux-app/src/index.cex"), "Example project src/index.cex exists inside simulator Linux /app");
+    Assert::isTrue(fs.exists(simRootPath + "/app/example-linux-app/bin/example-linux-app"), "Built example Linux binary exists inside simulator Linux /app/example-linux-app/bin");
+    Assert::isTrue(fs.exists(simRootPath + "/app/example-linux-app/run.output.log"), "Example execution log exists inside simulator Linux");
+    Assert::isTrue(buildRunExRes->output.find("[Thunder Linux Simulator] Hello from example-linux-app built and running via Linux cxvm") != -1, "Example project output confirms execution via Linux cxvm on kernel 6.8.0-cex-thunder-virt");
+
+    let fullSimRes: CxvmCommandResult* = cxvm->simulateLinuxInThunder("thunder-linux-sim", "example-linux-app");
+    Assert::isTrue(fullSimRes->success, "simulateLinuxInThunder('thunder-linux-sim', 'example-linux-app') succeeds end-to-end");
+    Assert::isTrue(fullSimRes->output.find("Full Linux simulation pipeline completed") != -1, "Output confirms full Linux simulation pipeline completion");
+
+    let cliSim1: int = cxvm->cvmExecute("thunder", "simulate-linux", "example-linux-app");
+    Assert::equalsInt(0, cliSim1, "cxvm thunder simulate-linux example-linux-app returns exit code 0");
+
+    let cliSim2: int = cxvm->cvmExecute("--app", "thunder", "simulate-linux");
+    Assert::equalsInt(0, cliSim2, "cxvm --app thunder simulate-linux returns exit code 0");
+
+    let cliSim3: int = cxvm->cvmExecute("simulate-linux", "example-linux-app", "");
+    Assert::equalsInt(0, cliSim3, "cxvm simulate-linux example-linux-app returns exit code 0");
+
+    let apiSimGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/linux-sim?instance=thunder-linux-sim&project=example-linux-app", "", "application/json");
+    Assert::equalsInt(200, apiSimGet->statusCode, "GET /api/v1/thunder/linux-sim returns 200 OK");
+    Assert::isTrue(apiSimGet->body.find("\"status\":\"SUCCESS\"") != -1, "GET /api/v1/thunder/linux-sim returns status SUCCESS");
+    Assert::isTrue(apiSimGet->body.find("\"instanceName\":\"thunder-linux-sim\"") != -1, "GET /api/v1/thunder/linux-sim returns instanceName thunder-linux-sim");
+    Assert::isTrue(apiSimGet->body.find("\"projectName\":\"example-linux-app\"") != -1, "GET /api/v1/thunder/linux-sim returns projectName example-linux-app");
+    Assert::isTrue(apiSimGet->body.find("Hello from example-linux-app") != -1, "GET /api/v1/thunder/linux-sim includes simulator execution output");
+
+    let apiSimPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/thunder/simulate", "{\"instance\":\"thunder-linux-sim\",\"project\":\"example-linux-app\"}", "application/json");
+    Assert::equalsInt(200, apiSimPost->statusCode, "POST /api/v1/thunder/simulate returns 200 OK");
+    Assert::isTrue(apiSimPost->body.find("\"status\":\"SUCCESS\"") != -1, "POST /api/v1/thunder/simulate returns status SUCCESS");
+
+    suite->addResult("test_thunder_linux_instance_cxvm_download_build_and_run_example", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 25: One-Click OS Setup, Dynamic App Runner, Easy Fix & Manifest Downloads
+    // -------------------------------------------------------------
+    println("\n[Test Suite 25: One-Click OS Setup, Dynamic App Runner, Easy Fix & Manifest Downloads]");
+
+    let oneClickRes: CxvmCommandResult* = cxvm->oneClickSetup("linux-x86_64", "8.0.0");
+    Assert::isTrue(oneClickRes->success, "cxvm->oneClickSetup('linux-x86_64', '8.0.0') succeeds");
+    Assert::isTrue(oneClickRes->output.find("One-Click Setup Completed") != -1 || oneClickRes->output.find("one-click") != -1, "Output confirms one-click setup");
+
+    let fixRes: CxvmCommandResult* = cxvm->fixProject(".");
+    Assert::isTrue(fixRes->success, "cxvm->fixProject('.') succeeds");
+    Assert::isTrue(fs.exists("bin/.gitkeep"), "bin/.gitkeep exists after fixProject");
+    Assert::isTrue(fs.exists("bin/8.0.0/.gitkeep"), "bin/8.0.0/.gitkeep exists after fixProject");
+
+    let dlAppsRes: CxvmCommandResult* = cxvm->downloadAppsFromManifest("cex-pack.json", "8.0.0");
+    Assert::isTrue(dlAppsRes->success, "cxvm->downloadAppsFromManifest('cex-pack.json', '8.0.0') succeeds");
+    Assert::isTrue(fs.exists("bin/8.0.0/cxvm") || fs.exists("bin/cxvm"), "cxvm binary exists in ./bin/8.0.0/cxvm or ./bin/cxvm");
+
+    let foundBin: string = cxvm->findInstalledAppInBin("cxvm", "8.0.0");
+    Assert::isTrue(foundBin.length() > 0, "findInstalledAppInBin('cxvm', '8.0.0') finds installed app binary");
+
+    let runInstRes: CxvmCommandResult* = cxvm->runInstalledApp("cxvm", "--dry-run", "");
+    Assert::isTrue(runInstRes->success, "runInstalledApp('cxvm', '--dry-run', '') succeeds");
+
+    let cliDevCode: int = cxvm->cvmExecute("dev", "--dry-run", "");
+    Assert::equalsInt(0, cliDevCode, "cxvm dev --dry-run executes as cxvm --app cexr cxvm returning exit code 0");
+
+    let cliFixCode: int = cxvm->cvmExecute("fix", ".", "");
+    Assert::equalsInt(0, cliFixCode, "cxvm fix returns exit code 0");
+
+    let cliDlAppsCode: int = cxvm->cvmExecute("downloads", "cex-pack.json", "8.0.0");
+    Assert::equalsInt(0, cliDlAppsCode, "cxvm downloads returns exit code 0");
+
+    let apiOneClickGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/setup/one-click?platform=linux-x86_64&version=8.0.0", "", "application/json");
+    Assert::equalsInt(200, apiOneClickGet->statusCode, "GET /api/v1/setup/one-click returns 200 OK");
+    Assert::isTrue(apiOneClickGet->body.find("\"status\":\"SUCCESS\"") != -1, "GET /api/v1/setup/one-click returns status SUCCESS");
+
+    let apiOneClickPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/setup/one-click", "{\"platform\":\"linux-x86_64\",\"version\":\"8.0.0\"}", "application/json");
+    Assert::equalsInt(200, apiOneClickPost->statusCode, "POST /api/v1/setup/one-click returns 200 OK");
+    Assert::isTrue(apiOneClickPost->body.find("\"status\":\"SUCCESS\"") != -1, "POST /api/v1/setup/one-click returns status SUCCESS");
+
+    let apiFixGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/fix?targetDir=.", "", "application/json");
+    Assert::equalsInt(200, apiFixGet->statusCode, "GET /api/v1/fix returns 200 OK");
+    Assert::isTrue(apiFixGet->body.find("\"status\":\"SUCCESS\"") != -1, "GET /api/v1/fix returns status SUCCESS");
+
+    let apiFixPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/fix", "{\"targetDir\":\".\"}", "application/json");
+    Assert::equalsInt(200, apiFixPost->statusCode, "POST /api/v1/fix returns 200 OK");
+    Assert::isTrue(apiFixPost->body.find("\"status\":\"SUCCESS\"") != -1, "POST /api/v1/fix returns status SUCCESS");
+
+    let apiAppsDlGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/apps/downloads?manifest=cex-pack.json&version=8.0.0", "", "application/json");
+    Assert::equalsInt(200, apiAppsDlGet->statusCode, "GET /api/v1/apps/downloads returns 200 OK");
+    Assert::isTrue(apiAppsDlGet->body.find("\"status\":\"SUCCESS\"") != -1, "GET /api/v1/apps/downloads returns status SUCCESS");
+
+    let apiAppsDlPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/apps/downloads", "{\"manifest\":\"cex-pack.json\",\"version\":\"8.0.0\"}", "application/json");
+    Assert::equalsInt(200, apiAppsDlPost->statusCode, "POST /api/v1/apps/downloads returns 200 OK");
+    Assert::isTrue(apiAppsDlPost->body.find("\"status\":\"SUCCESS\"") != -1, "POST /api/v1/apps/downloads returns status SUCCESS");
+
+    let apiAppsRunGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/apps/run?app=cxvm&cmd=--dry-run", "", "application/json");
+    Assert::equalsInt(200, apiAppsRunGet->statusCode, "GET /api/v1/apps/run returns 200 OK");
+    Assert::isTrue(apiAppsRunGet->body.find("\"status\":\"SUCCESS\"") != -1, "GET /api/v1/apps/run returns status SUCCESS");
+
+    let apiAppsRunPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/apps/run", "{\"app\":\"cxvm\",\"cmd\":\"--dry-run\"}", "application/json");
+    Assert::equalsInt(200, apiAppsRunPost->statusCode, "POST /api/v1/apps/run returns 200 OK");
+    Assert::isTrue(apiAppsRunPost->body.find("\"status\":\"SUCCESS\"") != -1, "POST /api/v1/apps/run returns status SUCCESS");
+
+    let scriptSh: HttpResponse* = app->simulateRequest("GET", "/one-click.sh", "", "text/plain");
+    Assert::equalsInt(200, scriptSh->statusCode, "GET /one-click.sh returns 200 OK");
+    Assert::isTrue(scriptSh->body.find("CXVM_DIR") != -1, "/one-click.sh script contains CXVM_DIR");
+
+    let scriptPs1: HttpResponse* = app->simulateRequest("GET", "/one-click.ps1", "", "text/plain");
+    Assert::equalsInt(200, scriptPs1->statusCode, "GET /one-click.ps1 returns 200 OK");
+    Assert::isTrue(scriptPs1->body.find("CxvmDir") != -1, "/one-click.ps1 script contains CxvmDir");
+
+    suite->addResult("test_one_click_setup_app_runner_easy_fix_and_manifest_downloads", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;
