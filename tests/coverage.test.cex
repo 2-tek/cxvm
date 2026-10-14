@@ -78,6 +78,7 @@ fn main(): int {
     filesToCover->push("src/app.cex");
     filesToCover->push("src/server.cex");
     filesToCover->push("src/index.cex");
+    filesToCover->push("src/cxvm/suggestion_engine.cex");
     filesToCover->push("src/cxvm/cxvm_engine.cex");
 
     let fCount: int = (int)filesToCover->length();

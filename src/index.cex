@@ -253,6 +253,12 @@ fn main(argc: int, argv: char**): int {
     let cexrRunApiResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cexr/run", "{\"target\":\"src/index.cex\",\"options\":\"--dry-run\"}", "application/json");
     Log::info("  POST /api/v1/cexr/run -> Status: " + to_string(cexrRunApiResp->statusCode));
 
+    let suggestFResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/suggest?text=f", "", "application/json");
+    Log::info("  GET /api/v1/suggest?text=f -> " + suggestFResp->body);
+
+    let suggestHelloResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/suggest?text=helloword", "", "application/json");
+    Log::info("  GET /api/v1/suggest?text=helloword -> " + suggestHelloResp->body);
+
     app->stop();
     Log::info("===============================================================================");
     Log::info("      [OK] 2-TEK Cex Factory Fullstack Pipeline Executed Successfully!           ");

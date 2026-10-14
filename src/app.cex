@@ -125,6 +125,15 @@ class FactoryApp {
         this.router->post("/api/v1/cexr/run", "factory.apiCexrRun");
         this.router->get("/api/v1/run", "factory.apiCexrRun");
         this.router->post("/api/v1/run", "factory.apiCexrRun");
+
+        // Runtime Symbol Research & Variable Suggestion API
+        this.router->get("/api/v1/suggest", "factory.apiSuggest");
+        this.router->post("/api/v1/suggest", "factory.apiSuggest");
+        this.router->get("/api/v1/suggest/:id", "factory.apiSuggest");
+        this.router->get("/api/v1/suggestions", "factory.apiSuggest");
+        this.router->post("/api/v1/suggestions", "factory.apiSuggest");
+        this.router->get("/api/v1/runtime/suggest", "factory.apiSuggest");
+        this.router->post("/api/v1/runtime/suggest", "factory.apiSuggest");
     }
 
     public start(): void {
@@ -401,6 +410,10 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiCexrRun") {
             return this.controller->apiCexrRun(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiSuggest") {
+            return this.controller->apiSuggest(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

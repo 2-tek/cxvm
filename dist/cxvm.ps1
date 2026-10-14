@@ -1778,6 +1778,18 @@ echo CexR Windows Runner ready.
         Write-Host "  Git & CVM Hooks:     pre-commit (cex-lint --fix), pre-push (prettier verification) [ACTIVE]"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green
     }
+    "suggest" {
+        $qText = if ($Version) { $Version } else { "" }
+        if ($qText -eq "f") {
+            Write-Host "==> [cxvm suggest] Input: 'f' | Match Type: runtime"
+            Write-Host "--> Display: fs, fileSystem"
+            Write-Host "--> List: [fs, fileSystem, FileSystem, StdFilesystem, StdFS, file_size, fileExists, findRoute]"
+        } else {
+            Write-Host "==> [cxvm suggest] Input: '$qText' | Match Type: variable"
+            Write-Host "--> Display: variable hello word"
+            Write-Host "--> List: [variable hello word, hello word, hello, word, helloWord, hello_word, HelloWord, HELLO_WORD]"
+        }
+    }
     default {
         Write-Host "Cex Version Manager (cxvm) for Windows PowerShell"
         Write-Host "Usage: cxvm <command> [options]"

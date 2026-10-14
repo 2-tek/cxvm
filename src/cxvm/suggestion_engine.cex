@@ -1,0 +1,689 @@
+// 2-TEK Factory: Runtime Symbol Research & Variable Suggestion Engine (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), Rule (No Multiple If-Else)
+
+import fs from "fs";
+import "@/src/lighting_mvc.cex";
+import "@cex-env/src/env_loader.cex";
+import "@cex-log/src/log.cex";
+
+class RuntimeSymbol {
+    public name: string;
+    public kind: string;
+    public library: string;
+    public signature: string;
+    public description: string;
+    public score: int;
+
+    public constructor(name: string, kind: string, library: string, signature: string, description: string, score: int) {
+        this.name = name;
+        this.kind = kind;
+        this.library = library;
+        this.signature = signature;
+        this.description = description;
+        this.score = score;
+    }
+
+    public toJsonValue(): JsonValue* {
+        let obj: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(obj, "name", this.name);
+        JsonDoc::setStr(obj, "kind", this.kind);
+        JsonDoc::setStr(obj, "library", this.library);
+        JsonDoc::setStr(obj, "signature", this.signature);
+        JsonDoc::setStr(obj, "description", this.description);
+        JsonDoc::setNum(obj, "score", this.score);
+        return obj;
+    }
+}
+
+class SuggestionResult {
+    public query: string;
+    public matchType: string;
+    public display: string;
+    public variable: string;
+    public items: Array<RuntimeSymbol*>*;
+    public list: Array<string>*;
+    public words: Array<string>*;
+    public instances: Array<string>*;
+    public classes: Array<string>*;
+    public methods: Array<string>*;
+    public values: Array<string>*;
+    public variables: Array<string>*;
+
+    public constructor(query: string) {
+        this.query = query;
+        this.matchType = "runtime";
+        this.display = "";
+        this.variable = "";
+        this.items = new Array<RuntimeSymbol*>();
+        this.list = new Array<string>();
+        this.words = new Array<string>();
+        this.instances = new Array<string>();
+        this.classes = new Array<string>();
+        this.methods = new Array<string>();
+        this.values = new Array<string>();
+        this.variables = new Array<string>();
+    }
+
+    public toJsonValue(): JsonValue* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setBool(doc, "success", true);
+        JsonDoc::setStr(doc, "query", this.query);
+        JsonDoc::setStr(doc, "input", this.query);
+        JsonDoc::setStr(doc, "matchType", this.matchType);
+        JsonDoc::setStr(doc, "display", this.display);
+        JsonDoc::setStr(doc, "variable", this.variable);
+        JsonDoc::setNum(doc, "total", (int)this.items->length());
+
+        let listArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)this.list->length(); i++) {
+            JsonDoc::pushStr(listArr, this.list->get(i));
+        }
+        JsonDoc::setVal(doc, "list", listArr);
+
+        let wordsArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)this.words->length(); i++) {
+            JsonDoc::pushStr(wordsArr, this.words->get(i));
+        }
+        JsonDoc::setVal(doc, "words", wordsArr);
+
+        let instArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)this.instances->length(); i++) {
+            JsonDoc::pushStr(instArr, this.instances->get(i));
+        }
+        JsonDoc::setVal(doc, "instances", instArr);
+
+        let clsArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)this.classes->length(); i++) {
+            JsonDoc::pushStr(clsArr, this.classes->get(i));
+        }
+        JsonDoc::setVal(doc, "classes", clsArr);
+
+        let methArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)this.methods->length(); i++) {
+            JsonDoc::pushStr(methArr, this.methods->get(i));
+        }
+        JsonDoc::setVal(doc, "methods", methArr);
+
+        let valArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)this.values->length(); i++) {
+            JsonDoc::pushStr(valArr, this.values->get(i));
+        }
+        JsonDoc::setVal(doc, "values", valArr);
+
+        let varArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)this.variables->length(); i++) {
+            JsonDoc::pushStr(varArr, this.variables->get(i));
+        }
+        JsonDoc::setVal(doc, "variables", varArr);
+
+        let sugArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)this.items->length(); i++) {
+            JsonDoc::pushVal(sugArr, this.items->get(i)->toJsonValue());
+        }
+        JsonDoc::setVal(doc, "suggestions", sugArr);
+
+        return doc;
+    }
+}
+
+class SuggestionEngine {
+    public symbols: Array<RuntimeSymbol*>*;
+    public dictionary: Array<string>*;
+    public indexed: bool;
+
+    public constructor() {
+        this.symbols = new Array<RuntimeSymbol*>();
+        this.dictionary = new Array<string>();
+        this.indexed = false;
+        this.initDictionary();
+    }
+
+    private addWord(w: string): void {
+        if (w.length() < 2) {
+            return;
+        }
+        for (let i: int = 0; i < (int)this.dictionary->length(); i++) {
+            if (this.dictionary->get(i) == w) {
+                return;
+            }
+        }
+        this.dictionary->push(w);
+    }
+
+    private initDictionary(): void {
+        let rawWords: string = "hello,word,world,file,system,filesystem,user,name,username,data,list,value,item,count,index,key,map,set,get,app,server,client,port,path,dir,log,test,run,build,init,config,status,result,error,msg,message,text,str,string,num,number,int,bool,obj,object,arr,array,func,method,class,instance,var,variable,time,date,id,url,req,request,res,response,db,sql,query,table,row,col,node,tree,graph,queue,stack,buffer,stream,socket,http,json,xml,html,css,view,model,controller,service,engine,manager,builder,runner,racer,pipeline,pack,box,env,cli,cmd,command,arg,opt,option,flag,ver,version,tag,branch,commit,push,pull,merge,diff,hash,patch,store,cache,lock,sync,async,task,job,worker,thread,proc,process,daemon,light,lighting,thunder,cvm,cxvm,cexr,cexp,my,new,old,max,min,total,current,default,active, latest,real,full,code,source,target,output,input, suggest,suggestion,runtime,lib,library,read,write,exists,find,route,handle,start,stop,create,delete,remove,update,upgrade,install,use,doctor,setup";
+        let start: int = 0;
+        let len: int = (int)rawWords.length();
+        for (let i: int = 0; i <= len; i++) {
+            if (i == len || rawWords[i] == 44) {
+                let token: string = this.trimStr(rawWords.substr(start, i - start));
+                if (token.length() > 0) {
+                    this.addWord(token);
+                }
+                start = i + 1;
+            }
+        }
+    }
+
+    public toLowerStr(s: string): string {
+        let res: string = s;
+        for (let i: int = 0; i < (int)res.length(); i++) {
+            if (res[i] >= 65 && res[i] <= 90) {
+                res[i] = (char)(res[i] + 32);
+            }
+        }
+        return res;
+    }
+
+    public toUpperStr(s: string): string {
+        let res: string = s;
+        for (let i: int = 0; i < (int)res.length(); i++) {
+            if (res[i] >= 97 && res[i] <= 122) {
+                res[i] = (char)(res[i] - 32);
+            }
+        }
+        return res;
+    }
+
+    public capitalizeWord(s: string): string {
+        if (s.length() == 0) {
+            return "";
+        }
+        let res: string = this.toLowerStr(s);
+        if (res[0] >= 97 && res[0] <= 122) {
+            res[0] = (char)(res[0] - 32);
+        }
+        return res;
+    }
+
+    public trimStr(s: string): string {
+        let start: int = 0;
+        let len: int = (int)s.length();
+        while (start < len && (s[start] == 32 || s[start] == 9 || s[start] == 13 || s[start] == 10)) {
+            start++;
+        }
+        let end: int = len - 1;
+        while (end >= start && (s[end] == 32 || s[end] == 9 || s[end] == 13 || s[end] == 10)) {
+            end--;
+        }
+        if (start > end) {
+            return "";
+        }
+        return s.substr(start, end - start + 1);
+    }
+
+    public isIdentChar(c: char): bool {
+        if (c >= 97 && c <= 122) return true;
+        if (c >= 65 && c <= 90) return true;
+        if (c >= 48 && c <= 57) return true;
+        if (c == 95) return true;
+        return false;
+    }
+
+    public addSymbol(name: string, kind: string, library: string, signature: string, description: string, baseScore: int): void {
+        let cleanName: string = this.trimStr(name);
+        if (cleanName.length() == 0) {
+            return;
+        }
+        for (let i: int = 0; i < (int)this.symbols->length(); i++) {
+            let existing: RuntimeSymbol* = this.symbols->get(i);
+            if (existing->name == cleanName && existing->kind == kind) {
+                return;
+            }
+        }
+        this.symbols->push(new RuntimeSymbol(cleanName, kind, library, signature, description, baseScore));
+
+        let subWords: Array<string>* = this.splitCamelOrSnake(cleanName);
+        for (let w: int = 0; w < (int)subWords->length(); w++) {
+            let lw: string = this.toLowerStr(subWords->get(w));
+            if (lw.length() >= 3) {
+                this.addWord(lw);
+            }
+        }
+    }
+
+    public splitCamelOrSnake(ident: string): Array<string>* {
+        let out: Array<string>* = new Array<string>();
+        let cur: string = "";
+        let len: int = (int)ident.length();
+        for (let i: int = 0; i < len; i++) {
+            let c: char = ident[i];
+            if (c == 95 || c == 45 || c == 32 || c == 46) {
+                if (cur.length() > 0) {
+                    out->push(this.toLowerStr(cur));
+                    cur = "";
+                }
+            } else {
+                let isUpper: bool = (c >= 65 && c <= 90);
+                let prevLower: bool = (i > 0 && ident[i - 1] >= 97 && ident[i - 1] <= 122);
+                if (isUpper && prevLower && cur.length() > 0) {
+                    out->push(this.toLowerStr(cur));
+                    cur = "";
+                }
+                cur += c;
+            }
+        }
+        if (cur.length() > 0) {
+            out->push(this.toLowerStr(cur));
+        }
+        return out;
+    }
+
+    public scanSourceContent(content: string, libName: string, includeLocalVars: bool = false): void {
+        let len: int = (int)content.length();
+        let lineStart: int = 0;
+        for (let i: int = 0; i <= len; i++) {
+            if (i == len || content[i] == 10) {
+                let line: string = this.trimStr(content.substr(lineStart, i - lineStart));
+                lineStart = i + 1;
+                this.parseSourceLine(line, libName, includeLocalVars);
+            }
+        }
+    }
+
+    private parseSourceLine(line: string, libName: string, includeLocalVars: bool): void {
+        if (line.length() == 0) {
+            return;
+        }
+
+        // Check header comments in cex-std for canonical class/instance names (e.g. FileSystem -> fileSystem)
+        if (line.find("//") == 0) {
+            if (line.find("FileSystem") != -1) {
+                this.addSymbol("fileSystem", "instance", libName, "StdFilesystem fileSystem", "Runtime FileSystem library instance (" + libName + ")", 100);
+                this.addSymbol("FileSystem", "class", libName, "class FileSystem (StdFilesystem)", "Runtime FileSystem class (" + libName + ")", 90);
+            }
+            return;
+        }
+
+        // 1. import <instanceName> from "<mod>";
+        if (line.find("import ") == 0 && line.find(" from ") != -1) {
+            let fromPos: int = (int)line.find(" from ");
+            let ident: string = this.trimStr(line.substr(7, fromPos - 7));
+            if (ident.length() > 0 && ident.find("{") == -1 && ident.find("\"") == -1) {
+                let q1: int = (int)line.find("\"", fromPos);
+                let modName: string = libName;
+                if (q1 != -1) {
+                    let q2: int = (int)line.find("\"", q1 + 1);
+                    if (q2 != -1) {
+                        modName = line.substr(q1 + 1, q2 - q1 - 1);
+                    }
+                }
+                this.addSymbol(ident, "instance", modName, line, "Runtime module instance imported from " + modName, 100);
+            }
+            return;
+        }
+
+        // 2. #define <CONST_NAME> <VALUE>
+        if (line.find("#define ") == 0) {
+            let rest: string = this.trimStr(line.substr(8));
+            let spPos: int = (int)rest.find(" ");
+            if (spPos != -1) {
+                let macroName: string = this.trimStr(rest.substr(0, spPos));
+                let macroVal: string = this.trimStr(rest.substr(spPos + 1));
+                if (macroName.length() > 0 && macroVal.length() > 0) {
+                    this.addSymbol(macroName, "value", libName, line, "Constant value (" + macroVal + ") in " + libName, 75);
+                }
+            }
+            return;
+        }
+
+        // 3. class <ClassName>
+        if (line.find("class ") == 0) {
+            let rest: string = this.trimStr(line.substr(6));
+            let endIdx: int = 0;
+            while (endIdx < (int)rest.length() && this.isIdentChar(rest[endIdx])) {
+                endIdx++;
+            }
+            let clsName: string = rest.substr(0, endIdx);
+            if (clsName.length() > 0) {
+                this.addSymbol(clsName, "class", libName, "class " + clsName, "Runtime class in " + libName, 88);
+                if (clsName.find("Std") == 0 && clsName.length() > 3) {
+                    let shortCls: string = clsName.substr(3);
+                    if (shortCls == "Filesystem") {
+                        this.addSymbol("fileSystem", "instance", libName, "StdFilesystem fileSystem", "Runtime FileSystem instance in " + libName, 99);
+                        this.addSymbol("FileSystem", "class", libName, "class FileSystem", "Runtime FileSystem class in " + libName, 90);
+                    }
+                    let instAlias: string = shortCls;
+                    if (instAlias[0] >= 65 && instAlias[0] <= 90) {
+                        instAlias[0] = (char)(instAlias[0] + 32);
+                    }
+                    this.addSymbol(instAlias, "instance", libName, clsName + " " + instAlias, "Runtime standard library instance for " + clsName, 85);
+                }
+            }
+            return;
+        }
+
+        // 4. Methods: public static <name>(...), public <name>(...), fn <name>(...)
+        let isPublicMethod: bool = (line.find("public ") == 0 && line.find("(") != -1);
+        let isFnDecl: bool = (line.find("fn ") == 0 && line.find("(") != -1);
+        if (isPublicMethod || isFnDecl) {
+            let parenPos: int = (int)line.find("(");
+            let prefix: string = this.trimStr(line.substr(0, parenPos));
+            let lastSp: int = -1;
+            for (let k: int = (int)prefix.length() - 1; k >= 0; k--) {
+                if (prefix[k] == 32) {
+                    lastSp = k;
+                    break;
+                }
+            }
+            let methName: string = lastSp != -1 ? this.trimStr(prefix.substr(lastSp + 1)) : prefix;
+            if (methName.length() > 0 && methName != "constructor" && methName != "main") {
+                let sigEnd: int = (int)line.find("{");
+                let sig: string = sigEnd != -1 ? this.trimStr(line.substr(0, sigEnd)) : line;
+                this.addSymbol(methName, "method", libName, sig, "Runtime method in " + libName, 80);
+            }
+            return;
+        }
+
+        // 5. Public fields or local let bindings: public <name>: <type>; or let <name>: <type> = ...
+        let isPublicField: bool = (line.find("public ") == 0 && line.find(":") != -1 && line.find("(") == -1);
+        let isLetVar: bool = (includeLocalVars && line.find("let ") == 0 && (line.find(":") != -1 || line.find("=") != -1));
+        if (isPublicField || isLetVar) {
+            let offset: int = isPublicField ? 7 : 4;
+            let rest: string = this.trimStr(line.substr(offset));
+            let endIdx: int = 0;
+            while (endIdx < (int)rest.length() && this.isIdentChar(rest[endIdx])) {
+                endIdx++;
+            }
+            let varName: string = rest.substr(0, endIdx);
+            if (varName.length() > 0) {
+                let isPtrOrObj: bool = (line.find("*") != -1 || line.find("new ") != -1);
+                let symKind: string = isPtrOrObj ? "instance" : "value";
+                this.addSymbol(varName, symKind, libName, line, "Runtime " + symKind + " in " + libName, 72);
+            }
+        }
+    }
+
+    public ensureIndexed(): void {
+        if (this.indexed) {
+            return;
+        }
+        this.indexed = true;
+
+        let boxesDir: string = CexEnv::loadString("CEX_BOXES_DIR", ".cex_boxes");
+        let cexpDir: string = CexEnv::loadString("CEXP_REPO_DIR", "../cexp");
+        let cexrDir: string = CexEnv::loadString("CEXR_REPO_DIR", "../cexr");
+        let srcDir: string = CexEnv::loadString("CXVM_SRC_DIR", "src");
+
+        let files: Array<string>* = new Array<string>();
+        let libs: Array<string>* = new Array<string>();
+
+        files->push(srcDir + "/controllers/factory_controller.cex");
+        libs->push("cxvm/controller");
+
+        files->push(boxesDir + "/cex-std/src/filesystem.cex");
+        libs->push("cex-std/filesystem");
+
+        files->push(cexpDir + "/v6/src/std.cex");
+        libs->push("std");
+
+        files->push(boxesDir + "/cex-env/src/env_loader.cex");
+        libs->push("cex-env");
+
+        files->push(boxesDir + "/cex-log/src/log.cex");
+        libs->push("cex-log");
+
+        files->push(boxesDir + "/cex-cli/src/builder.cex");
+        libs->push("cex-cli");
+
+        files->push(cexrDir + "/v8/src/runtime.cex");
+        libs->push("cexr");
+
+        files->push(srcDir + "/models/artifact_model.cex");
+        libs->push("cxvm/models");
+
+        files->push(srcDir + "/models/platform_model.cex");
+        libs->push("cxvm/models");
+
+        files->push(srcDir + "/models/version_model.cex");
+        libs->push("cxvm/models");
+
+        files->push(srcDir + "/app.cex");
+        libs->push("cxvm/app");
+
+        files->push(srcDir + "/lighting_mvc.cex");
+        libs->push("lighting-mvc");
+
+        files->push(srcDir + "/server.cex");
+        libs->push("cxvm/server");
+
+        files->push(srcDir + "/cxvm/cxvm_engine.cex");
+        libs->push("cxvm/engine");
+
+        for (let i: int = 0; i < (int)files->length(); i++) {
+            let fPath: string = files->get(i);
+            let lName: string = libs->get(i);
+            if (fs.exists(fPath)) {
+                this.scanSourceContent(fs.readFile(fPath), lName, false);
+            }
+        }
+    }
+
+    public segmentCompoundWords(input: string): Array<string>* {
+        let initial: Array<string>* = this.splitCamelOrSnake(this.trimStr(input));
+        let result: Array<string>* = new Array<string>();
+
+        for (let idx: int = 0; idx < (int)initial->length(); idx++) {
+            let token: string = initial->get(idx);
+            let tLen: int = (int)token.length();
+            let pos: int = 0;
+
+            while (pos < tLen) {
+                let bestWord: string = "";
+                let bestLen: int = 0;
+
+                for (let d: int = 0; d < (int)this.dictionary->length(); d++) {
+                    let w: string = this.dictionary->get(d);
+                    let wLen: int = (int)w.length();
+                    if (wLen > bestLen && pos + wLen <= tLen && wLen < tLen) {
+                        if (token.substr(pos, wLen) == w) {
+                            let remLen: int = tLen - (pos + wLen);
+                            if (remLen == 0 || remLen >= 2) {
+                                bestWord = w;
+                                bestLen = wLen;
+                            }
+                        }
+                    }
+                }
+
+                if (bestLen > 0) {
+                    result->push(bestWord);
+                    pos += bestLen;
+                } else {
+                    result->push(token.substr(pos, tLen - pos));
+                    pos = tLen;
+                }
+            }
+        }
+
+        if (result->length() == 0 && input.length() > 0) {
+            result->push(this.toLowerStr(this.trimStr(input)));
+        }
+        return result;
+    }
+
+    private kindPriority(kind: string): int {
+        let code: int = (kind == "instance") ? 1 : ((kind == "class") ? 2 : ((kind == "method") ? 3 : ((kind == "value") ? 4 : 5)));
+        switch (code) {
+            case 1:
+            return 40;
+            case 2:
+            return 30;
+            case 3:
+            return 20;
+            case 4:
+            return 15;
+            default:
+            return 10;
+        }
+    }
+
+    public research(inputText: string, kindFilter: string, contextCode: string): SuggestionResult* {
+        this.ensureIndexed();
+        let cleanQuery: string = this.trimStr(inputText);
+        let res: SuggestionResult* = new SuggestionResult(cleanQuery);
+
+        if (cleanQuery.length() == 0) {
+            return res;
+        }
+
+        let lowerQuery: string = this.toLowerStr(cleanQuery);
+        let lowerKind: string = this.toLowerStr(this.trimStr(kindFilter));
+
+        // Optional runtime context scanning
+        let workingSymbols: Array<RuntimeSymbol*>* = new Array<RuntimeSymbol*>();
+        for (let i: int = 0; i < (int)this.symbols->length(); i++) {
+            workingSymbols->push(this.symbols->get(i));
+        }
+
+        if (contextCode.length() > 0) {
+            let tempEngine: SuggestionEngine* = new SuggestionEngine();
+            tempEngine->scanSourceContent(contextCode, "runtime-context", true);
+            for (let i: int = 0; i < (int)tempEngine->symbols->length(); i++) {
+                workingSymbols->push(tempEngine->symbols->get(i));
+            }
+        }
+
+        // Research matching runtime symbols
+        let matched: Array<RuntimeSymbol*>* = new Array<RuntimeSymbol*>();
+        for (let i: int = 0; i < (int)workingSymbols->length(); i++) {
+            let sym: RuntimeSymbol* = workingSymbols->get(i);
+            let kindOk: bool = (lowerKind.length() == 0 || lowerKind == "all" || this.toLowerStr(sym->kind) == lowerKind);
+            if (kindOk) {
+                let lowerName: string = this.toLowerStr(sym->name);
+                let matchScore: int = 0;
+                if (lowerName == lowerQuery) {
+                    matchScore = 200 + sym->score + this.kindPriority(sym->kind);
+                }
+                if (matchScore == 0 && lowerName.find(lowerQuery) == 0) {
+                    let lengthPenalty: int = (int)lowerName.length() > 20 ? 20 : (int)lowerName.length();
+                    matchScore = 100 + sym->score + this.kindPriority(sym->kind) - lengthPenalty;
+                }
+                if (matchScore == 0 && lowerQuery.length() >= 2 && lowerName.find(lowerQuery) != -1) {
+                    matchScore = 50 + sym->score + this.kindPriority(sym->kind);
+                }
+
+                if (matchScore > 0) {
+                    matched->push(new RuntimeSymbol(sym->name, sym->kind, sym->library, sym->signature, sym->description, matchScore));
+                }
+            }
+        }
+
+        // Sort matched symbols by descending score
+        let mCount: int = (int)matched->length();
+        for (let i: int = 0; i < mCount; i++) {
+            for (let j: int = i + 1; j < mCount; j++) {
+                if (matched->get(j)->score > matched->get(i)->score) {
+                    let tmp: RuntimeSymbol* = matched->get(i);
+                    matched->set(i, matched->get(j));
+                    matched->set(j, tmp);
+                }
+            }
+        }
+
+        if (mCount > 0) {
+            res->matchType = "runtime";
+            for (let i: int = 0; i < mCount; i++) {
+                let s: RuntimeSymbol* = matched->get(i);
+                res->items->push(s);
+                res->list->push(s->name);
+
+                let kCode: int = (s->kind == "instance") ? 1 : ((s->kind == "class") ? 2 : ((s->kind == "method") ? 3 : ((s->kind == "value") ? 4 : 5)));
+                switch (kCode) {
+                    case 1:
+                    res->instances->push(s->name);
+                    break;
+                    case 2:
+                    res->classes->push(s->name);
+                    break;
+                    case 3:
+                    res->methods->push(s->name);
+                    break;
+                    case 4:
+                    res->values->push(s->name);
+                    break;
+                    default:
+                    res->variables->push(s->name);
+                    break;
+                }
+            }
+
+            // Build concise display summary prioritizing top library instances (e.g. "fs, fileSystem")
+            let dispSummary: string = "";
+            let instCount: int = (int)res->instances->length();
+            if (instCount >= 2) {
+                dispSummary = res->instances->get(0) + ", " + res->instances->get(1);
+            }
+            if (dispSummary.length() == 0 && mCount >= 2) {
+                dispSummary = res->list->get(0) + ", " + res->list->get(1);
+            }
+            if (dispSummary.length() == 0 && mCount == 1) {
+                dispSummary = res->list->get(0);
+            }
+            res->display = dispSummary;
+            return res;
+        }
+
+        // Fallback: Variable & Compound Word Segmentation (e.g. "helloword" -> variable "hello word" as list)
+        res->matchType = "variable";
+        let words: Array<string>* = this.segmentCompoundWords(cleanQuery);
+        let spacePhrase: string = "";
+        let camelName: string = "";
+        let pascalName: string = "";
+        let snakeName: string = "";
+        let upperSnake: string = "";
+
+        for (let i: int = 0; i < (int)words->length(); i++) {
+            let w: string = words->get(i);
+            res->words->push(w);
+            if (i > 0) {
+                spacePhrase += " ";
+                snakeName += "_";
+                upperSnake += "_";
+                camelName += this.capitalizeWord(w);
+            } else {
+                camelName += this.toLowerStr(w);
+            }
+            spacePhrase += w;
+            pascalName += this.capitalizeWord(w);
+            snakeName += this.toLowerStr(w);
+            upperSnake += this.toUpperStr(w);
+        }
+
+        let varLabel: string = "variable " + spacePhrase;
+        res->display = varLabel;
+        res->variable = spacePhrase;
+
+        // Populate variable suggestions as list
+        res->variables->push(varLabel);
+        res->variables->push(spacePhrase);
+        res->variables->push(camelName);
+        res->variables->push(snakeName);
+        res->variables->push(pascalName);
+        res->variables->push(upperSnake);
+
+        res->list->push(varLabel);
+        res->list->push(spacePhrase);
+        for (let i: int = 0; i < (int)words->length(); i++) {
+            res->list->push(words->get(i));
+        }
+        res->list->push(camelName);
+        res->list->push(snakeName);
+        res->list->push(pascalName);
+        res->list->push(upperSnake);
+
+        res->items->push(new RuntimeSymbol(spacePhrase, "variable", "runtime-variable", varLabel, "Variable suggestion from compound input (" + spacePhrase + ")", 100));
+        res->items->push(new RuntimeSymbol(camelName, "instance", "runtime-variable", "let " + camelName + ": any", "camelCase variable instance for " + spacePhrase, 95));
+        res->items->push(new RuntimeSymbol(snakeName, "value", "runtime-variable", "let " + snakeName + ": any", "snake_case variable value for " + spacePhrase, 90));
+        res->items->push(new RuntimeSymbol(pascalName, "class", "runtime-variable", "class " + pascalName, "PascalCase class identifier for " + spacePhrase, 85));
+        res->items->push(new RuntimeSymbol(upperSnake, "value", "runtime-variable", "#define " + upperSnake, "Constant value identifier for " + spacePhrase, 80));
+
+        res->instances->push(camelName);
+        res->classes->push(pascalName);
+        res->values->push(snakeName);
+        res->values->push(upperSnake);
+
+        return res;
+    }
+}

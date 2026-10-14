@@ -17,16 +17,17 @@ src/cvm/ref_manager.cex                          135      73      73       0    
 src/cvm/object_store.cex                         161      87      87       0      100%   None
 src/cvm/repository.cex                           268     141     141       0      100%   None
 src/cvm/cli.cex                                  288     211     211       0      100%   None
-src/controllers/factory_controller.cex          1036     795     795       0      100%   None
+src/controllers/factory_controller.cex          1098     843     843       0      100%   None
 src/views/factory_views.cex                      400     333     333       0      100%   None
-src/lighting_mvc.cex                             424     191     191       0      100%   None
+src/lighting_mvc.cex                             432     197     197       0      100%   None
 src/log.cex                                        5       0       0       0      100%   None
-src/app.cex                                      437     241     241       0      100%   None
+src/app.cex                                      450     250     250       0      100%   None
 src/server.cex                                    51      33      33       0      100%   None
-src/index.cex                                    263     179     179       0      100%   None
-src/cxvm/cxvm_engine.cex                        3495    2622    2622       0      100%   None
+src/index.cex                                    269     183     183       0      100%   None
+src/cxvm/suggestion_engine.cex                   690     448     448       0      100%   None
+src/cxvm/cxvm_engine.cex                        3620    2713    2713       0      100%   None
 ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
-TOTAL                                           8397    5680    5680       0      100%   -
+TOTAL                                           9301    6286    6286       0      100%   -
 ═════════════════════════════════════════════════════════════════════════════════════════════════════════════
   Coverage Health: EXCELLENT ✅ (100% statement coverage)
 ───────────────────────────────────────────────────────────────────────────────────────────────────────────────

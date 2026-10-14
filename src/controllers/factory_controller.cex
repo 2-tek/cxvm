@@ -1035,4 +1035,63 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "output", res->output);
         return this.json(doc);
     }
+
+    private extractRawJsonStr(raw: string, key: string): string {
+        let pat: string = "\"" + key + "\"";
+        let pos: int = (int)raw.find(pat);
+        if (pos == -1) return "";
+        let colon: int = (int)raw.find(":", pos + (int)pat.length());
+        if (colon == -1) return "";
+        let q1: int = (int)raw.find("\"", colon + 1);
+        if (q1 == -1) return "";
+        let q2: int = (int)raw.find("\"", q1 + 1);
+        if (q2 == -1) return "";
+        return raw.substr(q1 + 1, q2 - q1 - 1);
+    }
+
+    public apiSuggest(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let inputText: string = req->getParam("text");
+        if (inputText.length() == 0) inputText = req->getParam("q");
+        if (inputText.length() == 0) inputText = req->getParam("query");
+        if (inputText.length() == 0) inputText = req->getParam("input");
+        if (inputText.length() == 0) inputText = req->getParam("prefix");
+        if (inputText.length() == 0) inputText = req->getParam("id");
+
+        let kindFilter: string = req->getParam("kind");
+        if (kindFilter.length() == 0) kindFilter = req->getParam("type");
+
+        let contextCode: string = req->getParam("code");
+        if (contextCode.length() == 0) contextCode = req->getParam("context");
+
+        if (req->body.length() > 0) {
+            if (req->body.find("{") != -1) {
+                if (inputText.length() == 0) inputText = this.extractRawJsonStr(req->body, "text");
+                if (inputText.length() == 0) inputText = this.extractRawJsonStr(req->body, "q");
+                if (inputText.length() == 0) inputText = this.extractRawJsonStr(req->body, "query");
+                if (inputText.length() == 0) inputText = this.extractRawJsonStr(req->body, "input");
+                if (inputText.length() == 0) inputText = this.extractRawJsonStr(req->body, "prefix");
+                if (kindFilter.length() == 0) kindFilter = this.extractRawJsonStr(req->body, "kind");
+                if (kindFilter.length() == 0) kindFilter = this.extractRawJsonStr(req->body, "type");
+                if (contextCode.length() == 0) contextCode = this.extractRawJsonStr(req->body, "code");
+                if (contextCode.length() == 0) contextCode = this.extractRawJsonStr(req->body, "context");
+
+                if (inputText.length() == 0) {
+                    let parsed: JsonValue* = JsonDoc::parse(req->body);
+                    if (parsed != nullptr) {
+                        if (inputText.length() == 0 && parsed->has("text")) inputText = parsed->get("text")->asString();
+                        if (inputText.length() == 0 && parsed->has("q")) inputText = parsed->get("q")->asString();
+                        if (inputText.length() == 0 && parsed->has("query")) inputText = parsed->get("query")->asString();
+                        if (inputText.length() == 0 && parsed->has("input")) inputText = parsed->get("input")->asString();
+                        if (inputText.length() == 0 && parsed->has("prefix")) inputText = parsed->get("prefix")->asString();
+                    }
+                }
+            }
+            if (inputText.length() == 0 && req->body.find("{") == -1) {
+                inputText = req->body;
+            }
+        }
+
+        let res: SuggestionResult* = cxvm->suggestResult(inputText, kindFilter, contextCode);
+        return this.json(res->toJsonValue());
+    }
 }

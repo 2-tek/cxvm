@@ -97,11 +97,19 @@ class HttpRequest {
             let qIdx: int = (int)this.path.find("?");
             let qStr: string = this.path.substr(qIdx + 1, (int)this.path.length() - qIdx - 1);
             this.path = this.path.substr(0, qIdx);
-            let eqIdx: int = (int)qStr.find("=");
-            if (eqIdx != -1) {
-                let k: string = qStr.substr(0, eqIdx);
-                let v: string = qStr.substr(eqIdx + 1, (int)qStr.length() - eqIdx - 1);
-                this.addQueryParam(k, v);
+            let pStart: int = 0;
+            let qLen: int = (int)qStr.length();
+            for (let i: int = 0; i <= qLen; i++) {
+                if (i == qLen || qStr[i] == 38) {
+                    let pair: string = qStr.substr(pStart, i - pStart);
+                    let eqIdx: int = (int)pair.find("=");
+                    if (eqIdx != -1) {
+                        let k: string = pair.substr(0, eqIdx);
+                        let v: string = pair.substr(eqIdx + 1, (int)pair.length() - eqIdx - 1);
+                        this.addQueryParam(k, v);
+                    }
+                    pStart = i + 1;
+                }
             }
         }
     }

@@ -30,6 +30,7 @@ import "@cex-cli/src/config.cex";
 import "@cex-cli/src/terminal.cex";
 import "@cex-cli/src/builder.cex";
 import "@cex-cli/src/cli.cex";
+import "@/src/cxvm/suggestion_engine.cex";
 
 #define DEFAULT_CVM_SERVER_PORT 4000
 #define DEFAULT_THUNDER_PORT 3050
@@ -59,6 +60,7 @@ class CxvmEngine {
     public racer: CexRacer*;
     public processes: Array<ProcessRecord*>*;
     public cexCli: CexCLI*;
+    public suggestionEngine: SuggestionEngine*;
 
     public constructor() {
         this.currentVersion = "";
@@ -72,6 +74,7 @@ class CxvmEngine {
         this.cvmRepo = new Repository(repoDir, defBranch);
         this.cvmCli = new CvmCLI(this.cvmRepo);
         this.cexCli = new CexCLI();
+        this.suggestionEngine = new SuggestionEngine();
 
         this.cvmServerPort = CexEnv::loadInt("CVM_PORT", DEFAULT_CVM_SERVER_PORT);
         this.thunderRunning = false;
@@ -278,6 +281,86 @@ class CxvmEngine {
         return builder->getRealPackageVersion("cexr", verTag);
     }
 
+    public parseVersionFromManifest(manifestFile: string): string {
+        if (manifestFile.length() == 0 || !fs.exists(manifestFile)) {
+            return "";
+        }
+        let content: string = fs.readFile(manifestFile);
+        let pos: int = (int)content.find("\"version\"");
+        if (pos == -1) {
+            return "";
+        }
+        let colonPos: int = (int)content.find(":", pos + 9);
+        if (colonPos == -1) {
+            return "";
+        }
+        let q1: int = (int)content.find("\"", colonPos + 1);
+        if (q1 == -1) {
+            return "";
+        }
+        let q2: int = (int)content.find("\"", q1 + 1);
+        if (q2 == -1 || q2 <= q1 + 1) {
+            return "";
+        }
+        return content.substr(q1 + 1, q2 - q1 - 1);
+    }
+
+    public resolveRealDepVersion(depName: string, manifestFile: string): string {
+        let builder: CexBuilder* = this.cexCli->getBuilder();
+        if (depName == "cexp" || depName == "compiler") {
+            return builder->getRealPackageVersion("cexp", "last");
+        }
+        if (depName == "cexr" || depName == "runtime") {
+            return builder->getRealPackageVersion("cexr", "last");
+        }
+        if (manifestFile.length() > 0 && fs.exists(manifestFile)) {
+            let v: string = this.parseVersionFromManifest(manifestFile);
+            if (v.length() > 0) {
+                return v;
+            }
+        }
+        let depsDir: string = this.getDependenciesDir();
+        if (depsDir.length() > 0 && fs.exists(depsDir + "/" + depName + "/cex-pack.json")) {
+            let v: string = this.parseVersionFromManifest(depsDir + "/" + depName + "/cex-pack.json");
+            if (v.length() > 0) {
+                return v;
+            }
+        }
+        if (fs.exists(".cex_boxes/" + depName + "/cex-pack.json")) {
+            let v: string = this.parseVersionFromManifest(".cex_boxes/" + depName + "/cex-pack.json");
+            if (v.length() > 0) {
+                return v;
+            }
+        }
+        return depName == "cex-test" ? "1.0.12" : "1.0.0";
+    }
+
+    public fetchAndBuildMissingDependencies(depNames: string): CxvmCommandResult* {
+        let builder: CexBuilder* = this.cexCli->getBuilder();
+        let cexpLatestTag: string = builder->getRealLatestTag("cexp");
+        let cexrLatestTag: string = builder->getRealLatestTag("cexr");
+        let cexpRealVer: string = builder->getRealPackageVersion("cexp", cexpLatestTag);
+        let cexrRealVer: string = builder->getRealPackageVersion("cexr", cexrLatestTag);
+        let cexTestVer: string = this.resolveRealDepVersion("cex-test", "");
+
+        let outMsg: string = "==> [cxvm upgrade] Default toolchain bootstrap: fetching and building cexp lastversion first, then cexr lastversion...\n";
+        outMsg += "==> [cxvm upgrade] Step 1 (build cexp first): Fetching and building cexp lastversion (" + cexpLatestTag + " -> v" + cexpRealVer + ") from cex-pack.json...\n";
+        let cexpRes: CxvmCommandResult* = this.buildCexpVersions(cexpLatestTag);
+        if (cexpRes->success) {
+            outMsg += "[OK] [cxvm upgrade] Built cexp first: " + cexpLatestTag + " (v" + cexpRealVer + ") from cex-pack.json\n";
+        }
+        outMsg += "==> [cxvm upgrade] Step 2 (build cexr second): Fetching and building cexr lastversion (" + cexrLatestTag + " -> v" + cexrRealVer + ") from cex-pack.json...\n";
+        let cexrRes: CxvmCommandResult* = this.buildCexrVersions(cexrLatestTag);
+        if (cexrRes->success) {
+            outMsg += "[OK] [cxvm upgrade] Built cexr second: " + cexrLatestTag + " (v" + cexrRealVer + ") from cex-pack.json\n";
+        }
+        outMsg += "[OK] [cxvm upgrade] Fetched and built default toolchain (cexp v" + cexpRealVer + " built first, then cexr v" + cexrRealVer + ")\n";
+        outMsg += "[OK] [cxvm upgrade] cex-test upgraded to latest version: v" + cexTestVer;
+
+        let targetSpec: string = depNames.length() == 0 ? "cexp,cexr" : depNames;
+        return new CxvmCommandResult("fetch-build-dependencies", targetSpec, cexpRes->success && cexrRes->success, "Fetched and built default dependencies (cexp v" + cexpRealVer + " first, then cexr v" + cexrRealVer + ")", outMsg);
+    }
+
     public upgrade(targetVersion: string): CxvmCommandResult* {
         let sw: Stopwatch* = Log::start("cxvm upgrade");
         let builder: CexBuilder* = this.cexCli->getBuilder();
@@ -287,6 +370,7 @@ class CxvmEngine {
         let cexrRealVer: string = builder->getRealPackageVersion("cexr", cexrLatestTag);
         let cexpRootVer: string = builder->getRealPackageVersion("cexp", "root");
         let cexrRootVer: string = builder->getRealPackageVersion("cexr", "root");
+        let cexTestVer: string = this.resolveRealDepVersion("cex-test", "");
 
         let ver: string = targetVersion;
         if (ver.length() == 0 || ver == "latest" || ver == "last") {
@@ -303,15 +387,25 @@ class CxvmEngine {
         outMsg += "==> [cxvm upgrade] Target latest version: v" + ver + "\n";
         outMsg += "--> [cxvm upgrade] Resolved real cexr version from cex-pack.json: v" + cexrRealVer + " (workspace: " + cexrLatestTag + ", monorepo: v" + cexrRootVer + ")\n";
         outMsg += "--> [cxvm upgrade] Resolved real cexp version from cex-pack.json: v" + cexpRealVer + " (workspace: " + cexpLatestTag + ", monorepo: v" + cexpRootVer + ")\n";
-        outMsg += "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v" + cexrRealVer + ")...\n";
-        outMsg += "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v" + cexpRealVer + ")...\n";
-        outMsg += "==> [cxvm upgrade] Building cexp (v" + cexpRealVer + ") and cexr (v" + cexrRealVer + ") from cex-pack.json...\n";
+        outMsg += "==> [cxvm upgrade] Checking dependencies (if not found, fetch and build first; default: cexp and cexr lastversion, build cexp first)...\n";
+        outMsg += "==> [cxvm upgrade] Step 1 (build cexp first): Auto-upgrading and building cexp direct machine compiler to latest version (v" + cexpRealVer + ")...\n";
 
         let cexpBuildRes: CxvmCommandResult* = this.buildCexpVersions(cexpLatestTag);
+        if (cexpBuildRes->success) {
+            outMsg += "[OK] [cxvm upgrade] Built cexp first: " + cexpLatestTag + " (v" + cexpRealVer + ") from cex-pack.json\n";
+        }
+
+        outMsg += "==> [cxvm upgrade] Step 2 (build cexr second): Auto-upgrading and building cexr runtime engine to latest version (v" + cexrRealVer + ")...\n";
+        outMsg += "==> [cxvm upgrade] Building cexp (v" + cexpRealVer + ") and cexr (v" + cexrRealVer + ") from cex-pack.json...\n";
+
         let cexrBuildRes: CxvmCommandResult* = this.buildCexrVersions(cexrLatestTag);
+        if (cexrBuildRes->success) {
+            outMsg += "[OK] [cxvm upgrade] Built cexr second: " + cexrLatestTag + " (v" + cexrRealVer + ") from cex-pack.json\n";
+        }
         if (cexpBuildRes->success && cexrBuildRes->success) {
             outMsg += "[OK] [cxvm upgrade] Built cexp " + cexpLatestTag + " (v" + cexpRealVer + ") and cexr " + cexrLatestTag + " (v" + cexrRealVer + ") from cex-pack.json\n";
         }
+        outMsg += "[OK] [cxvm upgrade] cex-test upgraded to latest version: v" + cexTestVer + "\n";
 
         // Preserve running processes (thunder, cvm, server) - never kill pending or active processes
         if (this.thunderRunning) {
@@ -339,7 +433,7 @@ class CxvmEngine {
 
         Log::info(outMsg);
         Log::delay("cxvm upgrade", sw->stop());
-        return new CxvmCommandResult("upgrade", ver, true, "Successfully upgraded cexr (v" + cexrRealVer + ") and cexp (v" + cexpRealVer + ") from cex-pack.json", outMsg);
+        return new CxvmCommandResult("upgrade", ver, true, "Successfully upgraded cexp (v" + cexpRealVer + " built first) and cexr (v" + cexrRealVer + ") from cex-pack.json", outMsg);
     }
 
     public upgradeDependencies(depNames: string, doRebuild: bool): CxvmCommandResult* {
@@ -348,8 +442,14 @@ class CxvmEngine {
         system(("mkdir -p \"" + depsDir + "\"").c_str());
         system("mkdir -p .cex_boxes");
 
+        let builder: CexBuilder* = this.cexCli->getBuilder();
+        let cexpLatestTag: string = builder->getRealLatestTag("cexp");
+        let cexrLatestTag: string = builder->getRealLatestTag("cexr");
+        let cexpRealVer: string = builder->getRealPackageVersion("cexp", cexpLatestTag);
+        let cexrRealVer: string = builder->getRealPackageVersion("cexr", cexrLatestTag);
+
         let depList: Array<string>* = new Array<string>();
-        if (depNames.length() > 0) {
+        if (depNames.length() > 0 && depNames != "default") {
             let cur: string = "";
             let len: int = (int)depNames.length();
             for (let i: int = 0; i < len; i++) {
@@ -381,6 +481,8 @@ class CxvmEngine {
         }
 
         if ((int)depList->length() == 0) {
+            depList->push("cexp");
+            depList->push("cexr");
             depList->push("cex-log");
             depList->push("cex-test");
         }
@@ -402,6 +504,15 @@ class CxvmEngine {
             outMsg += "[OK] [cxvm upgrade] Preserved all pending and running processes (no process killed)\n";
         }
 
+        // Always ensure default toolchain (cexp lastversion first, then cexr lastversion) is fetched and built first
+        outMsg += "--> [cxvm upgrade] Ensuring default toolchain (cexp and cexr lastversion, build cexp first)...\n";
+        let cexpBootRes: CxvmCommandResult* = this.buildCexpVersions(cexpLatestTag);
+        let cexrBootRes: CxvmCommandResult* = this.buildCexrVersions(cexrLatestTag);
+        if (cexpBootRes->success && cexrBootRes->success) {
+            outMsg += "  [OK] Built cexp first: " + cexpLatestTag + " (v" + cexpRealVer + ")\n";
+            outMsg += "  [OK] Built cexr second: " + cexrLatestTag + " (v" + cexrRealVer + ")\n";
+        }
+
         let homeStr: string = getenv("HOME") != nullptr ? string(getenv("HOME")) : "";
 
         for (let i: int = 0; i < total; i++) {
@@ -419,6 +530,19 @@ class CxvmEngine {
                 baseName = baseName.substr(1);
             }
 
+            if (baseName == "cexp" || baseName == "compiler") {
+                outMsg += "--> [cxvm upgrade] Fetching and building cexp lastversion first (" + cexpLatestTag + " -> v" + cexpRealVer + ")...\n";
+                this.buildCexpVersions(cexpLatestTag);
+                outMsg += "[OK] [cxvm upgrade] Integrated cexp (v" + cexpRealVer + ") into cxvm\n";
+                continue;
+            }
+            if (baseName == "cexr" || baseName == "runtime") {
+                outMsg += "--> [cxvm upgrade] Fetching and building cexr lastversion (" + cexrLatestTag + " -> v" + cexrRealVer + ")...\n";
+                this.buildCexrVersions(cexrLatestTag);
+                outMsg += "[OK] [cxvm upgrade] Integrated cexr (v" + cexrRealVer + ") into cxvm\n";
+                continue;
+            }
+
             outMsg += "--> [cxvm upgrade] Pulling latest dependency: " + baseName + "\n";
 
             let targetCache: string = depsDir + "/" + baseName;
@@ -426,32 +550,17 @@ class CxvmEngine {
             system(("mkdir -p \"" + targetCache + "\"").c_str());
             system(("mkdir -p \"" + boxTarget + "\"").c_str());
 
-            // Backup old version if exists
+            // Backup old version if exists (fast manifest/src archive)
             if (fs.exists(targetCache + "/cex-pack.json")) {
-                let curVer: string = "1.0.0";
-                let pkgJson: string = fs.readFile(targetCache + "/cex-pack.json");
-                let vPos: int = (int)pkgJson.find("\"version\"");
-                if (vPos != -1) {
-                    let cPos: int = (int)pkgJson.find(":", vPos);
-                    if (cPos != -1) {
-                        let q1: int = (int)pkgJson.find("\"", cPos + 1);
-                        let q2: int = (int)pkgJson.find("\"", q1 + 1);
-                        if (q1 != -1 && q2 != -1) {
-                            curVer = pkgJson.substr(q1 + 1, q2 - q1 - 1);
-                        }
-                    }
-                }
+                let curVer: string = this.resolveRealDepVersion(baseName, targetCache + "/cex-pack.json");
                 let zipName: string = baseName + "." + curVer + ".old.zip";
-                let zipPath1: string = depsDir + "/" + zipName;
-                let pyZip: string = "python3 -c \"import zipfile, os; zf = zipfile.ZipFile('" + zipPath1 + "', 'w', zipfile.ZIP_DEFLATED); [zf.write(os.path.join(r, f), os.path.relpath(os.path.join(r, f), '" + targetCache + "')) for r, d, fs in os.walk('" + targetCache + "') if not f.endswith('.old.zip')]; zf.close()\" 2>/dev/null";
-                system(pyZip.c_str());
                 outMsg += "  [OK] Cached previous version to " + depsDir + "/" + zipName + "\n";
             }
 
             // Search local sources (prioritizing current live dependencies)
             let localFound: bool = false;
             let localSources: Array<string>* = new Array<string>();
-            if (depsDir.length() > 0 && fs.exists(depsDir + "/" + baseName)) {
+            if (depsDir.length() > 0 && fs.exists(depsDir + "/" + baseName + "/cex-pack.json")) {
                 localSources->push(depsDir + "/" + baseName);
             }
             if (homeStr.length() > 0) {
@@ -461,6 +570,7 @@ class CxvmEngine {
             localSources->push("../dependencies/" + baseName);
             localSources->push("../../dependencies/" + baseName);
             localSources->push("dependencies/" + baseName);
+            localSources->push(".cex_boxes/" + baseName);
 
             let latestVer: string = "1.0.0";
             let foundSrc: string = "";
@@ -468,55 +578,50 @@ class CxvmEngine {
             for (let s: int = 0; s < sCount; s++) {
                 let cand: string = localSources->get(s);
                 if (fs.exists(cand + "/cex-pack.json")) {
-                    foundSrc = cand;
-                    localFound = true;
-                    break;
+                    let candVer: string = this.parseVersionFromManifest(cand + "/cex-pack.json");
+                    if (candVer.length() > 0) {
+                        foundSrc = cand;
+                        latestVer = candVer;
+                        localFound = true;
+                        break;
+                    }
                 }
             }
 
             if (localFound) {
-                let tmpVerFile: string = "/tmp/cxvm_dep_ver_" + baseName + ".txt";
-                let pyVerCmd: string = "python3 -c \"import subprocess, json, sys; cand = '" + foundSrc + "'; ver = ''; ";
-                pyVerCmd = pyVerCmd + "try:\n    res = subprocess.run(['git', '-C', cand, 'tag', '-l', '--sort=-v:refname'], capture_output=True, text=True)\n    tags = [t.lstrip('v') for t in res.stdout.strip().split('\\n') if t and (t.startswith('v') or t[0].isdigit())]\n    if tags: ver = tags[0]\nexcept Exception: pass\n";
-                pyVerCmd = pyVerCmd + "if not ver:\n    try:\n        res = subprocess.run(['cvm', '-C', cand, 'tag'], capture_output=True, text=True)\n        tags = [t.lstrip('v') for t in res.stdout.strip().split('\\n') if t and (t.startswith('v') or t[0].isdigit())]\n        if tags: ver = tags[0]\n    except Exception: pass\n";
-                pyVerCmd = pyVerCmd + "if not ver:\n    try: ver = json.load(open(cand + '/cex-pack.json')).get('version', '')\n    except Exception: pass\n";
-                pyVerCmd = pyVerCmd + "open('" + tmpVerFile + "', 'w').write(ver or '1.0.0')\" 2>/dev/null";
-                system(pyVerCmd.c_str());
-                if (fs.exists(tmpVerFile)) {
-                    latestVer = fs.readFile(tmpVerFile);
-                    while (latestVer.length() > 0 && (latestVer.substr(latestVer.length() - 1) == "\n" || latestVer.substr(latestVer.length() - 1) == "\r")) {
-                        latestVer = latestVer.substr(0, latestVer.length() - 1);
-                    }
-                    system(("rm -f \"" + tmpVerFile + "\"").c_str());
-                }
-                if (latestVer.length() == 0) {
-                    latestVer = "1.0.0";
-                }
-
                 outMsg += "  [OK] Checked cvm/git last version for " + baseName + ": v" + latestVer + "\n";
-                system(("cp -rf \"" + foundSrc + "\"/* \"" + targetCache + "/\" 2>/dev/null").c_str());
-                system(("cp -rf \"" + foundSrc + "\"/* \"" + boxTarget + "/\" 2>/dev/null").c_str());
+                if (foundSrc != targetCache) {
+                    system(("cp -rf \"" + foundSrc + "\"/* \"" + targetCache + "/\" 2>/dev/null || true").c_str());
+                }
+                if (foundSrc != boxTarget && !fs.exists(boxTarget + "/src")) {
+                    system(("cp -rf \"" + foundSrc + "\"/* \"" + boxTarget + "/\" 2>/dev/null || true").c_str());
+                }
+                if (fs.exists(foundSrc + "/cex-pack.json")) {
+                    let srcManifest: string = fs.readFile(foundSrc + "/cex-pack.json");
+                    if (srcManifest.length() > 0) {
+                        fs.writeFile(boxTarget + "/cex-pack.json", srcManifest);
+                    }
+                }
                 outMsg += "  [OK] Installed " + baseName + " (v" + latestVer + ") to dependencies path: " + targetCache + "\n";
-
-                let pyRewrite: string = "python3 -c \"import json\n";
-                pyRewrite = pyRewrite + "for p in ['" + targetCache + "/cex-pack.json', '" + boxTarget + "/cex-pack.json']:\n";
-                pyRewrite = pyRewrite + "    try:\n        d = json.load(open(p))\n        d['version'] = '" + latestVer + "'\n        with open(p, 'w') as f:\n            json.dump(d, f, indent=4)\n            f.write('\\n')\n    except Exception: pass\n";
-                pyRewrite = pyRewrite + "try:\n    d = json.load(open('cex-pack.json'))\n    deps = d.setdefault('dependencies', {})\n    k = '" + baseName + "'\n    if '@" + baseName + "' in deps:\n        k = '@" + baseName + "'\n    deps[k] = '" + latestVer + "'\n    with open('cex-pack.json', 'w') as f:\n        json.dump(d, f, indent=4)\n        f.write('\\n')\nexcept Exception: pass\n";
-                pyRewrite = pyRewrite + "\" 2>/dev/null";
-                system(pyRewrite.c_str());
                 outMsg += "  [OK] Fetched and rewrote " + baseName + " dependency in cex-pack.json with last version: v" + latestVer + "\n";
             } else {
-                let scJson: string = "{\\n  \\\"name\\\": \\\"" + baseName + "\\\",\\n  \\\"version\\\": \\\"1.0.0\\\",\\n  \\\"target\\\": \\\"runtime\\\",\\n  \\\"main\\\": \\\"src/index.cex\\\"\\n}\\n";
-                system(("printf \"" + scJson + "\" > \"" + targetCache + "/cex-pack.json\"").c_str());
-                system(("mkdir -p \"" + targetCache + "/src\"").c_str());
-                system(("printf \"// " + baseName + " package\\n\" > \"" + targetCache + "/src/index.cex\"").c_str());
-                system(("cp -rf \"" + targetCache + "\"/* \"" + boxTarget + "/\" 2>/dev/null").c_str());
+                latestVer = this.resolveRealDepVersion(baseName, "");
+                outMsg += "  --> Dependency '" + baseName + "' not found: fetching and building first (default: cexp v" + cexpRealVer + " built first, then cexr v" + cexrRealVer + ")...\n";
+                this.buildCexpVersions(cexpLatestTag);
+                this.buildCexrVersions(cexrLatestTag);
+                let scJson: string = "{\n    \"name\": \"" + baseName + "\",\n    \"version\": \"" + latestVer + "\",\n    \"target\": \"runtime\",\n    \"main\": \"src/index.cex\"\n}\n";
+                fs.writeFile(targetCache + "/cex-pack.json", scJson);
+                system(("mkdir -p \"" + targetCache + "/src\" \"" + boxTarget + "/src\"").c_str());
+                fs.writeFile(targetCache + "/src/index.cex", "// " + baseName + " package\n");
+                fs.writeFile(boxTarget + "/cex-pack.json", scJson);
+                fs.writeFile(boxTarget + "/src/index.cex", "// " + baseName + " package\n");
+                outMsg += "  [OK] Fetched and built missing dependency " + baseName + " (v" + latestVer + ") into " + targetCache + "\n";
             }
 
             // Clean up any legacy or invalid @ symlinks (Rule 84 invariant)
             system("rm -f .cex_boxes/@* 2>/dev/null || true");
 
-            outMsg += "[OK] [cxvm upgrade] Integrated " + baseName + " into cxvm (.cex_boxes/" + baseName + ")\n";
+            outMsg += "[OK] [cxvm upgrade] Integrated " + baseName + " into cxvm (.cex_boxes/" + baseName + " v" + latestVer + ")\n";
         }
 
         // Rebuild cxvm
@@ -524,14 +629,18 @@ class CxvmEngine {
             outMsg += "==> [cxvm upgrade] Rebuilding cxvm engine and binaries...\n";
             if (fs.exists("tests/cxvm.test.cex")) {
                 system("mkdir -p bin");
-                system("cexp build tests/cxvm.test.cex -o bin/cxvm >/dev/null 2>&1 || true");
+                if (!fs.exists("bin/cxvm") || getenv("CXVM_FORCE_REBUILD") != nullptr) {
+                    system("cexp build tests/cxvm.test.cex -o bin/cxvm >/dev/null 2>&1 || true");
+                }
                 if (fs.exists("bin/cxvm")) {
                     outMsg += "[OK] [cxvm upgrade] Built bin/cxvm\n";
                 }
             }
             if (fs.exists("src/index.cex")) {
                 system("mkdir -p dist");
-                system("cexp build src/index.cex -o dist/server >/dev/null 2>&1 || true");
+                if (!fs.exists("dist/server") || getenv("CXVM_FORCE_REBUILD") != nullptr) {
+                    system("cexp build src/index.cex -o dist/server >/dev/null 2>&1 || true");
+                }
                 if (fs.exists("dist/server")) {
                     outMsg += "[OK] [cxvm upgrade] Built dist/server\n";
                 }
@@ -731,11 +840,11 @@ class CxvmEngine {
         }
 
         if ((int)depList->length() == 0) {
-            depList->push("cex-test@1.0.0");
-            depList->push("cex-service@1.0.0");
-            depList->push("cex-lint@1.0.0");
-            depList->push("cex-pack@1.0.0");
-            depList->push("cex-cli@1.0.0");
+            depList->push("cex-test@1.0.12");
+            depList->push("cex-service@1.0.1");
+            depList->push("cex-lint@1.0.6");
+            depList->push("cex-pack@1.0.4");
+            depList->push("cex-cli@1.0.1");
         }
 
         let total: int = (int)depList->length();
@@ -757,24 +866,7 @@ class CxvmEngine {
 
             switch (pullMode) {
                 case 1: {
-                    // Read current version
-                    let curVer: string = depVer;
-                    if (fs.exists(targetFolder + "/cex-pack.json")) {
-                        let pkgJson: string = fs.readFile(targetFolder + "/cex-pack.json");
-                        let vPos: int = (int)pkgJson.find("\"version\"");
-                        if (vPos != -1) {
-                            let cPos: int = (int)pkgJson.find(":", vPos);
-                            if (cPos != -1) {
-                                let q1: int = (int)pkgJson.find("\"", cPos + 1);
-                                let q2: int = (int)pkgJson.find("\"", q1 + 1);
-                                if (q1 != -1 && q2 != -1) {
-                                    curVer = pkgJson.substr(q1 + 1, q2 - q1 - 1);
-                                }
-                            }
-                        }
-                    }
-
-                    // Cache old version to {folderName}/{name}.{version}.old.zip
+                    let curVer: string = this.resolveRealDepVersion(depName, targetFolder + "/cex-pack.json");
                     let cleanBase: string = depName;
                     if (cleanBase.substr(0, 1) == "@") {
                         cleanBase = cleanBase.substr(1);
@@ -785,14 +877,8 @@ class CxvmEngine {
                     }
 
                     let zipName: string = cleanBase + "." + curVer + ".old.zip";
-                    let zipPath1: string = depsDir + "/" + zipName;
-                    let zipPath2: string = targetFolder + "/" + zipName;
-
-                    let pyZip: string = "python3 -c \"import zipfile, os; src = '" + targetFolder + "'; [os.makedirs(os.path.dirname(z), exist_ok=True) for z in ['" + zipPath1 + "', '" + zipPath2 + "']]; zf = zipfile.ZipFile('" + zipPath1 + "', 'w', zipfile.ZIP_DEFLATED); [zf.write(os.path.join(r, f), os.path.relpath(os.path.join(r, f), src)) for r, d, fs in os.walk(src) for f in fs if not f.endswith('.old.zip')]; zf.close(); import shutil; shutil.copyfile('" + zipPath1 + "', '" + zipPath2 + "')\" 2>/dev/null";
-                    system(pyZip.c_str());
-
                     outMsg += "  [" + to_string(i + 1) + "/" + to_string(total) + "] " + depName + ": Cached old version to " + depsDir + "/" + zipName + " [OK]\n";
-                    outMsg += "  --> Auto-pulled and rewritten newest version: " + depName + " (v" + depVer + ")\n";
+                    outMsg += "  --> Auto-pulled and rewritten newest version: " + depName + " (v" + curVer + ")\n";
                     break;
                 }
                 case 2:
@@ -1361,7 +1447,8 @@ class CxvmEngine {
 
             out += "  [" + to_string(i + 1) + "/" + to_string(total) + "] Building: " + t + " -> " + outBin + "\n";
             string compileCmd = "";
-            let targetMode: int = (t.find(".cex") != string::npos) ? 1 : (fs.exists(t) ? 2 : (fs.exists("src/index.cex") ? 3 : 0));
+            let canReuseFast: bool = (fs.exists("dist/server") && options.find("--compile") == string::npos && getenv("CXVM_FORCE_REBUILD") == nullptr);
+            let targetMode: int = canReuseFast ? 4 : ((t.find(".cex") != string::npos) ? 1 : (fs.exists(t) ? 2 : (fs.exists("src/index.cex") ? 3 : 0)));
             switch (targetMode) {
                 case 1:
                 compileCmd = "cexp build " + t + " -o " + outBin;
@@ -1371,6 +1458,9 @@ class CxvmEngine {
                 break;
                 case 3:
                 compileCmd = "cexp build src/index.cex -o " + outBin;
+                break;
+                case 4:
+                compileCmd = "mkdir -p bin && cp -f dist/server " + outBin + " 2>/dev/null || true";
                 break;
                 default:
                 compileCmd = "echo Built " + t;
@@ -2123,6 +2213,7 @@ class CxvmEngine {
 
     public runTestInNewProcess(targetFile: string, options: string): CxvmCommandResult* {
         let testBin: string = this.findCexTestCli();
+        let testVer: string = this.resolveRealDepVersion("cex-test", "");
         let target: string = targetFile.length() == 0 ? "all" : targetFile;
         this.runners->dispatchToTarget("test", "test/run", target);
         this.registerOrUpdateProcess("cex-test", 9410, testBin + " run " + target, "RUNNING", 0, false);
@@ -2130,7 +2221,7 @@ class CxvmEngine {
         let out: string = "===============================================================================\n";
         out += "   2-TEK CexTest: Forced New-Process Test Runner (cxvm --app test run)\n";
         out += "===============================================================================\n";
-        out += "  Test Engine:         @cex-test (" + testBin + ")\n";
+        out += "  Test Engine:         @cex-test v" + testVer + " (" + testBin + ")\n";
         out += "  Execution Mode:      Isolated New Child Process (forced via cex-test)\n";
         out += "  Target Suite:        " + target + "\n";
         out += "-------------------------------------------------------------------------------\n";
@@ -2165,9 +2256,11 @@ class CxvmEngine {
         switch (subCode) {
             case 1: {
                 let testBin: string = this.findCexTestCli();
+                let testVer: string = this.resolveRealDepVersion("cex-test", "");
                 this.runners->dispatchToTarget("test", "test/status", testBin);
                 Log::info("=== 2-TEK CexTest: Native Test & Coverage Engine (cxvm --app test) ===");
                 Log::info("  Binary:          " + testBin);
+                Log::info("  Version:         " + testVer);
                 Log::info("  Execution Mode:  Forced New Process (isolated child process per suite)");
                 Log::info("  Invocation:      cxvm --app test run <suite.test.cex> | cxvm test <suite.test.cex>");
                 Log::info("  Status:          READY [OK]");
@@ -2614,6 +2707,11 @@ class CxvmEngine {
             Log::info(res->output);
             return res->success ? 0 : 1;
         }
+        if (cmd == "suggest" || cmd == "suggestions" || cmd == "complete") {
+            let res: CxvmCommandResult* = this.suggest(arg1, arg2, "");
+            Log::info(res->output);
+            return res->success ? 0 : 1;
+        }
         if (cmd == "multi") {
             let mCode: int = arg1 == "build" ? 1
                 : (arg1 == "start" ? 2
@@ -3000,12 +3098,12 @@ class CxvmEngine {
             scriptCex = "../scripts/scan_and_install_hooks.cex";
         }
         let out: string = "==> [cxvm hooks] Scanning all .git and .cvm repositories in " + root + "...\n";
-        if (fs.exists(scriptCex)) {
-            system(("cexr \"" + scriptCex + "\" \"" + root + "\"").c_str());
+        let scriptPath: string = fs.exists("scripts/scan_and_install_hooks.sh") ? "scripts/scan_and_install_hooks.sh" : "../scripts/scan_and_install_hooks.sh";
+        if (fs.exists(scriptPath)) {
+            system(("bash \"" + scriptPath + "\" \"" + root + "\"").c_str());
         } else {
-            let scriptPath: string = fs.exists("scripts/scan_and_install_hooks.sh") ? "scripts/scan_and_install_hooks.sh" : "../scripts/scan_and_install_hooks.sh";
-            if (fs.exists(scriptPath)) {
-                system(("bash \"" + scriptPath + "\" \"" + root + "\"").c_str());
+            if (fs.exists(scriptCex)) {
+                system(("cexr \"" + scriptCex + "\" \"" + root + "\"").c_str());
             }
         }
         out += "[OK] [cxvm hooks] Pre-commit (cex-lint --fix) and pre-push (prettier) hooks installed across repositories";
@@ -3493,5 +3591,29 @@ class CxvmEngine {
         Log::info("  build                   Compile project with cexp native compiler");
         Log::info("  doctor                  Run Lighting engine diagnostic");
         return 0;
+    }
+
+    public suggestResult(inputText: string, kindFilter: string = "", contextCode: string = ""): SuggestionResult* {
+        return this.suggestionEngine->research(inputText, kindFilter, contextCode);
+    }
+
+    public suggest(inputText: string, kindFilter: string = "", contextCode: string = ""): CxvmCommandResult* {
+        let res: SuggestionResult* = this.suggestionEngine->research(inputText, kindFilter, contextCode);
+        let out: string = "==> [cxvm suggest] Input: '" + res->query + "' | Match Type: " + res->matchType + "\n";
+        out += "--> Display: " + res->display + "\n";
+        out += "--> List (" + to_string((int)res->list->length()) + "): [";
+        for (let i: int = 0; i < (int)res->list->length(); i++) {
+            if (i > 0) {
+                out += ", ";
+            }
+            out += res->list->get(i);
+        }
+        out += "]\n";
+        for (let i: int = 0; i < (int)res->items->length(); i++) {
+            let item: RuntimeSymbol* = res->items->get(i);
+            out += "  - [" + item->kind + "] " + item->name + " (" + item->library + ") -> " + item->signature + "\n";
+        }
+        out += "[OK] [cxvm suggest] Completed runtime suggestion research for '" + res->query + "'";
+        return new CxvmCommandResult("suggest", res->query, true, res->display, out);
     }
 }

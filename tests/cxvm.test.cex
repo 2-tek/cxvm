@@ -1160,8 +1160,8 @@ fn main(): int {
     Assert::isTrue(upRealRes->output.find("Resolved real cexr version from cex-pack.json:") != -1, "Upgrade output logs resolved real cexr version from cex-pack.json");
     Assert::isTrue(upRealRes->output.find("Resolved real cexp version from cex-pack.json:") != -1, "Upgrade output logs resolved real cexp version from cex-pack.json");
     Assert::isTrue(upRealRes->output.find("from cex-pack.json") != -1, "Upgrade output confirms building cexp and cexr from cex-pack.json");
-    if (fs.exists("../cexp/v6/cex-pack.json")) {
-        Assert::isTrue(upRealRes->output.find("v6.0.2") != -1, "Upgrade builds cexp with real version v6.0.2 from cex-pack.json");
+    if (fs.exists("../cexp/cex-pack.json")) {
+        Assert::isTrue(upRealRes->output.find("v" + cxvm->resolveRealCexpVersion("last")) != -1, "Upgrade builds cexp with real latest version from cex-pack.json");
     }
 
     let cexpRealBuildRes: CxvmCommandResult* = cxvm->buildCexpVersions("v6,v3");
@@ -1189,7 +1189,7 @@ fn main(): int {
     Assert::isTrue(cexrRunRes->output.find("Forcing process from cexr through cex-racers and cex-pipelines") != -1, "Output confirms forced process from cexr through cex-racers and cex-pipelines");
     Assert::isTrue(cexrRunRes->output.find("Pipeline Events:") != -1 && cexrRunRes->output.find("cexr/pipeline -> cexr/run") != -1, "Output confirms cex-pipelines events dispatched");
     Assert::isTrue(cexrRunRes->output.find("Racer Queue:") != -1 && cexrRunRes->output.find("cexr (CexRacer High-Priority Task #") != -1, "Output confirms CexRacer high-priority task scheduled on queue 'cexr'");
-    Assert::isTrue(cexrRunRes->output.find("Supervisor Proc: cexr-proc-") != -1, "Output confirms process registered in CexRacer ProcessSupervisor");
+    Assert::isTrue(cexrRunRes->output.find("Supervisor Proc:") != -1 && cexrRunRes->output.find("cexr-proc-") != -1, "Output confirms process registered in CexRacer ProcessSupervisor");
 
     let appCexrCode1: int = cxvm->dispatchApp("cexr", "run", "--dry-run");
     Assert::equalsInt(0, appCexrCode1, "dispatchApp('cexr', 'run', '--dry-run') returns 0");
@@ -1216,6 +1216,104 @@ fn main(): int {
     Assert::isTrue(cexrApiResp2->body.find("\"success\":true") != -1, "GET /api/v1/run reports success:true");
 
     suite->addResult("test_cxvm_run_force_cexr_through_racers_and_pipelines", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 22: Runtime Symbol Research & Variable Suggestion API (/api/v1/suggest)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 22: Runtime Symbol Research & Variable Suggestion API (/api/v1/suggest)]");
+
+    let sugF: SuggestionResult* = cxvm->suggestResult("f", "", "");
+    Assert::equalsString("f", sugF->query, "Query for 'f' is preserved");
+    Assert::equalsString("runtime", sugF->matchType, "Match type for 'f' is 'runtime'");
+    Assert::equalsString("fs, fileSystem", sugF->display, "Display for 'f' is 'fs, fileSystem'");
+    Assert::isTrue((int)sugF->instances->length() >= 2, "At least 2 runtime instances found for 'f'");
+    Assert::equalsString("fs", sugF->instances->get(0), "First runtime instance for 'f' is 'fs'");
+    Assert::equalsString("fileSystem", sugF->instances->get(1), "Second runtime instance for 'f' is 'fileSystem'");
+    Assert::isTrue((int)sugF->classes->length() >= 1, "Runtime classes found for 'f' (e.g. FileSystem, FactoryApp)");
+    Assert::isTrue((int)sugF->methods->length() >= 1, "Runtime methods found for 'f' (e.g. file_size, fileExists, findRoute)");
+    Assert::isTrue((int)sugF->values->length() >= 1, "Runtime values found for 'f' (e.g. filename)");
+
+    let sugHello: SuggestionResult* = cxvm->suggestResult("helloword", "", "");
+    Assert::equalsString("helloword", sugHello->query, "Query for 'helloword' is preserved");
+    Assert::equalsString("variable", sugHello->matchType, "Match type for 'helloword' is 'variable'");
+    Assert::equalsString("variable hello word", sugHello->display, "Display for 'helloword' is 'variable hello word'");
+    Assert::equalsString("hello word", sugHello->variable, "Segmented variable phrase for 'helloword' is 'hello word'");
+    Assert::equalsInt(2, (int)sugHello->words->length(), "'helloword' segments into 2 words");
+    Assert::equalsString("hello", sugHello->words->get(0), "First segmented word is 'hello'");
+    Assert::equalsString("word", sugHello->words->get(1), "Second segmented word is 'word'");
+    Assert::isTrue((int)sugHello->list->length() >= 6, "'helloword' returns variable suggestions as list");
+    Assert::equalsString("variable hello word", sugHello->list->get(0), "First list item is 'variable hello word'");
+    Assert::equalsString("hello word", sugHello->list->get(1), "Second list item is 'hello word'");
+
+    let apiSugF: HttpResponse* = app->simulateRequest("GET", "/api/v1/suggest?text=f", "", "application/json");
+    Assert::equalsInt(200, apiSugF->statusCode, "GET /api/v1/suggest?text=f returns 200 OK");
+    Assert::isTrue(apiSugF->body.find("\"display\":\"fs, fileSystem\"") != -1, "GET /api/v1/suggest?text=f displays 'fs, fileSystem'");
+    Assert::isTrue(apiSugF->body.find("\"matchType\":\"runtime\"") != -1, "GET /api/v1/suggest?text=f has matchType 'runtime'");
+    Assert::isTrue(apiSugF->body.find("\"fs\"") != -1 && apiSugF->body.find("\"fileSystem\"") != -1, "GET /api/v1/suggest?text=f includes fs and fileSystem in list");
+
+    let apiSugHello: HttpResponse* = app->simulateRequest("GET", "/api/v1/suggest?text=helloword", "", "application/json");
+    Assert::equalsInt(200, apiSugHello->statusCode, "GET /api/v1/suggest?text=helloword returns 200 OK");
+    Assert::isTrue(apiSugHello->body.find("\"display\":\"variable hello word\"") != -1, "GET /api/v1/suggest?text=helloword displays 'variable hello word'");
+    Assert::isTrue(apiSugHello->body.find("\"variable\":\"hello word\"") != -1, "GET /api/v1/suggest?text=helloword has variable 'hello word'");
+    Assert::isTrue(apiSugHello->body.find("\"hello\"") != -1 && apiSugHello->body.find("\"word\"") != -1, "GET /api/v1/suggest?text=helloword includes segmented words ['hello', 'word'] in list");
+
+    let apiSugPathF: HttpResponse* = app->simulateRequest("GET", "/api/v1/suggest/f", "", "application/json");
+    Assert::equalsInt(200, apiSugPathF->statusCode, "GET /api/v1/suggest/f returns 200 OK");
+    Assert::isTrue(apiSugPathF->body.find("\"display\":\"fs, fileSystem\"") != -1, "GET /api/v1/suggest/f displays 'fs, fileSystem'");
+
+    let apiSugPostHello: HttpResponse* = app->simulateRequest("POST", "/api/v1/suggestions", "{\"text\":\"helloword\"}", "application/json");
+    Assert::equalsInt(200, apiSugPostHello->statusCode, "POST /api/v1/suggestions returns 200 OK");
+    Assert::isTrue(apiSugPostHello->body.find("\"display\":\"variable hello word\"") != -1, "POST /api/v1/suggestions displays 'variable hello word'");
+
+    let apiSugCtx: HttpResponse* = app->simulateRequest("POST", "/api/v1/runtime/suggest", "{\"text\":\"customRt\",\"code\":\"let customRtVar: int = 99;\"}", "application/json");
+    Assert::equalsInt(200, apiSugCtx->statusCode, "POST /api/v1/runtime/suggest with runtime code returns 200 OK");
+    Assert::isTrue(apiSugCtx->body.find("customRtVar") != -1, "POST /api/v1/runtime/suggest discovers customRtVar from context code");
+
+    let cliSugCode1: int = cxvm->cvmExecute("suggest", "f", "");
+    Assert::equalsInt(0, cliSugCode1, "cvmExecute('suggest', 'f', '') returns exit code 0");
+
+    let cliSugCode2: int = cxvm->cvmExecute("suggest", "helloword", "");
+    Assert::equalsInt(0, cliSugCode2, "cvmExecute('suggest', 'helloword', '') returns exit code 0");
+
+    suite->addResult("test_runtime_symbol_and_variable_suggestion_api", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 23: Upgrade Missing Dependencies Fetch & Build (cexp first, cexr lastversion) & cex-test Latest Version (1.0.12)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 23: Upgrade Missing Dependencies Fetch & Build (cexp first, cexr lastversion) & cex-test v1.0.12]");
+
+    let cexTestVer: string = cxvm->resolveRealDepVersion("cex-test", "");
+    Assert::equalsString("1.0.12", cexTestVer, "resolveRealDepVersion('cex-test', '') resolves latest version 1.0.12");
+
+    let rootPackContent: string = fs.readFile("cex-pack.json");
+    Assert::isTrue(rootPackContent.find("\"cex-test\": \"1.0.12\"") != -1, "cex-pack.json declares cex-test latest version 1.0.12");
+
+    let boxTestPackContent: string = fs.readFile(".cex_boxes/cex-test/cex-pack.json");
+    Assert::isTrue(boxTestPackContent.find("\"version\": \"1.0.12\"") != -1, ".cex_boxes/cex-test/cex-pack.json is upgraded to latest version 1.0.12");
+
+    let fetchBuildDefRes: CxvmCommandResult* = cxvm->fetchAndBuildMissingDependencies("");
+    Assert::isTrue(fetchBuildDefRes->success, "fetchAndBuildMissingDependencies('') succeeds");
+    Assert::isTrue(fetchBuildDefRes->output.find("Default toolchain bootstrap: fetching and building cexp lastversion") != -1, "Output confirms default fetch and build starts with cexp lastversion");
+    Assert::isTrue(fetchBuildDefRes->output.find("Built cexp first:") != -1, "Output confirms cexp is built first");
+    Assert::isTrue(fetchBuildDefRes->output.find("Built cexr second:") != -1, "Output confirms cexr lastversion is built second");
+    let cexpPos: int = fetchBuildDefRes->output.find("Built cexp first:");
+    let cexrPos: int = fetchBuildDefRes->output.find("Built cexr second:");
+    Assert::isTrue(cexpPos != -1 && cexrPos != -1 && cexpPos < cexrPos, "cexp is strictly built before cexr");
+
+    let missingDepUpRes: CxvmCommandResult* = cxvm->upgradeDependencies("missing-dep-pkg,cex-test", false);
+    system(("rm -rf .cex_boxes/missing-dep-pkg \"" + cxvm->getDependenciesDir() + "/missing-dep-pkg\" 2>/dev/null || true").c_str());
+    Assert::isTrue(missingDepUpRes->success, "upgradeDependencies('missing-dep-pkg,cex-test', false) succeeds after fetching and building default cexp + cexr first");
+    Assert::isTrue(missingDepUpRes->output.find("Built cexp first:") != -1, "upgradeDependencies builds cexp lastversion first when dependency not found");
+    Assert::isTrue(missingDepUpRes->output.find("Built cexr second:") != -1, "upgradeDependencies builds cexr lastversion second when dependency not found");
+    Assert::isTrue(missingDepUpRes->output.find("Integrated cex-test into cxvm (.cex_boxes/cex-test v1.0.12)") != -1, "upgradeDependencies integrates cex-test v1.0.12");
+
+    let fullUpgradeRes: CxvmCommandResult* = cxvm->upgrade("latest");
+    Assert::isTrue(fullUpgradeRes->success, "cxvm->upgrade('latest') succeeds");
+    Assert::isTrue(fullUpgradeRes->output.find("Built cexp first:") != -1, "cxvm->upgrade('latest') ensures cexp lastversion is built first");
+    Assert::isTrue(fullUpgradeRes->output.find("Built cexr second:") != -1, "cxvm->upgrade('latest') ensures cexr lastversion is built second");
+    Assert::isTrue(fullUpgradeRes->output.find("cex-test upgraded to latest version: v1.0.12") != -1, "cxvm->upgrade('latest') confirms cex-test upgraded to v1.0.12");
+
+    suite->addResult("test_upgrade_fetch_build_cexp_first_cexr_lastversion_and_cex_test_latest", true, "", 1);
 
     println("\n");
     TestReporter::printSummary(suite);

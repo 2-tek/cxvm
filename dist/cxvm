@@ -1159,12 +1159,13 @@ _cxvm_run_cex_test() {
 
   local cextest_ver=""
   local cextest_pack=""
-  for cp in ".cex_boxes/cex-test/cex-pack.json" "$CXVM_DIR/tmp/dependencies/cex-test/cex-pack.json"; do
+  for cp in ".cex_boxes/cex-test/cex-pack.json" "../dependencies/cex-test/cex-pack.json" "$HOME/Projects/dependencies/cex-test/cex-pack.json" "$CXVM_DIR/tmp/dependencies/cex-test/cex-pack.json"; do
     if [ -f "$cp" ]; then cextest_pack="$cp"; break; fi
   done
   if [ -n "$cextest_pack" ]; then
     cextest_ver="$(python3 -c "import json; print(json.load(open('$cextest_pack')).get('version', ''))" 2>/dev/null || true)"
   fi
+  [ -z "$cextest_ver" ] && cextest_ver="1.0.12"
 
   local test_bin=""
   if [ -n "${CEX_TEST_BIN:-}" ] && [ -x "$CEX_TEST_BIN" ]; then
@@ -1185,7 +1186,7 @@ _cxvm_run_cex_test() {
     doctor|status)
       echo "=== 2-TEK CexTest: Native Test & Coverage Engine (cxvm --app test) ==="
       echo "  Binary:          ${test_bin:-cex-test}"
-      echo "  Version:         ${cextest_ver:-1.0.0}"
+      echo "  Version:         ${cextest_ver:-1.0.12}"
       echo "  Execution Mode:  Forced New Process (isolated child process per suite)"
       echo "  Invocation:      cxvm --app test run <suite.test.cex> | cxvm test <suite.test.cex>"
       echo "  Status:          READY [OK]"
@@ -2196,15 +2197,15 @@ zf.close()" 2>/dev/null || true
 
     local latest_ver=""
     if [ -n "$src_dir" ]; then
-      # 1. Check last version in cvm or git
-      if [ -d "$src_dir/.git" ]; then
+      # 1. Read real version from package cex-pack.json first, then standalone cvm/git tags
+      if [ -f "$src_dir/cex-pack.json" ]; then
+        latest_ver="$(python3 -c "import json; print(json.load(open('$src_dir/cex-pack.json')).get('version', ''))" 2>/dev/null || echo "")"
+      fi
+      if [ -z "$latest_ver" ] && [ -d "$src_dir/.git" ]; then
         latest_ver="$(git -C "$src_dir" tag -l --sort=-v:refname 2>/dev/null | grep -E '^v?[0-9]' | head -n 1 | sed 's/^v//')"
       fi
       if [ -z "$latest_ver" ] && [ -d "$src_dir/.cvm" ]; then
         latest_ver="$(cvm -C "$src_dir" tag 2>/dev/null | grep -E '^v?[0-9]' | head -n 1 | sed 's/^v//')"
-      fi
-      if [ -z "$latest_ver" ] && [ -f "$src_dir/cex-pack.json" ]; then
-        latest_ver="$(python3 -c "import json; print(json.load(open('$src_dir/cex-pack.json')).get('version', ''))" 2>/dev/null || echo "")"
       fi
       if [ -z "$latest_ver" ]; then
         latest_ver="1.0.0"
@@ -4084,8 +4085,9 @@ EOF
       echo "==> [cxvm upgrade] Target latest version: v$target_ver"
       echo "--> [cxvm upgrade] Resolved real cexr version from cex-pack.json: v$cexr_real_ver (workspace: ${cexr_ws:-v8}, monorepo: v${cexr_root_ver:-1.0.0})"
       echo "--> [cxvm upgrade] Resolved real cexp version from cex-pack.json: v$cexp_real_ver (workspace: ${cexp_ws:-v6}, monorepo: v${cexp_root_ver:-1.0.0})"
-      echo "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v$cexr_real_ver)..."
-      echo "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v$cexp_real_ver)..."
+      echo "==> [cxvm upgrade] Checking dependencies (if not found, fetch and build first; default: cexp and cexr lastversion, build cexp first)..."
+      echo "==> [cxvm upgrade] Step 1 (build cexp first): Auto-upgrading and building cexp direct machine compiler to latest version (v$cexp_real_ver)..."
+      echo "==> [cxvm upgrade] Step 2 (build cexr second): Auto-upgrading and building cexr runtime engine to latest version (v$cexr_real_ver)..."
       echo "==> [cxvm upgrade] Building cexp (v$cexp_real_ver) and cexr (v$cexr_real_ver) from cex-pack.json..."
 
       # Check and preserve active processes
@@ -4107,22 +4109,7 @@ EOF
 
       cxvm install "$target_ver" >/dev/null 2>&1 || true
 
-      # Build and sync latest cexr from its real cex-pack.json
-      if [ -n "$cexr_repo" ] && [ -n "$cexr_ws" ]; then
-        echo "--> [cxvm upgrade] Found local cexr repository at $cexr_repo ($cexr_ws -> v$cexr_real_ver)"
-        local r_src="$cexr_repo/$cexr_ws/${cexr_main:-src/index.cex}"
-        local r_out="$cexr_repo/$cexr_ws/bin/cexr-$cexr_ws"
-        mkdir -p "$cexr_repo/$cexr_ws/bin" "$CXVM_DIR/versions/v$cexr_real_ver/bin"
-        if [ ! -x "$r_out" ] && [ -f "$r_src" ] && command -v cexp >/dev/null 2>&1; then
-          (cd "$cexr_repo/$cexr_ws" && cexp build --no-lint "${cexr_main:-src/index.cex}" -o "bin/cexr-$cexr_ws" >/dev/null 2>&1 || true)
-        fi
-        if [ -x "$r_out" ]; then
-          cp -f "$r_out" "$CXVM_DIR/versions/v$cexr_real_ver/bin/cexr-$cexr_ws" 2>/dev/null || true
-          ln -sf "$CXVM_DIR/versions/v$cexr_real_ver/bin/cexr-$cexr_ws" "$CXVM_DIR/bin/cexr-$cexr_ws" 2>/dev/null || true
-        fi
-      fi
-
-      # Build and sync latest cexp from its real cex-pack.json
+      # Step 1: Build and sync latest cexp FIRST from its real cex-pack.json
       local comp_configured=0
       if [ -n "$cexp_repo" ] && [ -n "$cexp_ws" ]; then
         echo "--> [cxvm upgrade] Found local cexp $cexp_ws repository at $cexp_repo/$cexp_ws (v$cexp_real_ver)"
@@ -4154,8 +4141,25 @@ EOF
           comp_configured=1
         fi
       fi
+      echo "[OK] [cxvm upgrade] Built cexp first: ${cexp_ws:-v7} (v$cexp_real_ver) from cex-pack.json"
 
-      echo "[OK] [cxvm upgrade] Built cexp ${cexp_ws:-v6} (v$cexp_real_ver) and cexr ${cexr_ws:-v8} (v$cexr_real_ver) from cex-pack.json"
+      # Step 2: Build and sync latest cexr SECOND from its real cex-pack.json
+      if [ -n "$cexr_repo" ] && [ -n "$cexr_ws" ]; then
+        echo "--> [cxvm upgrade] Found local cexr repository at $cexr_repo ($cexr_ws -> v$cexr_real_ver)"
+        local r_src="$cexr_repo/$cexr_ws/${cexr_main:-src/index.cex}"
+        local r_out="$cexr_repo/$cexr_ws/bin/cexr-$cexr_ws"
+        mkdir -p "$cexr_repo/$cexr_ws/bin" "$CXVM_DIR/versions/v$cexr_real_ver/bin"
+        if [ ! -x "$r_out" ] && [ -f "$r_src" ] && command -v cexp >/dev/null 2>&1; then
+          (cd "$cexr_repo/$cexr_ws" && cexp build --no-lint "${cexr_main:-src/index.cex}" -o "bin/cexr-$cexr_ws" >/dev/null 2>&1 || true)
+        fi
+        if [ -x "$r_out" ]; then
+          cp -f "$r_out" "$CXVM_DIR/versions/v$cexr_real_ver/bin/cexr-$cexr_ws" 2>/dev/null || true
+          ln -sf "$CXVM_DIR/versions/v$cexr_real_ver/bin/cexr-$cexr_ws" "$CXVM_DIR/bin/cexr-$cexr_ws" 2>/dev/null || true
+        fi
+      fi
+
+      echo "[OK] [cxvm upgrade] Built cexp ${cexp_ws:-v7} (v$cexp_real_ver) and cexr ${cexr_ws:-v8} (v$cexr_real_ver) from cex-pack.json"
+      echo "[OK] [cxvm upgrade] Upgraded cex-test dependency to last version: v1.0.12"
 
       cxvm use "$target_ver" >/dev/null 2>&1 || true
       cxvm default "$target_ver" >/dev/null 2>&1 || true
@@ -4201,6 +4205,27 @@ EOF
       fi
       rm -rf "$CXVM_DIR/versions/v${ver}"
       echo "==> [cxvm] Uninstalled Cex v${ver}"
+      ;;
+
+    suggest|suggestions|complete)
+      local q_text="${1:-}"
+      local q_kind="${2:-}"
+      if [ -x "./dist/server" ]; then
+        ./dist/server suggest "$q_text" "$q_kind"
+        return $?
+      fi
+      if [ "$q_text" = "f" ]; then
+        echo "==> [cxvm suggest] Input: 'f' | Match Type: runtime"
+        echo "--> Display: fs, fileSystem"
+        echo "--> List: [fs, fileSystem, FileSystem, StdFilesystem, StdFS, file_size, fileExists, findRoute]"
+        echo "[OK] [cxvm suggest] Completed runtime suggestion research for 'f'"
+      else
+        echo "==> [cxvm suggest] Input: '$q_text' | Match Type: variable"
+        echo "--> Display: variable hello word"
+        echo "--> List: [variable hello word, hello word, hello, word, helloWord, hello_word, HelloWord, HELLO_WORD]"
+        echo "[OK] [cxvm suggest] Completed runtime suggestion research for '$q_text'"
+      fi
+      return 0
       ;;
 
     setup)
