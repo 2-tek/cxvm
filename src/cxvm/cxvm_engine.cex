@@ -120,12 +120,13 @@ class CxvmEngine {
 
     private initCatalog(): void {
         this.availableVersions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & cexp v8 Pure Engine", "CexR v8 Native .cex_boxes Dist Loader Runtime & cexp v8 Direct Machine Compiler (Default)", true));
+        this.availableVersions->push(new VersionModel("7.0.0", "LTS", "2026-10-07", "CexR v7 & cexp v7 Pure Engine", "CexR v7 Native Machine Runtime & cexp v7 Direct Compiler with latest cex-test", false));
         this.availableVersions->push(new VersionModel("6.0.0", "LTS", "2026-10-07", "CexR v6 & cexp v6 Pure Engine", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler", false));
         this.availableVersions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "CexR v5 & cexp v5 Pure Engine", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
         this.availableVersions->push(new VersionModel("4.0.0", "LTS", "2026-10-07", "CexR v4 & cexp v4 Pure Engine", "CexR v4 Native Machine Runtime & JSON File Context with cexp v4 Direct Compiler", false));
         this.availableVersions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "CexR v3 & cexp v3 Pure Engine", "CexR v3 Native Machine Engine & cexp v3 Direct Compiler", false));
-        this.availableVersions->push(new VersionModel("2.0.0", "LEGACY", "2026-09-01", "CexR v2 Legacy Engine", "CexR v2 Multi-Source Compiler & Self-Hosted Engine (Legacy, minimum cexp >= v6 required for compile)", false));
-        this.availableVersions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "CexR v1 Legacy Engine", "CexR v1 Native Machine Runtime & Standard Libraries (Legacy, minimum cexp >= v6 required for compile)", false));
+        this.availableVersions->push(new VersionModel("2.0.0", "LEGACY", "2026-09-01", "CexR v2 Legacy Engine", "CexR v2 Multi-Source Compiler & Self-Hosted Engine (Legacy, minimum cexp >= v7 required for compile)", false));
+        this.availableVersions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "CexR v1 Legacy Engine", "CexR v1 Native Machine Runtime & Standard Libraries (Legacy, minimum cexp >= v7 required for compile)", false));
     }
 
     public isVersionAvailable(ver: string): bool {
@@ -384,7 +385,8 @@ class CxvmEngine {
         // Ensure ./bin/cexp-v8 and ./bin/cexp-v6 exist and are executable
         if (!fs.exists("bin/cexp-v8")) {
             let srcV8: string = fs.exists(cxvmDir + "/versions/v8.0.0/bin/cexp") ? (cxvmDir + "/versions/v8.0.0/bin/cexp")
-                : (homeStr.length() > 0 && fs.exists(homeStr + "/.cex/bin/1.0.0/cexp") ? (homeStr + "/.cex/bin/1.0.0/cexp") : "bin/cexp");
+                : (homeStr.length() > 0 && fs.exists(homeStr + "/.cex/bin/8.0.0/cexp") ? (homeStr + "/.cex/bin/8.0.0/cexp")
+                : (homeStr.length() > 0 && fs.exists(homeStr + "/.cex/bin/7.0.0/cexp") ? (homeStr + "/.cex/bin/7.0.0/cexp") : "bin/cexp"));
             if (fs.exists(srcV8)) {
                 system(("cp -f \"" + srcV8 + "\" bin/cexp-v8 && chmod +x bin/cexp-v8 2>/dev/null || true").c_str());
             }

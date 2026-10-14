@@ -177,10 +177,10 @@ cxvm downloads
 | `cxvm start` | `npm start` | Auto-lints and starts project (auto-detects main entrypoint from `cex-pack.json`) |
 | `cxvm dev` | `npm run dev` | Auto-lints and starts development server (auto-detects main entrypoint from `cex-pack.json`) |
 | `cxvm build` | `npm run build` | Compiles project with `cexp` native compiler (auto-detects main entrypoint from `cex-pack.json`) |
-| `cxvm lint [paths...]` | `npm run lint` | Runs native CexLint code validator (`--fix` to auto-repair formatting) |
-| `cxvm test [test.cex]` | `npm test` | Runs non-blocking automated test suites via active CexR runtime (`cxvm --app test run`) |
-| `cxvm run [file.cex] [...args]` | `node [file]` | Forces process execution from `cexr` through `cex-racers` and `cex-pipelines` (same as `cxvm --app cexr ...args`) |
-| `cxvm --app cexr [...args]` | `node [file]` | Runs `.cex` target in a supervised `cexr` process via `CexRacer` queue `"cexr"` and `CxvmCexrPipeline` |
+| `cxvm lint [paths...]` | `npm run lint` | Runs native cex-lint code validator (`--fix` to auto-repair formatting) |
+| `cxvm test [test.cex]` | `npm test` | Runs non-blocking automated test suites via active cexr runtime (`cxvm --app test run`) |
+| `cxvm run [file.cex] [...args]` | `node [file]` | Forces process execution from `cexr` through `cex-racer` and `cex-pipeline` (same as `cxvm --app cexr ...args`) |
+| `cxvm --app cexr [...args]` | `node [file]` | Runs `.cex` target in a supervised `cexr` process via `cex-racer` queue `"cexr"` and `CxvmCexrPipeline` |
 | `cxvm doctor` | - | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, linter, and host environment |
 | `cxvm light create <name>` | `nest new` | Hooks project creation logic in lighting to scaffold new Fullstack MVC project |
 | `cxvm light dev` | `npm run dev` | Auto-lints code and starts local Lighting MVC development server on port 3080 |

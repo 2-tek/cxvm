@@ -4138,8 +4138,12 @@ EOF
           cp -f "$p_out" "$CXVM_DIR/versions/v$cexp_real_ver/bin/cexp" 2>/dev/null || true
           ln -sf "$CXVM_DIR/versions/v$cexp_real_ver/bin/cexp" "$CXVM_DIR/bin/cexp-$cexp_ws" 2>/dev/null || true
         fi
-        local native_cexp="$HOME/.cex/bin/${cexp_v1_ver:-1.0.0}/cexp"
-        if [ ! -x "$native_cexp" ] && [ -x "$HOME/bin/cex/compiler/v1/cex" ]; then
+        local native_cexp="$HOME/.cex/bin/${cexp_v1_ver:-7.0.0}/cexp"
+        if [ ! -x "$native_cexp" ] && [ -x "$HOME/.cex/bin/8.0.0/cexp" ]; then
+          native_cexp="$HOME/.cex/bin/8.0.0/cexp"
+        elif [ ! -x "$native_cexp" ] && [ -x "$HOME/.cex/bin/7.0.0/cexp" ]; then
+          native_cexp="$HOME/.cex/bin/7.0.0/cexp"
+        elif [ ! -x "$native_cexp" ] && [ -x "$HOME/bin/cex/compiler/v1/cex" ]; then
           native_cexp="$HOME/bin/cex/compiler/v1/cex"
         fi
         if [ -x "$native_cexp" ]; then
