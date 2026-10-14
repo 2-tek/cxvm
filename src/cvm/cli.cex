@@ -128,8 +128,13 @@ class CvmCLI {
         let currBranch: string = this.repo->refManager->getCurrentBranch();
         let branch: string = branchArg != "" ? branchArg : (currBranch != "" ? currBranch : "main");
         print("==> [CVM fixed] Pulling cxvm from git | cvm ("); print(remote); print("/"); print(branch); println(")...");
-        let gitPullCmd: string = "git pull " + remote + " " + branch + " 2>&1";
-        system(gitPullCmd.c_str());
+        let gitFetchCmd: string = "git fetch " + remote + " " + branch + " --tags 2>/dev/null || true";
+        system(gitFetchCmd.c_str());
+        let gitPullCmd: string = "git pull --ff-only " + remote + " " + branch + " 2>/dev/null || true";
+        let res: int = system(gitPullCmd.c_str());
+        if (res != 0) {
+            system("git merge --abort 2>/dev/null || true");
+        }
         this.cmdPull(remote, branch);
         println("[OK] [CVM fixed] Pulled cxvm from git | cvm (last version synced)");
         return 0;

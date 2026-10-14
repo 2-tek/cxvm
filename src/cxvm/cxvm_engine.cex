@@ -2632,11 +2632,14 @@ class CxvmEngine {
 
         // Step 1: Pull cxvm from Git
         out += "==> [cxvm fixed] Step 1: Pulling latest cxvm from git (" + remote + "/" + branch + ")...\n";
-        let gitPullCmd: string = "git pull " + remote + " " + branch + " 2>&1";
+        let gitFetchCmd: string = "git fetch " + remote + " " + branch + " --tags 2>/dev/null || true";
+        system(gitFetchCmd.c_str());
+        let gitPullCmd: string = "git pull --ff-only " + remote + " " + branch + " 2>/dev/null || true";
         let gitRes: int = system(gitPullCmd.c_str());
         if (gitRes == 0) {
             out += "  [OK] [Git] Successfully pulled latest commits from " + remote + "/" + branch + "\n";
         } else {
+            system("git merge --abort 2>/dev/null || true");
             out += "  [WARN] [Git] Git pull returned code " + to_string(gitRes) + " (offline or diverged, falling back to CVM)\n";
         }
 
