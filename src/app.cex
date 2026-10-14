@@ -119,6 +119,12 @@ class FactoryApp {
         this.router->post("/api/v1/build/cexr", "factory.apiBuildCexr");
         this.router->get("/api/v1/build/toolchain", "factory.apiBuildToolchain");
         this.router->post("/api/v1/build/toolchain", "factory.apiBuildToolchain");
+
+        // Forced Process Execution from cexr through cex-racers & cex-pipelines
+        this.router->get("/api/v1/cexr/run", "factory.apiCexrRun");
+        this.router->post("/api/v1/cexr/run", "factory.apiCexrRun");
+        this.router->get("/api/v1/run", "factory.apiCexrRun");
+        this.router->post("/api/v1/run", "factory.apiCexrRun");
     }
 
     public start(): void {
@@ -391,6 +397,10 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiBuildToolchain") {
             return this.controller->apiBuildToolchain(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiCexrRun") {
+            return this.controller->apiCexrRun(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

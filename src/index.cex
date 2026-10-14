@@ -250,6 +250,9 @@ fn main(argc: int, argv: char**): int {
     let buildCexrResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build/cexr", "{\"versions\":\"v8,v6\"}", "application/json");
     Log::info("  POST /api/v1/build/cexr -> Status: " + to_string(buildCexrResp->statusCode));
 
+    let cexrRunApiResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cexr/run", "{\"target\":\"src/index.cex\",\"options\":\"--dry-run\"}", "application/json");
+    Log::info("  POST /api/v1/cexr/run -> Status: " + to_string(cexrRunApiResp->statusCode));
+
     app->stop();
     Log::info("===============================================================================");
     Log::info("      [OK] 2-TEK Cex Factory Fullstack Pipeline Executed Successfully!           ");

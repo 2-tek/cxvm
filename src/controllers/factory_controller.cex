@@ -1003,4 +1003,36 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "output", res->output);
         return this.json(doc);
     }
+
+    public apiCexrRun(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let target: string = req->getParam("target");
+        let options: string = req->getParam("options");
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr) {
+                if (target.length() == 0 && parsed->has("target")) {
+                    target = parsed->get("target")->asString();
+                }
+                if (options.length() == 0 && parsed->has("options")) {
+                    options = parsed->get("options")->asString();
+                }
+            }
+        }
+        if (options.length() == 0) {
+            options = "--dry-run";
+        }
+        let res: CxvmCommandResult* = cxvm->runCexrThroughRacerAndPipeline(target, options);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "app", "cexr");
+        JsonDoc::setStr(doc, "engine", "cex-racers+cex-pipelines");
+        JsonDoc::setStr(doc, "runtimeEngine", "cexr");
+        JsonDoc::setStr(doc, "scheduler", "cex-racers");
+        JsonDoc::setStr(doc, "pipeline", "cex-pipelines");
+        JsonDoc::setStr(doc, "target", res->version);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
 }

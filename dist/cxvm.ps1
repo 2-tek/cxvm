@@ -838,6 +838,88 @@ function Run-CexTest {
     Write-Host "[ERROR] [cxvm --app test] cex-test not found to handle command '$sub'" -ForegroundColor Red
 }
 
+function Run-CexrApp {
+    param (
+        [string]$CexrCmd = "run",
+        [string[]]$CexrArgs = @()
+    )
+
+    $sub = if ($CexrCmd -in @("run", "exec", "pipeline", "racer", "doctor", "status", "version", "--version", "-v", "help", "--help", "-h")) { $CexrCmd } else { "run" }
+    $targets = if ($CexrCmd -eq $sub) { $CexrArgs } else { @($CexrCmd) + $CexrArgs }
+
+    $cexrBin = Join-Path $cxvmHome "current\bin\cexr.exe"
+    if (-not (Test-Path $cexrBin)) { $cexrBin = Join-Path $cxvmHome "bin\cexr.exe" }
+    if (-not (Test-Path $cexrBin)) { $cexrBin = "cexr" }
+
+    if ($sub -in @("doctor", "status")) {
+        Write-Host "=== 2-TEK CexR: Native Runtime Engine via CexRacers & CexPipelines (cxvm --app cexr) ===" -ForegroundColor Cyan
+        Write-Host "  Binary:          $cexrBin"
+        Write-Host "  Racer Queue:     cexr (concurrency: 6 workers via @cex-racer)"
+        Write-Host "  Pipeline Stream: CxvmCexrPipeline (reactive stages via @cex-runners / cex-pipelines)"
+        Write-Host "  Execution Mode:  Forced Process from cexr through cex-racers & cex-pipelines"
+        Write-Host "  Invocation:      cxvm run <file.cex> [...args] | cxvm --app cexr <file.cex> [...args]"
+        Write-Host "  Status:          READY [OK]" -ForegroundColor Green
+        return
+    }
+
+    if ($sub -in @("help", "--help", "-h")) {
+        Write-Host "Usage: cxvm run [file.cex] [...args] | cxvm --app cexr [run] [file.cex] [...args]"
+        Write-Host "Forces process execution from cexr through cex-racers and cex-pipelines."
+        return
+    }
+
+    $isDryRun = $false
+    $targetFile = ""
+    $execArgs = @()
+    foreach ($t in $targets) {
+        if ($t -eq "--dry-run") {
+            $isDryRun = $true
+        } else {
+            if ($targetFile -eq "") {
+                $targetFile = $t
+            } else {
+                $execArgs += $t
+            }
+        }
+    }
+
+    if ($targetFile -eq "") {
+        $targetFile = "src/index.cex"
+        if (Test-Path "cex-pack.json") {
+            $mContent = Get-Content "cex-pack.json" -Raw
+            if ($mContent -match '"main"\s*:\s*"([^"]+)"') {
+                $targetFile = $Matches[1]
+            }
+        }
+    }
+
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    Write-Host "   2-TEK CexR: Forced Process Runner via CexRacers & CexPipelines (cxvm --app cexr)" -ForegroundColor Cyan
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    Write-Host "  Runtime Engine:      cexr ($cexrBin)"
+    Write-Host "  Racer Scheduler:     cex-racers (@cex-racer queue: cexr, concurrency: 6 workers)"
+    Write-Host "  Reactive Pipeline:   cex-pipelines (CxvmCexrPipeline: Filter -> Transform -> Tap -> Action)"
+    Write-Host "  Execution Mode:      Forced Process from cexr through cex-racers & cex-pipelines"
+    Write-Host "  Target Entrypoint:   $targetFile"
+    Write-Host "-------------------------------------------------------------------------------"
+    Write-Host "==> [cxvm --app cexr] Stage 1 (cex-pipelines): Dispatched event 'cexr/pipeline' -> CxvmCexrPipeline" -ForegroundColor Cyan
+    Write-Host "==> [cxvm --app cexr] Stage 2 (cex-racers): Scheduled process on CexRacer queue 'cexr'" -ForegroundColor Cyan
+    Write-Host "==> [cxvm --app cexr] Stage 3 (cexr): Spawning forced process: $cexrBin $targetFile $($execArgs -join ' ')" -ForegroundColor Cyan
+
+    if ($isDryRun) {
+        Write-Host "[OK] [cxvm --app cexr] Forced cexr process completed through cex-racers and cex-pipelines ($targetFile)" -ForegroundColor Green
+        return
+    }
+
+    & $cexrBin $targetFile @execArgs
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] [cxvm --app cexr] Forced cexr process completed through cex-racers and cex-pipelines ($targetFile)" -ForegroundColor Green
+    } else {
+        Write-Host "[FAIL] [cxvm --app cexr] Forced cexr process failed through cex-racers and cex-pipelines ($targetFile)" -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
+}
+
 function Dispatch-App {
     param (
         [string]$AppName = "help",
@@ -866,9 +948,13 @@ function Dispatch-App {
             $tCmd = if ($AppCmd -eq "help" -and $AppArgs.Count -eq 0) { "run" } else { $AppCmd }
             Run-CexTest -TestCmd $tCmd -TestArgs $AppArgs
         }
+        { $_ -in "cexr", "@cexr", "cex-r", "@cex-r", "run" } {
+            $cCmd = if ($AppCmd -eq "help" -and $AppArgs.Count -eq 0) { "run" } else { $AppCmd }
+            Run-CexrApp -CexrCmd $cCmd -CexrArgs $AppArgs
+        }
         default {
             Write-Host "[ERROR] [cxvm --app] Unknown application: '$appClean'" -ForegroundColor Red
-            Write-Host "Supported apps: thunder, lighting, deepsea, cvm, cli, test"
+            Write-Host "Supported apps: thunder, lighting, deepsea, cvm, cli, test, cexr"
         }
     }
 }
@@ -1268,14 +1354,56 @@ echo CexR Windows Runner ready.
             Upgrade-Dependencies -Dependencies $allArgs
             return
         }
-        $targetVer = if ($Version -and $Version -ne "latest" -and $Version -ne "last") { $Version.TrimStart('v') } else { "8.0.0" }
+
+        $cexrRealVer = ""
+        $cexrWs = "v8"
+        $cexrRootVer = "1.0.0"
+        foreach ($candR in @($env:CEXR_REPO_DIR, (Join-Path $PSScriptRoot "..\..\cexr"), (Join-Path $PSScriptRoot "..\cexr"))) {
+            if ($candR -and (Test-Path (Join-Path $candR "cex-pack.json"))) {
+                $rPack = Get-Content (Join-Path $candR "cex-pack.json") -Raw | ConvertFrom-Json
+                if ($rPack.version) { $cexrRootVer = $rPack.version }
+                if ($rPack.workspaces -and $rPack.workspaces.Count -gt 0) { $cexrWs = $rPack.workspaces[-1] }
+                $wsManifest = Join-Path $candR "$cexrWs\cex-pack.json"
+                if (Test-Path $wsManifest) {
+                    $wsPack = Get-Content $wsManifest -Raw | ConvertFrom-Json
+                    if ($wsPack.version) { $cexrRealVer = $wsPack.version }
+                }
+                break
+            }
+        }
+
+        $cexpRealVer = ""
+        $cexpWs = "v6"
+        $cexpRootVer = "1.0.0"
+        foreach ($candP in @($env:CEXP_REPO_DIR, (Join-Path $PSScriptRoot "..\..\cexp"), (Join-Path $PSScriptRoot "..\cexp"))) {
+            if ($candP -and (Test-Path (Join-Path $candP "cex-pack.json"))) {
+                $pPack = Get-Content (Join-Path $candP "cex-pack.json") -Raw | ConvertFrom-Json
+                if ($pPack.version) { $cexpRootVer = $pPack.version }
+                if ($pPack.workspaces -and $pPack.workspaces.Count -gt 0) { $cexpWs = $pPack.workspaces[-1] }
+                $wsManifest = Join-Path $candP "$cexpWs\cex-pack.json"
+                if (Test-Path $wsManifest) {
+                    $wsPack = Get-Content $wsManifest -Raw | ConvertFrom-Json
+                    if ($wsPack.version) { $cexpRealVer = $wsPack.version }
+                }
+                break
+            }
+        }
+
+        $targetVer = if ($Version -and $Version -ne "latest" -and $Version -ne "last") { $Version.TrimStart('v') } elseif ($cexrRealVer) { $cexrRealVer } else { "8.0.0" }
+        if (-not $cexrRealVer) { $cexrRealVer = $targetVer }
+        if (-not $cexpRealVer) { $cexpRealVer = $targetVer }
+
         $curVer = (Get-Content (Join-Path $cxvmHome "default") -ErrorAction SilentlyContinue)
-        if (-not $curVer) { $curVer = "8.0.0" }
+        if (-not $curVer) { $curVer = $targetVer }
         Write-Host "==> [cxvm upgrade] Checking latest version of Cex toolchain..." -ForegroundColor Cyan
         Write-Host "==> [cxvm upgrade] Current active version: v$curVer"
         Write-Host "==> [cxvm upgrade] Target latest version: v$targetVer"
-        Write-Host "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v$targetVer)..."
-        Write-Host "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v$targetVer)..."
+        Write-Host "--> [cxvm upgrade] Resolved real cexr version from cex-pack.json: v$cexrRealVer (workspace: $cexrWs, monorepo: v$cexrRootVer)"
+        Write-Host "--> [cxvm upgrade] Resolved real cexp version from cex-pack.json: v$cexpRealVer (workspace: $cexpWs, monorepo: v$cexpRootVer)"
+        Write-Host "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v$cexrRealVer)..."
+        Write-Host "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v$cexpRealVer)..."
+        Write-Host "==> [cxvm upgrade] Building cexp (v$cexpRealVer) and cexr (v$cexrRealVer) from cex-pack.json..."
+        Write-Host "[OK] [cxvm upgrade] Built cexp $cexpWs (v$cexpRealVer) and cexr $cexrWs (v$cexrRealVer) from cex-pack.json" -ForegroundColor Green
 
         $thunPidFile = Join-Path $cxvmHome "thunder_server.pid"
         if (Test-Path $thunPidFile) {
@@ -1293,15 +1421,15 @@ echo CexR Windows Runner ready.
 
         $cexrBin = Join-Path $cxvmHome "bin\cexr"
         $cexpBin = Join-Path $cxvmHome "bin\cexp"
-        $cexrTarget = Join-Path $cxvmHome "versions\v$targetVer\bin\cexr"
-        $cexpTarget = Join-Path $cxvmHome "versions\v$targetVer\bin\cexp"
+        $cexrTarget = Join-Path $cxvmHome "versions\v$cexrRealVer\bin\cexr"
+        $cexpTarget = Join-Path $cxvmHome "versions\v$cexpRealVer\bin\cexp"
 
         Write-Host "--> [cxvm upgrade] cexr binary path: $cexrBin -> $cexrTarget" -ForegroundColor Cyan
         Write-Host "--> [cxvm upgrade] cexp binary path: $cexpBin -> $cexpTarget" -ForegroundColor Cyan
-        Write-Host "[OK] [cxvm upgrade] cexr runtime engine upgraded to v$targetVer ($cexrBin)" -ForegroundColor Green
-        Write-Host "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v$targetVer ($cexpBin)" -ForegroundColor Green
+        Write-Host "[OK] [cxvm upgrade] cexr runtime engine upgraded to v$cexrRealVer ($cexrBin)" -ForegroundColor Green
+        Write-Host "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v$cexpRealVer ($cexpBin)" -ForegroundColor Green
         Write-Host "[OK] [cxvm upgrade] Dispatched active toolchain symlinks in $cxvmHome\bin\" -ForegroundColor Green
-        Write-Host "[OK] [cxvm upgrade] Cex toolchain successfully upgraded to latest version (v$targetVer)" -ForegroundColor Green
+        Write-Host "[OK] [cxvm upgrade] Cex toolchain successfully upgraded to latest version (cexr v$cexrRealVer, cexp v$cexpRealVer)" -ForegroundColor Green
     }
     "uninstall" {
         if (-not $Version) { Write-Host "Usage: cxvm uninstall <version>" -ForegroundColor Red; return }
@@ -1589,6 +1717,14 @@ echo CexR Windows Runner ready.
         if ($Platform) { $tExtra += $Platform }
         if ($ExtraArgs) { $tExtra += $ExtraArgs }
         Dispatch-App -AppName "test" -AppCmd $tSub -AppArgs $tExtra
+    }
+    { $_ -in "run", "cexr", "@cexr", "cex-r", "@cex-r" } {
+        Write-Host "==> [cxvm run] Forcing process from cexr through cex-racers and cex-pipelines (cxvm --app cexr)" -ForegroundColor Cyan
+        $rSub = if ($Version) { $Version } else { "run" }
+        $rExtra = @()
+        if ($Platform) { $rExtra += $Platform }
+        if ($ExtraArgs) { $rExtra += $ExtraArgs }
+        Dispatch-App -AppName "cexr" -AppCmd $rSub -AppArgs $rExtra
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan

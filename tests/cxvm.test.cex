@@ -1132,6 +1132,91 @@ fn main(): int {
 
     suite->addResult("test_cex_log_in_use_and_actions", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 20: Dynamic .env Resolution & Real cexp/cexr Version from cex-pack.json on Upgrade
+    // -------------------------------------------------------------
+    println("\n[Test Suite 20: Dynamic .env Resolution & Real cexp/cexr Version from cex-pack.json on Upgrade]");
+
+    Assert::isTrue(fs.exists(".env"), ".env configuration file exists at project root");
+    Assert::isTrue(engineSrc.find("CexEnv::loadString(") != -1, "src/cxvm/cxvm_engine.cex loads paths/versions dynamically via CexEnv::loadString");
+    Assert::isTrue(engineSrc.find("CexEnv::loadInt(") != -1, "src/cxvm/cxvm_engine.cex loads ports dynamically via CexEnv::loadInt");
+
+    let realCexpV6: string = cxvm->resolveRealCexpVersion("v6");
+    let realCexpV3: string = cxvm->resolveRealCexpVersion("v3");
+    let realCexrV8: string = cxvm->resolveRealCexrVersion("v8");
+    Assert::isTrue(realCexpV6.length() > 0, "resolveRealCexpVersion('v6') resolves non-empty version from cex-pack.json");
+    if (fs.exists("../cexp/v6/cex-pack.json")) {
+        Assert::equalsString("6.0.2", realCexpV6, "resolveRealCexpVersion('v6') reads real version 6.0.2 from ../cexp/v6/cex-pack.json");
+    }
+    if (fs.exists("../cexp/v3/cex-pack.json")) {
+        Assert::equalsString("3.0.1", realCexpV3, "resolveRealCexpVersion('v3') reads real version 3.0.1 from ../cexp/v3/cex-pack.json");
+    }
+    if (fs.exists("../cexr/v8/cex-pack.json")) {
+        Assert::equalsString("8.0.0", realCexrV8, "resolveRealCexrVersion('v8') reads real version 8.0.0 from ../cexr/v8/cex-pack.json");
+    }
+
+    let upRealRes: CxvmCommandResult* = cxvm->upgrade("latest");
+    Assert::isTrue(upRealRes->success, "cxvm upgrade latest succeeds using real versions from cex-pack.json");
+    Assert::isTrue(upRealRes->output.find("Resolved real cexr version from cex-pack.json:") != -1, "Upgrade output logs resolved real cexr version from cex-pack.json");
+    Assert::isTrue(upRealRes->output.find("Resolved real cexp version from cex-pack.json:") != -1, "Upgrade output logs resolved real cexp version from cex-pack.json");
+    Assert::isTrue(upRealRes->output.find("from cex-pack.json") != -1, "Upgrade output confirms building cexp and cexr from cex-pack.json");
+    if (fs.exists("../cexp/v6/cex-pack.json")) {
+        Assert::isTrue(upRealRes->output.find("v6.0.2") != -1, "Upgrade builds cexp with real version v6.0.2 from cex-pack.json");
+    }
+
+    let cexpRealBuildRes: CxvmCommandResult* = cxvm->buildCexpVersions("v6,v3");
+    Assert::isTrue(cexpRealBuildRes->success, "buildCexpVersions('v6,v3') succeeds");
+    if (fs.exists("../cexp/v6/cex-pack.json")) {
+        Assert::isTrue(cexpRealBuildRes->output.find("Built cexp v6 (v6.0.2)") != -1, "buildCexpVersions('v6,v3') uses real version v6.0.2 for v6");
+    }
+    if (fs.exists("../cexp/v3/cex-pack.json")) {
+        Assert::isTrue(cexpRealBuildRes->output.find("Built cexp v3 (v3.0.1)") != -1, "buildCexpVersions('v6,v3') uses real version v3.0.1 for v3");
+    }
+
+    suite->addResult("test_real_cex_pack_versions_on_upgrade_and_build", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 21: Force Process from cexr through cex-racers & cex-pipelines (cxvm run & cxvm --app cexr)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 21: Force Process from cexr through cex-racers & cex-pipelines (cxvm run & cxvm --app cexr)]");
+
+    let cexrBinPath: string = cxvm->findCexrCli();
+    Assert::isTrue(cexrBinPath.length() > 0, "findCexrCli() resolves non-empty cexr binary path");
+    Assert::isTrue(cexrBinPath.find("cexr") != -1, "findCexrCli() path points to cexr executable");
+
+    let cexrRunRes: CxvmCommandResult* = cxvm->runCexrThroughRacerAndPipeline("src/index.cex", "--dry-run");
+    Assert::isTrue(cexrRunRes->success, "runCexrThroughRacerAndPipeline('src/index.cex', '--dry-run') succeeds");
+    Assert::isTrue(cexrRunRes->output.find("Forcing process from cexr through cex-racers and cex-pipelines") != -1, "Output confirms forced process from cexr through cex-racers and cex-pipelines");
+    Assert::isTrue(cexrRunRes->output.find("Pipeline Events:") != -1 && cexrRunRes->output.find("cexr/pipeline -> cexr/run") != -1, "Output confirms cex-pipelines events dispatched");
+    Assert::isTrue(cexrRunRes->output.find("Racer Queue:") != -1 && cexrRunRes->output.find("cexr (CexRacer High-Priority Task #") != -1, "Output confirms CexRacer high-priority task scheduled on queue 'cexr'");
+    Assert::isTrue(cexrRunRes->output.find("Supervisor Proc: cexr-proc-") != -1, "Output confirms process registered in CexRacer ProcessSupervisor");
+
+    let appCexrCode1: int = cxvm->dispatchApp("cexr", "run", "--dry-run");
+    Assert::equalsInt(0, appCexrCode1, "dispatchApp('cexr', 'run', '--dry-run') returns 0");
+
+    let appCexrCode2: int = cxvm->cvmExecute("--app", "cexr", "--dry-run");
+    Assert::equalsInt(0, appCexrCode2, "cvmExecute('--app', 'cexr', '--dry-run') returns 0");
+
+    let appCexrCode3: int = cxvm->cvmExecute("--app=cexr", "src/index.cex", "--dry-run");
+    Assert::equalsInt(0, appCexrCode3, "cvmExecute('--app=cexr', 'src/index.cex', '--dry-run') returns 0");
+
+    let runCmdCode1: int = cxvm->cvmExecute("run", "src/index.cex", "--dry-run");
+    Assert::equalsInt(0, runCmdCode1, "cvmExecute('run', 'src/index.cex', '--dry-run') routes identically to cxvm --app cexr and returns 0");
+
+    let runCmdCode2: int = cxvm->cvmExecute("cexr", "src/index.cex", "--dry-run");
+    Assert::equalsInt(0, runCmdCode2, "cvmExecute('cexr', 'src/index.cex', '--dry-run') routes identically to cxvm --app cexr and returns 0");
+
+    let cexrApiResp1: HttpResponse* = app->simulateRequest("POST", "/api/v1/cexr/run", "{\"target\":\"src/index.cex\",\"options\":\"--dry-run\"}", "application/json");
+    Assert::equalsInt(200, cexrApiResp1->statusCode, "POST /api/v1/cexr/run returns 200 OK");
+    Assert::isTrue(cexrApiResp1->body.find("\"app\":\"cexr\"") != -1, "POST /api/v1/cexr/run response reports app:cexr");
+    Assert::isTrue(cexrApiResp1->body.find("\"engine\":\"cex-racers+cex-pipelines\"") != -1, "POST /api/v1/cexr/run response reports engine:cex-racers+cex-pipelines");
+
+    let cexrApiResp2: HttpResponse* = app->simulateRequest("GET", "/api/v1/run", "", "application/json");
+    Assert::equalsInt(200, cexrApiResp2->statusCode, "GET /api/v1/run returns 200 OK");
+    Assert::isTrue(cexrApiResp2->body.find("\"success\":true") != -1, "GET /api/v1/run reports success:true");
+
+    suite->addResult("test_cxvm_run_force_cexr_through_racers_and_pipelines", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

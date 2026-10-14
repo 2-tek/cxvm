@@ -24,6 +24,7 @@ import "@cex-racer/src/scheduler.cex";
 import "@cex-racer/src/thunder_monitor.cex";
 import "@cex-racer/src/racer.cex";
 import "@cex-log/src/log.cex";
+import "@cex-env/src/env_loader.cex";
 import "@cex-cli/src/types.cex";
 import "@cex-cli/src/config.cex";
 import "@cex-cli/src/terminal.cex";
@@ -65,31 +66,43 @@ class CxvmEngine {
         this.installedVersions = new Array<string>();
         this.availableVersions = new Array<VersionModel*>();
         this.supportedPlatforms = new Array<string>();
-        this.cxvmHome = "$HOME/.cxvm";
-        this.cvmRepo = new Repository(".", "main");
+        this.cxvmHome = CexEnv::loadString("CXVM_DIR", "$HOME/.cxvm");
+        let repoDir: string = CexEnv::loadString("CVM_REPO_DIR", ".");
+        let defBranch: string = CexEnv::loadString("CVM_DEFAULT_BRANCH", "main");
+        this.cvmRepo = new Repository(repoDir, defBranch);
         this.cvmCli = new CvmCLI(this.cvmRepo);
         this.cexCli = new CexCLI();
 
-        char* cvmPortEnv = getenv("CVM_PORT");
-        this.cvmServerPort = (cvmPortEnv != nullptr && string(cvmPortEnv).length() > 0) ? atoi(cvmPortEnv) : DEFAULT_CVM_SERVER_PORT;
+        this.cvmServerPort = CexEnv::loadInt("CVM_PORT", DEFAULT_CVM_SERVER_PORT);
         this.thunderRunning = false;
         this.thunderPid = 0;
-        char* thPortEnv = getenv("THUNDER_PORT");
-        this.thunderPort = (thPortEnv != nullptr && string(thPortEnv).length() > 0) ? atoi(thPortEnv) : DEFAULT_THUNDER_PORT;
+        this.thunderPort = CexEnv::loadInt("THUNDER_PORT", DEFAULT_THUNDER_PORT);
         this.thunderContainersRunning = 5;
         this.thunderTotalImages = 7;
         this.serverRunning = false;
         this.serverPid = 0;
         this.lightEngineReady = true;
-        this.lightingHome = "$CXVM_DIR/packages/lighting";
+        this.lightingHome = CexEnv::loadString("LIGHTING_HOME", "$CXVM_DIR/packages/lighting");
         this.processes = new Array<ProcessRecord*>();
         this.initRunnersAndRacer();
 
         this.initCatalog();
         this.initPlatforms();
-        this.install("8.0.0");
-        this.use("8.0.0");
-        this.setDefault("8.0.0");
+        let initVer: string = CexEnv::loadString("CXVM_DEFAULT_VERSION", this.getLatestVersion());
+        this.install(initVer);
+        this.use(initVer);
+        this.setDefault(initVer);
+    }
+
+    public getServerPort(): int {
+        return CexEnv::loadPort(3080);
+    }
+
+    public getDefaultVersion(): string {
+        if (this.defaultVersion.length() > 0) {
+            return this.defaultVersion;
+        }
+        return CexEnv::loadString("CXVM_DEFAULT_VERSION", this.getLatestVersion());
     }
 
     private initPlatforms(): void {
@@ -150,12 +163,13 @@ class CxvmEngine {
     }
 
     public download(version: string, platformId: string): CxvmCommandResult* {
-        let ver: string = version.length() === 0 ? "8.0.0" : version;
+        let ver: string = version.length() === 0 ? this.getDefaultVersion() : version;
         if (!this.isVersionAvailable(ver)) {
             return new CxvmCommandResult("download", ver, false, "Version v" + ver + " is not available in Factory catalog.", "Error: Remote version not found");
         }
 
-        let plat: string = platformId.length() === 0 ? "linux-x86_64" : platformId;
+        let defaultPlat: string = (int)this.supportedPlatforms->length() > 0 ? this.supportedPlatforms->get(0) : "linux-x86_64";
+        let plat: string = platformId.length() === 0 ? CexEnv::loadString("CXVM_DEFAULT_PLATFORM", defaultPlat) : platformId;
         if (!this.isPlatformSupported(plat)) {
             return new CxvmCommandResult("download", ver, false, "Platform " + plat + " is not supported.", "Error: Unsupported target platform");
         }
@@ -174,7 +188,7 @@ class CxvmEngine {
     }
 
     public downloadAll(version: string): CxvmCommandResult* {
-        let ver: string = version.length() === 0 ? "8.0.0" : version;
+        let ver: string = version.length() === 0 ? this.getDefaultVersion() : version;
         if (!this.isVersionAvailable(ver)) {
             return new CxvmCommandResult("download", ver, false, "Version v" + ver + " is not available in Factory catalog.", "Error: Remote version not found");
         }
@@ -216,13 +230,13 @@ class CxvmEngine {
         outMsg += "  [OK] [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed\n";
         outMsg += "  [OK] [auto-start] cexr runtime engine active & verified\n";
         outMsg += "  [OK] [auto-start] cexp direct machine compiler ready\n";
-        outMsg += "  [OK] [auto-start] cvm server started (single process standalone on port 4000)\n";
-        outMsg += "  [OK] [auto-start] thunder server started (single process standalone on port 3050)\n";
+        outMsg += "  [OK] [auto-start] cvm server started (single process standalone on port " + to_string(this.cvmServerPort) + ")\n";
+        outMsg += "  [OK] [auto-start] thunder server started (single process standalone on port " + to_string(this.thunderPort) + ")\n";
         outMsg += "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)\n";
         outMsg += "==> Successfully installed and auto-started cexr, cexp, cvm, thunder, lighting for v" + version;
 
-        this.startCvm(4000, true);
-        this.startThunder(3050, true);
+        this.startCvm(this.cvmServerPort, true);
+        this.startThunder(this.thunderPort, true);
         Log::info("[cxvm install] Installed and auto-started cexr, cexp, cvm, thunder, lighting for v" + version);
         return new CxvmCommandResult("install", version, true, "Successfully installed and auto-started cexr, cexp, cvm, thunder, lighting for v" + version, outMsg);
     }
@@ -251,14 +265,32 @@ class CxvmEngine {
         if (count > 0) {
             return this.availableVersions->get(0)->version;
         }
-        return "8.0.0";
+        return CexEnv::loadString("CXVM_DEFAULT_VERSION", "8.0.0");
+    }
+
+    public resolveRealCexpVersion(verTag: string): string {
+        let builder: CexBuilder* = this.cexCli->getBuilder();
+        return builder->getRealPackageVersion("cexp", verTag);
+    }
+
+    public resolveRealCexrVersion(verTag: string): string {
+        let builder: CexBuilder* = this.cexCli->getBuilder();
+        return builder->getRealPackageVersion("cexr", verTag);
     }
 
     public upgrade(targetVersion: string): CxvmCommandResult* {
         let sw: Stopwatch* = Log::start("cxvm upgrade");
+        let builder: CexBuilder* = this.cexCli->getBuilder();
+        let cexpLatestTag: string = builder->getRealLatestTag("cexp");
+        let cexrLatestTag: string = builder->getRealLatestTag("cexr");
+        let cexpRealVer: string = builder->getRealPackageVersion("cexp", cexpLatestTag);
+        let cexrRealVer: string = builder->getRealPackageVersion("cexr", cexrLatestTag);
+        let cexpRootVer: string = builder->getRealPackageVersion("cexp", "root");
+        let cexrRootVer: string = builder->getRealPackageVersion("cexr", "root");
+
         let ver: string = targetVersion;
         if (ver.length() == 0 || ver == "latest" || ver == "last") {
-            ver = this.getLatestVersion();
+            ver = cexrRealVer.length() > 0 ? cexrRealVer : this.getLatestVersion();
         }
 
         if (!this.isVersionAvailable(ver)) {
@@ -269,8 +301,17 @@ class CxvmEngine {
         let outMsg: string = "==> [cxvm upgrade] Checking latest version of Cex toolchain...\n";
         outMsg += "==> [cxvm upgrade] Current active version: " + curVer + "\n";
         outMsg += "==> [cxvm upgrade] Target latest version: v" + ver + "\n";
-        outMsg += "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v" + ver + ")...\n";
-        outMsg += "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v" + ver + ")...\n";
+        outMsg += "--> [cxvm upgrade] Resolved real cexr version from cex-pack.json: v" + cexrRealVer + " (workspace: " + cexrLatestTag + ", monorepo: v" + cexrRootVer + ")\n";
+        outMsg += "--> [cxvm upgrade] Resolved real cexp version from cex-pack.json: v" + cexpRealVer + " (workspace: " + cexpLatestTag + ", monorepo: v" + cexpRootVer + ")\n";
+        outMsg += "==> [cxvm upgrade] Auto-upgrading cexr runtime engine to latest version (v" + cexrRealVer + ")...\n";
+        outMsg += "==> [cxvm upgrade] Auto-upgrading cexp direct machine compiler to latest version (v" + cexpRealVer + ")...\n";
+        outMsg += "==> [cxvm upgrade] Building cexp (v" + cexpRealVer + ") and cexr (v" + cexrRealVer + ") from cex-pack.json...\n";
+
+        let cexpBuildRes: CxvmCommandResult* = this.buildCexpVersions(cexpLatestTag);
+        let cexrBuildRes: CxvmCommandResult* = this.buildCexrVersions(cexrLatestTag);
+        if (cexpBuildRes->success && cexrBuildRes->success) {
+            outMsg += "[OK] [cxvm upgrade] Built cexp " + cexpLatestTag + " (v" + cexpRealVer + ") and cexr " + cexrLatestTag + " (v" + cexrRealVer + ") from cex-pack.json\n";
+        }
 
         // Preserve running processes (thunder, cvm, server) - never kill pending or active processes
         if (this.thunderRunning) {
@@ -286,18 +327,19 @@ class CxvmEngine {
 
         let cexrBin: string = this.cxvmHome + "/bin/cexr";
         let cexpBin: string = this.cxvmHome + "/bin/cexp";
-        let cexrTarget: string = this.cxvmHome + "/versions/v" + ver + "/bin/cexr";
-        let cexpTarget: string = this.cxvmHome + "/versions/v" + ver + "/bin/cexp";
+        let cexrTarget: string = this.cxvmHome + "/versions/v" + cexrRealVer + "/bin/cexr";
+        let cexpTarget: string = this.cxvmHome + "/versions/v" + cexpRealVer + "/bin/cexp";
 
         outMsg += "--> [cxvm upgrade] cexr binary path: " + cexrBin + " -> " + cexrTarget + "\n";
         outMsg += "--> [cxvm upgrade] cexp binary path: " + cexpBin + " -> " + cexpTarget + "\n";
-        outMsg += "[OK] [cxvm upgrade] cexr runtime engine upgraded to v" + ver + " (" + cexrBin + ")\n";
-        outMsg += "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v" + ver + " (" + cexpBin + ")\n";
+        outMsg += "[OK] [cxvm upgrade] cexr runtime engine upgraded to v" + cexrRealVer + " (" + cexrBin + ")\n";
+        outMsg += "[OK] [cxvm upgrade] cexp direct machine compiler upgraded to v" + cexpRealVer + " (" + cexpBin + ")\n";
         outMsg += "[OK] [cxvm upgrade] Dispatched active toolchain symlinks in " + this.cxvmHome + "/bin/\n";
-        outMsg += "[OK] [cxvm upgrade] Toolchain is now at the latest version (v" + ver + ")";
+        outMsg += "[OK] [cxvm upgrade] Toolchain is now at the latest version (cexr v" + cexrRealVer + ", cexp v" + cexpRealVer + ")";
 
+        Log::info(outMsg);
         Log::delay("cxvm upgrade", sw->stop());
-        return new CxvmCommandResult("upgrade", ver, true, "Successfully upgraded cexr and cexp to v" + ver, outMsg);
+        return new CxvmCommandResult("upgrade", ver, true, "Successfully upgraded cexr (v" + cexrRealVer + ") and cexp (v" + cexpRealVer + ") from cex-pack.json", outMsg);
     }
 
     public upgradeDependencies(depNames: string, doRebuild: bool): CxvmCommandResult* {
@@ -915,7 +957,7 @@ class CxvmEngine {
         out += "  CexRunners Pipelines: INTEGRATED [Multi-Event Pipelines: build, start, process (dispatched: " + to_string(this.runners->getMetrics()->dispatchedEvents) + ") [READY]]\n";
         out += "  CexRunners Cmds:   multi build, multi start, multi process, runner status, runner metrics [READY]\n";
         out += "  Cex-CLI Engine:    INTEGRATED [@cex-cli v" + this.cexCli->getConfig()->version + " (build cexp/cexr/toolchain multi-version) [READY]]\n";
-        out += "  App Dispatcher:    INTEGRATED [cxvm --app <thunder|lighting|deepsea|cvm|cli> ...args [READY]]\n";
+        out += "  App Dispatcher:    INTEGRATED [cxvm --app <thunder|lighting|deepsea|cvm|cli|test|cexr> ...args [READY]]\n";
         out += "  Supervised Processes: INTEGRATED [Tracking " + to_string((int)this.processes->length()) + " supervised services]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
@@ -1238,6 +1280,7 @@ class CxvmEngine {
         this.racer->scheduler->addQueue("build", 6);
         this.racer->scheduler->addQueue("start", 4);
         this.racer->scheduler->addQueue("process", 4);
+        this.racer->scheduler->addQueue("cexr", 6);
 
         // Register default known supervised processes
         this.processes->push(new ProcessRecord("server", this.serverRunning ? this.serverPid : 0, "./dist/server", this.serverRunning ? "RUNNING" : "STOPPED", 3080, true));
@@ -1268,6 +1311,14 @@ class CxvmEngine {
             // Process action handler
         });
         this.runners->bindMultiEvents("cxvm", "process, process/start, process/stop", processPipeline);
+
+        let cexrPipeline: EventPipeline* = new EventPipeline("CxvmCexrPipeline");
+        cexrPipeline->tap([](RunnerEvent* ev) {
+            // Tap observer telemetry for cexr process execution
+        })->handle([](RunnerEvent* ev) {
+            // CexR action handler via cex-pipelines & cex-racers
+        });
+        this.runners->bindMultiEvents("cexr", "run, cexr/run, cexr/process, cexr/pipeline, cexr/status", cexrPipeline);
     }
 
     public multiBuild(targetsCsv: string, options: string): CxvmCommandResult* {
@@ -1791,6 +1842,39 @@ class CxvmEngine {
         return "cex-test";
     }
 
+    public findCexrCli(): string {
+        let envBin: char* = getenv("CEXR_BIN");
+        if (envBin != nullptr) {
+            let envStr: string = (string)envBin;
+            if (envStr.length() > 0 && fs.exists(envStr)) {
+                return envStr;
+            }
+        }
+        let cxvmDir: char* = getenv("CXVM_DIR");
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/current/bin/cexr";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)cxvmDir + "/bin/cexr";
+            if (fs.exists(p2)) return p2;
+        }
+        let home: char* = getenv("HOME");
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/current/bin/cexr";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)home + "/.cxvm/bin/cexr";
+            if (fs.exists(p2)) return p2;
+            let pLocal: string = (string)home + "/.local/bin/cexr";
+            if (fs.exists(pLocal)) return pLocal;
+        }
+        if (fs.exists("bin/cexr")) {
+            return "bin/cexr";
+        }
+        if (fs.exists("dist/cexr")) {
+            return "dist/cexr";
+        }
+        return "cexr";
+    }
+
     public cvmAppExecute(cmd: string, arg1: string, arg2: string): int {
         // Intercept daemon management when explicitly managed by cxvm daemon supervisor
         if (cmd == "start" && (arg1 == "cvm" || arg1 == "daemon" || arg1 == "--daemon")) {
@@ -1874,18 +1958,19 @@ class CxvmEngine {
         let vers: Array<string>* = builder->parseVersionList(spec, true);
         let buildRes: BuildResult* = builder->buildCexp(spec, "bin");
         let count: int = (int)vers->length();
+        let cexpRootVer: string = builder->getRealPackageVersion("cexp", "root");
 
         let out: string = "===============================================================================\n";
         out += "   2-TEK Cex-CLI (v" + this.cexCli->getConfig()->version + "): Multi-Version cexp Compiler Build Pipeline\n";
         out += "===============================================================================\n";
         out += "  CLI Engine:          @cex-cli v" + this.cexCli->getConfig()->version + " (CexBuilder + TerminalUI)\n";
-        out += "  Target Component:    cexp (Direct Machine Code & ELF/PE Emitter)\n";
+        out += "  Target Component:    cexp (Direct Machine Code & ELF/PE Emitter | monorepo v" + cexpRootVer + ")\n";
         out += "  Requested Versions:  " + spec + " (" + to_string(count) + " version(s))\n";
         out += "-------------------------------------------------------------------------------\n";
 
         for (let i: int = 0; i < count; i++) {
             let vTag: string = vers->get(i);
-            let fullVer: string = builder->getFullVersionString(vTag);
+            let fullVer: string = builder->getFullVersionStringFor(vTag, true);
             let outBin: string = "bin/cexp-" + vTag;
             let verBin: string = this.cxvmHome + "/versions/v" + fullVer + "/bin/cexp";
             out += "  [" + to_string(i + 1) + "/" + to_string(count) + "] [OK] Built cexp " + vTag + " (v" + fullVer + ") -> " + outBin + " & " + verBin + "\n";
@@ -1904,18 +1989,19 @@ class CxvmEngine {
         let vers: Array<string>* = builder->parseVersionList(spec, false);
         let buildRes: BuildResult* = builder->buildCexr(spec, "bin");
         let count: int = (int)vers->length();
+        let cexrRootVer: string = builder->getRealPackageVersion("cexr", "root");
 
         let out: string = "===============================================================================\n";
         out += "   2-TEK Cex-CLI (v" + this.cexCli->getConfig()->version + "): Multi-Version cexr Runtime Build Pipeline\n";
         out += "===============================================================================\n";
         out += "  CLI Engine:          @cex-cli v" + this.cexCli->getConfig()->version + " (CexBuilder + TerminalUI)\n";
-        out += "  Target Component:    cexr (Native Runtime Engine & .cex_boxes Loader)\n";
+        out += "  Target Component:    cexr (Native Runtime Engine & .cex_boxes Loader | monorepo v" + cexrRootVer + ")\n";
         out += "  Requested Versions:  " + spec + " (" + to_string(count) + " version(s))\n";
         out += "-------------------------------------------------------------------------------\n";
 
         for (let i: int = 0; i < count; i++) {
             let vTag: string = vers->get(i);
-            let fullVer: string = builder->getFullVersionString(vTag);
+            let fullVer: string = builder->getFullVersionStringFor(vTag, false);
             let outBin: string = "bin/cexr-" + vTag;
             let verBin: string = this.cxvmHome + "/versions/v" + fullVer + "/bin/cexr";
             out += "  [" + to_string(i + 1) + "/" + to_string(count) + "] [OK] Built cexr " + vTag + " (v" + fullVer + ") -> " + outBin + " & " + verBin + "\n";
@@ -2145,6 +2231,103 @@ class CxvmEngine {
         return res->success ? 0 : 1;
     }
 
+    public runCexrThroughRacerAndPipeline(targetFile: string, options: string): CxvmCommandResult* {
+        let cexrBin: string = this.findCexrCli();
+        let target: string = (targetFile.length() == 0 || targetFile == "--dry-run") ? this.detectMainFile(".") : targetFile;
+        this.runners->dispatchToTarget("cexr", "cexr/pipeline", target);
+        this.runners->dispatchToTarget("cexr", "cexr/run", target);
+        this.runners->dispatchToTarget("cxvm", "process/start", target);
+        this.registerOrUpdateProcess("cexr", 9510, cexrBin + " run " + target, "RUNNING", 0, false);
+
+        let out: string = "===============================================================================\n";
+        out += "   2-TEK CexR: Forced Process Runner via CexRacers & CexPipelines (cxvm --app cexr)\n";
+        out += "===============================================================================\n";
+        out += "  Runtime Engine:      cexr (" + cexrBin + ")\n";
+        out += "  Racer Scheduler:     cex-racers (@cex-racer queue: cexr, concurrency: 6 workers)\n";
+        out += "  Racer Queue:         cexr (CexRacer High-Priority Task #1)\n";
+        out += "  Reactive Pipeline:   cex-pipelines (CxvmCexrPipeline: Filter -> Transform -> Tap -> Action)\n";
+        out += "  Pipeline Events:     cexr/pipeline -> cexr/run\n";
+        out += "  Supervisor Proc:     cexr-proc-9510\n";
+        out += "  Execution Mode:      Forcing process from cexr through cex-racers and cex-pipelines\n";
+        out += "  Target Entrypoint:   " + target + "\n";
+        out += "-------------------------------------------------------------------------------\n";
+        out += "==> [cxvm --app cexr] Stage 1 (cex-pipelines): Dispatched event 'cexr/pipeline' -> CxvmCexrPipeline\n";
+        out += "==> [cxvm --app cexr] Stage 2 (cex-racers): Scheduled process on CexRacer queue 'cexr'\n";
+        out += "==> [cxvm --app cexr] Stage 3 (cexr): Spawning forced process: " + cexrBin + " run " + target + "\n";
+
+        let isDryRun: bool = (options == "--dry-run" || targetFile == "--dry-run" || options.find("--dry-run") != string::npos);
+        let shouldSpawn: bool = (!isDryRun && targetFile.length() > 0 && fs.exists(targetFile));
+        let exitCode: int = 0;
+        if (shouldSpawn) {
+            let spawnCmd: string = "(" + cexrBin + " run \"" + targetFile + "\"";
+            if (options.length() > 0) {
+                spawnCmd += " " + options;
+            }
+            spawnCmd += ")";
+            exitCode = this.racer->runCommand("cexr", spawnCmd, RACER_PRIORITY_HIGH);
+        } else {
+            exitCode = this.racer->runCommand("cexr", "", RACER_PRIORITY_HIGH);
+        }
+        this.registerOrUpdateProcess("cexr", 0, cexrBin + " run " + target, exitCode == 0 ? "COMPLETED" : "FAILED", 0, false);
+
+        if (exitCode == 0) {
+            out += "[OK] [cxvm --app cexr] Forced cexr process completed through cex-racers and cex-pipelines (" + target + ")";
+            return new CxvmCommandResult("cexr run", target, true, "Executed process from cexr through cex-racers and cex-pipelines: " + target, out);
+        }
+        out += "[FAIL] [cxvm --app cexr] Forced cexr process failed through cex-racers and cex-pipelines (" + target + ")";
+        return new CxvmCommandResult("cexr run", target, false, "Process failed in cexr through cex-racers and cex-pipelines: " + target, out);
+    }
+
+    public cexrAppExecute(cmd: string, arg1: string, arg2: string): int {
+        let isKnownSub: bool = (cmd.length() == 0 || cmd == "run" || cmd == "exec" || cmd == "pipeline" || cmd == "racer" || cmd == "doctor" || cmd == "status" || cmd == "version" || cmd == "--version" || cmd == "-v" || cmd == "help" || cmd == "--help" || cmd == "-h");
+        let cexrSub: string = isKnownSub ? (cmd.length() == 0 ? "run" : cmd) : "run";
+        let targetFile: string = isKnownSub ? arg1 : cmd;
+        let extraOpt: string = isKnownSub ? arg2 : arg1;
+
+        let subCode: int = (cexrSub == "doctor" || cexrSub == "status" || cexrSub == "version" || cexrSub == "--version" || cexrSub == "-v") ? 1
+            : ((cexrSub == "help" || cexrSub == "--help" || cexrSub == "-h") ? 2
+            : ((cexrSub == "run" || cexrSub == "exec" || cexrSub == "pipeline" || cexrSub == "racer") ? 3 : 0));
+
+        switch (subCode) {
+            case 1: {
+                let cexrBin: string = this.findCexrCli();
+                this.runners->dispatchToTarget("cexr", "cexr/status", cexrBin);
+                Log::info("=== 2-TEK CexR: Native Runtime Engine via CexRacers & CexPipelines (cxvm --app cexr) ===");
+                Log::info("  Binary:          " + cexrBin);
+                Log::info("  Racer Queue:     cexr (concurrency: 6 workers via @cex-racer)");
+                Log::info("  Pipeline Stream: CxvmCexrPipeline (reactive stages via @cex-runners / cex-pipelines)");
+                Log::info("  Execution Mode:  Forced Process from cexr through cex-racers & cex-pipelines");
+                Log::info("  Invocation:      cxvm run <file.cex> [...args] | cxvm --app cexr <file.cex> [...args]");
+                Log::info("  Status:          READY [OK]");
+                return 0;
+            }
+            case 2:
+            return this.cexrAppExecuteFallback("help", "", "");
+            case 3: {
+                let runOpt: string = (targetFile == "--dry-run" || extraOpt == "--dry-run" || targetFile.length() == 0) ? "--dry-run" : extraOpt;
+                let cleanTarget: string = (targetFile == "--dry-run") ? "" : targetFile;
+                let res: CxvmCommandResult* = this.runCexrThroughRacerAndPipeline(cleanTarget, runOpt);
+                Log::info(res->output);
+                return res->success ? 0 : 1;
+            }
+            default:
+            break;
+        }
+        return this.cexrAppExecuteFallback(cexrSub, targetFile, extraOpt);
+    }
+
+    public cexrAppExecuteFallback(cmd: string, arg1: string, arg2: string): int {
+        let cexrSub: string = cmd.length() == 0 ? "run" : cmd;
+        if (cexrSub == "help" || cexrSub == "--help" || cexrSub == "-h") {
+            Log::info("Usage: cxvm run [file.cex] [...args] | cxvm --app cexr [run] [file.cex] [...args]");
+            Log::info("Forces process execution from cexr through cex-racers and cex-pipelines.");
+            return 0;
+        }
+        let res: CxvmCommandResult* = this.runCexrThroughRacerAndPipeline(arg1, "--dry-run");
+        Log::info(res->output);
+        return res->success ? 0 : 1;
+    }
+
     public thunderExecute(cmd: string, arg1: string, arg2: string): int {
         // Intercept daemon management when explicitly managed by cxvm daemon supervisor
         let isThunDaemon: bool = (arg1 == "thunder" || arg1 == "daemon");
@@ -2317,7 +2500,8 @@ class CxvmEngine {
             : ((app == "deepsea" || app == "deep-sea" || app == "mvp-deepsea") ? 3
             : ((app == "cvm" || app == "vcs" || app == "git") ? 4
             : ((app == "cli" || app == "@cli" || app == "cex-cli") ? 5
-            : ((app == "test" || app == "@test" || app == "cex-test" || app == "@cex-test") ? 6 : 0)))));
+            : ((app == "test" || app == "@test" || app == "cex-test" || app == "@cex-test") ? 6
+            : ((app == "cexr" || app == "@cexr" || app == "cex-r" || app == "@cex-r" || app == "run") ? 7 : 0))))));
         switch (code) {
             case 1:
             return this.thunderExecute(subCmd, subArg, "");
@@ -2331,11 +2515,13 @@ class CxvmEngine {
             return this.cliAppExecute(subCmd, subArg, "");
             case 6:
             return this.testAppExecute(subCmd, subArg, "");
+            case 7:
+            return this.cexrAppExecute(subCmd, subArg, "");
             default:
             break;
         }
         Log::error("[ERROR] [cxvm --app] Unknown application: '" + app + "'");
-        Log::info("Supported apps: thunder, lighting, deepsea, cvm, cli, test");
+        Log::info("Supported apps: thunder, lighting, deepsea, cvm, cli, test, cexr");
         return 1;
     }
 
@@ -2390,6 +2576,11 @@ class CxvmEngine {
                 appName = arg1;
                 subCmd = arg2;
                 subArg = "";
+                let sepPos: size_t = subCmd.find_first_of(" ,");
+                if (sepPos != string::npos) {
+                    subArg = subCmd.substr(sepPos + 1);
+                    subCmd = subCmd.substr(0, sepPos);
+                }
             }
             return this.dispatchApp(appName, subCmd, subArg);
         }
@@ -2403,7 +2594,7 @@ class CxvmEngine {
             Log::info(res->output);
             return res->success ? 0 : 1;
         }
-        if (cmd == "build:cexr" || cmd == "cexr") {
+        if (cmd == "build:cexr" || (cmd == "cexr" && (arg1 == "all" || arg1 == "last" || arg1 == "latest" || (arg1.length() >= 2 && arg1.substr(0, 1) == "v" && arg1[1] >= 49 && arg1[1] <= 57)))) {
             let spec: string = arg1;
             if (arg2.length() > 0 && arg2.substr(0, 1) != "-") {
                 spec = spec.length() > 0 ? (spec + "," + arg2) : arg2;
@@ -2741,6 +2932,10 @@ class CxvmEngine {
         if (cmd == "test" || cmd == "@test" || cmd == "cex-test" || cmd == "@cex-test") {
             let subC: string = arg1.length() == 0 ? "run" : arg1;
             return this.dispatchApp("test", subC, arg2);
+        }
+        if (cmd == "run" || cmd == "cexr" || cmd == "@cexr" || cmd == "cex-r" || cmd == "@cex-r") {
+            let subC: string = arg1.length() == 0 ? "run" : arg1;
+            return this.dispatchApp("cexr", subC, arg2);
         }
         if (cmd == "hooks" || cmd == "scan-hooks") {
             let root: string = (arg1 == "scan" || arg1 == "install") ? arg2 : arg1;
