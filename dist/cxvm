@@ -756,15 +756,19 @@ _cxvm_run_cvm() {
     done
   fi
 
-  # 2. Locate cvm CLI binary
+  # 2. Locate cvm CLI binary (guard against recursive wrapper to cxvm)
   local cvm_bin=""
+  local found_cvm=""
   if command -v cvm >/dev/null 2>&1; then
-    cvm_bin="$(command -v cvm)"
-  elif [ -x "$CXVM_DIR/bin/cvm" ]; then
-    cvm_bin="$CXVM_DIR/bin/cvm"
-  elif [ -x "$HOME/.local/bin/cvm" ]; then
+    found_cvm="$(command -v cvm)"
+    if [ "$found_cvm" != "$CXVM_DIR/bin/cvm" ] && ! grep -q "cxvm" "$found_cvm" 2>/dev/null; then
+      cvm_bin="$found_cvm"
+    fi
+  fi
+  if [ -z "$cvm_bin" ] && [ -x "$HOME/.local/bin/cvm" ]; then
     cvm_bin="$HOME/.local/bin/cvm"
-  else
+  fi
+  if [ -z "$cvm_bin" ]; then
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     for c_candidate in \
