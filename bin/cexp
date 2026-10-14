@@ -10,6 +10,7 @@ set -e
 
 CEX_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+CEX_ROOT_DIR="${CEX_ROOT:-$HOME/.cex}"
 export CXVM_DIR
 export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." 2>/dev/null && pwd || echo "$CXVM_DIR/current")}"
 
@@ -17,6 +18,10 @@ TARGET_VER="v8"
 case "$1" in
   v8)
     TARGET_VER="v8"
+    shift
+    ;;
+  v7)
+    TARGET_VER="v7"
     shift
     ;;
   v6)
@@ -62,7 +67,22 @@ if [ "$1" = "doctor" ]; then
   exit 0
 fi
 
-# 1. Prefer integrated ./bin/cexp-v8 and ./bin/cexp-v6 binaries in ./bin/
+# 1. Prefer dynamic CEX_ROOT binaries ($CEX_ROOT/bin/8.0.0/cexp or $CEX_ROOT/bin/cexp)
+if [ -n "$CEX_ROOT_DIR" ]; then
+  if [ "$TARGET_VER" = "v8" ] && [ -x "$CEX_ROOT_DIR/bin/8.0.0/cexp" ]; then
+    exec "$CEX_ROOT_DIR/bin/8.0.0/cexp" "$@"
+  elif [ "$TARGET_VER" = "v7" ] && [ -x "$CEX_ROOT_DIR/bin/7.0.0/cexp" ]; then
+    exec "$CEX_ROOT_DIR/bin/7.0.0/cexp" "$@"
+  elif [ -x "$CEX_ROOT_DIR/bin/8.0.0/cexp" ]; then
+    exec "$CEX_ROOT_DIR/bin/8.0.0/cexp" "$@"
+  elif [ -x "$CEX_ROOT_DIR/bin/7.0.0/cexp" ]; then
+    exec "$CEX_ROOT_DIR/bin/7.0.0/cexp" "$@"
+  elif [ -x "$CEX_ROOT_DIR/bin/cexp" ]; then
+    exec "$CEX_ROOT_DIR/bin/cexp" "$@"
+  fi
+fi
+
+# 2. Prefer integrated ./bin/cexp-v8 and ./bin/cexp-v6 binaries in ./bin/
 if [ "$TARGET_VER" = "v6" ] && [ -x "$CEX_BIN_DIR/cexp-v6" ]; then
   exec "$CEX_BIN_DIR/cexp-v6" "$@"
 elif [ "$TARGET_VER" = "v8" ] && [ -x "$CEX_BIN_DIR/cexp-v8" ]; then

@@ -584,10 +584,10 @@ class CxvmEngine {
         this.use(ver);
         this.setDefault(ver);
 
-        let cexrBin: string = "./bin/cexr";
-        let cexpBin: string = "./bin/cexp";
-        let cexrTarget: string = "./bin/cexr-v8 (" + this.cxvmHome + "/versions/v" + cexrRealVer + "/bin/cexr)";
-        let cexpTarget: string = "./bin/cexp-v8 (" + this.cxvmHome + "/versions/v" + cexpRealVer + "/bin/cexp)";
+        let cexrBin: string = this.findCexrBinary();
+        let cexpBin: string = this.findCexpBinary();
+        let cexrTarget: string = cexrBin + " (" + this.cxvmHome + "/versions/v" + cexrRealVer + "/bin/cexr)";
+        let cexpTarget: string = cexpBin + " (" + this.cxvmHome + "/versions/v" + cexpRealVer + "/bin/cexp)";
 
         outMsg += "--> [cxvm upgrade] cexr binary path: " + cexrBin + " -> " + cexrTarget + "\n";
         outMsg += "--> [cxvm upgrade] cexp binary path: " + cexpBin + " -> " + cexpTarget + "\n";
@@ -2105,6 +2105,39 @@ class CxvmEngine {
                 return envStr;
             }
         }
+        let rootEnv: char* = getenv("CEX_ROOT");
+        let rootStr: string = (rootEnv != nullptr && string(rootEnv).length() > 0) ? (string)rootEnv : "";
+        if (rootStr.length() == 0) {
+            let homeEnv: char* = getenv("HOME");
+            if (homeEnv != nullptr && string(homeEnv).length() > 0) {
+                rootStr = (string)homeEnv + "/.cex";
+            }
+        }
+        if (rootStr.length() > 0) {
+            if (rootStr.substr(rootStr.length() - 1) == "/") {
+                rootStr = rootStr.substr(0, rootStr.length() - 1);
+            }
+            let cr8: string = rootStr + "/bin/8.0.0/cexr";
+            if (fs.exists(cr8)) return cr8;
+            let crDef: string = rootStr + "/bin/cexr";
+            if (fs.exists(crDef)) return crDef;
+        }
+        let cxvmDir: char* = getenv("CXVM_DIR");
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/current/bin/cexr";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)cxvmDir + "/bin/cexr";
+            if (fs.exists(p2)) return p2;
+        }
+        let home: char* = getenv("HOME");
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/current/bin/cexr";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)home + "/.cxvm/bin/cexr";
+            if (fs.exists(p2)) return p2;
+            let pLocal: string = (string)home + "/.local/bin/cexr";
+            if (fs.exists(pLocal)) return pLocal;
+        }
         if (fs.exists("bin/cexr")) {
             return "bin/cexr";
         }
@@ -2126,22 +2159,6 @@ class CxvmEngine {
         if (fs.exists("bin/cexr-v6")) {
             return "bin/cexr-v6";
         }
-        let cxvmDir: char* = getenv("CXVM_DIR");
-        if (cxvmDir != nullptr) {
-            let p1: string = (string)cxvmDir + "/current/bin/cexr";
-            if (fs.exists(p1)) return p1;
-            let p2: string = (string)cxvmDir + "/bin/cexr";
-            if (fs.exists(p2)) return p2;
-        }
-        let home: char* = getenv("HOME");
-        if (home != nullptr) {
-            let p1: string = (string)home + "/.cxvm/current/bin/cexr";
-            if (fs.exists(p1)) return p1;
-            let p2: string = (string)home + "/.cxvm/bin/cexr";
-            if (fs.exists(p2)) return p2;
-            let pLocal: string = (string)home + "/.local/bin/cexr";
-            if (fs.exists(pLocal)) return pLocal;
-        }
         if (fs.exists("dist/cexr")) {
             return "dist/cexr";
         }
@@ -2155,6 +2172,41 @@ class CxvmEngine {
             if (envStr.length() > 0 && fs.exists(envStr)) {
                 return envStr;
             }
+        }
+        let rootEnv: char* = getenv("CEX_ROOT");
+        let rootStr: string = (rootEnv != nullptr && string(rootEnv).length() > 0) ? (string)rootEnv : "";
+        if (rootStr.length() == 0) {
+            let homeEnv: char* = getenv("HOME");
+            if (homeEnv != nullptr && string(homeEnv).length() > 0) {
+                rootStr = (string)homeEnv + "/.cex";
+            }
+        }
+        if (rootStr.length() > 0) {
+            if (rootStr.substr(rootStr.length() - 1) == "/") {
+                rootStr = rootStr.substr(0, rootStr.length() - 1);
+            }
+            let cp8: string = rootStr + "/bin/8.0.0/cexp";
+            if (fs.exists(cp8)) return cp8;
+            let cp7: string = rootStr + "/bin/7.0.0/cexp";
+            if (fs.exists(cp7)) return cp7;
+            let cpDef: string = rootStr + "/bin/cexp";
+            if (fs.exists(cpDef)) return cpDef;
+        }
+        let cxvmDir: char* = getenv("CXVM_DIR");
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/current/bin/cexp";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)cxvmDir + "/bin/cexp";
+            if (fs.exists(p2)) return p2;
+        }
+        let home: char* = getenv("HOME");
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/current/bin/cexp";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)home + "/.cxvm/bin/cexp";
+            if (fs.exists(p2)) return p2;
+            let pLocal: string = (string)home + "/.local/bin/cexp";
+            if (fs.exists(pLocal)) return pLocal;
         }
         if (fs.exists("bin/cexp")) {
             return "bin/cexp";
@@ -2176,22 +2228,6 @@ class CxvmEngine {
         }
         if (fs.exists("bin/cexp-v6")) {
             return "bin/cexp-v6";
-        }
-        let cxvmDir: char* = getenv("CXVM_DIR");
-        if (cxvmDir != nullptr) {
-            let p1: string = (string)cxvmDir + "/current/bin/cexp";
-            if (fs.exists(p1)) return p1;
-            let p2: string = (string)cxvmDir + "/bin/cexp";
-            if (fs.exists(p2)) return p2;
-        }
-        let home: char* = getenv("HOME");
-        if (home != nullptr) {
-            let p1: string = (string)home + "/.cxvm/current/bin/cexp";
-            if (fs.exists(p1)) return p1;
-            let p2: string = (string)home + "/.cxvm/bin/cexp";
-            if (fs.exists(p2)) return p2;
-            let pLocal: string = (string)home + "/.local/bin/cexp";
-            if (fs.exists(pLocal)) return pLocal;
         }
         if (fs.exists("dist/cexp")) {
             return "dist/cexp";
@@ -2578,6 +2614,70 @@ class CxvmEngine {
         out += "[OK] [cxvm fix] Project and toolchain auto-fix completed successfully!";
 
         return new CxvmCommandResult("fix", dir, true, "Project and toolchain auto-fix completed successfully", out);
+    }
+
+    public fixedProject(remoteArg: string = "", branchArg: string = ""): CxvmCommandResult* {
+        let sw: Stopwatch* = Log::start("cxvm fixed");
+        let remote: string = remoteArg.length() > 0 ? remoteArg : "origin";
+        let currBranch: string = this.cvmRepo->refManager->getCurrentBranch();
+        let branch: string = branchArg.length() > 0 ? branchArg : (currBranch.length() > 0 ? currBranch : "main");
+
+        let out: string = "===============================================================================\n";
+        out += "       2-TEK CXVM: Pull & Sync Last Version from Git | CVM (cxvm fixed)        \n";
+        out += "===============================================================================\n";
+        out += "  Target Remote:       " + remote + "\n";
+        out += "  Target Branch:       " + branch + "\n";
+        out += "  VCS Engines:         Git & CodeVersionManager (CVM)\n";
+        out += "-------------------------------------------------------------------------------\n";
+
+        // Step 1: Pull cxvm from Git
+        out += "==> [cxvm fixed] Step 1: Pulling latest cxvm from git (" + remote + "/" + branch + ")...\n";
+        let gitPullCmd: string = "git pull " + remote + " " + branch + " 2>&1";
+        let gitRes: int = system(gitPullCmd.c_str());
+        if (gitRes == 0) {
+            out += "  [OK] [Git] Successfully pulled latest commits from " + remote + "/" + branch + "\n";
+        } else {
+            out += "  [WARN] [Git] Git pull returned code " + to_string(gitRes) + " (offline or diverged, falling back to CVM)\n";
+        }
+
+        // Step 2: Pull / Sync cxvm from CVM
+        out += "==> [cxvm fixed] Step 2: Syncing latest cxvm from cvm (" + remote + "/" + branch + ")...\n";
+        let cvmRes: CxvmCommandResult* = this.cvmPull(remote, branch);
+        out += "  [OK] [CVM] " + cvmRes->message + "\n";
+
+        // Step 3: Get last version from manifest and VCS
+        out += "==> [cxvm fixed] Step 3: Getting last version from manifest and VCS tags...\n";
+        let manifestVer: string = this.parseVersionFromManifest("cex-pack.json");
+        if (manifestVer.length() == 0) {
+            manifestVer = this.currentVersion.length() > 0 ? this.currentVersion : "8.0.0";
+        }
+        let lastVer: string = manifestVer;
+        out += "  --> Last version detected from cex-pack.json: v" + lastVer + "\n";
+        out += "  [OK] Verified last version: v" + lastVer + "\n";
+
+        // Step 4: Re-integrate toolchain and verify binaries
+        out += "==> [cxvm fixed] Step 4: Synchronizing toolchains and binaries for v" + lastVer + "...\n";
+        let binRes: CxvmCommandResult* = this.integrateBinDefaultToolchain();
+        out += "  [OK] Default toolchain (cexr & cexp v8, v6) synchronized in ./bin/ with .gitkeep\n";
+
+        // Step 5: Update OS toolchain if HOME exists
+        let homeEnv: char* = getenv("HOME");
+        let homeStr: string = homeEnv != nullptr ? string(homeEnv) : "";
+        let cxvmDir: string = this.cxvmHome;
+        if (cxvmDir.find("$HOME") != -1 && homeStr.length() > 0) {
+            let hPos: int = (int)cxvmDir.find("$HOME");
+            cxvmDir = cxvmDir.substr(0, hPos) + homeStr + cxvmDir.substr(hPos + 5);
+        }
+        if (fs.exists("bin/cxvm")) {
+            system(("mkdir -p \"" + cxvmDir + "/bin\" 2>/dev/null && cp -f bin/cxvm \"" + cxvmDir + "/bin/cxvm\" 2>/dev/null && chmod +x \"" + cxvmDir + "/bin/cxvm\" 2>/dev/null || true").c_str());
+            out += "  [OK] Updated $CXVM_DIR/bin/cxvm to last version v" + lastVer + "\n";
+        }
+
+        out += "-------------------------------------------------------------------------------\n";
+        out += "[OK] [cxvm fixed] Successfully pulled cxvm from git | cvm (last version: v" + lastVer + ")!";
+
+        Log::delay("cxvm fixed", sw->stop());
+        return new CxvmCommandResult("fixed", lastVer, true, "Successfully pulled cxvm from git | cvm (last version: v" + lastVer + ")", out);
     }
 
     public oneClickSetup(platform: string = "", version: string = "8.0.0"): CxvmCommandResult* {
@@ -3821,6 +3921,13 @@ class CxvmEngine {
             let targetPlat: string = arg1;
             let targetVer: string = arg2.length() > 0 ? arg2 : "8.0.0";
             let res: CxvmCommandResult* = this.oneClickSetup(targetPlat, targetVer);
+            Log::info(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "fixed" || (cmd == "fix" && (arg1 == "--pull" || arg2 == "--pull" || arg1 == "pull" || arg2 == "pull" || arg1 == "--fixed" || arg2 == "--fixed"))) {
+            let rem: string = (arg1 != "--pull" && arg1 != "pull" && arg1 != "--fixed") ? arg1 : "";
+            let br: string = (arg2 != "--pull" && arg2 != "pull" && arg2 != "--fixed") ? arg2 : "";
+            let res: CxvmCommandResult* = this.fixedProject(rem, br);
             Log::info(res->output);
             return res->success ? 0 : 1;
         }

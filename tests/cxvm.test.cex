@@ -1516,6 +1516,23 @@ fn main(): int {
 
     suite->addResult("test_integrated_app_binaries_and_routing", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 27: cxvm fixed - Pull cxvm from Git | CVM Get Last Version
+    // -------------------------------------------------------------
+    println("\n[Test Suite 27: cxvm fixed - Pull cxvm from Git | CVM Get Last Version]");
+    let fixedRes: CxvmCommandResult* = cxvm->fixedProject("origin", "main");
+    Assert::isTrue(fixedRes->success, "cxvm->fixedProject succeeds");
+    Assert::isTrue(fixedRes->output.find("Pull & Sync Last Version from Git | CVM") != string::npos, "fixed output contains banner");
+    Assert::isTrue(fixedRes->output.find("Step 1: Pulling latest cxvm from git") != string::npos, "fixed output contains Step 1 git pull");
+    Assert::isTrue(fixedRes->output.find("Step 2: Syncing latest cxvm from cvm") != string::npos, "fixed output contains Step 2 cvm sync");
+    Assert::isTrue(fixedRes->output.find("Step 3: Getting last version") != string::npos, "fixed output contains Step 3 get last version");
+    Assert::isTrue(fixedRes->version.length() > 0, "fixed version has resolved last version");
+
+    let cvmExecFixed: int = cxvm->cvmExecute("fixed", "", "");
+    Assert::equalsInt(0, cvmExecFixed, "cxvm cvmExecute('fixed') returns exit code 0");
+
+    suite->addResult("test_cxvm_fixed_pull_git_cvm_last_version", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

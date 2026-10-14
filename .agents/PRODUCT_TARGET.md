@@ -145,3 +145,13 @@ cxvm/
 +-- cex-pack.json                 # Package manifest (target: runtime, cexp: ^8, cexr: ^8)
 +-- README.md                     # Complete cross-platform documentation
 ```
+
+---
+
+## 12. CXVM Fixed Subsystem Specification
+
+`cxvm fixed` provides an automated workflow to pull the latest cxvm code directly from Git and CVM remotes, retrieve the newest version, and synchronize local toolchains:
+- `cxvm fixed`: Pulls from `origin/main` (or active branch), falls back gracefully between Git and CVM.
+- `cxvm fixed <remote> <branch>`: Pulls from specified remote and branch.
+- Resolves newest version from `cex-pack.json` and VCS release tags.
+- Re-executes `integrateBinDefaultToolchain()` and updates `$CXVM_DIR/bin/cxvm`.

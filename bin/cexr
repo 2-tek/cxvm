@@ -11,11 +11,14 @@ set -e
 
 BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+CEX_ROOT_DIR="${CEX_ROOT:-$HOME/.cex}"
 
 case "$1" in
   v8)
     shift
-    if [ -x "$BIN_DIR/cexr-v8" ]; then
+    if [ -x "$CEX_ROOT_DIR/bin/8.0.0/cexr" ]; then
+      exec "$CEX_ROOT_DIR/bin/8.0.0/cexr" "$@"
+    elif [ -x "$BIN_DIR/cexr-v8" ]; then
       exec "$BIN_DIR/cexr-v8" "$@"
     elif [ -x "$CXVM_DIR/versions/v8.0.0/bin/cexr" ]; then
       exec "$CXVM_DIR/versions/v8.0.0/bin/cexr" "$@"
@@ -41,8 +44,12 @@ case "$1" in
     ;;
 esac
 
-# Default version in ./bin/: use integrated binary ./bin/cexr-v8 first
-if [ -x "$BIN_DIR/cexr-v8" ]; then
+# Default version: use dynamic $CEX_ROOT runner or integrated binary ./bin/cexr-v8 first
+if [ -x "$CEX_ROOT_DIR/bin/8.0.0/cexr" ]; then
+  exec "$CEX_ROOT_DIR/bin/8.0.0/cexr" "$@"
+elif [ -x "$CEX_ROOT_DIR/bin/cexr" ]; then
+  exec "$CEX_ROOT_DIR/bin/cexr" "$@"
+elif [ -x "$BIN_DIR/cexr-v8" ]; then
   exec "$BIN_DIR/cexr-v8" "$@"
 elif [ -x "$BIN_DIR/cexr-v6" ]; then
   exec "$BIN_DIR/cexr-v6" "$@"

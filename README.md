@@ -145,6 +145,9 @@ cxvm dev
 # One-command project repair (relinks toolchains, .cex_boxes, manifest apps, and runs lint --fix)
 cxvm fix
 
+# Pull cxvm from Git | CVM to get last version and synchronize toolchains
+cxvm fixed [remote] [branch]
+
 # Download and compile runnable apps declared in cex-pack.json into ./bin/$version/$appName
 cxvm downloads
 ```
@@ -167,6 +170,8 @@ cxvm downloads
 | `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
 | `cxvm upgrade [ver]` | - | Auto-detects latest release (or specified version) and upgrades `cexr` & `cexp` toolchains |
+| `cxvm fixed [remote] [branch]` | `git pull` | Pulls cxvm from Git \| CVM to get last version, synchronizes ./bin/ toolchains, and updates cxvm |
+| `cxvm fix` | - | One-step project and toolchain auto-fix (relinks toolchains, .cex_boxes, apps, and runs lint --fix) |
 | `cxvm pull dependencies` | - | Fetches & caches dependencies into `$CXVM_DIR/tmp/dependencies` (`--upgrade`, `--clean`) |
 | `cxvm hooks [scan                | install]` | - | Recursively scans workspace `.git` and `.cvm` repos, installs `pre-commit` (cex-lint --fix) & `pre-push` (prettier) hooks |
 | `cxvm start` | `npm start` | Auto-lints and starts project (auto-detects main entrypoint from `cex-pack.json`) |
@@ -519,3 +524,24 @@ cxvm $appName = cxvm --app {appName with lastversion} $action ...args
 1. **Binary Build Priority**: The dispatcher executes native binaries directly from `bin/$version/$appName` or `bin/$appName`, removing simulated mock fallbacks from the runtime path.
 2. **Zero Overhead Transformation**: CLI commands like `cxvm lint`, `cxvm thunder ps`, `cxvm cvm status` log the transformation message and execute through `cxvm --app {canonicalApp}` instantly.
 3. **Pure ASCII Output**: All output conforms to `RULE_NO_SYMBOLS` with pure ASCII formatting.
+
+---
+
+## 12. CXVM Fixed Subsystem (`cxvm fixed`)
+
+The `cxvm fixed` CLI command pulls the latest cxvm codebase from both Git and CodeVersionManager (CVM) remotes, retrieves the newest version from `cex-pack.json` and release tags, synchronizes `./bin/` default toolchains, and updates `$CXVM_DIR/bin/cxvm`:
+
+```bash
+# Pull cxvm from Git | CVM and sync last version (default: origin/main)
+cxvm fixed
+
+# Pull from custom remote and branch
+cxvm fixed origin feature/vcs-integration
+```
+
+### Execution Flow:
+1. **Step 1: Pull from Git**: Executes `git pull <remote> <branch>` to fetch and integrate upstream commits.
+2. **Step 2: Sync from CVM**: Reconciles working tree commits with local/remote CVM state.
+3. **Step 3: Get Last Version**: Reads the newest version from `cex-pack.json` and release tags.
+4. **Step 4: Re-integrate Toolchains**: Re-runs `integrateBinDefaultToolchain()` to guarantee `./bin/` and `./bin/8.0.0/` binaries reflect the latest version.
+5. **Step 5: OS Dispatcher Sync**: Updates `$CXVM_DIR/bin/cxvm` to the verified last version.

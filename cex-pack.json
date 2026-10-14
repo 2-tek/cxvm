@@ -1,7 +1,7 @@
 {
     "name": "cxvm",
     "app-name": "cxvm",
-    "version": "2.0.26",
+    "version": "2.0.27",
     "description": "cxvm v2: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (Pure Cex: cexr + cexp, zero C++ dependency), powered by Lighting MVC",
     "main": "src/index.cex",
     "author": "2-TEK Ecosystem",
@@ -16,7 +16,7 @@
     "target": "runtime",
     "required": {
         "cexr": "^8",
-        "cexp": "^6",
+        "cexp": "^7",
         "cxvm": "^8"
     },
     "alias": {
@@ -36,6 +36,8 @@
         "install": "cex-pack downloads",
         "downloads": "cex-pack downloads",
         "dev": "cxvm --app cexr cxvm",
+        "fixed": "cxvm fixed",
+        "fix": "cxvm fix",
         "lint": "cxvm lint",
         "test": "cxvm --app test run",
         "run": "cxvm --app cexr run",

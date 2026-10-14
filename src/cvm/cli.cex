@@ -14,7 +14,7 @@ class CvmCLI {
     }
 
     public execute(cmd: string, arg1: string, arg2: string): int {
-        let cmdCode: int = (cmd == "status" || cmd == "") ? 1 : (cmd == "init" ? 2 : (cmd == "add" ? 3 : (cmd == "commit" ? 4 : (cmd == "push" ? 5 : (cmd == "pull" ? 6 : (cmd == "branch" ? 7 : (cmd == "checkout" ? 8 : (cmd == "log" ? 9 : (cmd == "diff" ? 10 : (cmd == "cvm" ? 11 : (cmd == "mr" ? 12 : ((cmd == "help" || cmd == "--help" || cmd == "-h") ? 13 : 0))))))))))));
+        let cmdCode: int = (cmd == "status" || cmd == "") ? 1 : (cmd == "init" ? 2 : (cmd == "add" ? 3 : (cmd == "commit" ? 4 : (cmd == "push" ? 5 : (cmd == "pull" ? 6 : (cmd == "branch" ? 7 : (cmd == "checkout" ? 8 : (cmd == "log" ? 9 : (cmd == "diff" ? 10 : (cmd == "cvm" ? 11 : (cmd == "mr" ? 12 : ((cmd == "help" || cmd == "--help" || cmd == "-h") ? 13 : (cmd == "fixed" ? 14 : 0)))))))))))));
         switch (cmdCode) {
             case 1:
             return this.cmdStatus();
@@ -23,7 +23,7 @@ class CvmCLI {
             case 3:
             return this.cmdAdd(arg1);
             case 4:
-            return this.cmdCommit(arg1);
+            return this.cmdCommit(arg1, arg2);
             case 5:
             return this.cmdPush(arg1, arg2);
             case 6:
@@ -43,6 +43,8 @@ class CvmCLI {
             case 13:
             this.printHelp();
             return 0;
+            case 14:
+            return this.cmdFixed(arg1, arg2);
             default:
             print("[CVM CLI] Unknown command: "); println(cmd);
             this.printHelp();
@@ -107,8 +109,8 @@ class CvmCLI {
         return 0;
     }
 
-    private cmdCommit(message: string): int {
-        let msg: string = message != "" ? message : "Auto-commit by CVM";
+    private cmdCommit(arg1: string, arg2: string): int {
+        let msg: string = (arg1 == "-m" && arg2 != "") ? arg2 : (arg1 != "" && arg1 != "-m" ? arg1 : "Auto-commit by CVM");
         let author: GitUser* = new GitUser("2-TEK Developer", "dev@2tek.local");
         let c: CommitObject* = this.repo->commit(msg, author);
         if (c == nullptr) {
@@ -118,6 +120,18 @@ class CvmCLI {
         print("["); print(this.repo->refManager->getCurrentBranch()); print(" ");
         print(c->hash.substr(0, 7)); print("] ");
         println(c->message);
+        return 0;
+    }
+
+    private cmdFixed(remoteArg: string, branchArg: string): int {
+        let remote: string = remoteArg != "" ? remoteArg : "origin";
+        let currBranch: string = this.repo->refManager->getCurrentBranch();
+        let branch: string = branchArg != "" ? branchArg : (currBranch != "" ? currBranch : "main");
+        print("==> [CVM fixed] Pulling cxvm from git | cvm ("); print(remote); print("/"); print(branch); println(")...");
+        let gitPullCmd: string = "git pull " + remote + " " + branch + " 2>&1";
+        system(gitPullCmd.c_str());
+        this.cmdPull(remote, branch);
+        println("[OK] [CVM fixed] Pulled cxvm from git | cvm (last version synced)");
         return 0;
     }
 
@@ -280,6 +294,7 @@ class CvmCLI {
         println("  cvm diff                    Generate .cvm change record for uncommitted changes");
         println("  cvm preview <file.cvm>      Preview .cvm change record");
         println("  cvm apply <file.cvm>        Apply .cvm patch to repository");
+        println("  fixed [remote] [branch]     Pull cxvm from git | cvm to get last version");
         println("  mr list                     List merge requests");
         println("  mr merge <id>               Merge a merge request");
         println("  server                      Launch headless REST API server on port 3036");
