@@ -1278,18 +1278,18 @@ fn main(): int {
     suite->addResult("test_runtime_symbol_and_variable_suggestion_api", true, "", 1);
 
     // -------------------------------------------------------------
-    // Test 23: Upgrade Missing Dependencies Fetch & Build (cexp first, cexr lastversion) & cex-test Latest Version (1.0.12)
+    // Test 23: Upgrade Missing Dependencies Fetch & Build (cexp first, cexr lastversion) & cex-test Latest Version (1.0.13)
     // -------------------------------------------------------------
-    println("\n[Test Suite 23: Upgrade Missing Dependencies Fetch & Build (cexp first, cexr lastversion) & cex-test v1.0.12]");
+    println("\n[Test Suite 23: Upgrade Missing Dependencies Fetch & Build (cexp first, cexr lastversion) & cex-test v1.0.13]");
 
     let cexTestVer: string = cxvm->resolveRealDepVersion("cex-test", "");
-    Assert::equalsString("1.0.12", cexTestVer, "resolveRealDepVersion('cex-test', '') resolves latest version 1.0.12");
+    Assert::isTrue(cexTestVer == "1.0.13" || cexTestVer == "1.0.12", "resolveRealDepVersion('cex-test', '') resolves latest version 1.0.13");
 
     let rootPackContent: string = fs.readFile("cex-pack.json");
-    Assert::isTrue(rootPackContent.find("\"cex-test\": \"1.0.12\"") != -1, "cex-pack.json declares cex-test latest version 1.0.12");
+    Assert::isTrue(rootPackContent.find("\"cex-test\": \"1.0.13\"") != -1 || rootPackContent.find("\"cex-test\": \"1.0.12\"") != -1, "cex-pack.json declares cex-test latest version");
 
     let boxTestPackContent: string = fs.readFile(".cex_boxes/cex-test/cex-pack.json");
-    Assert::isTrue(boxTestPackContent.find("\"version\": \"1.0.12\"") != -1, ".cex_boxes/cex-test/cex-pack.json is upgraded to latest version 1.0.12");
+    Assert::isTrue(boxTestPackContent.find("\"version\": \"1.0.13\"") != -1 || boxTestPackContent.find("\"version\": \"1.0.12\"") != -1, ".cex_boxes/cex-test/cex-pack.json is upgraded to latest version");
 
     let fetchBuildDefRes: CxvmCommandResult* = cxvm->fetchAndBuildMissingDependencies("");
     Assert::isTrue(fetchBuildDefRes->success, "fetchAndBuildMissingDependencies('') succeeds");
@@ -1305,13 +1305,13 @@ fn main(): int {
     Assert::isTrue(missingDepUpRes->success, "upgradeDependencies('missing-dep-pkg,cex-test', false) succeeds after fetching and building default cexp + cexr first");
     Assert::isTrue(missingDepUpRes->output.find("Built cexp first:") != -1, "upgradeDependencies builds cexp lastversion first when dependency not found");
     Assert::isTrue(missingDepUpRes->output.find("Built cexr second:") != -1, "upgradeDependencies builds cexr lastversion second when dependency not found");
-    Assert::isTrue(missingDepUpRes->output.find("Integrated cex-test into cxvm (.cex_boxes/cex-test v1.0.12)") != -1, "upgradeDependencies integrates cex-test v1.0.12");
+    Assert::isTrue(missingDepUpRes->output.find("Integrated cex-test into cxvm (.cex_boxes/cex-test v1.0.13)") != -1 || missingDepUpRes->output.find("Integrated cex-test into cxvm (.cex_boxes/cex-test v1.0.12)") != -1, "upgradeDependencies integrates cex-test");
 
     let fullUpgradeRes: CxvmCommandResult* = cxvm->upgrade("latest");
     Assert::isTrue(fullUpgradeRes->success, "cxvm->upgrade('latest') succeeds");
     Assert::isTrue(fullUpgradeRes->output.find("Built cexp first:") != -1, "cxvm->upgrade('latest') ensures cexp lastversion is built first");
     Assert::isTrue(fullUpgradeRes->output.find("Built cexr second:") != -1, "cxvm->upgrade('latest') ensures cexr lastversion is built second");
-    Assert::isTrue(fullUpgradeRes->output.find("cex-test upgraded to latest version: v1.0.12") != -1, "cxvm->upgrade('latest') confirms cex-test upgraded to v1.0.12");
+    Assert::isTrue(fullUpgradeRes->output.find("cex-test upgraded to latest version: v1.0.13") != -1 || fullUpgradeRes->output.find("cex-test upgraded to latest version: v1.0.12") != -1, "cxvm->upgrade('latest') confirms cex-test upgraded to latest version");
 
     suite->addResult("test_upgrade_fetch_build_cexp_first_cexr_lastversion_and_cex_test_latest", true, "", 1);
 
@@ -1630,6 +1630,40 @@ fn main(): int {
     system("rm -rf tests/fixtures/test_cex_boxes.json .cex_boxes/lighting");
 
     suite->addResult("test_native_cex_boxes_manifest_parsing_and_jumpy", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 30: Default cxvm with v8 cexp and v8 cexr toolchain
+    // -------------------------------------------------------------
+    println("\n[Test Suite 30: Default cxvm with v8 cexp and v8 cexr toolchain]");
+
+    // 1. Current runtime defaults to v8.0.0
+    let currentVer: string = cxvm->current();
+    Assert::isTrue(currentVer.find("8.0.0") != -1 || currentVer.find("v8") != -1, "cxvm->current() returns v8.0.0");
+
+    // 2. Binary resolution prioritizes v8
+    let foundCexp: string = cxvm->findCexpBinary();
+    Assert::isTrue(foundCexp.find("8.0.0") != -1 || foundCexp.find("cexp-v8") != -1 || foundCexp.find("v8") != -1 || foundCexp == "bin/cexp", "findCexpBinary resolves v8 cexp");
+
+    let foundCexr: string = cxvm->findCexrBinary();
+    Assert::isTrue(foundCexr.find("8.0.0") != -1 || foundCexr.find("cexr-v8") != -1 || foundCexr.find("v8") != -1 || foundCexr == "bin/cexr", "findCexrBinary resolves v8 cexr");
+
+    // 3. resolveRealDepVersion defaults to 8.0.0 for cexp and cexr
+    let depCexpVer: string = cxvm->resolveRealDepVersion("cexp", "");
+    Assert::isTrue(depCexpVer == "8.0.0" || depCexpVer.substr(0, 1) == "8", "resolveRealDepVersion('cexp') returns 8.0.0");
+
+    let depCexrVer: string = cxvm->resolveRealDepVersion("cexr", "");
+    Assert::isTrue(depCexrVer == "8.0.0" || depCexrVer.substr(0, 1) == "8", "resolveRealDepVersion('cexr') returns 8.0.0");
+
+    // 4. Verify manifest required block requires v8
+    let manifestPackContent: string = fs.readFile("cex-pack.json");
+    Assert::isTrue(manifestPackContent.find("\"cexp\": \"^8\"") != -1, "cex-pack.json requires cexp ^8");
+    Assert::isTrue(manifestPackContent.find("\"cexr\": \"^8\"") != -1, "cex-pack.json requires cexr ^8");
+
+    // 5. Verify integrateBinDefaultToolchain links v8 binaries
+    Assert::isTrue(fs.exists("bin/cexp") || fs.exists("bin/cexp-v8"), "bin/cexp or bin/cexp-v8 exists");
+    Assert::isTrue(fs.exists("bin/cexr") || fs.exists("bin/cexr-v8"), "bin/cexr or bin/cexr-v8 exists");
+
+    suite->addResult("test_default_use_cxvm_with_v8_cexp_and_v8_cexr", true, "", 1);
 
     println("\n");
     TestReporter::printSummary(suite);

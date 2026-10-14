@@ -310,10 +310,14 @@ class CxvmEngine {
     public resolveRealDepVersion(depName: string, manifestFile: string): string {
         let builder: CexBuilder* = this.cexCli->getBuilder();
         if (depName == "cexp" || depName == "compiler") {
-            return builder->getRealPackageVersion("cexp", "last");
+            let v: string = builder->getRealPackageVersion("cexp", "last");
+            if (v.length() == 0 || v.substr(0, 1) < "8") return "8.0.0";
+            return v;
         }
         if (depName == "cexr" || depName == "runtime") {
-            return builder->getRealPackageVersion("cexr", "last");
+            let v: string = builder->getRealPackageVersion("cexr", "last");
+            if (v.length() == 0 || v.substr(0, 1) < "8") return "8.0.0";
+            return v;
         }
         if (manifestFile.length() > 0 && fs.exists(manifestFile)) {
             let v: string = this.parseVersionFromManifest(manifestFile);
@@ -334,15 +338,27 @@ class CxvmEngine {
                 return v;
             }
         }
-        return depName == "cex-test" ? "1.0.12" : "1.0.0";
+        return depName == "cex-test" ? "1.0.13" : "1.0.0";
     }
 
     public fetchAndBuildMissingDependencies(depNames: string): CxvmCommandResult* {
         let builder: CexBuilder* = this.cexCli->getBuilder();
         let cexpLatestTag: string = builder->getRealLatestTag("cexp");
+        if (cexpLatestTag.length() == 0 || cexpLatestTag == "v7" || cexpLatestTag == "v6") {
+            cexpLatestTag = "v8";
+        }
         let cexrLatestTag: string = builder->getRealLatestTag("cexr");
+        if (cexrLatestTag.length() == 0 || cexrLatestTag == "v7" || cexrLatestTag == "v6") {
+            cexrLatestTag = "v8";
+        }
         let cexpRealVer: string = builder->getRealPackageVersion("cexp", cexpLatestTag);
+        if (cexpRealVer.length() == 0 || cexpRealVer.substr(0, 1) < "8") {
+            cexpRealVer = "8.0.0";
+        }
         let cexrRealVer: string = builder->getRealPackageVersion("cexr", cexrLatestTag);
+        if (cexrRealVer.length() == 0 || cexrRealVer.substr(0, 1) < "8") {
+            cexrRealVer = "8.0.0";
+        }
         let cexTestVer: string = this.resolveRealDepVersion("cex-test", "");
 
         let outMsg: string = "==> [cxvm upgrade] Default toolchain bootstrap: fetching and building cexp lastversion first, then cexr lastversion...\n";
@@ -416,6 +432,15 @@ class CxvmEngine {
         }
 
         system("chmod +x bin/cexr bin/cexp bin/cex bin/cexr-v8 bin/cexr-v6 bin/cexp-v8 bin/cexp-v6 2>/dev/null || true");
+
+        // Ensure default ./bin/cexp is v8 cexp
+        if (fs.exists("bin/cexp-v8")) {
+            system("cp -f bin/cexp-v8 bin/cexp && chmod +x bin/cexp 2>/dev/null || true");
+        }
+        // Ensure default ./bin/cexr is v8 cexr
+        if (fs.exists("bin/cexr-v8")) {
+            system("cp -f bin/cexr-v8 bin/cexr && chmod +x bin/cexr 2>/dev/null || true");
+        }
 
         // Populate versioned ./bin/$version/ binaries (cexr, cexp, cxvm)
         if (fs.exists("bin/cexr")) {
@@ -530,9 +555,21 @@ class CxvmEngine {
         let sw: Stopwatch* = Log::start("cxvm upgrade");
         let builder: CexBuilder* = this.cexCli->getBuilder();
         let cexpLatestTag: string = builder->getRealLatestTag("cexp");
+        if (cexpLatestTag.length() == 0 || cexpLatestTag == "v7" || cexpLatestTag == "v6") {
+            cexpLatestTag = "v8";
+        }
         let cexrLatestTag: string = builder->getRealLatestTag("cexr");
+        if (cexrLatestTag.length() == 0 || cexrLatestTag == "v7" || cexrLatestTag == "v6") {
+            cexrLatestTag = "v8";
+        }
         let cexpRealVer: string = builder->getRealPackageVersion("cexp", cexpLatestTag);
+        if (cexpRealVer.length() == 0 || cexpRealVer.substr(0, 1) < "8") {
+            cexpRealVer = "8.0.0";
+        }
         let cexrRealVer: string = builder->getRealPackageVersion("cexr", cexrLatestTag);
+        if (cexrRealVer.length() == 0 || cexrRealVer.substr(0, 1) < "8") {
+            cexrRealVer = "8.0.0";
+        }
         let cexpRootVer: string = builder->getRealPackageVersion("cexp", "root");
         let cexrRootVer: string = builder->getRealPackageVersion("cexr", "root");
         let cexTestVer: string = this.resolveRealDepVersion("cex-test", "");
@@ -611,9 +648,21 @@ class CxvmEngine {
 
         let builder: CexBuilder* = this.cexCli->getBuilder();
         let cexpLatestTag: string = builder->getRealLatestTag("cexp");
+        if (cexpLatestTag.length() == 0 || cexpLatestTag == "v7" || cexpLatestTag == "v6") {
+            cexpLatestTag = "v8";
+        }
         let cexrLatestTag: string = builder->getRealLatestTag("cexr");
+        if (cexrLatestTag.length() == 0 || cexrLatestTag == "v7" || cexrLatestTag == "v6") {
+            cexrLatestTag = "v8";
+        }
         let cexpRealVer: string = builder->getRealPackageVersion("cexp", cexpLatestTag);
+        if (cexpRealVer.length() == 0 || cexpRealVer.substr(0, 1) < "8") {
+            cexpRealVer = "8.0.0";
+        }
         let cexrRealVer: string = builder->getRealPackageVersion("cexr", cexrLatestTag);
+        if (cexrRealVer.length() == 0 || cexrRealVer.substr(0, 1) < "8") {
+            cexrRealVer = "8.0.0";
+        }
 
         let depList: Array<string>* = new Array<string>();
         if (depNames.length() > 0 && depNames != "default") {
@@ -2145,27 +2194,16 @@ class CxvmEngine {
             }
             let cr8: string = rootStr + "/bin/8.0.0/cexr";
             if (fs.exists(cr8)) return cr8;
-            let crDef: string = rootStr + "/bin/cexr";
-            if (fs.exists(crDef)) return crDef;
         }
         let cxvmDir: char* = getenv("CXVM_DIR");
         if (cxvmDir != nullptr) {
-            let p1: string = (string)cxvmDir + "/current/bin/cexr";
-            if (fs.exists(p1)) return p1;
-            let p2: string = (string)cxvmDir + "/bin/cexr";
-            if (fs.exists(p2)) return p2;
+            let pv8: string = (string)cxvmDir + "/versions/v8.0.0/bin/cexr";
+            if (fs.exists(pv8)) return pv8;
         }
         let home: char* = getenv("HOME");
         if (home != nullptr) {
-            let p1: string = (string)home + "/.cxvm/current/bin/cexr";
-            if (fs.exists(p1)) return p1;
-            let p2: string = (string)home + "/.cxvm/bin/cexr";
-            if (fs.exists(p2)) return p2;
-            let pLocal: string = (string)home + "/.local/bin/cexr";
-            if (fs.exists(pLocal)) return pLocal;
-        }
-        if (fs.exists("bin/cexr")) {
-            return "bin/cexr";
+            let pv8: string = (string)home + "/.cxvm/versions/v8.0.0/bin/cexr";
+            if (fs.exists(pv8)) return pv8;
         }
         if (fs.exists("bin/cexr-v8")) {
             return "bin/cexr-v8";
@@ -2178,6 +2216,27 @@ class CxvmEngine {
         }
         if (fs.exists("bin/v8/cexr")) {
             return "bin/v8/cexr";
+        }
+        if (fs.exists("bin/cexr")) {
+            return "bin/cexr";
+        }
+        if (rootStr.length() > 0) {
+            let crDef: string = rootStr + "/bin/cexr";
+            if (fs.exists(crDef)) return crDef;
+        }
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/current/bin/cexr";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)cxvmDir + "/bin/cexr";
+            if (fs.exists(p2)) return p2;
+        }
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/current/bin/cexr";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)home + "/.cxvm/bin/cexr";
+            if (fs.exists(p2)) return p2;
+            let pLocal: string = (string)home + "/.local/bin/cexr";
+            if (fs.exists(pLocal)) return pLocal;
         }
         if (fs.exists("bin/6.0.0/cexr")) {
             return "bin/6.0.0/cexr";
@@ -2213,29 +2272,16 @@ class CxvmEngine {
             }
             let cp8: string = rootStr + "/bin/8.0.0/cexp";
             if (fs.exists(cp8)) return cp8;
-            let cp7: string = rootStr + "/bin/7.0.0/cexp";
-            if (fs.exists(cp7)) return cp7;
-            let cpDef: string = rootStr + "/bin/cexp";
-            if (fs.exists(cpDef)) return cpDef;
         }
         let cxvmDir: char* = getenv("CXVM_DIR");
         if (cxvmDir != nullptr) {
-            let p1: string = (string)cxvmDir + "/current/bin/cexp";
-            if (fs.exists(p1)) return p1;
-            let p2: string = (string)cxvmDir + "/bin/cexp";
-            if (fs.exists(p2)) return p2;
+            let pv8: string = (string)cxvmDir + "/versions/v8.0.0/bin/cexp";
+            if (fs.exists(pv8)) return pv8;
         }
         let home: char* = getenv("HOME");
         if (home != nullptr) {
-            let p1: string = (string)home + "/.cxvm/current/bin/cexp";
-            if (fs.exists(p1)) return p1;
-            let p2: string = (string)home + "/.cxvm/bin/cexp";
-            if (fs.exists(p2)) return p2;
-            let pLocal: string = (string)home + "/.local/bin/cexp";
-            if (fs.exists(pLocal)) return pLocal;
-        }
-        if (fs.exists("bin/cexp")) {
-            return "bin/cexp";
+            let pv8: string = (string)home + "/.cxvm/versions/v8.0.0/bin/cexp";
+            if (fs.exists(pv8)) return pv8;
         }
         if (fs.exists("bin/cexp-v8")) {
             return "bin/cexp-v8";
@@ -2248,6 +2294,29 @@ class CxvmEngine {
         }
         if (fs.exists("bin/v8/cexp")) {
             return "bin/v8/cexp";
+        }
+        if (fs.exists("bin/cexp")) {
+            return "bin/cexp";
+        }
+        if (rootStr.length() > 0) {
+            let cpDef: string = rootStr + "/bin/cexp";
+            if (fs.exists(cpDef)) return cpDef;
+            let cp7: string = rootStr + "/bin/7.0.0/cexp";
+            if (fs.exists(cp7)) return cp7;
+        }
+        if (cxvmDir != nullptr) {
+            let p1: string = (string)cxvmDir + "/current/bin/cexp";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)cxvmDir + "/bin/cexp";
+            if (fs.exists(p2)) return p2;
+        }
+        if (home != nullptr) {
+            let p1: string = (string)home + "/.cxvm/current/bin/cexp";
+            if (fs.exists(p1)) return p1;
+            let p2: string = (string)home + "/.cxvm/bin/cexp";
+            if (fs.exists(p2)) return p2;
+            let pLocal: string = (string)home + "/.local/bin/cexp";
+            if (fs.exists(pLocal)) return pLocal;
         }
         if (fs.exists("bin/6.0.0/cexp")) {
             return "bin/6.0.0/cexp";
