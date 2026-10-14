@@ -2685,6 +2685,293 @@ class CxvmEngine {
         return new CxvmCommandResult("fixed", lastVer, true, "Successfully pulled cxvm from git | cvm (last version: v" + lastVer + ")", out);
     }
 
+    public parseSemverPart(v: string, partIndex: int): int {
+        let clean: string = "";
+        let len: int = (int)v.length();
+        for (let i: int = 0; i < len; i++) {
+            let c: char = v[i];
+            if ((c >= 48 && c <= 57) || c == 46) { // '0'-'9' or '.'
+                clean += c;
+            }
+        }
+        let curPart: int = 0;
+        let numStr: string = "";
+        let cLen: int = (int)clean.length();
+        for (let i: int = 0; i <= cLen; i++) {
+            if (i == cLen || clean[i] == 46) { // '.'
+                if (curPart == partIndex) {
+                    if (numStr.length() == 0) return 0;
+                    return stoi(numStr);
+                }
+                curPart++;
+                numStr = "";
+            } else {
+                numStr += clean[i];
+            }
+        }
+        return 0;
+    }
+
+    public isNewerVersion(v1: string, v2: string): bool {
+        let maj1: int = this.parseSemverPart(v1, 0);
+        let maj2: int = this.parseSemverPart(v2, 0);
+        if (maj1 > maj2) return true;
+        if (maj1 < maj2) return false;
+
+        let min1: int = this.parseSemverPart(v1, 1);
+        let min2: int = this.parseSemverPart(v2, 1);
+        if (min1 > min2) return true;
+        if (min1 < min2) return false;
+
+        let pat1: int = this.parseSemverPart(v1, 2);
+        let pat2: int = this.parseSemverPart(v2, 2);
+        if (pat1 > pat2) return true;
+        if (pat1 < pat2) return false;
+
+        let tag1: int = this.parseSemverPart(v1, 3);
+        let tag2: int = this.parseSemverPart(v2, 3);
+        if (tag1 > tag2) return true;
+        if (tag1 < tag2) return false;
+
+        return false;
+    }
+
+    public formatUpdatedVersion(oldVer: string, newCleanVer: string): string {
+        let prefix: string = "";
+        let len: int = (int)oldVer.length();
+        for (let i: int = 0; i < len; i++) {
+            let c: char = oldVer[i];
+            if (c == 94 || c == 126 || c == 62 || c == 60 || c == 61) { // '^', '~', '>', '<', '='
+                prefix += c;
+            } else if ((c >= 48 && c <= 57) || c == 118 || c == 86) { // digit, 'v', 'V'
+                break;
+            }
+        }
+        return prefix + newCleanVer;
+    }
+
+    public findLastBoxVersion(depName: string): string {
+        let cleanName: string = depName;
+        if (cleanName.substr(0, 6) == "@2tek/") {
+            cleanName = cleanName.substr(6);
+        }
+        while (cleanName.length() > 0 && cleanName.substr(0, 1) == "@") {
+            cleanName = cleanName.substr(1);
+        }
+
+        // 1. Direct check in .cex_boxes for the exact package name
+        let directBoxMf: string = ".cex_boxes/" + cleanName + "/cex-pack.json";
+        if (fs.exists(directBoxMf)) {
+            let v: string = this.parseVersionFromManifest(directBoxMf);
+            if (v.length() > 0) {
+                return v;
+            }
+        }
+
+        let aliases: Array<string>* = new Array<string>();
+        aliases->push(cleanName);
+        let aliasCode: int = (cleanName == "lighting") ? 1 : ((cleanName == "mvc-lighting") ? 2 : ((cleanName == "deepsea") ? 3 : ((cleanName == "mvp-deepsea") ? 4 : ((cleanName == "thunder" || cleanName == "thunder-lite") ? 5 : ((cleanName == "storm" || cleanName == "code-storm") ? 6 : 0)))));
+        switch (aliasCode) {
+            case 1:
+            aliases->push("mvc-lighting");
+            aliases->push("cex-lighting");
+            break;
+            case 2:
+            aliases->push("lighting");
+            break;
+            case 3:
+            aliases->push("mvp-deepsea");
+            break;
+            case 4:
+            aliases->push("deepsea");
+            break;
+            case 5:
+            aliases->push("thunder-lite");
+            aliases->push("thunder");
+            aliases->push("cex-thunder");
+            break;
+            case 6:
+            aliases->push("code-storm");
+            aliases->push("storm");
+            break;
+            default:
+            break;
+        }
+
+        let highestVer: string = "";
+        let aCount: int = (int)aliases->length();
+        let homeEnv: char* = getenv("HOME");
+        let homeStr: string = homeEnv != nullptr ? string(homeEnv) : "";
+        let depsDir: string = this.getDependenciesDir();
+
+        for (let a: int = 0; a < aCount; a++) {
+            let pkg: string = aliases->get(a);
+            let candidates: Array<string>* = new Array<string>();
+            candidates->push(".cex_boxes/" + pkg);
+            if (depsDir.length() > 0) {
+                candidates->push(depsDir + "/" + pkg);
+            }
+            candidates->push("dependencies/" + pkg);
+            candidates->push("../dependencies/" + pkg);
+            candidates->push("../../dependencies/" + pkg);
+            candidates->push("../" + pkg);
+            if (homeStr.length() > 0) {
+                candidates->push(homeStr + "/Projects/dependencies/" + pkg);
+                candidates->push(homeStr + "/Projects/" + pkg);
+            }
+
+            let cCount: int = (int)candidates->length();
+            for (let c: int = 0; c < cCount; c++) {
+                let dir: string = candidates->get(c);
+                let mf: string = dir + "/cex-pack.json";
+                if (fs.exists(mf)) {
+                    let v: string = this.parseVersionFromManifest(mf);
+                    if (v.length() > 0) {
+                        if (highestVer.length() == 0 || this.isNewerVersion(v, highestVer)) {
+                            highestVer = v;
+                        }
+                    }
+                }
+                // Check if directory has git tags
+                if (fs.exists(dir + "/.git")) {
+                    let tmpTagFile: string = "/tmp/cex_tag_" + pkg + "_" + to_string(c) + ".txt";
+                    system(("git -C \"" + dir + "\" describe --tags --abbrev=0 2>/dev/null > " + tmpTagFile + " || true").c_str());
+                    if (fs.exists(tmpTagFile)) {
+                        let tContent: string = fs.readFile(tmpTagFile);
+                        system(("rm -f " + tmpTagFile + " 2>/dev/null || true").c_str());
+                        while (tContent.length() > 0 && (tContent.substr(tContent.length() - 1) == "\n" || tContent.substr(tContent.length() - 1) == "\r")) {
+                            tContent = tContent.substr(0, tContent.length() - 1);
+                        }
+                        if (tContent.length() > 0 && (tContent.substr(0, 1) == "v" || tContent.substr(0, 1) == "V")) {
+                            tContent = tContent.substr(1);
+                        }
+                        if (tContent.length() > 0 && (highestVer.length() == 0 || this.isNewerVersion(tContent, highestVer))) {
+                            highestVer = tContent;
+                        }
+                    }
+                }
+            }
+
+            // If not found in .cex_boxes, try to fetch / link it if local source exists
+            if (!fs.exists(".cex_boxes/" + pkg + "/cex-pack.json")) {
+                if (fs.exists("../dependencies/" + pkg + "/cex-pack.json")) {
+                    system(("mkdir -p .cex_boxes && ln -sfn \"../../dependencies/" + pkg + "\" \".cex_boxes/" + pkg + "\" 2>/dev/null || true").c_str());
+                    let v: string = this.parseVersionFromManifest(".cex_boxes/" + pkg + "/cex-pack.json");
+                    if (v.length() > 0 && (highestVer.length() == 0 || this.isNewerVersion(v, highestVer))) {
+                        highestVer = v;
+                    }
+                } else if (fs.exists("dependencies/" + pkg + "/cex-pack.json")) {
+                    system(("mkdir -p .cex_boxes && ln -sfn \"../dependencies/" + pkg + "\" \".cex_boxes/" + pkg + "\" 2>/dev/null || true").c_str());
+                    let v: string = this.parseVersionFromManifest(".cex_boxes/" + pkg + "/cex-pack.json");
+                    if (v.length() > 0 && (highestVer.length() == 0 || this.isNewerVersion(v, highestVer))) {
+                        highestVer = v;
+                    }
+                }
+            }
+        }
+
+        // Fallback to real dep version resolver
+        if (highestVer.length() == 0) {
+            let resVer: string = this.resolveRealDepVersion(cleanName, "");
+            if (resVer.length() > 0) {
+                highestVer = resVer;
+            }
+        }
+
+        return highestVer.length() > 0 ? highestVer : "1.0.0";
+    }
+
+    public jumpyProject(manifestPath: string = "cex-pack.json", specificPkg: string = ""): CxvmCommandResult* {
+        let sw: Stopwatch* = Log::start("cxvm jumpy");
+        let mPath: string = manifestPath.length() == 0 ? "cex-pack.json" : manifestPath;
+        if (!fs.exists(mPath)) {
+            Log::delay("cxvm jumpy", sw->stop());
+            return new CxvmCommandResult("jumpy", "", false, "Manifest file not found: " + mPath, "[FAIL] [cxvm jumpy] Manifest file not found: " + mPath);
+        }
+
+        let content: string = fs.readFile(mPath);
+        let deps: Array<string>* = this.parseDependencies(content);
+        let dCount: int = (int)deps->length();
+
+        let out: string = "===============================================================================\n";
+        out += "       2-TEK CXVM: Jumpy Dependency Upgrade (cxvm jumpy)                       \n";
+        out += "===============================================================================\n";
+        out += "  Target Manifest:     " + mPath + "\n";
+        out += "  Action:              Fetch last version of cex_boxes & overwrite " + mPath + "\n";
+        out += "  Dependencies Found:  " + to_string(dCount) + "\n";
+        out += "-------------------------------------------------------------------------------\n";
+        out += "==> [cxvm jumpy] Checking dependencies in " + mPath + "...\n";
+
+        let updatedCount: int = 0;
+        let modifiedContent: string = content;
+
+        for (let i: int = 0; i < dCount; i++) {
+            let item: string = deps->get(i);
+            let atPos: int = (int)item.find("@");
+            if (atPos == -1) continue;
+
+            let depName: string = item.substr(0, atPos);
+            let currentVer: string = item.substr(atPos + 1);
+
+            if (specificPkg.length() > 0 && specificPkg != "all" && specificPkg != depName) {
+                continue;
+            }
+
+            let lastVer: string = this.findLastBoxVersion(depName);
+            let isNewer: bool = this.isNewerVersion(lastVer, currentVer);
+
+            if (isNewer && lastVer.length() > 0) {
+                let newVerStr: string = this.formatUpdatedVersion(currentVer, lastVer);
+                out += "  --> " + depName + ": " + currentVer + " -> " + newVerStr + " [UPGRADED]\n";
+
+                let targetPattern: string = "\"" + depName + "\": \"" + currentVer + "\"";
+                let replacement: string = "\"" + depName + "\": \"" + newVerStr + "\"";
+                let pPos: int = (int)modifiedContent.find(targetPattern);
+                if (pPos != -1) {
+                    modifiedContent = modifiedContent.substr(0, pPos) + replacement + modifiedContent.substr(pPos + targetPattern.length());
+                    updatedCount++;
+                } else {
+                    let namePos: int = (int)modifiedContent.find("\"" + depName + "\"");
+                    if (namePos != -1) {
+                        let colonPos: int = (int)modifiedContent.find(":", namePos);
+                        if (colonPos != -1) {
+                            let q1: int = (int)modifiedContent.find("\"", colonPos + 1);
+                            if (q1 != -1) {
+                                let q2: int = (int)modifiedContent.find("\"", q1 + 1);
+                                if (q2 != -1) {
+                                    let oldVal: string = modifiedContent.substr(q1 + 1, q2 - q1 - 1);
+                                    if (oldVal == currentVer) {
+                                        modifiedContent = modifiedContent.substr(0, q1 + 1) + newVerStr + modifiedContent.substr(q2);
+                                        updatedCount++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                out += "  [OK] " + depName + ": " + currentVer + " [UP-TO-DATE]\n";
+            }
+        }
+
+        while (modifiedContent.length() > 0 && modifiedContent.substr(modifiedContent.length() - 1) == "\n") {
+            modifiedContent = modifiedContent.substr(0, modifiedContent.length() - 1);
+        }
+        modifiedContent += "\n";
+
+        if (updatedCount > 0) {
+            fs.writeFile(mPath, modifiedContent);
+            out += "-------------------------------------------------------------------------------\n";
+            out += "[OK] [cxvm jumpy] Successfully updated " + to_string(updatedCount) + " dependencies in " + mPath + " to their last versions!";
+        } else {
+            out += "-------------------------------------------------------------------------------\n";
+            out += "[OK] [cxvm jumpy] All dependencies in " + mPath + " are already up-to-date with their last versions!";
+        }
+
+        Log::delay("cxvm jumpy", sw->stop());
+        return new CxvmCommandResult("jumpy", to_string(updatedCount), true, "Jumpy updated " + to_string(updatedCount) + " dependencies", out);
+    }
+
     public oneClickSetup(platform: string = "", version: string = "8.0.0"): CxvmCommandResult* {
         let v: string = version.length() == 0 ? "8.0.0" : version;
         let plat: string = platform.length() == 0 ? "linux-x86_64" : platform;
@@ -3933,6 +4220,13 @@ class CxvmEngine {
             let rem: string = (arg1 != "--pull" && arg1 != "pull" && arg1 != "--fixed") ? arg1 : "";
             let br: string = (arg2 != "--pull" && arg2 != "pull" && arg2 != "--fixed") ? arg2 : "";
             let res: CxvmCommandResult* = this.fixedProject(rem, br);
+            Log::info(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "jumpy" || cmd == "jump") {
+            let manifestPath: string = (arg1.length() > 0 && (fs.exists(arg1) || arg1.find(".json") != -1)) ? arg1 : "cex-pack.json";
+            let specificPkg: string = (arg1.length() > 0 && !fs.exists(arg1) && arg1.find(".json") == -1) ? arg1 : (arg2.length() > 0 ? arg2 : "");
+            let res: CxvmCommandResult* = this.jumpyProject(manifestPath, specificPkg);
             Log::info(res->output);
             return res->success ? 0 : 1;
         }

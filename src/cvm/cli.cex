@@ -13,8 +13,27 @@ class CvmCLI {
         this.repo = repo;
     }
 
+    private resolveCmdCode(cmd: string): int {
+        if (cmd == "status" || cmd == "") return 1;
+        if (cmd == "init") return 2;
+        if (cmd == "add") return 3;
+        if (cmd == "commit") return 4;
+        if (cmd == "push") return 5;
+        if (cmd == "pull") return 6;
+        if (cmd == "branch") return 7;
+        if (cmd == "checkout") return 8;
+        if (cmd == "log") return 9;
+        if (cmd == "diff") return 10;
+        if (cmd == "cvm") return 11;
+        if (cmd == "mr") return 12;
+        if (cmd == "help" || cmd == "--help" || cmd == "-h") return 13;
+        if (cmd == "fixed") return 14;
+        if (cmd == "jumpy" || cmd == "jump") return 15;
+        return 0;
+    }
+
     public execute(cmd: string, arg1: string, arg2: string): int {
-        let cmdCode: int = (cmd == "status" || cmd == "") ? 1 : (cmd == "init" ? 2 : (cmd == "add" ? 3 : (cmd == "commit" ? 4 : (cmd == "push" ? 5 : (cmd == "pull" ? 6 : (cmd == "branch" ? 7 : (cmd == "checkout" ? 8 : (cmd == "log" ? 9 : (cmd == "diff" ? 10 : (cmd == "cvm" ? 11 : (cmd == "mr" ? 12 : ((cmd == "help" || cmd == "--help" || cmd == "-h") ? 13 : (cmd == "fixed" ? 14 : 0)))))))))))));
+        let cmdCode: int = this.resolveCmdCode(cmd);
         switch (cmdCode) {
             case 1:
             return this.cmdStatus();
@@ -45,6 +64,8 @@ class CvmCLI {
             return 0;
             case 14:
             return this.cmdFixed(arg1, arg2);
+            case 15:
+            return this.cmdJumpy(arg1, arg2);
             default:
             print("[CVM CLI] Unknown command: "); println(cmd);
             this.printHelp();
@@ -138,6 +159,14 @@ class CvmCLI {
         this.cmdPull(remote, branch);
         println("[OK] [CVM fixed] Pulled cxvm from git | cvm (last version synced)");
         return 0;
+    }
+
+    private cmdJumpy(manifestArg: string, pkgArg: string): int {
+        let manifest: string = manifestArg != "" ? manifestArg : "cex-pack.json";
+        println("==> [CVM jumpy] Fetching last version of cex_boxes & overwriting manifest...");
+        let cmd: string = "cxvm jumpy " + manifest + " " + pkgArg + " 2>&1";
+        let res: int = system(cmd.c_str());
+        return res == 0 ? 0 : 1;
     }
 
     private cmdPush(remoteArg: string, branchArg: string): int {
@@ -300,6 +329,7 @@ class CvmCLI {
         println("  cvm preview <file.cvm>      Preview .cvm change record");
         println("  cvm apply <file.cvm>        Apply .cvm patch to repository");
         println("  fixed [remote] [branch]     Pull cxvm from git | cvm to get last version");
+        println("  jumpy [manifest] [pkg]      Fetch last version of cex_boxes & overwrite to cex-pack.json");
         println("  mr list                     List merge requests");
         println("  mr merge <id>               Merge a merge request");
         println("  server                      Launch headless REST API server on port 3036");

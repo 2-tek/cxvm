@@ -156,3 +156,16 @@ cxvm/
 - `cxvm fixed <remote> <branch>`: Pulls from specified remote and branch.
 - Resolves newest version from `cex-pack.json` and VCS release tags.
 - Re-executes `integrateBinDefaultToolchain()` and updates `$CXVM_DIR/bin/cxvm`.
+
+---
+
+## 13. CXVM Jumpy Dependency Upgrade Subsystem Specification
+
+`cxvm jumpy` fetches the latest version of all dependencies from `.cex_boxes` (and local/remote sources) and automatically overwrites `cex-pack.json`:
+
+- `cxvm jumpy`: Inspects all dependencies in `cex-pack.json`, resolves their latest installed versions in `.cex_boxes/{depName}/cex-pack.json`, and updates `cex-pack.json`.
+- `cxvm jumpy <manifest>`: Updates dependencies in the specified manifest file.
+- `cxvm jumpy <pkg>`: Updates only the specified dependency.
+- Discovers last versions across `.cex_boxes`, `dependencies/`, sibling directories, and git release tags.
+- Preserves semantic version prefix formatting (`^`, `~`).
+- Emits pure ASCII summary reporting `[UPGRADED]` and `[UP-TO-DATE]` status.

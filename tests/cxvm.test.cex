@@ -1533,6 +1533,47 @@ fn main(): int {
 
     suite->addResult("test_cxvm_fixed_pull_git_cvm_last_version", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 28: cxvm jumpy - Fetch Last Version of cex_boxes & Overwrite Manifest
+    // -------------------------------------------------------------
+    println("\n[Test Suite 28: cxvm jumpy - Fetch Last Version of cex_boxes & Overwrite Manifest]");
+    // 1. Setup test fixture with older versions
+    system("mkdir -p tests/fixtures .cex_boxes/lighting");
+    let lightingBoxJson: string = "{\n    \"name\": \"lighting\",\n    \"version\": \"1.0.22\"\n}\n";
+    fs.writeFile(".cex_boxes/lighting/cex-pack.json", lightingBoxJson);
+
+    let testManifestPath: string = "tests/fixtures/test_jumpy.json";
+    let testManifestJson: string = "{\n    \"name\": \"sample-app\",\n    \"version\": \"1.0.0\",\n    \"dependencies\": {\n        \"lighting\": \"1.0.12\",\n        \"cex-cli\": \"1.0.1\",\n        \"cex-lint\": \"1.0.6\"\n    }\n}\n";
+    fs.writeFile(testManifestPath, testManifestJson);
+
+    // 2. Run jumpy on test manifest
+    let jumpyRes: CxvmCommandResult* = cxvm->jumpyProject(testManifestPath, "");
+    Assert::isTrue(jumpyRes->success, "cxvm->jumpyProject succeeds");
+    Assert::isTrue(jumpyRes->output.find("Jumpy Dependency Upgrade") != string::npos, "jumpy output contains banner");
+    Assert::isTrue(jumpyRes->output.find("lighting: 1.0.12 -> 1.0.22 [UPGRADED]") != string::npos, "jumpy output upgrades lighting from 1.0.12 to 1.0.22");
+    Assert::isTrue(jumpyRes->output.find("cex-cli: 1.0.1 -> 1.0.2 [UPGRADED]") != string::npos, "jumpy output upgrades cex-cli");
+    Assert::isTrue(jumpyRes->output.find("cex-lint: 1.0.6 -> 1.0.8 [UPGRADED]") != string::npos, "jumpy output upgrades cex-lint");
+
+    // 3. Verify overwritten content in manifest
+    let updatedManifest: string = fs.readFile(testManifestPath);
+    Assert::isTrue(updatedManifest.find("\"lighting\": \"1.0.22\"") != string::npos, "test manifest overwritten with lighting 1.0.22");
+    Assert::isTrue(updatedManifest.find("\"cex-cli\": \"1.0.2\"") != string::npos, "test manifest overwritten with cex-cli 1.0.2");
+    Assert::isTrue(updatedManifest.find("\"cex-lint\": \"1.0.8\"") != string::npos, "test manifest overwritten with cex-lint 1.0.8");
+
+    // 4. Run jumpy a second time (should be already up-to-date)
+    let jumpyRes2: CxvmCommandResult* = cxvm->jumpyProject(testManifestPath, "");
+    Assert::isTrue(jumpyRes2->success, "second jumpy run succeeds");
+    Assert::isTrue(jumpyRes2->output.find("already up-to-date") != string::npos, "second jumpy reports up-to-date");
+
+    // 5. Test CLI execution via cvmExecute
+    let jumpyCliExit: int = cxvm->cvmExecute("jumpy", testManifestPath, "");
+    Assert::equalsInt(0, jumpyCliExit, "cxvm cvmExecute('jumpy', ...) returns exit code 0");
+
+    // Clean up test fixture
+    system("rm -rf tests/fixtures/test_jumpy.json .cex_boxes/lighting");
+
+    suite->addResult("test_cxvm_jumpy_fetch_last_version_cex_boxes_and_overwrite", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

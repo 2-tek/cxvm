@@ -1200,6 +1200,30 @@ class FactoryController extends BaseController {
         return this.json(doc);
     }
 
+    public apiJumpy(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let manifest: string = req->getParam("manifest");
+        if (manifest.length() == 0) manifest = req->getParam("file");
+        let pkg: string = req->getParam("pkg");
+        if (pkg.length() == 0) pkg = req->getParam("package");
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            if (manifest.length() == 0) manifest = this.extractRawJsonStr(req->body, "manifest");
+            if (manifest.length() == 0) manifest = this.extractRawJsonStr(req->body, "file");
+            if (pkg.length() == 0) pkg = this.extractRawJsonStr(req->body, "pkg");
+            if (pkg.length() == 0) pkg = this.extractRawJsonStr(req->body, "package");
+        }
+        if (manifest.length() == 0) manifest = "cex-pack.json";
+
+        let res: CxvmCommandResult* = cxvm->jumpyProject(manifest, pkg);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setBool(doc, "success", res->success);
+        JsonDoc::setStr(doc, "manifest", manifest);
+        JsonDoc::setStr(doc, "updatedCount", res->version);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
+
     public apiAppsDownloads(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let manifest: string = req->getParam("manifest");
         if (manifest.length() == 0) manifest = req->getParam("file");

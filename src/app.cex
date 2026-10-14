@@ -73,6 +73,8 @@ class FactoryApp {
         this.router->post("/api/v1/setup/one-click", "factory.apiSetupOneClick");
         this.router->get("/api/v1/fix", "factory.apiFix");
         this.router->post("/api/v1/fix", "factory.apiFix");
+        this.router->get("/api/v1/jumpy", "factory.apiJumpy");
+        this.router->post("/api/v1/jumpy", "factory.apiJumpy");
         this.router->get("/api/v1/apps/downloads", "factory.apiAppsDownloads");
         this.router->post("/api/v1/apps/downloads", "factory.apiAppsDownloads");
         this.router->get("/api/v1/apps/run", "factory.apiAppsRun");
@@ -277,6 +279,10 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiFix") {
             return this.controller->apiFix(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiJumpy") {
+            return this.controller->apiJumpy(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.apiAppsDownloads") {

@@ -546,3 +546,26 @@ cxvm fixed origin feature/vcs-integration
 3. **Step 3: Get Last Version**: Reads the newest version from `cex-pack.json` and release tags.
 4. **Step 4: Re-integrate Toolchains**: Re-runs `integrateBinDefaultToolchain()` to guarantee `./bin/` and `./bin/8.0.0/` binaries reflect the latest version.
 5. **Step 5: OS Dispatcher Sync**: Updates `$CXVM_DIR/bin/cxvm` to the verified last version.
+
+---
+
+## 13. CXVM Jumpy Subsystem (`cxvm jumpy`)
+
+The `cxvm jumpy` CLI command fetches the last version of dependencies from `cex_boxes` (and local/remote sources) and automatically overwrites `cex-pack.json` with the updated versions:
+
+```bash
+# Upgrade all dependencies in cex-pack.json to their last versions from .cex_boxes
+cxvm jumpy
+
+# Upgrade dependencies in a specific manifest file
+cxvm jumpy /path/to/project/cex-pack.json
+
+# Upgrade a specific dependency to its last version
+cxvm jumpy lighting
+```
+
+### Key Invariants:
+1. **Fetch & Reconcile**: Inspects all packages in `dependencies`, reads their last installed version from `.cex_boxes/{depName}/cex-pack.json` (or fetches from dependencies sources), and compares semver.
+2. **Atomic Overwrite**: Automatically rewrites `cex-pack.json` with the discovered latest versions (e.g. `lighting 1.0.12` -> `1.0.22`), preserving formatting and prefixes (`^`, `~`).
+3. **Idempotent**: Subsequent runs recognize all dependencies as `[UP-TO-DATE]`.
+4. **REST API**: Accessible via `GET` / `POST` `/api/v1/jumpy` with JSON response.
