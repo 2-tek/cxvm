@@ -491,3 +491,31 @@ cexr run tests/factory.test.cex
     ```bash
     git clone https://github.com/2-tek/cxvm.git
     ```
+
+---
+
+## 11. Integrated Binary Builds & Direct `--app` CLI Transformation
+
+`cxvm` integrates the 7 core Cex ecosystem toolchain applications as pre-built native binaries located in `./bin/` and `./bin/$version/`. Any direct invocation of an integrated app CLI automatically maps and transforms to the canonical versioned container / binary runner:
+
+```text
+cxvm $appName = cxvm --app {appName with lastversion} $action ...args
+```
+
+### Integrated Applications & Canonical Last Versions:
+
+| Application      | Canonical Name   | Last Version | Aliases / Synonyms        | Binary Path                                      | Transformation Example                                               |
+| :--------------- | :--------------- | :----------- | :------------------------ | :----------------------------------------------- | :------------------------------------------------------------------- |
+| **CexLint**      | `cex-lint`       | `1.0.7`      | `lint`                    | `bin/cex-lint`, `bin/8.0.0/cex-lint`             | `cxvm lint --fix` -> `cxvm --app cex-lint (v1.0.7) --fix`            |
+| **CexSQLServer** | `cex-sql-server` | `1.0.3`      | `sql`, `sql-server`       | `bin/cex-sql-server`, `bin/8.0.0/cex-sql-server` | `cxvm sql status` -> `cxvm --app cex-sql-server (v1.0.3) status`     |
+| **CodeStorm**    | `code-storm`     | `1.0.4`      | `storm`, `codestorm`      | `bin/code-storm`, `bin/8.0.0/code-storm`         | `cxvm storm --dry-run` -> `cxvm --app code-storm (v1.0.4) --dry-run` |
+| **ThunderLite**  | `thunder-lite`   | `1.0.8`      | `thunder`, `docker`       | `bin/thunder-lite`, `bin/8.0.0/thunder-lite`     | `cxvm thunder ps` -> `cxvm --app thunder-lite (v1.0.8) ps`           |
+| **CVM**          | `cvm`            | `1.0.16`     | `vcs`, `mvc-code-manager` | `bin/cvm`, `bin/8.0.0/cvm`                       | `cxvm cvm status` -> `cxvm --app cvm (v1.0.16) status`               |
+| **Lighting**     | `lighting`       | `6.0.23`     | `light`, `mvc-lighting`   | `bin/lighting`, `bin/8.0.0/lighting`             | `cxvm light dev` -> `cxvm --app lighting (v6.0.23) dev`              |
+| **DeepSea**      | `deepsea`        | `1.0.10`     | `deep-sea`, `mvp-deepsea` | `bin/deepsea`, `bin/8.0.0/deepsea`               | `cxvm deepsea doctor` -> `cxvm --app deepsea (v1.0.10) doctor`       |
+
+### Key Invariants:
+
+1. **Binary Build Priority**: The dispatcher executes native binaries directly from `bin/$version/$appName` or `bin/$appName`, removing simulated mock fallbacks from the runtime path.
+2. **Zero Overhead Transformation**: CLI commands like `cxvm lint`, `cxvm thunder ps`, `cxvm cvm status` log the transformation message and execute through `cxvm --app {canonicalApp}` instantly.
+3. **Pure ASCII Output**: All output conforms to `RULE_NO_SYMBOLS` with pure ASCII formatting.

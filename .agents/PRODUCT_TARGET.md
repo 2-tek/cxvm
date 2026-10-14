@@ -87,6 +87,18 @@ The `cxvm` repository defines the official distribution hub and version manageme
     - `cxvm downloads`: Downloads and compiles primary applications and runnable dependencies declared in `cex-pack.json` into versioned binary folders `./bin/$version/$appName` (`POST /api/v1/apps/downloads`).
     - Default toolchain in `./bin/`: Integrates `cexr` & `cexp` (`v8` & `v6`) as default in `./bin/` with `.gitkeep` for version control hygiene and build reproducibility.
 
+11. **Integrated App Binary Builds & Routing Transformation (`cxvm $appName = cxvm --app {appName with lastversion} $action ...args`)**:
+    - Seamlessly integrates 7 foundational Cex applications as compiled binaries in `./bin/` and `./bin/8.0.0/`:
+        - `cex-lint` (`1.0.7`, alias: `lint`)
+        - `cex-sql-server` (`1.0.3`, alias: `sql`, `sql-server`)
+        - `code-storm` (`1.0.4`, alias: `storm`, `codestorm`)
+        - `thunder-lite` (`1.0.8`, alias: `thunder`, `docker`)
+        - `cvm` (`1.0.16`, alias: `vcs`, `mvc-code-manager`)
+        - `lighting` (`6.0.23`, alias: `light`, `mvc-lighting`)
+        - `deepsea` (`1.0.10`, alias: `deep-sea`, `mvp-deepsea`)
+    - Removes monolithic/simulated logic inside `src/` and routes all direct app invocations through `cxvm --app $appName` to execute installed binaries.
+    - Auto-canonicalizes app names and injects the last known version into console logs: `cxvm $appName = cxvm --app {appName with lastversion} $action ...args`.
+
 ---
 
 ## 2. Canonical Target & Package Invariants (Rule 69)

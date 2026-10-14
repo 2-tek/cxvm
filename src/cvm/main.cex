@@ -1,0 +1,15 @@
+// CodeVersionManager (CVM) Native CLI Binary Entrypoint
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./types.cex";
+import "./repository.cex";
+import "./cli.cex";
+
+fn main(argc: int, argv: Array<string>): int {
+    let repo: Repository* = new Repository(".", "main");
+    let cli: CvmCLI* = new CvmCLI(repo);
+    let cmd: string = argc > 1 ? argv[1] : "status";
+    let arg1: string = argc > 2 ? argv[2] : "";
+    let arg2: string = argc > 3 ? argv[3] : "";
+    return cli->execute(cmd, arg1, arg2);
+}

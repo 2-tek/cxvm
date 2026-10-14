@@ -1448,6 +1448,74 @@ fn main(): int {
 
     suite->addResult("test_one_click_setup_app_runner_easy_fix_and_manifest_downloads", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 26: Integrated App Binary Builds & Routing Transformation
+    // -------------------------------------------------------------
+    println("\n[Test Suite 26: Integrated App Binary Builds & Routing Transformation]");
+
+    // 1. isIntegratedApp verification
+    Assert::isTrue(cxvm->isIntegratedApp("cex-lint"), "isIntegratedApp('cex-lint') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("lint"), "isIntegratedApp('lint') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("cex-sql-server"), "isIntegratedApp('cex-sql-server') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("sql"), "isIntegratedApp('sql') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("code-storm"), "isIntegratedApp('code-storm') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("storm"), "isIntegratedApp('storm') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("thunder-lite"), "isIntegratedApp('thunder-lite') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("thunder"), "isIntegratedApp('thunder') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("cvm"), "isIntegratedApp('cvm') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("lighting"), "isIntegratedApp('lighting') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("light"), "isIntegratedApp('light') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("deepsea"), "isIntegratedApp('deepsea') is true");
+    Assert::isTrue(cxvm->isIntegratedApp("deep-sea"), "isIntegratedApp('deep-sea') is true");
+
+    // 2. resolveCanonicalAppName verification
+    Assert::equalsString("cex-lint", cxvm->resolveCanonicalAppName("lint"), "resolveCanonicalAppName('lint') -> 'cex-lint'");
+    Assert::equalsString("cex-sql-server", cxvm->resolveCanonicalAppName("sql"), "resolveCanonicalAppName('sql') -> 'cex-sql-server'");
+    Assert::equalsString("code-storm", cxvm->resolveCanonicalAppName("storm"), "resolveCanonicalAppName('storm') -> 'code-storm'");
+    Assert::equalsString("thunder-lite", cxvm->resolveCanonicalAppName("thunder"), "resolveCanonicalAppName('thunder') -> 'thunder-lite'");
+    Assert::equalsString("cvm", cxvm->resolveCanonicalAppName("cvm"), "resolveCanonicalAppName('cvm') -> 'cvm'");
+    Assert::equalsString("lighting", cxvm->resolveCanonicalAppName("light"), "resolveCanonicalAppName('light') -> 'lighting'");
+    Assert::equalsString("deepsea", cxvm->resolveCanonicalAppName("deep-sea"), "resolveCanonicalAppName('deep-sea') -> 'deepsea'");
+
+    // 3. getAppLastVersion verification
+    Assert::equalsString("1.0.7", cxvm->getAppLastVersion("cex-lint"), "cex-lint last version is 1.0.7");
+    Assert::equalsString("1.0.3", cxvm->getAppLastVersion("cex-sql-server"), "cex-sql-server last version is 1.0.3");
+    Assert::equalsString("1.0.4", cxvm->getAppLastVersion("code-storm"), "code-storm last version is 1.0.4");
+    Assert::equalsString("1.0.8", cxvm->getAppLastVersion("thunder-lite"), "thunder-lite last version is 1.0.8");
+    Assert::equalsString("1.0.16", cxvm->getAppLastVersion("cvm"), "cvm last version is 1.0.16");
+    Assert::equalsString("6.0.23", cxvm->getAppLastVersion("lighting"), "lighting last version is 6.0.23");
+    Assert::equalsString("1.0.10", cxvm->getAppLastVersion("deepsea"), "deepsea last version is 1.0.10");
+
+    // 4. CLI command dispatch via cvmExecute transforming to cxvm --app {appName with lastversion}
+    let c1: int = cxvm->cvmExecute("cex-lint", "--dry-run", "");
+    Assert::equalsInt(0, c1, "cxvm cex-lint --dry-run returns exit code 0");
+
+    let c2: int = cxvm->cvmExecute("lint", "--dry-run", "");
+    Assert::equalsInt(0, c2, "cxvm lint --dry-run returns exit code 0");
+
+    let c3: int = cxvm->cvmExecute("cex-sql-server", "--dry-run", "");
+    Assert::equalsInt(0, c3, "cxvm cex-sql-server --dry-run returns exit code 0");
+
+    let c4: int = cxvm->cvmExecute("code-storm", "--dry-run", "");
+    Assert::equalsInt(0, c4, "cxvm code-storm --dry-run returns exit code 0");
+
+    let c5: int = cxvm->cvmExecute("thunder-lite", "--dry-run", "");
+    Assert::equalsInt(0, c5, "cxvm thunder-lite --dry-run returns exit code 0");
+
+    let c6: int = cxvm->cvmExecute("cvm", "status", "");
+    Assert::equalsInt(0, c6, "cxvm cvm status returns exit code 0");
+
+    let c7: int = cxvm->cvmExecute("lighting", "status", "");
+    Assert::equalsInt(0, c7, "cxvm lighting status returns exit code 0");
+
+    let c8: int = cxvm->cvmExecute("deepsea", "doctor", "");
+    Assert::equalsInt(0, c8, "cxvm deepsea doctor returns exit code 0");
+
+    let c9: int = cxvm->dispatchApp("thunder-lite", "ps", "");
+    Assert::equalsInt(0, c9, "dispatchApp('thunder-lite', 'ps', '') returns exit code 0");
+
+    suite->addResult("test_integrated_app_binaries_and_routing", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

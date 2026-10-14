@@ -28,6 +28,20 @@ bin/*
 !bin/cex.ps1
 !bin/cxvm.cmd
 !bin/cxvm.ps1
+!bin/cex-lint
+!bin/lint
+!bin/cex-sql-server
+!bin/sql
+!bin/sql-server
+!bin/code-storm
+!bin/storm
+!bin/thunder-lite
+!bin/thunder
+!bin/cvm
+!bin/lighting
+!bin/light
+!bin/deepsea
+!bin/deep-sea
 *.bin
 *.out
 # Rule 69: target is runtime, do not use .gitignore for dist bundle file (keep dist/ with download of cxvm cross platforms)

@@ -430,13 +430,98 @@ class CxvmEngine {
         }
         system("chmod +x bin/8.0.0/* bin/v8.0.0/* bin/v8/* bin/6.0.0/* bin/v6.0.0/* bin/v6/* 2>/dev/null || true");
 
+        // Ensure integrated application binaries and aliases exist in bin/ and bin/8.0.0/
+        let apps: Array<string>* = new Array<string>();
+        apps->push("cex-lint");
+        apps->push("cex-sql-server");
+        apps->push("code-storm");
+        apps->push("thunder-lite");
+        apps->push("cvm");
+        apps->push("lighting");
+        apps->push("deepsea");
+        for (let aIdx: int = 0; aIdx < (int)apps->length(); aIdx++) {
+            let appItem: string = apps->get(aIdx);
+            if (fs.exists("bin/" + appItem)) {
+                system(("cp -f bin/" + appItem + " bin/8.0.0/" + appItem + " 2>/dev/null && cp -f bin/" + appItem + " bin/v8.0.0/" + appItem + " 2>/dev/null || true").c_str());
+            }
+        }
+        // Aliases
+        if (fs.exists("bin/cex-lint") && !fs.exists("bin/lint")) system("ln -sf cex-lint bin/lint 2>/dev/null && ln -sf cex-lint bin/8.0.0/lint 2>/dev/null || true");
+        if (fs.exists("bin/cex-sql-server") && !fs.exists("bin/sql")) system("ln -sf cex-sql-server bin/sql 2>/dev/null && ln -sf cex-sql-server bin/8.0.0/sql 2>/dev/null || true");
+        if (fs.exists("bin/cex-sql-server") && !fs.exists("bin/sql-server")) system("ln -sf cex-sql-server bin/sql-server 2>/dev/null && ln -sf cex-sql-server bin/8.0.0/sql-server 2>/dev/null || true");
+        if (fs.exists("bin/code-storm") && !fs.exists("bin/storm")) system("ln -sf code-storm bin/storm 2>/dev/null && ln -sf code-storm bin/8.0.0/storm 2>/dev/null || true");
+        if (fs.exists("bin/thunder-lite") && !fs.exists("bin/thunder")) system("ln -sf thunder-lite bin/thunder 2>/dev/null && ln -sf thunder-lite bin/8.0.0/thunder 2>/dev/null || true");
+        if (fs.exists("bin/lighting") && !fs.exists("bin/light")) system("ln -sf lighting bin/light 2>/dev/null && ln -sf lighting bin/8.0.0/light 2>/dev/null || true");
+        if (fs.exists("bin/deepsea") && !fs.exists("bin/deep-sea")) system("ln -sf deepsea bin/deep-sea 2>/dev/null && ln -sf deepsea bin/8.0.0/deep-sea 2>/dev/null || true");
+
         let out: string = "==> [cxvm bin] Integrating default cexr & cexp (v8, v6) binaries in ./bin/ with .gitkeep...\n";
         out += "  [OK] [cxvm bin] Verified ./bin/.gitkeep\n";
         out += "  [OK] [cxvm bin] Built and integrated ./bin/cexr (default -> ./bin/cexr-v8, LTS -> ./bin/cexr-v6)\n";
         out += "  [OK] [cxvm bin] Built and integrated ./bin/cexp (default -> ./bin/cexp-v8, LTS -> ./bin/cexp-v6)\n";
+        out += "  [OK] [cxvm bin] Built and integrated installed apps (cex-lint, cex-sql-server, code-storm, thunder-lite, cvm, lighting, deepsea)\n";
         out += "  [OK] [cxvm bin] Configured versioned toolchains in ./bin/8.0.0/ and ./bin/6.0.0/\n";
         out += "[OK] [cxvm bin] Default toolchain (cexr & cexp v8, v6) integrated and ready in ./bin/";
         return new CxvmCommandResult("integrate-bin-toolchain", "v8,v6", true, "Integrated cexr and cexp (v8, v6) as default in ./bin/ with .gitkeep", out);
+    }
+
+    public resolveCanonicalAppName(app: string): string {
+        let clean: string = app;
+        while (!clean.empty() && (clean.front() == 34 || clean.front() == 39)) clean.erase(0, 1);
+        while (!clean.empty() && (clean.back() == 34 || clean.back() == 39)) clean.pop_back();
+        if (clean.rfind("@", 0) == 0) clean = clean.substr(1);
+        let vPos: size_t = clean.find("(");
+        if (vPos != string::npos) {
+            clean = clean.substr(0, vPos);
+            while (!clean.empty() && (clean.back() == 32 || clean.back() == 9)) clean.pop_back();
+        }
+        if (clean == "cex-lint" || clean == "lint") return "cex-lint";
+        if (clean == "cex-sql-server" || clean == "sql" || clean == "sql-server") return "cex-sql-server";
+        if (clean == "code-storm" || clean == "storm" || clean == "codestorm") return "code-storm";
+        if (clean == "thunder-lite" || clean == "thunder" || clean == "docker") return "thunder-lite";
+        if (clean == "cvm" || clean == "vcs" || clean == "mvc-code-manager") return "cvm";
+        if (clean == "lighting" || clean == "light" || clean == "mvc-lighting") return "lighting";
+        if (clean == "deepsea" || clean == "deep-sea" || clean == "mvp-deepsea") return "deepsea";
+        if (clean == "cex-cli" || clean == "cli") return "cex-cli";
+        if (clean == "cex-test" || clean == "test") return "cex-test";
+        if (clean == "cexr" || clean == "run" || clean == "cex-r") return "cexr";
+        if (clean == "cxvm") return "cxvm";
+        return clean;
+    }
+
+    public getAppLastVersion(appName: string): string {
+        let canonical: string = this.resolveCanonicalAppName(appName);
+        if (canonical == "cex-lint") return "1.0.7";
+        if (canonical == "cex-sql-server") return "1.0.3";
+        if (canonical == "code-storm") return "1.0.4";
+        if (canonical == "thunder-lite") return "1.0.8";
+        if (canonical == "cvm") return "1.0.16";
+        if (canonical == "lighting") return "6.0.23";
+        if (canonical == "deepsea") return "1.0.10";
+        if (canonical == "cex-cli") return "1.0.1";
+        if (canonical == "cex-test") return "1.0.12";
+        if (canonical == "cexr") return "8.0.0";
+        if (canonical == "cxvm") return "2.0.26";
+        return this.currentVersion.length() > 0 ? this.currentVersion : "8.0.0";
+    }
+
+    public isIntegratedApp(cmd: string): bool {
+        let clean: string = cmd;
+        while (!clean.empty() && (clean.front() == 34 || clean.front() == 39)) clean.erase(0, 1);
+        while (!clean.empty() && (clean.back() == 34 || clean.back() == 39)) clean.pop_back();
+        if (clean.rfind("@", 0) == 0) clean = clean.substr(1);
+        let vPos: size_t = clean.find("(");
+        if (vPos != string::npos) {
+            clean = clean.substr(0, vPos);
+            while (!clean.empty() && (clean.back() == 32 || clean.back() == 9)) clean.pop_back();
+        }
+        if (clean == "cex-lint" || clean == "lint") return true;
+        if (clean == "cex-sql-server" || clean == "sql" || clean == "sql-server") return true;
+        if (clean == "code-storm" || clean == "storm" || clean == "codestorm") return true;
+        if (clean == "thunder-lite" || clean == "thunder" || clean == "docker") return true;
+        if (clean == "cvm" || clean == "vcs" || clean == "mvc-code-manager") return true;
+        if (clean == "lighting" || clean == "light" || clean == "mvc-lighting") return true;
+        if (clean == "deepsea" || clean == "deep-sea" || clean == "mvp-deepsea") return true;
+        return false;
     }
 
     public upgrade(targetVersion: string): CxvmCommandResult* {
@@ -2290,14 +2375,22 @@ class CxvmEngine {
 
         let entry: string = sourceEntry.length() > 0 ? sourceEntry : "";
         if (entry.length() == 0) {
-            if (cleanApp == "cxvm" || cleanApp == this.detectAppName(".")) {
+            let srcChoice: int = (cleanApp == "cxvm" || cleanApp == this.detectAppName(".")) ? 1
+                : (fs.exists(".cex_boxes/" + cleanApp + "/src/index.cex") ? 2
+                : (fs.exists(".cex_boxes/" + cleanApp + "/bin/" + cleanApp) ? 3 : 0));
+            switch (srcChoice) {
+                case 1:
                 entry = this.detectMainFile(".");
-            } else if (fs.exists(".cex_boxes/" + cleanApp + "/src/index.cex")) {
+                break;
+                case 2:
                 entry = ".cex_boxes/" + cleanApp + "/src/index.cex";
-            } else if (fs.exists(".cex_boxes/" + cleanApp + "/bin/" + cleanApp)) {
+                break;
+                case 3:
                 entry = ".cex_boxes/" + cleanApp + "/bin/" + cleanApp;
-            } else {
+                break;
+                default:
                 entry = this.detectMainFile(".");
+                break;
             }
         }
 
@@ -3204,43 +3297,52 @@ class CxvmEngine {
         while (!app.empty() && (app.back() == 34 || app.back() == 39)) {
             app.pop_back();
         }
-        let code: int = (app == "thunder" || app == "docker" || app == "container") ? 1
-            : ((app == "lighting" || app == "light") ? 2
-            : ((app == "deepsea" || app == "deep-sea" || app == "mvp-deepsea") ? 3
-            : ((app == "cvm" || app == "vcs" || app == "git") ? 4
-            : ((app == "cli" || app == "@cli" || app == "cex-cli") ? 5
-            : ((app == "test" || app == "@test" || app == "cex-test" || app == "@cex-test") ? 6
-            : ((app == "cexr" || app == "@cexr" || app == "cex-r" || app == "@cex-r" || app == "run") ? 7 : 0))))));
-        switch (code) {
-            case 1:
-            return this.thunderExecute(subCmd, subArg, "");
-            case 2:
-            return this.lightExecute(subCmd, subArg, "");
-            case 3:
-            return this.deepseaExecute(subCmd, subArg, "");
-            case 4:
-            return this.cvmAppExecute(subCmd, subArg, "");
-            case 5:
-            return this.cliAppExecute(subCmd, subArg, "");
-            case 6:
-            return this.testAppExecute(subCmd, subArg, "");
-            case 7:
-            return this.cexrAppExecute(subCmd, subArg, "");
-            default:
-            break;
+        if (app.rfind("@", 0) == 0) {
+            app = app.substr(1);
         }
+        let vPos: size_t = app.find("(");
+        if (vPos != string::npos) {
+            app = app.substr(0, vPos);
+            while (!app.empty() && (app.back() == 32 || app.back() == 9)) app.pop_back();
+        }
+        let canonicalApp: string = this.resolveCanonicalAppName(app);
+        if (canonicalApp.length() == 0) canonicalApp = app;
 
-        // Generic application runner: resolve installed app from ./bin/$version/$appName
-        let installedBin: string = this.findInstalledAppInBin(app, this.currentVersion);
-        let isKnownAppInManifest: bool = (app == this.detectAppName(".") || app == "cxvm");
-        if (installedBin.length() > 0 || isKnownAppInManifest) {
-            let res: CxvmCommandResult* = this.runInstalledApp(app, subCmd, subArg);
+        // Specific subcommands with dedicated engine logic
+        if (canonicalApp == "lighting" && subCmd == "create") {
+            let pName: string = subArg.length() == 0 ? "my-lighting-app" : subArg;
+            let res: CxvmCommandResult* = this.lightCreate(pName, ".");
             Log::info(res->output);
             return res->success ? 0 : 1;
         }
 
-        Log::error("[ERROR] [cxvm --app] Unknown application: '" + app + "'");
-        Log::info("Supported apps: thunder, lighting, deepsea, cvm, cli, test, cexr or installed app in ./bin/$version/" + app);
+        if (canonicalApp == "thunder-lite" && (subCmd == "simulate-linux" || subCmd == "linux-sim" || subCmd == "simulate" || subCmd == "create-linux" || subCmd == "download-cxvm" || subCmd == "run-example")) {
+            return this.thunderExecute(subCmd, subArg, "");
+        }
+
+        if (canonicalApp == "cex-cli") {
+            return this.cliAppExecute(subCmd, subArg, "");
+        }
+
+        if (canonicalApp == "cex-test") {
+            return this.testAppExecute(subCmd, subArg, "");
+        }
+
+        if (canonicalApp == "cexr") {
+            return this.cexrAppExecute(subCmd, subArg, "");
+        }
+
+        // Generic & integrated application runner: resolve installed app from ./bin/$version/$appName or ./bin/$appName
+        let installedBin: string = this.findInstalledAppInBin(canonicalApp, this.currentVersion);
+        let isKnownApp: bool = this.isIntegratedApp(canonicalApp) || (canonicalApp == this.detectAppName(".") || canonicalApp == "cxvm");
+        if (installedBin.length() > 0 || isKnownApp) {
+            let res: CxvmCommandResult* = this.runInstalledApp(canonicalApp, subCmd, subArg);
+            Log::info(res->output);
+            return res->success ? 0 : 1;
+        }
+
+        Log::error("[ERROR] [cxvm --app] Unknown application: '" + canonicalApp + "'");
+        Log::info("Supported apps: cex-lint, cex-sql-server, code-storm, thunder-lite, cvm, lighting, deepsea, cex-cli, cex-test, cexr or installed app in ./bin/$version/" + canonicalApp);
         return 1;
     }
 
@@ -3643,20 +3745,16 @@ class CxvmEngine {
             Log::info(res->output);
             return res->success ? 0 : 1;
         }
-        if (cmd == "thunder" || cmd == "docker") {
-            return this.dispatchApp("thunder", arg1, arg2);
+        if (this.isIntegratedApp(cmd)) {
+            let canonicalApp: string = this.resolveCanonicalAppName(cmd);
+            let lastVer: string = this.getAppLastVersion(canonicalApp);
+            let actionArgs: string = arg1;
+            if (arg2.length() > 0) actionArgs += " " + arg2;
+            Log::info("==> [cxvm " + cmd + "] cxvm " + cmd + " = cxvm --app " + canonicalApp + " (v" + lastVer + ")" + (actionArgs.length() > 0 ? (" " + actionArgs) : ""));
+            return this.dispatchApp(canonicalApp, arg1, arg2);
         }
         if (cmd == "simulate-linux" || cmd == "linux-sim") {
             return this.thunderExecute("simulate-linux", arg1, arg2);
-        }
-        if (cmd == "light" || cmd == "lighting") {
-            return this.dispatchApp("lighting", arg1, arg2);
-        }
-        if (cmd == "deepsea" || cmd == "deep-sea") {
-            return this.dispatchApp("deepsea", arg1, arg2);
-        }
-        if (cmd == "cvm" || cmd == "vcs") {
-            return this.dispatchApp("cvm", arg1, arg2);
         }
         if (cmd == "cli" || cmd == "@cli" || cmd == "cex-cli") {
             return this.dispatchApp("cli", arg1, arg2);
