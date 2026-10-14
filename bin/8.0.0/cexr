@@ -1,13 +1,57 @@
 #!/usr/bin/env bash
-# 2-TEK CXVM Installed App Launcher: cexr (v8.0.0)
+# ==============================================================================
+# 2-TEK Cex Toolchain Runner: ./bin/cexr
+# Integrated Default Binaries in ./bin/:
+#   ./bin/cexr-v8 (Default: CexR v8 Native Runtime Engine)
+#   ./bin/cexr-v6 (LTS: CexR v6 High-Performance Native Server Engine)
+#   ./bin/cexr-v4 (CexR v4 Native Machine Code Runtime Engine & JSON Context)
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+# ==============================================================================
 set -e
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJ_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-RUNNER="$PROJ_ROOT/bin/cexr"
-if [ ! -f "$RUNNER" ]; then RUNNER="cexr"; fi
-TARGET="$PROJ_ROOT/bin/cexr"
-if [ -f "$TARGET" ]; then
-  exec "$RUNNER" "$TARGET" "$@"
-else
-  exec "$RUNNER" "$@"
+
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+
+case "$1" in
+  v8)
+    shift
+    if [ -x "$BIN_DIR/cexr-v8" ]; then
+      exec "$BIN_DIR/cexr-v8" "$@"
+    elif [ -x "$CXVM_DIR/versions/v8.0.0/bin/cexr" ]; then
+      exec "$CXVM_DIR/versions/v8.0.0/bin/cexr" "$@"
+    fi
+    ;;
+  v6)
+    shift
+    if [ -x "$BIN_DIR/cexr-v6" ]; then
+      exec "$BIN_DIR/cexr-v6" "$@"
+    elif [ -x "$CXVM_DIR/versions/v6.0.0/bin/cexr" ]; then
+      exec "$CXVM_DIR/versions/v6.0.0/bin/cexr" "$@"
+    fi
+    ;;
+  v4)
+    shift
+    if [ -x "$BIN_DIR/cexr-v4" ]; then
+      exec "$BIN_DIR/cexr-v4" "$@"
+    elif [ -x "$CXVM_DIR/bin/cexr-v4" ]; then
+      exec "$CXVM_DIR/bin/cexr-v4" "$@"
+    elif [ -x "$CXVM_DIR/versions/v4.0.0/bin/cexr" ]; then
+      exec "$CXVM_DIR/versions/v4.0.0/bin/cexr" "$@"
+    fi
+    ;;
+esac
+
+# Default version in ./bin/: use integrated binary ./bin/cexr-v8 first
+if [ -x "$BIN_DIR/cexr-v8" ]; then
+  exec "$BIN_DIR/cexr-v8" "$@"
+elif [ -x "$BIN_DIR/cexr-v6" ]; then
+  exec "$BIN_DIR/cexr-v6" "$@"
+elif [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+  exec "$CXVM_DIR/current/bin/cexr" "$@"
+elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+  exec "$CXVM_DIR/bin/cexr" "$@"
+elif [ -x "$BIN_DIR/cxvm" ]; then
+  exec "$BIN_DIR/cxvm" "$@"
 fi
+
+exec cxvm "$@"
