@@ -1,6 +1,6 @@
 {
     "name": "cxvm",
-    "version": "2.0.19",
+    "version": "2.0.20",
     "description": "cxvm v2: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (Pure Cex: cexr + cexp, zero C++ dependency), powered by Lighting MVC",
     "main": "src/index.cex",
     "author": "2-TEK Ecosystem",

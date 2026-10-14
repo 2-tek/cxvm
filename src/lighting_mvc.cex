@@ -198,29 +198,26 @@ class HttpResponse {
     }
 
     public display(): void {
-        print("HTTP/1.1 ");
-        print(this.statusCode);
-        print(" ");
-        println(this.statusMessage);
-        println("Content-Type: " + this.contentType);
-        println("Content-Length: " + to_string((int)this.body.length()));
-        println("");
-        println(this.body);
+        Log::info("HTTP/1.1 " + to_string(this.statusCode) + " " + this.statusMessage);
+        Log::info("Content-Type: " + this.contentType);
+        Log::info("Content-Length: " + to_string((int)this.body.length()));
+        Log::info("");
+        Log::info(this.body);
     }
 
     public displayCurl(method: string, url: string): void {
-        println("--- Simulated cURL Request ------------------------------------");
-        println("> " + method + " " + url + " HTTP/1.1");
-        println("< HTTP/1.1 " + to_string(this.statusCode) + " " + this.statusMessage);
-        println("< Content-Type: " + this.contentType);
-        println("< Content-Length: " + to_string((int)this.body.length()));
-        println("<");
+        Log::info("--- Simulated cURL Request ------------------------------------");
+        Log::info("> " + method + " " + url + " HTTP/1.1");
+        Log::info("< HTTP/1.1 " + to_string(this.statusCode) + " " + this.statusMessage);
+        Log::info("< Content-Type: " + this.contentType);
+        Log::info("< Content-Length: " + to_string((int)this.body.length()));
+        Log::info("<");
         if (this.body.length() > 200) {
-            println(this.body.substr(0, 200) + "\n... [truncated]");
+            Log::info(this.body.substr(0, 200) + "\n... [truncated]");
         } else {
-            println(this.body);
+            Log::info(this.body);
         }
-        println("---------------------------------------------------------------");
+        Log::info("---------------------------------------------------------------");
     }
 }
 
@@ -376,7 +373,7 @@ class MiddlewareResult {
 
 class LightingMiddleware {
     public static runLogger(req: HttpRequest*): void {
-        CexLogger::info("[Lighting MVC Logger] " + req->method + " " + req->path);
+        Log::info("[Lighting MVC Logger] " + req->method + " " + req->path);
     }
 
     public static runAuth(req: HttpRequest*): MiddlewareResult* {

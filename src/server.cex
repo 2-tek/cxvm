@@ -34,7 +34,7 @@ fn main(argc: int, argv: char**): int {
     }
 
     if (isDryRun || isCheck) {
-        println("[OK] cxvm production server binary integrity check passed (dry-run mode)");
+        Log::info("[OK] cxvm production server binary integrity check passed (dry-run mode)");
         return 0;
     }
 

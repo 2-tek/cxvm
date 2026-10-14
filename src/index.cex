@@ -8,6 +8,7 @@ import "@/src/models/artifact_model.cex";
 import "@/src/builder/dist_builder.cex";
 import "@/src/cxvm/cxvm_engine.cex";
 import "@/src/app.cex";
+import "@cex-log/src/log.cex";
 
 fn main(argc: int, argv: char**): int {
     if (argc > 1) {
@@ -17,15 +18,15 @@ fn main(argc: int, argv: char**): int {
             case 1: {
                 let eng: CxvmEngine* = new CxvmEngine();
                 let res: CxvmCommandResult* = eng->startServer("src/index.cex", true);
-                println(res->output);
+                Log::info(res->output);
                 return 0;
             }
             case 2:
-            println("cxvm v8.0.0 (2.0.18) - Pure Cex Native Engine + @cex-cli v1.0.1");
+            Log::info("cxvm v8.0.0 (2.0.20) - Pure Cex Native Engine + @cex-cli v1.0.1");
             return 0;
             case 3: {
                 let eng: CxvmEngine* = new CxvmEngine();
-                println(eng->doctor());
+                Log::info(eng->doctor());
                 return 0;
             }
             default: {
@@ -42,224 +43,217 @@ fn main(argc: int, argv: char**): int {
         }
     }
 
-    println("===============================================================================");
-    println("    2-TEK Cex Factory: Cross-Platform Runtime & Version Manager Engine        ");
-    println("                   [Powered by Lighting Fullstack MVC]                         ");
-    println("===============================================================================");
+    Log::info("===============================================================================");
+    Log::info("    2-TEK Cex Factory: Cross-Platform Runtime & Version Manager Engine        ");
+    Log::info("                   [Powered by Lighting Fullstack MVC]                         ");
+    Log::info("===============================================================================");
 
     // 1. Initializing Factory App Kernel
-    println("\n[1. Initializing Factory Application Kernel on Port 3080]");
+    Log::info("[1. Initializing Factory Application Kernel on Port 3080]");
     let app: FactoryApp* = new FactoryApp(3080);
     app->start();
-    print("  Application:     "); println(app->appName);
-    print("  Server Port:     "); println(app->port);
-    print("  Active Routes:   "); println(app->router->getRouteCount());
-    print("  Downloads Store: "); println(app->downloadsDir);
+    Log::info("  Application:     " + app->appName);
+    Log::info("  Server Port:     " + to_string(app->port));
+    Log::info("  Active Routes:   " + to_string(app->router->getRouteCount()));
+    Log::info("  Downloads Store: " + app->downloadsDir);
     app->displayRoutes();
 
     // 2. Testing Model Layer & Validation
-    println("\n[2. Testing Model Layer & Entity Validation]");
+    Log::info("[2. Testing Model Layer & Entity Validation]");
     let pModel: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "cexp v8 (Native Direct Compiler)", "tar.gz", "Linux x86_64");
     let pVal: ModelValidationResult* = pModel->validate();
-    print("  Platform Model Validation: "); println(pVal->isValid ? "PASSED [OK]" : "FAILED");
+    Log::info("  Platform Model Validation: " + string(pVal->isValid ? "PASSED [OK]" : "FAILED"));
 
     let vModel: VersionModel* = new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & cexp v8 Pure Engine", "CexR v8 High-Performance Native Server Engine", true);
     let vVal: ModelValidationResult* = vModel->validate();
-    print("  Version Model Validation:  "); println(vVal->isValid ? "PASSED [OK]" : "FAILED");
+    Log::info("  Version Model Validation:  " + string(vVal->isValid ? "PASSED [OK]" : "FAILED"));
 
     let aModel: ArtifactModel* = new ArtifactModel("cex-v8.0.0-linux-x86_64.tar.gz", "8.0.0", "linux", "x86_64", 2797, "97c324a082371d1dd5f9051077e0563f5df2e3d8dae08c6178035db0c7d141ca", "/downloads/cex-v8.0.0-linux-x86_64.tar.gz");
     let aVal: ModelValidationResult* = aModel->validate();
-    print("  Artifact Model Validation: "); println(aVal->isValid ? "PASSED [OK]" : "FAILED");
+    Log::info("  Artifact Model Validation: " + string(aVal->isValid ? "PASSED [OK]" : "FAILED"));
 
     // 3. Testing CXVM Version Manager Engine (like nvm)
-    println("\n[3. Testing CXVM Version Manager Engine (like nvm)]");
-    print("  Current Active Version: "); println(app->cxvm->current());
-    println("  " + app->cxvm->list());
+    Log::info("[3. Testing CXVM Version Manager Engine (like nvm)]");
+    Log::info("  Current Active Version: " + app->cxvm->current());
+    Log::info("  " + app->cxvm->list());
 
-    println("  --> Simulating: cxvm install 2.0.0");
+    Log::info("  --> Simulating: cxvm install 2.0.0");
     let instRes: CxvmCommandResult* = app->cxvm->install("2.0.0");
-    print("    Result: "); println(instRes->success ? "PASSED [OK]" : "FAILED");
+    Log::info("    Result: " + string(instRes->success ? "PASSED [OK]" : "FAILED"));
 
-    println("  --> Simulating: cxvm use 2.0.0");
+    Log::info("  --> Simulating: cxvm use 2.0.0");
     let useRes: CxvmCommandResult* = app->cxvm->use("2.0.0");
-    print("    Result: "); println(useRes->success ? "PASSED [OK]" : "FAILED");
-    print("    Active Version now: "); println(app->cxvm->current());
+    Log::info("    Result: " + string(useRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info("    Active Version now: " + app->cxvm->current());
 
-    println("\n  --> Simulating: cxvm init (default init project with cex-pack, my-project, .cex_boxes, .cvm)");
+    Log::info("  --> Simulating: cxvm init (default init project with cex-pack, my-project, .cex_boxes, .cvm)");
     let initRes: CxvmCommandResult* = app->cxvm->cxvmInit("my-project", ".");
-    print("    Result: "); println(initRes->success ? "PASSED [OK]" : "FAILED");
-    print("    Output:\n    "); println(initRes->output);
+    Log::info("    Result: " + string(initRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info("    Output:\n    " + initRes->output);
 
-    println("\n  --> Simulating: cxvm doctor");
-    println(app->cxvm->doctor());
+    Log::info("  --> Simulating: cxvm doctor");
+    Log::info(app->cxvm->doctor());
 
     // 3b. Testing Integrated CVM (CodeVersionManager) Commands
-    println("\n[3b. Testing Integrated CVM Commands (cxvm commit, cxvm push, cxvm status)]");
-    println("  --> Simulating: cxvm status");
+    Log::info("[3b. Testing Integrated CVM Commands (cxvm commit, cxvm push, cxvm status)]");
+    Log::info("  --> Simulating: cxvm status");
     let stRes: CxvmCommandResult* = app->cxvm->cvmStatus();
-    println("    " + stRes->output);
+    Log::info("    " + stRes->output);
 
-    println("  --> Simulating: cxvm add src/app.cex");
+    Log::info("  --> Simulating: cxvm add src/app.cex");
     let addRes: CxvmCommandResult* = app->cxvm->cvmAdd("src/app.cex", "// app content\n");
-    print("    Result: "); println(addRes->success ? "PASSED [OK]" : "FAILED");
+    Log::info("    Result: " + string(addRes->success ? "PASSED [OK]" : "FAILED"));
 
-    println("  --> Simulating: cxvm commit -m \"feat(cxvm): integrate cvm into cxvm\"");
+    Log::info("  --> Simulating: cxvm commit -m \"feat(cxvm): integrate cvm into cxvm\"");
     let comRes: CxvmCommandResult* = app->cxvm->cvmCommit("feat(cxvm): integrate cvm into cxvm", "2-TEK Lead", "lead@2tek.local");
-    print("    Result: "); println(comRes->success ? "PASSED [OK]" : "FAILED");
-    print("    Commit: "); println(comRes->output);
+    Log::info("    Result: " + string(comRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info("    Commit: " + comRes->output);
 
-    println("  --> Simulating: cxvm push origin main");
+    Log::info("  --> Simulating: cxvm push origin main");
     let pushRes: CxvmCommandResult* = app->cxvm->cvmPush("origin", "main");
-    print("    Result: "); println(pushRes->success ? "PASSED [OK]" : "FAILED");
-    print("    Push output:\n    "); println(pushRes->output);
+    Log::info("    Result: " + string(pushRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info("    Push output:\n    " + pushRes->output);
 
-    println("\n  --> Simulating: cxvm start cvm (standalone single process)");
+    Log::info("  --> Simulating: cxvm start cvm (standalone single process)");
     let srvStartRes: CxvmCommandResult* = app->cxvm->startCvm(4000, true);
-    print("    Result: "); println(srvStartRes->success ? "PASSED [OK]" : "FAILED");
-    print("    Output:\n    "); println(srvStartRes->output);
+    Log::info("    Result: " + string(srvStartRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info("    Output:\n    " + srvStartRes->output);
 
-    println("  --> Simulating: cxvm status cvm");
+    Log::info("  --> Simulating: cxvm status cvm");
     let srvStatRes: CxvmCommandResult* = app->cxvm->statusCvm();
-    println("    " + srvStatRes->output);
+    Log::info("    " + srvStatRes->output);
 
-    println("  --> Simulating: cxvm stop cvm");
+    Log::info("  --> Simulating: cxvm stop cvm");
     let srvStopRes: CxvmCommandResult* = app->cxvm->stopCvm();
-    print("    Result: "); println(srvStopRes->success ? "PASSED [OK]" : "FAILED");
+    Log::info("    Result: " + string(srvStopRes->success ? "PASSED [OK]" : "FAILED"));
 
     // 3c. Testing Integrated Thunder Container Engine Commands
-    println("\n[3c. Testing Integrated Thunder Engine (cxvm --app thunder, cxvm docker, cxvm start thunder)]");
-    println("  --> Simulating: cxvm start thunder (standalone single process)");
+    Log::info("[3c. Testing Integrated Thunder Engine (cxvm --app thunder, cxvm docker, cxvm start thunder)]");
+    Log::info("  --> Simulating: cxvm start thunder (standalone single process)");
     let thStartRes: CxvmCommandResult* = app->cxvm->startThunder(3050, true);
-    print("    Result: "); println(thStartRes->success ? "PASSED [OK]" : "FAILED");
-    print("    Output:\n    "); println(thStartRes->output);
+    Log::info("    Result: " + string(thStartRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info("    Output:\n    " + thStartRes->output);
 
-    println("  --> Simulating: cxvm status thunder");
+    Log::info("  --> Simulating: cxvm status thunder");
     let thStatRes: CxvmCommandResult* = app->cxvm->statusThunder();
-    println("    " + thStatRes->output);
+    Log::info("    " + thStatRes->output);
 
-    println("  --> Simulating: cxvm --app thunder ps");
+    Log::info("  --> Simulating: cxvm --app thunder ps");
     let thPsCode: int = app->cxvm->thunderExecute("ps", "", "");
-    print("    Result: "); println(thPsCode == 0 ? "PASSED [OK]" : "FAILED");
+    Log::info("    Result: " + string(thPsCode == 0 ? "PASSED [OK]" : "FAILED"));
 
-    println("  --> Simulating: cxvm stop thunder");
+    Log::info("  --> Simulating: cxvm stop thunder");
     let thStopRes: CxvmCommandResult* = app->cxvm->stopThunder();
-    print("    Result: "); println(thStopRes->success ? "PASSED [OK]" : "FAILED");
+    Log::info("    Result: " + string(thStopRes->success ? "PASSED [OK]" : "FAILED"));
 
     // 3d. Testing Integrated Lighting Fullstack MVC Engine (cxvm light, cxvm light create)
-    println("\n[3d. Testing Integrated Lighting Engine (cxvm light create, cxvm light dev, cxvm light build)]");
-    println("  --> Simulating: cxvm light create sample-service");
+    Log::info("[3d. Testing Integrated Lighting Engine (cxvm light create, cxvm light dev, cxvm light build)]");
+    Log::info("  --> Simulating: cxvm light create sample-service");
     let lightCreateRes: CxvmCommandResult* = app->cxvm->lightCreate("sample-service", ".");
-    print("    Result: "); println(lightCreateRes->success ? "PASSED [OK]" : "FAILED");
-    print("    Output:\n    "); println(lightCreateRes->output);
+    Log::info("    Result: " + string(lightCreateRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info("    Output:\n    " + lightCreateRes->output);
 
-    println("  --> Simulating: cxvm light dev");
+    Log::info("  --> Simulating: cxvm light dev");
     let lightDevCode: int = app->cxvm->lightExecute("dev", "", "");
-    print("    Result: "); println(lightDevCode == 0 ? "PASSED [OK]" : "FAILED");
+    Log::info("    Result: " + string(lightDevCode == 0 ? "PASSED [OK]" : "FAILED"));
 
-    println("  --> Simulating: cxvm light doctor");
+    Log::info("  --> Simulating: cxvm light doctor");
     let lightDocCode: int = app->cxvm->lightExecute("doctor", "", "");
-    print("    Result: "); println(lightDocCode == 0 ? "PASSED [OK]" : "FAILED");
+    Log::info("    Result: " + string(lightDocCode == 0 ? "PASSED [OK]" : "FAILED"));
 
     // 3e. Testing Cex-CLI (v1.0.1) Multi-Version cexp & cexr Build CLI
-    println("\n[3e. Testing Cex-CLI (v1.0.1) Multi-Version cexp & cexr Build CLI]");
-    println("  --> Simulating: cxvm build cexp v8,v6");
+    Log::info("[3e. Testing Cex-CLI (v1.0.1) Multi-Version cexp & cexr Build CLI]");
+    Log::info("  --> Simulating: cxvm build cexp v8,v6");
     let cexpBuildRes: CxvmCommandResult* = app->cxvm->buildCexpVersions("v8,v6");
-    print("    Result: "); println(cexpBuildRes->success ? "PASSED [OK]" : "FAILED");
-    println(cexpBuildRes->output);
+    Log::info("    Result: " + string(cexpBuildRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info(cexpBuildRes->output);
 
-    println("\n  --> Simulating: cxvm build cexr v8,v6,v4");
+    Log::info("  --> Simulating: cxvm build cexr v8,v6,v4");
     let cexrBuildRes: CxvmCommandResult* = app->cxvm->buildCexrVersions("v8,v6,v4");
-    print("    Result: "); println(cexrBuildRes->success ? "PASSED [OK]" : "FAILED");
-    println(cexrBuildRes->output);
+    Log::info("    Result: " + string(cexrBuildRes->success ? "PASSED [OK]" : "FAILED"));
+    Log::info(cexrBuildRes->output);
 
     // 4. Testing Cross-Platform DistBuilder
-    println("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
-    print("  Supported Architectures: "); println((int)app->builder->platforms->length());
-    print("  Built Artifacts in Store: "); println((int)app->builder->artifacts->length());
+    Log::info("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
+    Log::info("  Supported Architectures: " + to_string((int)app->builder->platforms->length()));
+    Log::info("  Built Artifacts in Store: " + to_string((int)app->builder->artifacts->length()));
     let sampleArt: ArtifactModel* = app->builder->getArtifactByFilename("cex-v8.0.0-linux-x86_64.tar.gz");
     if (sampleArt === nullptr) {
         sampleArt = app->builder->getArtifactByFilename("cex-v6.0.0-linux-x86_64.tar.gz");
     }
     if (sampleArt !== nullptr) {
-        print("  Sample Target: "); print(sampleArt->filename);
-        print(" | Size: "); print(sampleArt->sizeBytes); println(" bytes [OK]");
+        Log::info("  Sample Target: " + sampleArt->filename + " | Size: " + to_string(sampleArt->sizeBytes) + " bytes [OK]");
     }
 
     // 5. Testing Lighting MVC SSR Views & HTTP Endpoints
-    println("\n[5. Testing Lighting MVC SSR Views & REST JSON API Endpoints]");
+    Log::info("[5. Testing Lighting MVC SSR Views & REST JSON API Endpoints]");
     let homeResp: HttpResponse* = app->simulateRequest("GET", "/", "", "text/html");
-    print("  GET / -> Status: "); print(homeResp->statusCode);
-    print(" | Content-Type: "); print(homeResp->contentType);
-    print(" | Size: "); print((int)homeResp->body.length()); println(" bytes");
+    Log::info("  GET / -> Status: " + to_string(homeResp->statusCode) + " | Content-Type: " + homeResp->contentType + " | Size: " + to_string((int)homeResp->body.length()) + " bytes");
 
     let downResp: HttpResponse* = app->simulateRequest("GET", "/downloads", "", "text/html");
-    print("  GET /downloads -> Status: "); print(downResp->statusCode);
-    print(" | Size: "); print((int)downResp->body.length()); println(" bytes");
+    Log::info("  GET /downloads -> Status: " + to_string(downResp->statusCode) + " | Size: " + to_string((int)downResp->body.length()) + " bytes");
 
     let cxvmDocsResp: HttpResponse* = app->simulateRequest("GET", "/cxvm", "", "text/html");
-    print("  GET /cxvm -> Status: "); print(cxvmDocsResp->statusCode);
-    print(" | Size: "); print((int)cxvmDocsResp->body.length()); println(" bytes");
+    Log::info("  GET /cxvm -> Status: " + to_string(cxvmDocsResp->statusCode) + " | Size: " + to_string((int)cxvmDocsResp->body.length()) + " bytes");
 
     let setupResp: HttpResponse* = app->simulateRequest("GET", "/setup", "", "text/html");
-    print("  GET /setup -> Status: "); print(setupResp->statusCode);
-    print(" | Size: "); print((int)setupResp->body.length()); println(" bytes");
+    Log::info("  GET /setup -> Status: " + to_string(setupResp->statusCode) + " | Size: " + to_string((int)setupResp->body.length()) + " bytes");
 
     let shResp: HttpResponse* = app->simulateRequest("GET", "/install.sh", "", "text/x-shellscript");
-    print("  GET /install.sh -> Status: "); print(shResp->statusCode);
-    print(" | Content-Type: "); println(shResp->contentType);
+    Log::info("  GET /install.sh -> Status: " + to_string(shResp->statusCode) + " | Content-Type: " + shResp->contentType);
 
     let statusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
-    print("  GET /api/v1/status -> "); println(statusResp->body);
+    Log::info("  GET /api/v1/status -> " + statusResp->body);
 
     let verResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
-    print("  GET /api/v1/versions -> "); println(verResp->body);
+    Log::info("  GET /api/v1/versions -> " + verResp->body);
 
     let platResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
-    print("  GET /api/v1/platforms -> "); println(platResp->body);
+    Log::info("  GET /api/v1/platforms -> " + platResp->body);
 
     let setupApiResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/setup", "", "application/json");
-    print("  GET /api/v1/setup -> "); println(setupApiResp->body);
+    Log::info("  GET /api/v1/setup -> " + setupApiResp->body);
 
     let buildResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
-    print("  POST /api/v1/build -> "); println(buildResp->body);
+    Log::info("  POST /api/v1/build -> " + buildResp->body);
 
     let cvmStatusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/status", "", "application/json");
-    print("  GET /api/v1/cvm/status -> "); println(cvmStatusResp->body);
+    Log::info("  GET /api/v1/cvm/status -> " + cvmStatusResp->body);
 
     let cvmCommitResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/commit", "feat: api commit test", "application/json");
-    print("  POST /api/v1/cvm/commit -> "); println(cvmCommitResp->body);
+    Log::info("  POST /api/v1/cvm/commit -> " + cvmCommitResp->body);
 
     let cvmPushResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/push", "", "application/json");
-    print("  POST /api/v1/cvm/push -> "); println(cvmPushResp->body);
+    Log::info("  POST /api/v1/cvm/push -> " + cvmPushResp->body);
 
     let cvmSrvStatResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/server/status", "", "application/json");
-    print("  GET /api/v1/cvm/server/status -> "); println(cvmSrvStatResp->body);
+    Log::info("  GET /api/v1/cvm/server/status -> " + cvmSrvStatResp->body);
 
     let thStatusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/status", "", "application/json");
-    print("  GET /api/v1/thunder/status -> "); println(thStatusResp->body);
+    Log::info("  GET /api/v1/thunder/status -> " + thStatusResp->body);
 
     let thContainersResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/containers", "", "application/json");
-    print("  GET /api/v1/thunder/containers -> "); println(thContainersResp->body);
+    Log::info("  GET /api/v1/thunder/containers -> " + thContainersResp->body);
 
     let thImagesResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/images", "", "application/json");
-    print("  GET /api/v1/thunder/images -> "); println(thImagesResp->body);
+    Log::info("  GET /api/v1/thunder/images -> " + thImagesResp->body);
 
     let lightStatusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/light/status", "", "application/json");
-    print("  GET /api/v1/light/status -> "); println(lightStatusResp->body);
+    Log::info("  GET /api/v1/light/status -> " + lightStatusResp->body);
 
     let lightCreateResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/light/create", "{\"projectName\":\"sample-service\"}", "application/json");
-    print("  POST /api/v1/light/create -> "); println(lightCreateResp->body);
+    Log::info("  POST /api/v1/light/create -> " + lightCreateResp->body);
 
     let buildCexpResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build/cexp", "{\"versions\":\"v8,v6\"}", "application/json");
-    print("  POST /api/v1/build/cexp -> Status: "); println(buildCexpResp->statusCode);
+    Log::info("  POST /api/v1/build/cexp -> Status: " + to_string(buildCexpResp->statusCode));
 
     let buildCexrResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build/cexr", "{\"versions\":\"v8,v6\"}", "application/json");
-    print("  POST /api/v1/build/cexr -> Status: "); println(buildCexrResp->statusCode);
+    Log::info("  POST /api/v1/build/cexr -> Status: " + to_string(buildCexrResp->statusCode));
 
     app->stop();
-    println("\n===============================================================================");
-    println("      [OK] 2-TEK Cex Factory Fullstack Pipeline Executed Successfully!           ");
-    println("===============================================================================");
+    Log::info("===============================================================================");
+    Log::info("      [OK] 2-TEK Cex Factory Fullstack Pipeline Executed Successfully!           ");
+    Log::info("===============================================================================");
 
     return 0;
 }

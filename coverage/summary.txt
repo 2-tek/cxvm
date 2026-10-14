@@ -8,25 +8,25 @@ src/models/platform_model.cex                     58      30      30       0    
 src/models/version_model.cex                      54      27      27       0      100%   None
 src/models/artifact_model.cex                     58      30      30       0      100%   None
 src/builder/dist_builder.cex                     129      77      77       0      100%   None
-src/cvm/types.cex                                319     126     126       0      100%   None
+src/cvm/types.cex                                321     126     126       0      100%   None
 src/cvm/hash_utils.cex                           210     131     131       0      100%   None
 src/cvm/diff_engine.cex                          126      84      84       0      100%   None
 src/cvm/merge_manager.cex                        138      76      76       0      100%   None
-src/cvm/cvm_patch.cex                            200     148     148       0      100%   None
+src/cvm/cvm_patch.cex                            199     146     146       0      100%   None
 src/cvm/ref_manager.cex                          135      73      73       0      100%   None
 src/cvm/object_store.cex                         161      87      87       0      100%   None
 src/cvm/repository.cex                           268     141     141       0      100%   None
 src/cvm/cli.cex                                  288     211     211       0      100%   None
 src/controllers/factory_controller.cex          1007     773     773       0      100%   None
 src/views/factory_views.cex                      400     333     333       0      100%   None
-src/lighting_mvc.cex                             427     194     194       0      100%   None
+src/lighting_mvc.cex                             424     191     191       0      100%   None
 src/log.cex                                        5       0       0       0      100%   None
-src/app.cex                                      422     232     232       0      100%   None
+src/app.cex                                      427     235     235       0      100%   None
 src/server.cex                                    51      33      33       0      100%   None
-src/index.cex                                    266     184     184       0      100%   None
-src/cxvm/cxvm_engine.cex                        3258    2437    2437       0      100%   None
+src/index.cex                                    260     177     177       0      100%   None
+src/cxvm/cxvm_engine.cex                        3265    2443    2443       0      100%   None
 ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
-TOTAL                                           8121    5474    5474       0      100%   -
+TOTAL                                           8125    5471    5471       0      100%   -
 ═════════════════════════════════════════════════════════════════════════════════════════════════════════════
   Coverage Health: EXCELLENT ✅ (100% statement coverage)
 ───────────────────────────────────────────────────────────────────────────────────────────────────────────────

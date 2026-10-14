@@ -2,6 +2,8 @@
 // Core types for Git Object Storage, Diffs, Patches (.cvm/.chr), Merge Requests, and Repository Status
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
+import "@cex-log/src/log.cex";
+
 class GitUser {
     public name: string;
     public email: string;
@@ -79,15 +81,15 @@ class CommitObject {
     }
 
     public display(): void {
-        print("commit "); println(this.hash);
+        Log::info("commit " + this.hash);
         if (this.parent != "") {
-            print("Parent: "); println(this.parent);
+            Log::info("Parent: " + this.parent);
         }
-        print("Author: "); println(this.author->formatAuthorLine());
-        print("Date:   "); println(to_string(this.timestamp));
-        println("");
-        print("    "); println(this.message);
-        println("");
+        Log::info("Author: " + this.author->formatAuthorLine());
+        Log::info("Date:   " + to_string(this.timestamp));
+        Log::info("");
+        Log::info("    " + this.message);
+        Log::info("");
     }
 }
 

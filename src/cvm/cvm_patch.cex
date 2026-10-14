@@ -5,6 +5,7 @@
 import "./types.cex";
 import "./hash_utils.cex";
 import "./diff_engine.cex";
+import "@cex-log/src/log.cex";
 
 class CvmPatchEngine {
     // 1. Serialize CvmPatch to .cvm format
@@ -173,27 +174,25 @@ class CvmPatchEngine {
 
     // 4. Preview Change Record
     public static preview(patch: CvmPatch*): void {
-        println("+---------------------------------------------------------------+");
-        println("|         [CVM] CODE VERSION MANAGER CHANGE RECORD PREVIEW      |");
-        println("+---------------------------------------------------------------+");
-        print("  * Record ID:   "); println(patch->id);
-        print("  * Author:      "); println(patch->author->formatAuthorLine());
-        print("  * Date:        "); println(patch->date);
-        print("  * Branch:      "); println(patch->branch);
-        print("  * Message:     "); println(patch->message);
-        print("  * Stats:       +"); print(to_string(patch->additions)); print(", -"); print(to_string(patch->deletions));
-        print(" across "); print(to_string(patch->filesCount)); println(" file(s)");
-        println("-----------------------------------------------------------------");
+        Log::info("+---------------------------------------------------------------+");
+        Log::info("|         [CVM] CODE VERSION MANAGER CHANGE RECORD PREVIEW      |");
+        Log::info("+---------------------------------------------------------------+");
+        Log::info("  * Record ID:   " + patch->id);
+        Log::info("  * Author:      " + patch->author->formatAuthorLine());
+        Log::info("  * Date:        " + patch->date);
+        Log::info("  * Branch:      " + patch->branch);
+        Log::info("  * Message:     " + patch->message);
+        Log::info("  * Stats:       +" + to_string(patch->additions) + ", -" + to_string(patch->deletions) + " across " + to_string(patch->filesCount) + " file(s)");
+        Log::info("-----------------------------------------------------------------");
 
         let count: int = (int)patch->files->length();
         for (let i: int = 0; i < count; i++) {
             let f: CvmFileEntry* = patch->files->get(i);
-            print("  [File "); print(to_string(i + 1)); print("/"); print(to_string(count)); print("] ");
-            print(f->filePath); print(" (+"); print(to_string(f->additions)); print(", -"); print(to_string(f->deletions)); println(")");
+            Log::info("  [File " + to_string(i + 1) + "/" + to_string(count) + "] " + f->filePath + " (+" + to_string(f->additions) + ", -" + to_string(f->deletions) + ")");
             if (f->rawUnified != "") {
-                println(f->rawUnified);
+                Log::info(f->rawUnified);
             }
         }
-        println("-----------------------------------------------------------------");
+        Log::info("-----------------------------------------------------------------");
     }
 }

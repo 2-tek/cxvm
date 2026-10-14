@@ -402,20 +402,25 @@ class FactoryApp {
     }
 
     public displayRoutes(): void {
-        println("+---------------------------------------------------------------+");
-        println("|             2-TEK Cex Factory Route Registry Table            |");
-        println("+---------------------------------------------------------------+");
-        println("  METHOD  ROUTE PATTERN               HANDLER ACTION");
-        println("  -------------------------------------------------------------");
+        Log::info("+---------------------------------------------------------------+");
+        Log::info("|             2-TEK Cex Factory Route Registry Table            |");
+        Log::info("+---------------------------------------------------------------+");
+        Log::info("  METHOD  ROUTE PATTERN               HANDLER ACTION");
+        Log::info("  -------------------------------------------------------------");
         let count: int = this.router->getRouteCount();
         for (let i: int = 0; i < count; i++) {
             let r: RouteEntry* = this.router->routes->get(i);
-            print("  "); print(r->method);
-            for (let s: int = (int)r->method.length(); s < 8; s++) print(" ");
-            print(r->pattern);
-            for (let s: int = (int)r->pattern.length(); s < 28; s++) print(" ");
-            println(r->handlerId);
+            let row: string = "  " + r->method;
+            for (let s: int = (int)r->method.length(); s < 8; s++) {
+                row = row + " ";
+            }
+            row = row + r->pattern;
+            for (let s: int = (int)r->pattern.length(); s < 28; s++) {
+                row = row + " ";
+            }
+            row = row + r->handlerId;
+            Log::info(row);
         }
-        println("-----------------------------------------------------------------");
+        Log::info("-----------------------------------------------------------------");
     }
 }

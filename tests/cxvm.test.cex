@@ -1070,7 +1070,7 @@ fn main(): int {
 
     let forcedTestRes: CxvmCommandResult* = cxvm->runTestInNewProcess("tests/promise.test.cex", "--dry-run");
     Assert::isTrue(forcedTestRes->success, "runTestInNewProcess succeeds");
-    Assert::equalsString("test run", forcedTestRes->command, "Command is 'test run'");
+    Assert::equalsString("test run", forcedTestRes->action, "Action is 'test run'");
     Assert::equalsString("tests/promise.test.cex", forcedTestRes->version, "Target suite matches");
     Assert::isTrue(forcedTestRes->output.find("Forced New-Process Test Runner (cxvm --app test run)") != -1, "Output confirms forced new-process test runner");
     Assert::isTrue(forcedTestRes->output.find("Isolated New Child Process (forced via cex-test)") != -1, "Output confirms isolated new child process");
@@ -1094,6 +1094,43 @@ fn main(): int {
     Assert::equalsInt(0, testDefaultExec, "cxvm test forces --app test run in new process and returns exit code 0");
 
     suite->addResult("test_forced_cex_test_new_process_runner", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 19: Use and Action Logging via @cex-log (Zero print/println in use & actions)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 19: Use and Action Logging via @cex-log (Zero print/println)]");
+
+    let engineSrc: string = fs.readFile("src/cxvm/cxvm_engine.cex");
+    Assert::isTrue(engineSrc.find("Log::info(") != -1, "src/cxvm/cxvm_engine.cex uses Log::info from @cex-log");
+    Assert::isTrue(engineSrc.find("Log::warn(") != -1, "src/cxvm/cxvm_engine.cex uses Log::warn from @cex-log");
+    Assert::isTrue(engineSrc.find("Log::error(") != -1, "src/cxvm/cxvm_engine.cex uses Log::error from @cex-log");
+    Assert::isTrue(engineSrc.find("println(") == -1 && engineSrc.find("print(") == -1, "src/cxvm/cxvm_engine.cex contains zero print/println calls");
+
+    let indexSrc: string = fs.readFile("src/index.cex");
+    Assert::isTrue(indexSrc.find("Log::info(") != -1, "src/index.cex uses Log::info from @cex-log");
+    Assert::isTrue(indexSrc.find("println(") == -1 && indexSrc.find("print(") == -1, "src/index.cex contains zero print/println calls");
+
+    let appSrc: string = fs.readFile("src/app.cex");
+    Assert::isTrue(appSrc.find("Log::info(") != -1, "src/app.cex uses Log::info from @cex-log");
+    Assert::isTrue(appSrc.find("println(") == -1 && appSrc.find("print(") == -1, "src/app.cex contains zero print/println calls");
+
+    let mvcSrc: string = fs.readFile("src/lighting_mvc.cex");
+    Assert::isTrue(mvcSrc.find("Log::info(") != -1, "src/lighting_mvc.cex uses Log::info from @cex-log");
+    Assert::isTrue(mvcSrc.find("println(") == -1 && mvcSrc.find("print(") == -1, "src/lighting_mvc.cex contains zero print/println calls");
+
+    let srvSrc: string = fs.readFile("src/server.cex");
+    Assert::isTrue(srvSrc.find("Log::info(") != -1, "src/server.cex uses Log::info from @cex-log");
+    Assert::isTrue(srvSrc.find("println(") == -1 && srvSrc.find("print(") == -1, "src/server.cex contains zero print/println calls");
+
+    let cvmTypesSrc: string = fs.readFile("src/cvm/types.cex");
+    Assert::isTrue(cvmTypesSrc.find("Log::info(") != -1, "src/cvm/types.cex uses Log::info from @cex-log");
+    Assert::isTrue(cvmTypesSrc.find("println(") == -1 && cvmTypesSrc.find("print(") == -1, "src/cvm/types.cex contains zero print/println calls");
+
+    let cvmPatchSrc: string = fs.readFile("src/cvm/cvm_patch.cex");
+    Assert::isTrue(cvmPatchSrc.find("Log::info(") != -1, "src/cvm/cvm_patch.cex uses Log::info from @cex-log");
+    Assert::isTrue(cvmPatchSrc.find("println(") == -1 && cvmPatchSrc.find("print(") == -1, "src/cvm/cvm_patch.cex contains zero print/println calls");
+
+    suite->addResult("test_cex_log_in_use_and_actions", true, "", 1);
 
     println("\n");
     TestReporter::printSummary(suite);
