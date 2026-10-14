@@ -4,7 +4,7 @@ trigger: always_on
 
 # Mandatory Rule: Prohibition of Multiple If-Else Chains — Use Switch-Case (RULE_NO_MULTIPLE_IF_ELSE)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct CexR), Rule 85 (Lint Gate) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp), Rule 85 (Lint Gate) -->
 
 > **MANDATORY PROHIBITION OF MULTIPLE IF-ELSE CHAINS (`else if`) DIRECTIVE**:
 > In all `mvc-lighting`, `mvp-deepsea`, `cxvm`, Cex microservices, repositories, packages, CLI dispatchers, controllers, and agent workflows:

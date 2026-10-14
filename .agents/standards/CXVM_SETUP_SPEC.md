@@ -21,8 +21,8 @@ The `cxvm` setup system provides cross-platform initialization for the Cex envir
     3. Ensure directories: `versions/`, `downloads/`, `shims/`, `bin/`.
     4. Write environment configuration to user shell profile (`.bashrc`, `.zshrc`, `config.fish`, or user Windows environment registry).
     5. Install and unpack default runtimes:
-        - **v8.0.0** (Default CexR v8 runtime with `.cex_boxes` dist loader).
-        - **v6.0.0** (LTS CexR v6 runtime with native JIT).
+        - **v8.0.0** (Default cexp v8 runtime with `.cex_boxes` dist loader).
+        - **v6.0.0** (LTS cexp v6 runtime with native JIT).
     6. Point active symlink `$CXVM_DIR/current` -> `$CXVM_DIR/versions/v8.0.0`.
     7. Validate local `./bin/cexr` and `./bin/cex` dispatchers.
     8. Run diagnostic pre-flight checks and report success.

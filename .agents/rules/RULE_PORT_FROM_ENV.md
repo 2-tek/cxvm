@@ -4,7 +4,7 @@ trigger: always_on
 
 # Mandatory Rule: Dynamic Port Configuration via process.env | getenv() Inside ./src (RULE_PORT_FROM_ENV)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct CexR), Rule 85 (Lint Gate) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp), Rule 85 (Lint Gate) -->
 
 > **MANDATORY DYNAMIC PORT LOADING VIA ENVIRONMENT VARIABLES**:
 > In all `mvc-lighting`, `mvp-deepsea`, Cex microservices, repositories, packages, servers, controllers, kernels, and agent workflows:

@@ -4,7 +4,7 @@ trigger: always_on
 
 # Mandatory Rule: No Hardcoded Values — Load Paths and Configuration from .env (RULE_NO_HARDCODE_PATH_FROM_ENV)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct CexR), Rule 85 (Lint Gate) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp), Rule 85 (Lint Gate) -->
 
 > **MANDATORY ZERO-HARDCODE & .ENV PATH LOADING DIRECTIVE**:
 > In all `mvc-lighting`, `mvp-deepsea`, Cex microservices, repositories, packages, servers, controllers, kernels, CLI tools, and agent workflows:

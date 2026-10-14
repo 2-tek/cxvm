@@ -4,7 +4,7 @@ trigger: always_on
 
 # Mandatory Rule: Seeding Data Exclusively Restricted to Test Folder (RULE_SEEDING_TEST_ONLY)
 
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct CexR), Rule 85 (Lint Gate) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp), Rule 85 (Lint Gate) -->
 
 > **MANDATORY DIRECTIVE: ONLY USE SEEDING DATA IN ./test OR ./tests FOLDER**:
 > In all `mvc-lighting`, `mvp-deepsea`, Cex microservices, repositories, packages, and agent workflows:

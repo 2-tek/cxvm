@@ -7,7 +7,7 @@
 > **`cxvm` is the canonical cross-platform Cex distribution builder and runtime version manager engine, powered natively by Lighting Fullstack MVC.**
 > **Toolchain Standard**: Pure Cex Native Engine (`cexr` runtime engine + `cexp` direct machine compiler; zero C++ toolchain dependency).
 > **Target Definition**: `"target": "runtime"` in `cex-pack.json`.
-> **Distribution Standard (Rule 69)**: In CexR v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, do not use `.gitignore` for dist bundle file. **Always keep `dist/` containing all cross-platform distribution downloads of cxvm.**
+> **Distribution Standard (Rule 69)**: In cexp v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, do not use `.gitignore` for dist bundle file. **Always keep `dist/` containing all cross-platform distribution downloads of cxvm.**
 
 ---
 
@@ -54,7 +54,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
     - **Web Setup Window (Lighting MVC)**: Full-featured desktop application window UI on route `/setup` with macOS/Windows titlebar controls (`[RED] [YELLOW] [GREEN]`), tabbed OS quick installers, environment status cards, runtime selector, and live `cxvm doctor` console.
 
 5. **Project `./bin/` Toolchain Dispatchers**:
-    - `./bin/cexr`: Smart runtime dispatcher defaulting to **CexR v8.0.0** with instant version switching to **v6.0.0** (`./bin/cexr v6 ...`).
+    - `./bin/cexr`: Smart runtime dispatcher defaulting to **cexp v8.0.0** with instant version switching to **v6.0.0** (`./bin/cexr v6 ...`).
     - `./bin/cex`: Toolchain runner with support for `run`, `build`, `doctor`, `setup`, and version switches.
     - Cross-platform Windows companions: `cexr.cmd`, `cex.cmd`, `cxvm.cmd`, `cexr.ps1`, `cex.ps1`, `cxvm.ps1`.
 
@@ -74,7 +74,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
         - Windows (PowerShell): `irm http://localhost:3080/one-click.ps1 | iex`
         - REST API: `GET` / `POST` `/api/v1/setup/one-click`
         - CLI: `cxvm setup --one-click`
-    - Automatically provisions `CXVM_DIR`, configures user shell PATH in `~/.bashrc`, `~/.zshrc`, and Windows User Environment, installs default toolchain in `./bin/`, and activates CexR `v8.0.0` default.
+    - Automatically provisions `CXVM_DIR`, configures user shell PATH in `~/.bashrc`, `~/.zshrc`, and Windows User Environment, installs default toolchain in `./bin/`, and activates cexp `v8.0.0` default.
 
 9. **Dynamic App Execution via `cxvm --app $appName` & `./bin/$version/$appName`**:
     - Dispatches and executes installed applications located at `./bin/$version/$appName`, `./bin/v$version/$appName`, or `./bin/$appName`.
@@ -108,7 +108,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
 | Package Name         | `@2tek/cxvm`           | Official CXVM Package                                   |
 | Version              | `2.0.0`                | Pure Cex Native Engine Standard                         |
 | Target               | `"target": "runtime"`  | Strictly Immutable (Rule 69)                            |
-| Runtime Requirement  | `"cexr": "^8"`         | CexR v8 .cex_boxes Dist Loader Engine                   |
+| Runtime Requirement  | `"cexr": "^8"`         | cexp v8 .cex_boxes Dist Loader Engine                   |
 | Compiler Requirement | `"cexp": "^8"`         | cexp v8 Direct Machine Compiler                         |
 | Server Port          | `3080`                 | Factory MVC Default Port                                |
 | Primary Store        | `dist/` & `downloads/` | **Keep `dist/` with downloads of cxvm cross platforms** |

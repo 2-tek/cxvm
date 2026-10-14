@@ -12,7 +12,7 @@ trigger: always_on
 > It is powered natively by **Lighting Fullstack MVC** using Pure Cex (`cexr` runtime engine + `cexp` direct machine compiler), with zero C++ build dependencies in v2.
 >
 > In conformance with **Rule 69**:
-> In CexR v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, do not use `.gitignore` for dist bundle file.
+> In cexp v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, do not use `.gitignore` for dist bundle file.
 > **The `dist/` directory is retained, tracked, and populated with all 36 cross-platform distribution bundles.**
 
 ---
@@ -29,7 +29,7 @@ trigger: always_on
 4. **Pure Cex Standard (v2)**:
     - In v2, do not use C++ compilers (`g++`, `clang++`, `MSVC`). Execution is handled directly by `cexr` and machine compilation by `cexp`.
 5. **Project Dispatchers & Default Runtimes**:
-    - Default `./bin/cexr` and `./bin/cex` prioritize **CexR v8.0.0** (with quick-switch support for **v6.0.0**).
+    - Default `./bin/cexr` and `./bin/cex` prioritize **cexp v8.0.0** (with quick-switch support for **v6.0.0**).
 6. **Cross-Platform Setup Window**:
     - Provide an interactive visual setup window via CLI (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `setup.cmd`) and Web (`http://localhost:3080/setup`) to configure PATH, environment variables, default runtimes, and local `./bin/` dispatchers.
 7. **Automated Testing**:

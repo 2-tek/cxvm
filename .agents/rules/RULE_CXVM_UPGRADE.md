@@ -2,7 +2,7 @@
 trigger: always_on
 ---
 
-# Mandatory Rule: Always Run CXVM Upgrade to Auto-Fetch Latest CXVM and CexR (RULE_CXVM_UPGRADE)
+# Mandatory Rule: Always Run CXVM Upgrade to Auto-Fetch Latest CXVM and cexp (RULE_CXVM_UPGRADE)
 
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
@@ -11,7 +11,7 @@ trigger: always_on
 >
 > 1. **AUTOMATIC LATEST VERSION SYNCHRONIZATION**:
 >     - The system and developer environment MUST always execute `cxvm upgrade` (or `cxvm upgrade latest`) to automatically check, fetch, download, and activate the latest release of **`cxvm`**, the **`cexr`** runtime engine, and the **`cexp`** direct machine compiler.
->     - Running `cxvm upgrade` ensures that active toolchain symlinks in `$CXVM_DIR/bin/` (or `~/.cxvm/bin/`) and project dispatchers are continuously updated to the latest upstream releases (e.g. CexR v8 and direct machine compiler).
+>     - Running `cxvm upgrade` ensures that active toolchain symlinks in `$CXVM_DIR/bin/` (or `~/.cxvm/bin/`) and project dispatchers are continuously updated to the latest upstream releases (e.g. cexp v8 and direct machine compiler).
 > 2. **EXECUTION TIMING & TRIGGERS**:
 >     - Execute `cxvm upgrade` proactively:
 >         - At the initialization of tasks and before starting development in any repository.

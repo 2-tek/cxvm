@@ -75,6 +75,6 @@ flowchart TD
 
 ## 3. Storage & Packaging Invariants (Rule 69)
 
-1. **`dist/` Retention**: In CexR v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, **do not use `.gitignore` for dist bundle file**.
+1. **`dist/` Retention**: In cexp v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, **do not use `.gitignore` for dist bundle file**.
 2. **Dual Availability**: All 36 cross-platform distribution archives reside in both `dist/` and `downloads/`.
 3. **No External C++**: The entire codebase in v2 is pure Cex, executed by `cexr` and compiled by `cexp`.

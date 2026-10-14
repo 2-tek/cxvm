@@ -14,7 +14,7 @@ trigger: always_on
 > 1. Runtime execution is driven purely by **`cexr`** (Cex Language Runtime Engine, required: `"^8"`).
 > 2. Machine compilation is driven purely by **`cexp`** (Cex Direct Machine Compiler, required: `"^8"`).
 > 3. Manifest target is strictly `"target": "runtime"`.
-> 4. Default dispatchers in `./bin/cexr` and `./bin/cex` prioritize **CexR v8.0.0** (with v6.0.0 instant fallback/switch).
+> 4. Default dispatchers in `./bin/cexr` and `./bin/cex` prioritize **cexp v8.0.0** (with v6.0.0 instant fallback/switch).
 
 ---
 
@@ -22,7 +22,7 @@ trigger: always_on
 
 | Operation                       | Canonical Command                                                   | Description                                                                             |
 | :------------------------------ | :------------------------------------------------------------------ | :-------------------------------------------------------------------------------------- |
-| **Run CXVM App / Server**       | `cexr run src/index.cex` \| `./bin/cexr run src/index.cex`          | Execute Lighting MVC server on port 3080 with CexR v8                                   |
+| **Run CXVM App / Server**       | `cexr run src/index.cex` \| `./bin/cexr run src/index.cex`          | Execute Lighting MVC server on port 3080 with cexp v8                                   |
 | **Run CXVM CLI**                | `./bin/cxvm <command>` \| `cxvm <command>`                          | Run CXVM version manager CLI                                                            |
 | **Cross-Platform Setup Window** | `./bin/cxvm setup` \| `./scripts/setup.sh` \| `.\scripts\setup.ps1` | Launch interactive terminal setup window for PATH & env                                 |
 | **Web Setup Window**            | `curl http://localhost:3080/setup` \| browser at `:3080/setup`      | Open full visual Lighting MVC desktop window UI                                         |

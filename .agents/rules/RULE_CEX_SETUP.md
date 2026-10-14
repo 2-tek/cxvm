@@ -32,9 +32,9 @@ trigger: always_on
 ## 2. Dispatcher Standards (`./bin/cexr` & `./bin/cex`)
 
 1. **Default Version (v8.0.0)**:
-    - `./bin/cexr` and `./bin/cex` default to CexR v8.0.0 (`~/.cxvm/versions/v8.0.0/bin/cexr` or active CexR v8 binary).
+    - `./bin/cexr` and `./bin/cex` default to cexp v8.0.0 (`~/.cxvm/versions/v8.0.0/bin/cexr` or active cexp v8 binary).
 2. **Instant Version Switch (v6.0.0)**:
-    - Must support direct version invocation: `./bin/cexr v6 <file.cex>` or `./bin/cex v6 run <file.cex>` targeting CexR v6.0.0 without permanently altering global default.
+    - Must support direct version invocation: `./bin/cexr v6 <file.cex>` or `./bin/cex v6 run <file.cex>` targeting cexp v6.0.0 without permanently altering global default.
 3. **Cross-Platform Companions**:
     - `bin/cexr`, `bin/cex`, `bin/cxvm` (POSIX bash)
     - `bin/cexr.cmd`, `bin/cex.cmd`, `bin/cxvm.cmd` (Windows CMD)
