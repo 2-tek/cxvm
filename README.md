@@ -540,6 +540,7 @@ cxvm fixed origin feature/vcs-integration
 ```
 
 ### Execution Flow:
+
 1. **Step 1: Pull from Git**: Executes `git pull <remote> <branch>` to fetch and integrate upstream commits.
 2. **Step 2: Sync from CVM**: Reconciles working tree commits with local/remote CVM state.
 3. **Step 3: Get Last Version**: Reads the newest version from `cex-pack.json` and release tags.
