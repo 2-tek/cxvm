@@ -1,64 +1,352 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CexTest Coverage Report</title>
-<style>
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
-.container { max-width: 1100px; margin: 0 auto; }
-.header { border-bottom: 2px solid #334155; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
-h1 { margin: 0; font-size: 24px; color: #38bdf8; }
-.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-.card { background: #1e293b; border-radius: 8px; padding: 16px; border: 1px solid #334155; text-align: center; }
-.card-val { font-size: 28px; font-weight: bold; margin-top: 8px; }
-.card-pct { color: #4ade80; }
-.progress-bar { background: #334155; border-radius: 9999px; height: 12px; overflow: hidden; margin-bottom: 24px; }
-.progress-fill { background: #22c55e; height: 100%; transition: width 0.3s; }
-table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; border: 1px solid #334155; }
-th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #334155; }
-th { background: #0f172a; font-weight: 600; color: #94a3b8; }
-tr:hover { background: #243248; }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-.badge-pass { background: #14532d; color: #4ade80; }
-.badge-warn { background: #713f12; color: #fde047; }
-.badge-fail { background: #7f1d1d; color: #f87171; }
-</style>
-</head>
-<body>
-<div class="container">
-<div class="header"><h1>CexTest Coverage Report</h1><span>2-TEK Cex Ecosystem</span></div>
-<div class="cards">
-<div class="card"><div>Overall Coverage</div><div class="card-val card-pct">100%</div></div>
-<div class="card"><div>Files Analyzed</div><div class="card-val">22</div></div>
-<div class="card"><div>Executable Lines</div><div class="card-val">5471</div></div>
-<div class="card"><div>Hit / Missed</div><div class="card-val">5471 / 0</div></div>
-</div>
-<div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
-<table><thead><tr><th>File Path</th><th>Total</th><th>Exec</th><th>Hit</th><th>Miss</th><th>Coverage</th><th>Missing Lines</th></tr></thead><tbody>
-<tr><td>src/types.cex</td><td>141</td><td>47</td><td>47</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/models/platform_model.cex</td><td>58</td><td>30</td><td>30</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/models/version_model.cex</td><td>54</td><td>27</td><td>27</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/models/artifact_model.cex</td><td>58</td><td>30</td><td>30</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/builder/dist_builder.cex</td><td>129</td><td>77</td><td>77</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/types.cex</td><td>321</td><td>126</td><td>126</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/hash_utils.cex</td><td>210</td><td>131</td><td>131</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/diff_engine.cex</td><td>126</td><td>84</td><td>84</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/merge_manager.cex</td><td>138</td><td>76</td><td>76</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/cvm_patch.cex</td><td>199</td><td>146</td><td>146</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/ref_manager.cex</td><td>135</td><td>73</td><td>73</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/object_store.cex</td><td>161</td><td>87</td><td>87</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/repository.cex</td><td>268</td><td>141</td><td>141</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cvm/cli.cex</td><td>288</td><td>211</td><td>211</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/controllers/factory_controller.cex</td><td>1007</td><td>773</td><td>773</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/views/factory_views.cex</td><td>400</td><td>333</td><td>333</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/lighting_mvc.cex</td><td>424</td><td>191</td><td>191</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/log.cex</td><td>5</td><td>0</td><td>0</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/app.cex</td><td>427</td><td>235</td><td>235</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/server.cex</td><td>51</td><td>33</td><td>33</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/index.cex</td><td>260</td><td>177</td><td>177</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-<tr><td>src/cxvm/cxvm_engine.cex</td><td>3265</td><td>2443</td><td>2443</td><td>0</td><td><span class="badge badge-pass">100%</span></td><td>None</td></tr>
-</tbody></table>
-</div>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>CexTest Coverage Report</title>
+        <style>
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                background: #0f172a;
+                color: #f8fafc;
+                margin: 0;
+                padding: 24px;
+            }
+            .container {
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .header {
+                border-bottom: 2px solid #334155;
+                padding-bottom: 16px;
+                margin-bottom: 24px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            h1 {
+                margin: 0;
+                font-size: 24px;
+                color: #38bdf8;
+            }
+            .cards {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+            .card {
+                background: #1e293b;
+                border-radius: 8px;
+                padding: 16px;
+                border: 1px solid #334155;
+                text-align: center;
+            }
+            .card-val {
+                font-size: 28px;
+                font-weight: bold;
+                margin-top: 8px;
+            }
+            .card-pct {
+                color: #4ade80;
+            }
+            .progress-bar {
+                background: #334155;
+                border-radius: 9999px;
+                height: 12px;
+                overflow: hidden;
+                margin-bottom: 24px;
+            }
+            .progress-fill {
+                background: #22c55e;
+                height: 100%;
+                transition: width 0.3s;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                background: #1e293b;
+                border-radius: 8px;
+                overflow: hidden;
+                border: 1px solid #334155;
+            }
+            th,
+            td {
+                padding: 12px 16px;
+                text-align: left;
+                border-bottom: 1px solid #334155;
+            }
+            th {
+                background: #0f172a;
+                font-weight: 600;
+                color: #94a3b8;
+            }
+            tr:hover {
+                background: #243248;
+            }
+            .badge {
+                display: inline-block;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .badge-pass {
+                background: #14532d;
+                color: #4ade80;
+            }
+            .badge-warn {
+                background: #713f12;
+                color: #fde047;
+            }
+            .badge-fail {
+                background: #7f1d1d;
+                color: #f87171;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>CexTest Coverage Report</h1>
+                <span>2-TEK Cex Ecosystem</span>
+            </div>
+            <div class="cards">
+                <div class="card">
+                    <div>Overall Coverage</div>
+                    <div class="card-val card-pct">100%</div>
+                </div>
+                <div class="card">
+                    <div>Files Analyzed</div>
+                    <div class="card-val">22</div>
+                </div>
+                <div class="card">
+                    <div>Executable Lines</div>
+                    <div class="card-val">5471</div>
+                </div>
+                <div class="card">
+                    <div>Hit / Missed</div>
+                    <div class="card-val">5471 / 0</div>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%"></div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>File Path</th>
+                        <th>Total</th>
+                        <th>Exec</th>
+                        <th>Hit</th>
+                        <th>Miss</th>
+                        <th>Coverage</th>
+                        <th>Missing Lines</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>src/types.cex</td>
+                        <td>141</td>
+                        <td>47</td>
+                        <td>47</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/models/platform_model.cex</td>
+                        <td>58</td>
+                        <td>30</td>
+                        <td>30</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/models/version_model.cex</td>
+                        <td>54</td>
+                        <td>27</td>
+                        <td>27</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/models/artifact_model.cex</td>
+                        <td>58</td>
+                        <td>30</td>
+                        <td>30</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/builder/dist_builder.cex</td>
+                        <td>129</td>
+                        <td>77</td>
+                        <td>77</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/types.cex</td>
+                        <td>321</td>
+                        <td>126</td>
+                        <td>126</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/hash_utils.cex</td>
+                        <td>210</td>
+                        <td>131</td>
+                        <td>131</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/diff_engine.cex</td>
+                        <td>126</td>
+                        <td>84</td>
+                        <td>84</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/merge_manager.cex</td>
+                        <td>138</td>
+                        <td>76</td>
+                        <td>76</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/cvm_patch.cex</td>
+                        <td>199</td>
+                        <td>146</td>
+                        <td>146</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/ref_manager.cex</td>
+                        <td>135</td>
+                        <td>73</td>
+                        <td>73</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/object_store.cex</td>
+                        <td>161</td>
+                        <td>87</td>
+                        <td>87</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/repository.cex</td>
+                        <td>268</td>
+                        <td>141</td>
+                        <td>141</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cvm/cli.cex</td>
+                        <td>288</td>
+                        <td>211</td>
+                        <td>211</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/controllers/factory_controller.cex</td>
+                        <td>1007</td>
+                        <td>773</td>
+                        <td>773</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/views/factory_views.cex</td>
+                        <td>400</td>
+                        <td>333</td>
+                        <td>333</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/lighting_mvc.cex</td>
+                        <td>424</td>
+                        <td>191</td>
+                        <td>191</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/log.cex</td>
+                        <td>5</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/app.cex</td>
+                        <td>427</td>
+                        <td>235</td>
+                        <td>235</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/server.cex</td>
+                        <td>51</td>
+                        <td>33</td>
+                        <td>33</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/index.cex</td>
+                        <td>260</td>
+                        <td>177</td>
+                        <td>177</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td>src/cxvm/cxvm_engine.cex</td>
+                        <td>3265</td>
+                        <td>2443</td>
+                        <td>2443</td>
+                        <td>0</td>
+                        <td><span class="badge badge-pass">100%</span></td>
+                        <td>None</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </body>
 </html>
