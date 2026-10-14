@@ -675,14 +675,19 @@ class CxvmEngine {
     }
 
     public cxvmInit(projectName: string, targetDir: string): CxvmCommandResult* {
-        let name: string = projectName.length() == 0 ? "my-project" : projectName;
+        let isCurrentFolder: bool = (projectName == ".");
+        let name: string = isCurrentFolder ? "my-project" : (projectName.length() == 0 ? "my-project" : projectName);
         let dir: string = targetDir.length() == 0 ? "." : targetDir;
-        let projPath: string = dir == "." ? name : dir + "/" + name;
+        let projPath: string = isCurrentFolder ? "." : (dir == "." ? name : dir + "/" + name);
 
         let out: string = "==> [cxvm init] Initializing default Cex project '" + name + "'...\n";
-        out += "[OK] [cxvm init] Created project directory: " + projPath + "\n";
+        if (isCurrentFolder) {
+            out += "[OK] [cxvm init] Initialized project in current directory: .\n";
+        } else {
+            out += "[OK] [cxvm init] Created project directory: " + projPath + "\n";
+        }
         out += "[OK] [cxvm init] Generated default cex-pack.json configuration (name: " + name + ")\n";
-        out += "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)\n";
+        out += "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (cex-test, lighting)\n";
         out += "[OK] [cxvm init] Initialized CodeVersionManager repository (.cvm/)\n";
         out += "[OK] [cxvm init] Generated .cvmignore file\n";
         out += "[OK] [cxvm init] Generated README.md documentation\n";
@@ -692,7 +697,9 @@ class CxvmEngine {
         out += "[OK] [cxvm init] Configured project start & build commands in scripts\n";
         out += "==> Project '" + name + "' initialized successfully!\n";
         out += "To get started:\n";
-        out += "  cd " + name + "\n";
+        if (!isCurrentFolder) {
+            out += "  cd " + name + "\n";
+        }
         out += "  cxvm start   (or: cxvm dev)\n";
         out += "  cxvm build";
 

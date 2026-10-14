@@ -829,17 +829,34 @@ echo CexR Windows Runner ready.
         }
     }
     "init" {
-        $projName = if ($Version) { $Version } else { "my-project" }
-        $projDir = if ($projName -eq ".") { "." } else { $projName }
-        if ($projDir -ne ".") { New-Item -ItemType Directory -Force -Path $projDir | Out-Null }
+        $targetArg = if ($Version) { $Version } else { "my-project" }
+        $isCurrentDir = $false
+        if ($targetArg -eq ".") {
+            $isCurrentDir = $true
+            $projDir = "."
+            $projName = Split-Path -Leaf (Get-Location)
+            if (-not $projName -or $projName -eq "\" -or $projName -eq "/") { $projName = "my-project" }
+        } else {
+            $projName = $targetArg
+            $projDir = $projName
+            New-Item -ItemType Directory -Force -Path $projDir | Out-Null
+        }
         Write-Host "==> [cxvm init] Initializing default Cex project '$projName'..." -ForegroundColor Cyan
         New-Item -ItemType Directory -Force -Path (Join-Path $projDir "src") | Out-Null
-        New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cex_boxes\@cex-test") | Out-Null
-        New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cex_boxes\@2tek\lighting") | Out-Null
+        $boxTestDir = Join-Path $projDir ".cex_boxes\cex-test"
+        $boxLightDir = Join-Path $projDir ".cex_boxes\lighting"
+        New-Item -ItemType Directory -Force -Path $boxTestDir | Out-Null
+        New-Item -ItemType Directory -Force -Path $boxLightDir | Out-Null
+        Set-Content -Path (Join-Path $boxTestDir ".gitkeep") -Value "# Keep directory structure for Git and CVM`r`n"
+        Set-Content -Path (Join-Path $boxTestDir ".cvmkeep") -Value "# Keep directory structure for Git and CVM`r`n"
+        Set-Content -Path (Join-Path $boxLightDir ".gitkeep") -Value "# Keep directory structure for Git and CVM`r`n"
+        Set-Content -Path (Join-Path $boxLightDir ".cvmkeep") -Value "# Keep directory structure for Git and CVM`r`n"
         New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cvm\objects") | Out-Null
         New-Item -ItemType Directory -Force -Path (Join-Path $projDir ".cvm\refs\heads") | Out-Null
 
-        $packJson = @"
+        $packPath = Join-Path $projDir "cex-pack.json"
+        if (-not (Test-Path $packPath)) {
+            $packJson = @"
 {
   "name": "$projName",
   "version": "1.0.0",
@@ -855,46 +872,92 @@ echo CexR Windows Runner ready.
     "build": "cxvm build"
   },
   "dependencies": {
-    "@cex-test": "1.0.0",
-    "@2tek/lighting": "1.0.0"
+    "cex-test": "1.0.0",
+    "lighting": "1.0.0"
   },
   "includeDirs": [
     "./src"
   ]
 }
 "@
-        Set-Content -Path (Join-Path $projDir "cex-pack.json") -Value $packJson
+            Set-Content -Path $packPath -Value $packJson
+        }
 
-        $manifestJson = @"
+        $boxManifestPath = Join-Path $projDir ".cex_boxes\manifest.json"
+        if (-not (Test-Path $boxManifestPath)) {
+            $manifestJson = @"
 {
   "pulledAt": "2026-10-09T00:00:00Z",
   "packages": [
-    { "name": "@cex-test", "version": "1.0.0", "status": "pulled" },
-    { "name": "@2tek/lighting", "version": "1.0.0", "status": "pulled" }
+    { "name": "cex-test", "version": "1.0.0", "status": "pulled" },
+    { "name": "lighting", "version": "1.0.0", "status": "pulled" }
   ]
 }
 "@
-        Set-Content -Path (Join-Path $projDir ".cex_boxes\manifest.json") -Value $manifestJson
-        Set-Content -Path (Join-Path $projDir ".cvm\HEAD") -Value "ref: refs/heads/main"
-        $cvmConfig = "[core]`r`n`trepositoryformatversion = 0`r`n`tfilemode = true`r`n`tbare = false"
-        Set-Content -Path (Join-Path $projDir ".cvm\config") -Value $cvmConfig
+            Set-Content -Path $boxManifestPath -Value $manifestJson
+        }
 
-        $cvmIgnore = "# CVM ignore rules`r`ndist/`r`n.cex_boxes/`r`n*.log`r`n.DS_Store`r`ntmp/"
-        Set-Content -Path (Join-Path $projDir ".cvmignore") -Value $cvmIgnore
-        Set-Content -Path (Join-Path $projDir ".cvm\ignore") -Value $cvmIgnore
+        $cvmHead = Join-Path $projDir ".cvm\HEAD"
+        if (-not (Test-Path $cvmHead)) {
+            Set-Content -Path $cvmHead -Value "ref: refs/heads/main"
+        }
+        $cvmCfg = Join-Path $projDir ".cvm\config"
+        if (-not (Test-Path $cvmCfg)) {
+            $cvmConfig = "[core]`r`n`trepositoryformatversion = 0`r`n`tfilemode = true`r`n`tbare = false"
+            Set-Content -Path $cvmCfg -Value $cvmConfig
+        }
 
-        $readme = "# $projName`r`n`r`nDefault Cex project initialized by ``cxvm```.`r`n`r`n## Features`r`n- Package management with ``cex-pack``` (``cex-pack.json```)`r`n- Auto-pulled dependency cache in ``.cex_boxes````r`n- Integrated CodeVersionManager (``.cvm```)`r`n- Clean ignore rules in ``.cvmignore````r`n`r`n## Getting Started`r`n`r`nStart:`r`n````powershell`r`ncxvm start`r`n# or: cxvm dev`r`n`````r`n`r`nBuild:`r`n````powershell`r`ncxvm build`r`n````"
-        Set-Content -Path (Join-Path $projDir "README.md") -Value $readme
-        $sec = "# Security Policy`r`n`r`n## Reporting Security Issues`r`nIf you discover a security vulnerability, please contact security@2tek.local."
-        Set-Content -Path (Join-Path $projDir "SECURITY.md") -Value $sec
-        $lic = "MIT License`r`n`r`nCopyright (c) 2026 2-TEK Ecosystem"
-        Set-Content -Path (Join-Path $projDir "LICENSE") -Value $lic
-        Set-Content -Path (Join-Path $projDir "LICENSES.md") -Value $lic
+        $cvmIgnorePath = Join-Path $projDir ".cvmignore"
+        if (-not (Test-Path $cvmIgnorePath)) {
+            $cvmIgnore = "# CVM ignore rules`r`ndist/`r`n.cex_boxes/`r`n*.log`r`n.DS_Store`r`ntmp/`r`n.cex_cache/`r`n`r`n# Never ignore directory preservation markers`r`n!**/.gitkeep`r`n!**/.cvmkeep"
+            Set-Content -Path $cvmIgnorePath -Value $cvmIgnore
+            Set-Content -Path (Join-Path $projDir ".cvm\ignore") -Value $cvmIgnore
+        }
 
-        $idxCex = "// $projName Entrypoint (Powered by CXVM)`r`nimport fs from `"fs`";`r`n`r`nfn main(): int {`r`n    println(`"Welcome to $projName (Powered by CXVM)`");`r`n    return 0;`r`n}"
-        Set-Content -Path (Join-Path $projDir "src\index.cex") -Value $idxCex
+        $readmePath = Join-Path $projDir "README.md"
+        if (-not (Test-Path $readmePath)) {
+            $readme = "# $projName`r`n`r`nDefault Cex project initialized by ``cxvm```.`r`n`r`n## Features`r`n- Package management with ``cex-pack``` (``cex-pack.json```)`r`n- Auto-pulled dependency cache in ``.cex_boxes````r`n- Integrated CodeVersionManager (``.cvm```)`r`n- Clean ignore rules in ``.cvmignore````r`n`r`n## Getting Started`r`n`r`nStart:`r`n````powershell`r`ncxvm start`r`n# or: cxvm dev`r`n`````r`n`r`nBuild:`r`n````powershell`r`ncxvm build`r`n````"
+            Set-Content -Path $readmePath -Value $readme
+        }
+        $secPath = Join-Path $projDir "SECURITY.md"
+        if (-not (Test-Path $secPath)) {
+            $sec = "# Security Policy`r`n`r`n## Reporting Security Issues`r`nIf you discover a security vulnerability, please contact security@2tek.local."
+            Set-Content -Path $secPath -Value $sec
+        }
+        $licPath = Join-Path $projDir "LICENSE"
+        if (-not (Test-Path $licPath)) {
+            $lic = "MIT License`r`n`r`nCopyright (c) 2026 2-TEK Ecosystem"
+            Set-Content -Path $licPath -Value $lic
+            Set-Content -Path (Join-Path $projDir "LICENSES.md") -Value $lic
+        }
 
-        Write-Host "[OK] [cxvm init] Created project '$projName' successfully!" -ForegroundColor Green
+        $idxPath = Join-Path $projDir "src\index.cex"
+        if (-not (Test-Path $idxPath)) {
+            $idxCex = "// $projName Entrypoint (Powered by CXVM)`r`nimport fs from `"fs`";`r`n`r`nfn main(): int {`r`n    println(`"Welcome to $projName (Powered by CXVM)`");`r`n    return 0;`r`n}"
+            Set-Content -Path $idxPath -Value $idxCex
+        }
+
+        if ($isCurrentDir) {
+            Write-Host "[OK] [cxvm init] Initialized project in current directory: ." -ForegroundColor Green
+        } else {
+            Write-Host "[OK] [cxvm init] Created project directory: $projDir" -ForegroundColor Green
+        }
+        Write-Host "[OK] [cxvm init] Generated default cex-pack.json configuration" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (cex-test, lighting)" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Initialized CodeVersionManager repository (.cvm/)" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Generated .cvmignore file" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Generated README.md documentation" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Generated SECURITY.md policy" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Generated LICENSE file" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Created application entrypoint (src/index.cex)" -ForegroundColor Green
+        Write-Host "[OK] [cxvm init] Configured project start & build commands in scripts" -ForegroundColor Green
+        Write-Host "==> Project '$projName' initialized successfully!" -ForegroundColor Green
+        Write-Host "To get started:"
+        if (-not $isCurrentDir) {
+            Write-Host "  cd $projDir"
+        }
+        Write-Host "  cxvm start   (or: cxvm dev)"
+        Write-Host "  cxvm build"
     }
     "start" {
         Write-Host "==> [cxvm start] Starting project..." -ForegroundColor Cyan

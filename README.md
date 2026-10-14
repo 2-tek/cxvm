@@ -118,7 +118,7 @@ cxvm use 6.0.0
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
 | `cxvm setup` | - | Displays cross-platform setup window, configures PATH & env, and links `./bin/cexr` & `./bin/cex` (v8 & v6) |
-| `cxvm init [name]` | `npm init` | Initializes default Cex project (default: `my-project`) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
+| `cxvm init [name\|.]` | `npm init` | Initializes default Cex project (`my-project`, custom name, or `.` for current folder) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
 | `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr` runner |
 | `cxvm download 8.0.0 [plat]` | - | Downloads cross-platform bundle into cache for offline `cexr` setup |
 | `cxvm download 8.0.0 all` | - | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr` |

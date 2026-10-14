@@ -3,10 +3,12 @@
 .cex_active_runtime
 
 # Binaries and build outputs
-bin
-bin/
-**/bin
-**/bin/
+bin/*
+!bin/.gitkeep
+!bin/.cvmkeep
+**/bin/*
+!**/bin/.gitkeep
+!**/bin/.cvmkeep
 *.bin
 *.out
 # Rule 69: target is runtime, do not use .gitignore for dist bundle file (keep dist/ with download of cxvm cross platforms)

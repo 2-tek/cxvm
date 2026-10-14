@@ -899,17 +899,48 @@ cxvm() {
       ;;
 
     init)
-      local proj_name="${1:-my-project}"
+      local target_arg="$1"
+      local proj_name=""
       local proj_dir="."
-      if [ "$proj_name" != "." ]; then
-        proj_dir="$proj_name"
+      local is_current_dir=0
+
+      if [ "$target_arg" = "." ]; then
+        is_current_dir=1
+        proj_dir="."
+        if [ -n "$2" ]; then
+          proj_name="$2"
+        else
+          proj_name="$(basename "$PWD")"
+          if [ "$proj_name" = "/" ] || [ -z "$proj_name" ] || [ "$proj_name" = "." ]; then
+            proj_name="my-project"
+          fi
+        fi
+      elif [ -z "$target_arg" ]; then
+        proj_name="my-project"
+        proj_dir="my-project"
         mkdir -p "$proj_dir"
+      else
+        if [ "$2" = "." ]; then
+          is_current_dir=1
+          proj_dir="."
+          proj_name="$target_arg"
+        else
+          proj_name="$target_arg"
+          proj_dir="$target_arg"
+          mkdir -p "$proj_dir"
+        fi
       fi
+
       echo "==> [cxvm init] Initializing default Cex project '$proj_name'..."
-      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/@cex-test" "$proj_dir/.cex_boxes/@2tek/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
+      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/cex-test" "$proj_dir/.cex_boxes/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
+      printf "# Keep directory structure for Git and CVM\n" > "$proj_dir/.cex_boxes/cex-test/.gitkeep" 2>/dev/null || true
+      printf "# Keep directory structure for Git and CVM\n" > "$proj_dir/.cex_boxes/cex-test/.cvmkeep" 2>/dev/null || true
+      printf "# Keep directory structure for Git and CVM\n" > "$proj_dir/.cex_boxes/lighting/.gitkeep" 2>/dev/null || true
+      printf "# Keep directory structure for Git and CVM\n" > "$proj_dir/.cex_boxes/lighting/.cvmkeep" 2>/dev/null || true
 
       # Write cex-pack.json
-      cat <<CEXPACK_EOF > "$proj_dir/cex-pack.json"
+      if [ ! -f "$proj_dir/cex-pack.json" ]; then
+        cat <<CEXPACK_EOF > "$proj_dir/cex-pack.json"
 {
   "name": "$proj_name",
   "version": "1.0.0",
@@ -925,48 +956,63 @@ cxvm() {
     "build": "cxvm build"
   },
   "dependencies": {
-    "@cex-test": "1.0.0",
-    "@2tek/lighting": "1.0.0"
+    "cex-test": "1.0.0",
+    "lighting": "1.0.0"
   },
   "includeDirs": [
     "./src"
   ]
 }
 CEXPACK_EOF
+      fi
 
       # Write .cex_boxes/manifest.json
-      cat <<BOX_EOF > "$proj_dir/.cex_boxes/manifest.json"
+      if [ ! -f "$proj_dir/.cex_boxes/manifest.json" ]; then
+        cat <<BOX_EOF > "$proj_dir/.cex_boxes/manifest.json"
 {
   "pulledAt": "2026-10-09T00:00:00Z",
   "packages": [
-    { "name": "@cex-test", "version": "1.0.0", "status": "pulled" },
-    { "name": "@2tek/lighting", "version": "1.0.0", "status": "pulled" }
+    { "name": "cex-test", "version": "1.0.0", "status": "pulled" },
+    { "name": "lighting", "version": "1.0.0", "status": "pulled" }
   ]
 }
 BOX_EOF
+      fi
 
       # Setup .cvm repo
-      echo "ref: refs/heads/main" > "$proj_dir/.cvm/HEAD"
-      cat <<CVM_CFG > "$proj_dir/.cvm/config"
+      if [ ! -f "$proj_dir/.cvm/HEAD" ]; then
+        echo "ref: refs/heads/main" > "$proj_dir/.cvm/HEAD"
+      fi
+      if [ ! -f "$proj_dir/.cvm/config" ]; then
+        cat <<CVM_CFG > "$proj_dir/.cvm/config"
 [core]
 	repositoryformatversion = 0
 	filemode = true
 	bare = false
 CVM_CFG
+      fi
 
       # Setup .cvmignore
-      cat <<IGNORE_EOF > "$proj_dir/.cvmignore"
+      if [ ! -f "$proj_dir/.cvmignore" ]; then
+        cat <<IGNORE_EOF > "$proj_dir/.cvmignore"
 # CVM ignore rules
 dist/
 .cex_boxes/
 *.log
 .DS_Store
 tmp/
+.cex_cache/
+
+# Never ignore directory preservation markers
+!**/.gitkeep
+!**/.cvmkeep
 IGNORE_EOF
-      cp "$proj_dir/.cvmignore" "$proj_dir/.cvm/ignore" 2>/dev/null || true
+        cp "$proj_dir/.cvmignore" "$proj_dir/.cvm/ignore" 2>/dev/null || true
+      fi
 
       # Setup README.md
-      cat <<README_EOF > "$proj_dir/README.md"
+      if [ ! -f "$proj_dir/README.md" ]; then
+        cat <<README_EOF > "$proj_dir/README.md"
 # $proj_name
 
 Default Cex project initialized by \`cxvm\`.
@@ -990,18 +1036,22 @@ Build the project:
 cxvm build
 \`\`\`
 README_EOF
+      fi
 
       # Setup SECURITY.md
-      cat <<SEC_EOF > "$proj_dir/SECURITY.md"
+      if [ ! -f "$proj_dir/SECURITY.md" ]; then
+        cat <<SEC_EOF > "$proj_dir/SECURITY.md"
 # Security Policy
 
 ## Reporting Security Issues
 If you discover a security vulnerability within this project, please send an email to security@2tek.local.
 All security vulnerabilities will be promptly addressed.
 SEC_EOF
+      fi
 
       # Setup LICENSE & LICENSES.md
-      cat <<LIC_EOF > "$proj_dir/LICENSE"
+      if [ ! -f "$proj_dir/LICENSE" ]; then
+        cat <<LIC_EOF > "$proj_dir/LICENSE"
 MIT License
 
 Copyright (c) 2026 2-TEK Ecosystem
@@ -1024,10 +1074,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 LIC_EOF
-      cp "$proj_dir/LICENSE" "$proj_dir/LICENSES.md" 2>/dev/null || true
+        cp "$proj_dir/LICENSE" "$proj_dir/LICENSES.md" 2>/dev/null || true
+      fi
 
       # Setup src/index.cex
-      cat <<INDEX_EOF > "$proj_dir/src/index.cex"
+      if [ ! -f "$proj_dir/src/index.cex" ]; then
+        cat <<INDEX_EOF > "$proj_dir/src/index.cex"
 // $proj_name Entrypoint (Powered by CXVM)
 import fs from "fs";
 
@@ -1042,10 +1094,15 @@ fn main(): int {
     return 0;
 }
 INDEX_EOF
+      fi
 
-      echo "[OK] [cxvm init] Created project directory: $proj_dir"
+      if [ "$is_current_dir" -eq 1 ]; then
+        echo "[OK] [cxvm init] Initialized project in current directory: ."
+      else
+        echo "[OK] [cxvm init] Created project directory: $proj_dir"
+      fi
       echo "[OK] [cxvm init] Generated default cex-pack.json configuration"
-      echo "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)"
+      echo "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (cex-test, lighting)"
       echo "[OK] [cxvm init] Initialized CodeVersionManager repository (.cvm/)"
       echo "[OK] [cxvm init] Generated .cvmignore file"
       echo "[OK] [cxvm init] Generated README.md documentation"
@@ -1055,7 +1112,9 @@ INDEX_EOF
       echo "[OK] [cxvm init] Configured project start & build commands in scripts"
       echo "==> Project '$proj_name' initialized successfully!"
       echo "To get started:"
-      echo "  cd $proj_dir"
+      if [ "$is_current_dir" -eq 0 ]; then
+        echo "  cd $proj_dir"
+      fi
       echo "  cxvm start   (or: cxvm dev)"
       echo "  cxvm build"
       ;;
@@ -1526,167 +1585,6 @@ LIGHT_WRAP_EOF
       echo "==> [cxvm] Default Cex version set to v${ver}"
       ;;
 
-    init)
-      local proj_name="${1:-my-project}"
-      local proj_dir="."
-      if [ "$proj_name" != "." ]; then
-        proj_dir="$proj_name"
-        mkdir -p "$proj_dir"
-      fi
-      echo "==> [cxvm init] Initializing default Cex project '$proj_name'..."
-      mkdir -p "$proj_dir/src" "$proj_dir/.cex_boxes/@cex-test" "$proj_dir/.cex_boxes/@2tek/lighting" "$proj_dir/.cvm/objects" "$proj_dir/.cvm/refs/heads"
-
-      # Write cex-pack.json
-      cat <<CEXPACK_EOF > "$proj_dir/cex-pack.json"
-{
-  "name": "$proj_name",
-  "version": "1.0.0",
-  "description": "Default Cex project initialized by cxvm",
-  "main": "src/index.cex",
-  "author": "2-TEK Ecosystem",
-  "license": "MIT",
-  "runtime": "v8",
-  "target": "runtime",
-  "scripts": {
-    "start": "cxvm start",
-    "dev": "cxvm dev",
-    "build": "cxvm build"
-  },
-  "dependencies": {
-    "@cex-test": "1.0.0",
-    "@2tek/lighting": "1.0.0"
-  },
-  "includeDirs": [
-    "./src"
-  ]
-}
-CEXPACK_EOF
-
-      # Write .cex_boxes/manifest.json
-      cat <<BOX_EOF > "$proj_dir/.cex_boxes/manifest.json"
-{
-  "pulledAt": "2026-10-09T00:00:00Z",
-  "packages": [
-    { "name": "@cex-test", "version": "1.0.0", "status": "pulled" },
-    { "name": "@2tek/lighting", "version": "1.0.0", "status": "pulled" }
-  ]
-}
-BOX_EOF
-
-      # Setup .cvm repo
-      echo "ref: refs/heads/main" > "$proj_dir/.cvm/HEAD"
-      cat <<CVM_CFG > "$proj_dir/.cvm/config"
-[core]
-	repositoryformatversion = 0
-	filemode = true
-	bare = false
-CVM_CFG
-
-      # Setup .cvmignore
-      cat <<IGNORE_EOF > "$proj_dir/.cvmignore"
-# CVM ignore rules
-dist/
-.cex_boxes/
-*.log
-.DS_Store
-tmp/
-IGNORE_EOF
-      cp "$proj_dir/.cvmignore" "$proj_dir/.cvm/ignore" 2>/dev/null || true
-
-      # Setup README.md
-      cat <<README_EOF > "$proj_dir/README.md"
-# $proj_name
-
-Default Cex project initialized by \`cxvm\`.
-
-## Features
-- Package management with \`cex-pack\` (\`cex-pack.json\`)
-- Auto-pulled dependency cache in \`.cex_boxes\`
-- Integrated CodeVersionManager (\`.cvm\`)
-- Clean ignore rules in \`.cvmignore\`
-
-## Getting Started
-
-Start the project:
-\`\`\`bash
-cxvm start
-# or: cxvm dev
-\`\`\`
-
-Build the project:
-\`\`\`bash
-cxvm build
-\`\`\`
-README_EOF
-
-      # Setup SECURITY.md
-      cat <<SEC_EOF > "$proj_dir/SECURITY.md"
-# Security Policy
-
-## Reporting Security Issues
-If you discover a security vulnerability within this project, please send an email to security@2tek.local.
-All security vulnerabilities will be promptly addressed.
-SEC_EOF
-
-      # Setup LICENSE & LICENSES.md
-      cat <<LIC_EOF > "$proj_dir/LICENSE"
-MIT License
-
-Copyright (c) 2026 2-TEK Ecosystem
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-LIC_EOF
-      cp "$proj_dir/LICENSE" "$proj_dir/LICENSES.md" 2>/dev/null || true
-
-      # Setup src/index.cex
-      cat <<INDEX_EOF > "$proj_dir/src/index.cex"
-// $proj_name Entrypoint (Powered by CXVM)
-import fs from "fs";
-
-fn main(): int {
-    println("===============================================================================");
-    println("                 Welcome to $proj_name (Powered by CXVM)                       ");
-    println("===============================================================================");
-    println("[OK] Project successfully initialized with default cex-pack configuration");
-    println("[OK] Auto-pulled .cex_boxes dependency cache ready");
-    println("[OK] CodeVersionManager (.cvm) initialized");
-    println("[OK] Ready to run with 'cxvm start' and build with 'cxvm build'");
-    return 0;
-}
-INDEX_EOF
-
-      echo "[OK] [cxvm init] Created project directory: $proj_dir"
-      echo "[OK] [cxvm init] Generated default cex-pack.json configuration"
-      echo "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (@cex-test, @2tek/lighting)"
-      echo "[OK] [cxvm init] Initialized CodeVersionManager repository (.cvm/)"
-      echo "[OK] [cxvm init] Generated .cvmignore file"
-      echo "[OK] [cxvm init] Generated README.md documentation"
-      echo "[OK] [cxvm init] Generated SECURITY.md policy"
-      echo "[OK] [cxvm init] Generated LICENSE file"
-      echo "[OK] [cxvm init] Created application entrypoint (src/index.cex)"
-      echo "[OK] [cxvm init] Configured project start & build commands in scripts"
-      echo "==> Project '$proj_name' initialized successfully!"
-      echo "To get started:"
-      echo "  cd $proj_dir"
-      echo "  cxvm start   (or: cxvm dev)"
-      echo "  cxvm build"
-      ;;
 
     start|dev|serve)
       if [ "$1" = "cvm" ]; then
@@ -1884,7 +1782,7 @@ INDEX_EOF
       echo "  log [--oneline]       Show commit history log"
       echo "  unstage <files...>    Remove files from staging index"
       echo "  discard <files...>    Revert modifications in working directory"
-      echo "  init [dir] [--git]    Initialize a new repository"
+      echo "  init [name|.]         Initialize a Cex project with cex-pack & CVM (. for current folder)"
       echo "  cvm <subcommand>      Change record commands (diff, preview, apply, record)"
       echo "  db <subcommand>       LocalSQLServer commands (status, sync, query)"
       echo "  git <args...>         Execute native git commands directly via cxvm"

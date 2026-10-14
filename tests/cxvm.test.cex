@@ -133,6 +133,10 @@ fn main(): int {
     Assert::isTrue(initRes->output.find("SECURITY.md") != -1, "cxvm init generates SECURITY.md");
     Assert::isTrue(initRes->output.find("LICENSE") != -1, "cxvm init generates LICENSE file");
 
+    let initDotRes: CxvmCommandResult* = cxvm->cxvmInit(".", ".");
+    Assert::isTrue(initDotRes->success, "cxvm init . succeeds in current directory");
+    Assert::isTrue(initDotRes->output.find("current directory") != -1, "cxvm init . initializes at current directory");
+
     let setupCmdRes: CxvmCommandResult* = cxvm->setup("8.0.0");
     Assert::isTrue(setupCmdRes->success, "cxvm setup succeeds");
     Assert::equalsString("v8.0.0", cxvm->current(), "Active version after setup is v8.0.0");
