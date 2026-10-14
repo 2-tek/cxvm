@@ -1574,6 +1574,63 @@ fn main(): int {
 
     suite->addResult("test_cxvm_jumpy_fetch_last_version_cex_boxes_and_overwrite", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 29: Native cex-boxes from cex-pack (Manifest Parsing & Jumpy)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 29: Native cex-boxes Manifest Parsing & Jumpy]");
+    // 1. Verify manifest cex-pack.json uses "cex-boxes"
+    let rootPackJson: string = fs.readFile("cex-pack.json");
+    Assert::isTrue(rootPackJson.find("\"cex-boxes\":") != string::npos, "cex-pack.json declares native 'cex-boxes' key");
+    let rootBoxes: Array<string>* = cxvm->parseCexBoxes(rootPackJson);
+    Assert::isTrue(rootBoxes->length() >= 8, "parseCexBoxes extracts native packages from cex-pack.json");
+
+    // 2. Test parseDependencies and parseCexBoxes on fixture with "cex-boxes"
+    let sampleBoxesJson: string = "{\n  \"name\": \"app-with-cex-boxes\",\n  \"version\": \"1.0.0\",\n  \"cex-boxes\": {\n    \"lighting\": \"1.0.12\",\n    \"cex-lint\": \"1.0.6\"\n  }\n}\n";
+    let parsedFromBoxes: Array<string>* = cxvm->parseCexBoxes(sampleBoxesJson);
+    Assert::equalsInt(2, (int)parsedFromBoxes->length(), "parseCexBoxes parsed 2 items from cex-boxes block");
+    Assert::isTrue(parsedFromBoxes->get(0) == "lighting@1.0.12", "lighting@1.0.12 parsed correctly");
+    Assert::isTrue(parsedFromBoxes->get(1) == "cex-lint@1.0.6", "cex-lint@1.0.6 parsed correctly");
+
+    // 3. Test jumpy directly on manifest with cex-boxes
+    system("mkdir -p tests/fixtures .cex_boxes/lighting");
+    let lightingBoxJson2: string = "{\n    \"name\": \"lighting\",\n    \"version\": \"1.0.22\"\n}\n";
+    fs.writeFile(".cex_boxes/lighting/cex-pack.json", lightingBoxJson2);
+    let fixtureBoxesPath: string = "tests/fixtures/test_cex_boxes.json";
+    fs.writeFile(fixtureBoxesPath, sampleBoxesJson);
+
+    let jumpyBoxesRes: CxvmCommandResult* = cxvm->jumpyProject(fixtureBoxesPath, "");
+    Assert::isTrue(jumpyBoxesRes->success, "jumpy on cex-boxes manifest succeeds");
+    let updatedBoxesJson: string = fs.readFile(fixtureBoxesPath);
+    Assert::isTrue(updatedBoxesJson.find("\"lighting\": \"1.0.22\"") != string::npos, "cex-boxes manifest overwritten with lighting 1.0.22");
+    Assert::isTrue(updatedBoxesJson.find("\"cex-lint\": \"1.0.8\"") != string::npos, "cex-boxes manifest overwritten with cex-lint 1.0.8");
+
+    // 4. Test CLI execution with cex-boxes
+    let pullBoxesExec1: int = cxvm->cvmExecute("pull", "cex-boxes", "");
+    Assert::equalsInt(0, pullBoxesExec1, "cxvm cvmExecute pull cex-boxes returns exit code 0");
+
+    let pullBoxesExec2: int = cxvm->cvmExecute("pull-cex-boxes", "", "");
+    Assert::equalsInt(0, pullBoxesExec2, "cxvm cvmExecute pull-cex-boxes returns exit code 0");
+
+    let upBoxesExec1: int = cxvm->cvmExecute("upgrade", "--cex-boxes=cex-log", "");
+    Assert::equalsInt(0, upBoxesExec1, "cxvm cvmExecute upgrade --cex-boxes=cex-log returns exit code 0");
+
+    let cvmPullBoxRes: CxvmCommandResult* = cxvm->cvmPull("cex-boxes", "");
+    Assert::isTrue(cvmPullBoxRes->success, "cxvm cvmPull cex-boxes succeeds");
+
+    // 5. Test API endpoints
+    let appBoxes: FactoryApp* = new FactoryApp(8080);
+    let pullBoxesApiGet: HttpResponse* = appBoxes->simulateRequest("GET", "/api/v1/cex-boxes/pull", "", "application/json");
+    Assert::equalsInt(200, pullBoxesApiGet->statusCode, "GET /api/v1/cex-boxes/pull returns 200 OK");
+
+    let upBoxesResp: HttpResponse* = appBoxes->simulateRequest("GET", "/api/v1/upgrade?cex-boxes=cex-log", "", "application/json");
+    Assert::equalsInt(200, upBoxesResp->statusCode, "GET /api/v1/upgrade?cex-boxes=cex-log returns 200 OK");
+    Assert::isTrue(upBoxesResp->body.find("\"success\":true") != -1, "Upgrade cex-boxes API reports success:true");
+
+    // Clean up
+    system("rm -rf tests/fixtures/test_cex_boxes.json .cex_boxes/lighting");
+
+    suite->addResult("test_native_cex_boxes_manifest_parsing_and_jumpy", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

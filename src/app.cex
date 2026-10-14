@@ -105,6 +105,10 @@ class FactoryApp {
         this.router->post("/api/v1/upgrade", "factory.apiUpgrade");
         this.router->get("/api/v1/dependencies/pull", "factory.apiPullDependencies");
         this.router->post("/api/v1/dependencies/pull", "factory.apiPullDependencies");
+        this.router->get("/api/v1/cex-boxes/pull", "factory.apiPullDependencies");
+        this.router->post("/api/v1/cex-boxes/pull", "factory.apiPullDependencies");
+        this.router->get("/api/v1/boxes/pull", "factory.apiPullDependencies");
+        this.router->post("/api/v1/boxes/pull", "factory.apiPullDependencies");
         this.router->get("/api/v1/hooks/scan", "factory.apiHooksScan");
         this.router->post("/api/v1/hooks/install", "factory.apiHooksInstall");
 

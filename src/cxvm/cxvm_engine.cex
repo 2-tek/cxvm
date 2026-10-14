@@ -924,19 +924,18 @@ class CxvmEngine {
         return cxvmDir + "/tmp/dependencies";
     }
 
-    public parseDependencies(content: string): Array<string>* {
-        let deps: Array<string>* = new Array<string>();
-        let pos: int = (int)content.find("\"dependencies\"");
+    public parseDependenciesFromKey(content: string, key: string, deps: Array<string>*): void {
+        let pos: int = (int)content.find(key);
         if (pos == -1) {
-            return deps;
+            return;
         }
         let braceOpen: int = (int)content.find("{", pos);
         if (braceOpen == -1) {
-            return deps;
+            return;
         }
         let braceClose: int = (int)content.find("}", braceOpen);
         if (braceClose == -1) {
-            return deps;
+            return;
         }
         let block: string = content.substr(braceOpen + 1, braceClose - braceOpen - 1);
         let idx: int = 0;
@@ -957,10 +956,35 @@ class CxvmEngine {
             let v2: int = (int)block.find("\"", v1 + 1);
             if (v2 == -1) break;
             let depVer: string = block.substr(v1 + 1, v2 - v1 - 1);
-            deps->push(depName + "@" + depVer);
+
+            let exists: bool = false;
+            let total: int = (int)deps->length();
+            for (let d: int = 0; d < total; d = d + 1) {
+                let existing: string = deps->get(d);
+                let atPos: int = (int)existing.find("@");
+                let exName: string = (atPos != -1) ? existing.substr(0, atPos) : existing;
+                if (exName == depName) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                deps->push(depName + "@" + depVer);
+            }
             idx = v2 + 1;
         }
+    }
+
+    public parseDependencies(content: string): Array<string>* {
+        let deps: Array<string>* = new Array<string>();
+        this.parseDependenciesFromKey(content, "\"cex-boxes\"", deps);
+        this.parseDependenciesFromKey(content, "\"dependencies\"", deps);
+        this.parseDependenciesFromKey(content, "\"boxes\"", deps);
         return deps;
+    }
+
+    public parseCexBoxes(content: string): Array<string>* {
+        return this.parseDependencies(content);
     }
 
     public pullDependencies(manifestPath: string, isUpgrade: bool, isClean: bool, specificPkg: string): CxvmCommandResult* {
@@ -1318,7 +1342,7 @@ class CxvmEngine {
     }
 
     public cvmPull(remoteArg: string, branchArg: string): CxvmCommandResult* {
-        if (remoteArg == "dependencies" || remoteArg == "deps") {
+        if (remoteArg == "cex-boxes" || remoteArg == "boxes" || remoteArg == "dependencies" || remoteArg == "deps") {
             let isUpgrade: bool = (branchArg == "--upgrade" || branchArg == "-u");
             let isClean: bool = (branchArg == "--clean" || branchArg == "-c");
             return this.pullDependencies("cex-pack.json", isUpgrade, isClean, "");
@@ -2743,7 +2767,9 @@ class CxvmEngine {
             let c: char = oldVer[i];
             if (c == 94 || c == 126 || c == 62 || c == 60 || c == 61) { // '^', '~', '>', '<', '='
                 prefix += c;
-            } else if ((c >= 48 && c <= 57) || c == 118 || c == 86) { // digit, 'v', 'V'
+                continue;
+            }
+            if ((c >= 48 && c <= 57) || c == 118 || c == 86) { // digit, 'v', 'V'
                 break;
             }
         }
@@ -2854,14 +2880,18 @@ class CxvmEngine {
 
             // If not found in .cex_boxes, try to fetch / link it if local source exists
             if (!fs.exists(".cex_boxes/" + pkg + "/cex-pack.json")) {
-                if (fs.exists("../dependencies/" + pkg + "/cex-pack.json")) {
+                let depSrcType: int = fs.exists("../dependencies/" + pkg + "/cex-pack.json") ? 1 : (fs.exists("dependencies/" + pkg + "/cex-pack.json") ? 2 : 0);
+                switch (depSrcType) {
+                    case 1:
                     system(("mkdir -p .cex_boxes && ln -sfn \"../../dependencies/" + pkg + "\" \".cex_boxes/" + pkg + "\" 2>/dev/null || true").c_str());
-                    let v: string = this.parseVersionFromManifest(".cex_boxes/" + pkg + "/cex-pack.json");
-                    if (v.length() > 0 && (highestVer.length() == 0 || this.isNewerVersion(v, highestVer))) {
-                        highestVer = v;
-                    }
-                } else if (fs.exists("dependencies/" + pkg + "/cex-pack.json")) {
+                    break;
+                    case 2:
                     system(("mkdir -p .cex_boxes && ln -sfn \"../dependencies/" + pkg + "\" \".cex_boxes/" + pkg + "\" 2>/dev/null || true").c_str());
+                    break;
+                    default:
+                    break;
+                }
+                if (depSrcType != 0) {
                     let v: string = this.parseVersionFromManifest(".cex_boxes/" + pkg + "/cex-pack.json");
                     if (v.length() > 0 && (highestVer.length() == 0 || this.isNewerVersion(v, highestVer))) {
                         highestVer = v;
@@ -4090,15 +4120,21 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "upgrade" || cmd == "update") {
-            if (arg1 == "--dependencies" || arg1 == "--deps" || arg1.rfind("--dependencies=", 0) == 0 || arg1.rfind("--deps=", 0) == 0 || arg2 == "--dependencies" || arg2 == "--deps") {
+            if (arg1 == "--cex-boxes" || arg1 == "--boxes" || arg1 == "--dependencies" || arg1 == "--deps" || arg1.rfind("--cex-boxes=", 0) == 0 || arg1.rfind("--boxes=", 0) == 0 || arg1.rfind("--dependencies=", 0) == 0 || arg1.rfind("--deps=", 0) == 0 || arg2 == "--cex-boxes" || arg2 == "--boxes" || arg2 == "--dependencies" || arg2 == "--deps") {
                 let depArg: string = "";
-                let dFlagChoice: int = (arg1.rfind("--dependencies=", 0) == 0) ? 1 : ((arg1.rfind("--deps=", 0) == 0) ? 2 : ((arg1 == "--dependencies" || arg1 == "--deps") ? 3 : 0));
+                let dFlagChoice: int = (arg1.rfind("--cex-boxes=", 0) == 0) ? 4 : ((arg1.rfind("--boxes=", 0) == 0) ? 5 : ((arg1.rfind("--dependencies=", 0) == 0) ? 1 : ((arg1.rfind("--deps=", 0) == 0) ? 2 : ((arg1 == "--cex-boxes" || arg1 == "--boxes" || arg1 == "--dependencies" || arg1 == "--deps") ? 3 : 0))));
                 switch (dFlagChoice) {
                     case 1:
                     depArg = arg1.substr(15);
                     break;
                     case 2:
                     depArg = arg1.substr(7);
+                    break;
+                    case 4:
+                    depArg = arg1.substr(12);
+                    break;
+                    case 5:
+                    depArg = arg1.substr(8);
                     break;
                     case 3:
                     depArg = arg2;
@@ -4115,14 +4151,14 @@ class CxvmEngine {
             Log::info(res->output);
             return res->success ? 0 : 1;
         }
-        if (cmd == "pull" && (arg1 == "dependencies" || arg1 == "deps")) {
+        if (cmd == "pull" && (arg1 == "cex-boxes" || arg1 == "boxes" || arg1 == "dependencies" || arg1 == "deps")) {
             let isUpgrade: bool = (arg2 == "--upgrade" || arg2 == "-u");
             let isClean: bool = (arg2 == "--clean" || arg2 == "-c");
             let res: CxvmCommandResult* = this.pullDependencies("cex-pack.json", isUpgrade, isClean, "");
             Log::info(res->output);
             return res->success ? 0 : 1;
         }
-        if (cmd == "pull-dependencies") {
+        if (cmd == "pull-dependencies" || cmd == "pull-cex-boxes" || cmd == "pull-boxes") {
             let isUpgrade: bool = (arg1 == "--upgrade" || arg1 == "-u" || arg2 == "--upgrade" || arg2 == "-u");
             let isClean: bool = (arg1 == "--clean" || arg1 == "-c" || arg2 == "--clean" || arg2 == "-c");
             let pkg: string = (arg1.length() > 0 && arg1.substr(0, 1) != "-") ? arg1 : "";
@@ -4130,7 +4166,7 @@ class CxvmEngine {
             Log::info(res->output);
             return res->success ? 0 : 1;
         }
-        if (cmd == "dependencies" && (arg1 == "pull" || arg1 == "fetch")) {
+        if ((cmd == "dependencies" || cmd == "cex-boxes" || cmd == "boxes") && (arg1 == "pull" || arg1 == "fetch")) {
             let isUpgrade: bool = (arg2 == "--upgrade" || arg2 == "-u");
             let isClean: bool = (arg2 == "--clean" || arg2 == "-c");
             let res: CxvmCommandResult* = this.pullDependencies("cex-pack.json", isUpgrade, isClean, "");

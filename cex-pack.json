@@ -1,7 +1,7 @@
 {
     "name": "cxvm",
     "app-name": "cxvm",
-    "version": "2.0.31",
+    "version": "2.0.32",
     "description": "cxvm v2: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (Pure Cex: cexr + cexp, zero C++ dependency), powered by Lighting MVC",
     "main": "src/index.cex",
     "author": "2-TEK Ecosystem",
@@ -16,7 +16,7 @@
     "target": "runtime",
     "required": {
         "cexr": "^8",
-        "cexp": "^7",
+        "cexp": "^8",
         "cxvm": "^8"
     },
     "alias": {
@@ -82,7 +82,7 @@
         "multi:process": "cxvm multi process",
         "migrate:app-alias": "bash scripts/migrate_cxvm_app_alias.sh --fix"
     },
-    "dependencies": {
+    "cex-boxes": {
         "cex-env": "1.0.0",
         "cex-logger": "1.0.0",
         "cex-test": "1.0.13",

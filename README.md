@@ -565,6 +565,7 @@ cxvm jumpy lighting
 ```
 
 ### Key Invariants:
+
 1. **Fetch & Reconcile**: Inspects all packages in `dependencies`, reads their last installed version from `.cex_boxes/{depName}/cex-pack.json` (or fetches from dependencies sources), and compares semver.
 2. **Atomic Overwrite**: Automatically rewrites `cex-pack.json` with the discovered latest versions (e.g. `lighting 1.0.12` -> `1.0.22`), preserving formatting and prefixes (`^`, `~`).
 3. **Idempotent**: Subsequent runs recognize all dependencies as `[UP-TO-DATE]`.
