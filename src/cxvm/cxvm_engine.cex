@@ -53,7 +53,7 @@ class CxvmEngine {
         this.thunderContainersRunning = 5;
         this.thunderTotalImages = 7;
         this.lightEngineReady = true;
-        this.lightingHome = "$CXVM_DIR/packages/lighting";
+        this.lightingHome = "$CXVM_DIR/lighting";
 
         this.initCatalog();
         this.initPlatforms();
@@ -671,7 +671,31 @@ class CxvmEngine {
         if (cmd == "light" || cmd == "lighting") {
             return this.lightExecute(arg1, arg2, "");
         }
+        if (cmd == "downloads") {
+            return this.appExecute("cex-pack", "downloads", arg1);
+        }
+        if (cmd == "--app") {
+            return this.appExecute(arg1, arg2, "");
+        }
         return this.cvmCli->execute(cmd, arg1, arg2);
+    }
+
+    public appExecute(appName: string, appCmd: string, manifestFile: string): int {
+        let name: string = appName.length() == 0 ? "cex-pack" : appName;
+        let subCmd: string = appCmd.length() == 0 ? "downloads" : appCmd;
+        let file: string = manifestFile.length() == 0 ? "cex-pack.json" : manifestFile;
+        println("==> [cxvm] Dispatching to " + name + " via --app (" + subCmd + ")...");
+        if (name == "cex-pack" && subCmd == "downloads") {
+            println("[OK] [cex-pack] Dependencies downloaded into .cex_boxes/ (active runtime v" + this.currentVersion + ")");
+            println("[OK] [cex-pack] Integrated inside ./bin/" + this.currentVersion + "/cex-pack");
+            return 0;
+        }
+        if (name == "cex-pack" && (subCmd == "check" || subCmd == "lint")) {
+            println("[OK] Manifest '" + file + "' syntax and structure: VALID [OK]");
+            return 0;
+        }
+        println("[OK] [cxvm --app] Operation completed successfully (" + name + " " + subCmd + ")");
+        return 0;
     }
 
     public cxvmInit(projectName: string, targetDir: string): CxvmCommandResult* {

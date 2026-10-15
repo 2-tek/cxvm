@@ -53,7 +53,7 @@ fn main(): int {
     // Test 2: Cross-Platform Build Engine & cxvm/downloads Directory
     // -------------------------------------------------------------
     println("\n[Test Suite 2: Cross-Platform Build Engine & cxvm/downloads/ Invariants]");
-    let downDir: string = fs.exists("dist") ? "dist" : (fs.exists("downloads") ? "downloads" : (fs.exists("cxvm/downloads") ? "cxvm/downloads" : (fs.exists("packages/cxvm/downloads") ? "packages/cxvm/downloads" : "dist")));
+    let downDir: string = fs.exists("dist") ? "dist" : (fs.exists("downloads") ? "downloads" : (fs.exists("cxvm/downloads") ? "cxvm/downloads" : "dist"));
     let builder: DistBuilder* = new DistBuilder(downDir);
     Assert::equalsInt(6, (int)builder->platforms->length(), "Factory supports 6 target architectures");
     Assert::equalsInt(6, (int)builder->versions->length(), "Factory tracks 6 release versions");
@@ -73,6 +73,11 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/cxvm.sh"), "cxvm.sh exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm.ps1"), "cxvm.ps1 exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm.cmd"), "cxvm.cmd exists in downloads");
+    Assert::isTrue(fs.exists(downDir + "/cex-pack"), "cex-pack binary exists in downloads");
+    Assert::isTrue(fs.exists("bin/8.0.0/cex-pack"), "cex-pack integrated inside ./bin/8.0.0/cex-pack");
+    Assert::isTrue(fs.exists("bin/v8.0.0/cex-pack"), "cex-pack integrated inside ./bin/v8.0.0/cex-pack");
+    Assert::isTrue(fs.exists("bin/6.0.0/cex-pack"), "cex-pack integrated inside ./bin/6.0.0/cex-pack");
+    Assert::isTrue(fs.exists("bin/cex-pack"), "cex-pack binary exists in ./bin/cex-pack");
     Assert::isTrue(fs.exists(downDir + "/manifest.json"), "manifest.json exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
     Assert::isTrue(fs.exists("dist") && fs.exists("dist/cex-v8.0.0-linux-x86_64.tar.gz"), "dist/ directory contains cross-platform distribution bundles");

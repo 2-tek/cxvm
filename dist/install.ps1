@@ -21,12 +21,14 @@ $cmdPath = Join-Path $cxvmDir "bin\cxvm.cmd"
 
 if (Test-Path "cxvm\downloads\cxvm.ps1") {
     Copy-Item "cxvm\downloads\cxvm.ps1" -Destination $scriptPath -Force
-} elseif (Test-Path "packages\cxvm\downloads\cxvm.ps1") {
-    Copy-Item "packages\cxvm\downloads\cxvm.ps1" -Destination $scriptPath -Force
 } elseif (Test-Path "downloads\cxvm.ps1") {
     Copy-Item "downloads\cxvm.ps1" -Destination $scriptPath -Force
 } else {
     Invoke-WebRequest -Uri "$factoryUrl/downloads/cxvm.ps1" -OutFile $scriptPath -UseBasicParsing -ErrorAction SilentlyContinue
+}
+
+if (Test-Path "downloads\cex-pack") {
+    Copy-Item "downloads\cex-pack" -Destination (Join-Path $cxvmDir "bin\cex-pack") -Force
 }
 
 if (Test-Path "cxvm\downloads\cxvm.cmd") {

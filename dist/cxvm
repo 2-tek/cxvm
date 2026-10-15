@@ -169,7 +169,7 @@ _cxvm_run_thunder() {
   else
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    for t_candidate in       "$script_dir/../packages/cex-thunder/src/cli.cex"       "$script_dir/../../packages/cex-thunder/src/cli.cex"       "$script_dir/../../2tek-developement-packs/packages/cex-thunder/src/cli.cex"; do
+    for t_candidate in "$script_dir/../cex-thunder/src/cli.cex" "$HOME/.local/bin/thunder"; do
       if [ -f "$t_candidate" ]; then
         thun_bin="$t_candidate"
         break
@@ -657,18 +657,10 @@ _cxvm_run_cex_cli() {
   local script_dir
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   local cli_candidates=(
-    "$CXVM_DIR/packages/cex-cli/bin/cex-cli.cex"
-    "$CXVM_DIR/packages/cex-cli/src/index.cex"
-    "$script_dir/../packages/cex-cli/bin/cex-cli.cex"
-    "$script_dir/../packages/cex-cli/src/index.cex"
-    "$script_dir/packages/cex-cli/bin/cex-cli.cex"
-    "$script_dir/packages/cex-cli/src/index.cex"
-    "$HOME/Projects/cex/cxvm/packages/cex-cli/bin/cex-cli.cex"
-    "$HOME/Projects/cex/cxvm/packages/cex-cli/src/index.cex"
-    "$(pwd)/packages/cex-cli/bin/cex-cli.cex"
-    "$(pwd)/packages/cex-cli/src/index.cex"
-    "$(pwd)/../packages/cex-cli/bin/cex-cli.cex"
-    "$(pwd)/../packages/cex-cli/src/index.cex"
+    "$CXVM_DIR/bin/cex-cli"
+    "$(pwd)/bin/cex-cli"
+    "$(pwd)/../cex-cli/bin/cex-cli.cex"
+    "$(pwd)/../cex-cli/src/index.cex"
     "$(pwd)/.cex_boxes/cex-cli/src/index.cex"
   )
 
@@ -694,13 +686,80 @@ _cxvm_run_cex_cli() {
 }
 
 # -----------------------------------------------------------------------------
-# Integrated Cex-Pack Dependency Downloader (.cex_boxes Hook)
+# Integrated App Runner (--app <name> <command> [args...])
+# Prioritizes ./bin/$version/<app> with cex-pack integrated inside ./bin/$version/cex-pack
 # -----------------------------------------------------------------------------
-_cxvm_run_cex_pack_downloads() {
-  local target_manifest="${1:-cex-pack.json}"
+_cxvm_run_app() {
+  local app_name="$1"
   shift || true
+  local app_cmd="${1:-}"
+  if [ -n "$app_cmd" ]; then
+    shift || true
+  fi
 
-  # 1. Resolve cexr runner
+  if [ -z "$app_name" ]; then
+    echo "[ERROR] No app name specified for --app"
+    return 1
+  fi
+
+  local active_ver
+  active_ver="$(cxvm current 2>/dev/null || echo '8.0.0')"
+  local ver_clean="${active_ver#v}"
+  if [ -z "$ver_clean" ] || [ "$ver_clean" = "none" ]; then
+    ver_clean="8.0.0"
+  fi
+  local ver_v="v${ver_clean}"
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local pwd_dir="$(pwd)"
+
+  # Candidate binaries for $app_name prioritized by active version
+  local candidates=(
+    "$pwd_dir/bin/$ver_clean/$app_name"
+    "$pwd_dir/bin/$ver_v/$app_name"
+    "$pwd_dir/bin/$app_name"
+    "$script_dir/../bin/$ver_clean/$app_name"
+    "$script_dir/../bin/$ver_v/$app_name"
+    "$script_dir/../bin/$app_name"
+    "$script_dir/bin/$ver_clean/$app_name"
+    "$script_dir/bin/$ver_v/$app_name"
+    "$script_dir/bin/$app_name"
+    "$script_dir/$ver_clean/$app_name"
+    "$script_dir/$ver_v/$app_name"
+    "$script_dir/$app_name"
+    "$CXVM_DIR/versions/$ver_v/bin/$app_name"
+    "$CXVM_DIR/versions/$ver_clean/bin/$app_name"
+    "$CXVM_DIR/current/bin/$app_name"
+    "$CXVM_DIR/bin/$app_name"
+    "$pwd_dir/../$app_name/bin/$app_name"
+    "$pwd_dir/.cex_boxes/$app_name/bin/$app_name"
+  )
+
+  for cand in "${candidates[@]}"; do
+    if [ -x "$cand" ] && [ ! -d "$cand" ]; then
+      echo "==> [cxvm] Dispatching to $app_name via --app ($app_cmd)..."
+      if [ -n "$app_cmd" ]; then
+        "$cand" "$app_cmd" "$@"
+      else
+        "$cand" "$@"
+      fi
+      return $?
+    fi
+  done
+
+  # Check PATH for $app_name
+  if command -v "$app_name" >/dev/null 2>&1; then
+    echo "==> [cxvm] Dispatching to system $app_name via --app ($app_cmd)..."
+    if [ -n "$app_cmd" ]; then
+      "$app_name" "$app_cmd" "$@"
+    else
+      "$app_name" "$@"
+    fi
+    return $?
+  fi
+
+  # Fallback to .cex entrypoint if present
   local cexr_cmd="cexr"
   if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
     cexr_cmd="$CXVM_DIR/current/bin/cexr"
@@ -708,34 +767,24 @@ _cxvm_run_cex_pack_downloads() {
     cexr_cmd="$CXVM_DIR/bin/cexr"
   fi
 
-  # 2. Locate cex-pack native .cex entrypoint
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  local pack_candidates=(
-    "$CXVM_DIR/packages/cex-pack/bin/cex-pack.cex"
-    "$script_dir/../packages/cex-pack/bin/cex-pack.cex"
-    "$script_dir/packages/cex-pack/bin/cex-pack.cex"
-    "$HOME/Projects/cex/cxvm/packages/cex-pack/bin/cex-pack.cex"
-    "$(pwd)/packages/cex-pack/bin/cex-pack.cex"
-    "$(pwd)/../packages/cex-pack/bin/cex-pack.cex"
-    "$(pwd)/.cex_boxes/cex-pack/bin/cex-pack.cex"
+  local cex_candidates=(
+    "$pwd_dir/../$app_name/bin/$app_name.cex"
+    "$pwd_dir/.cex_boxes/$app_name/bin/$app_name.cex"
+    "$script_dir/../$app_name/bin/$app_name.cex"
   )
-
-  for cand in "${pack_candidates[@]}"; do
-    if [ -f "$cand" ]; then
-      echo "==> [cxvm] Hooking cex-pack downloads to fill .cex_boxes/..."
-      "$cexr_cmd" run "$cand" downloads "$target_manifest" "$@"
+  for ccand in "${cex_candidates[@]}"; do
+    if [ -f "$ccand" ]; then
+      echo "==> [cxvm] Dispatching to $app_name .cex entrypoint ($app_cmd)..."
+      if [ -n "$app_cmd" ]; then
+        "$cexr_cmd" run "$ccand" "$app_cmd" "$@"
+      else
+        "$cexr_cmd" run "$ccand" "$@"
+      fi
       return $?
     fi
   done
 
-  # 3. Check standalone binary in CXVM_DIR/bin
-  if [ -x "$CXVM_DIR/bin/cex-pack" ]; then
-    "$CXVM_DIR/bin/cex-pack" downloads "$target_manifest" "$@"
-    return $?
-  fi
-
-  echo "[ERROR] cex-pack not found to execute downloads"
+  echo "[ERROR] Integrated app '$app_name' not found in ./bin/$ver_clean/$app_name or CXVM_DIR."
   return 1
 }
 
@@ -772,9 +821,9 @@ _cxvm_run_cvm() {
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     for c_candidate in \
-      "$script_dir/../packages/cex-cvm/bin/cvm.mjs" \
-      "$script_dir/../../packages/cex-cvm/bin/cvm.mjs" \
-      "$script_dir/../../2tek-developement-packs/packages/cex-cvm/bin/cvm.mjs"; do
+      "$script_dir/../cex-cvm/bin/cvm.mjs" \
+      "$script_dir/../../cex-cvm/bin/cvm.mjs" \
+      "$HOME/.local/bin/cvm"; do
       if [ -f "$c_candidate" ]; then
         cvm_bin="$c_candidate"
         break
@@ -854,6 +903,18 @@ _cxvm_run_cvm() {
 cxvm() {
   local cmd="$1"
   shift || true
+
+  # Check for --app dispatcher option
+  if [ "$cmd" = "--app" ]; then
+    local app_name="$1"
+    shift || true
+    _cxvm_run_app "$app_name" "$@"
+    return $?
+  elif [[ "$cmd" =~ ^--app=(.+) ]]; then
+    local app_name="${BASH_REMATCH[1]}"
+    _cxvm_run_app "$app_name" "$@"
+    return $?
+  fi
 
   case "$cmd" in
     open)
@@ -1156,8 +1217,8 @@ INDEX_EOF
           ver="${1#v}"
           shift
         else
-          # Argument is a manifest or package, route to cex-pack downloads
-          _cxvm_run_cex_pack_downloads "$@"
+          # Argument is a manifest or package, route to cex-pack downloads via --app
+          cxvm --app cex-pack downloads "$@"
           return $?
         fi
       fi
@@ -1167,7 +1228,7 @@ INDEX_EOF
         if [ "$has_manifest" -eq 1 ]; then
           if [ -d "$CXVM_DIR/current" ] && [ -x "$CXVM_DIR/current/bin/cexr" ]; then
             echo "==> [cxvm install] Active runtime ready ($(cxvm current 2>/dev/null || echo 'v8.0.0'))"
-            _cxvm_run_cex_pack_downloads "$@"
+            cxvm --app cex-pack downloads "$@"
             return $?
           else
             ver="8.0.0"
@@ -1203,12 +1264,12 @@ INDEX_EOF
       elif [ -f "cxvm/downloads/$archive" ]; then
         echo "--> [cxvm] Found package in local cxvm downloads"
         cp "cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
-      elif [ -f "packages/cxvm/downloads/$archive" ]; then
-        echo "--> [cxvm] Found package in local packages/cxvm downloads"
-        cp "packages/cxvm/downloads/$archive" "$CXVM_DIR/cache/$archive"
       elif [ -f "downloads/$archive" ]; then
         echo "--> [cxvm] Found package in local downloads"
         cp "downloads/$archive" "$CXVM_DIR/cache/$archive"
+      elif [ -f "dist/$archive" ]; then
+        echo "--> [cxvm] Found package in local dist"
+        cp "dist/$archive" "$CXVM_DIR/cache/$archive"
       elif command -v curl >/dev/null 2>&1; then
         echo "--> [cxvm] Downloading $FACTORY_URL/downloads/$archive..."
         curl -fsSL "$FACTORY_URL/downloads/$archive" -o "$CXVM_DIR/cache/$archive" 2>/dev/null || \
@@ -1298,7 +1359,7 @@ if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
   echo "CexP v8.0.0 (Pure Cex Direct Machine Compiler & ELF/PE Generator)"
   exit 0
 fi
-if [ -x "$HOME/.local/bin/cexp" ]; then
+if [ -x "$HOME/.local/bin/cexp" ] && [ "$(readlink -f "$HOME/.local/bin/cexp" 2>/dev/null)" != "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" ]; then
   exec "$HOME/.local/bin/cexp" "$@"
 elif [ -x "$CEX_BIN_DIR/cexr" ]; then
   exec "$CEX_BIN_DIR/cexr" build "$@"
@@ -1306,6 +1367,20 @@ fi
 echo "CexP Direct Machine Compiler ready. Usage: cexp build <file.cex> -o <binary>"
 CEXP_EOF
       chmod +x "$ver_dir/bin/cexp"
+
+      # Setup cex-pack in target version if missing
+      if [ ! -f "$ver_dir/bin/cex-pack" ]; then
+        if [ -x "./bin/$ver/cex-pack" ]; then
+          cp -f "./bin/$ver/cex-pack" "$ver_dir/bin/cex-pack"
+        elif [ -x "$CXVM_DIR/bin/cex-pack" ]; then
+          cp -f "$CXVM_DIR/bin/cex-pack" "$ver_dir/bin/cex-pack"
+        elif [ -x "dist/cex-pack" ]; then
+          cp -f "dist/cex-pack" "$ver_dir/bin/cex-pack"
+        elif [ -x "downloads/cex-pack" ]; then
+          cp -f "downloads/cex-pack" "$ver_dir/bin/cex-pack"
+        fi
+        chmod +x "$ver_dir/bin/cex-pack" 2>/dev/null || true
+      fi
 
       # Ensure permissions
       chmod +x "$ver_dir/bin/"* 2>/dev/null || true
@@ -1412,12 +1487,13 @@ LIGHT_WRAP_EOF
       fi
 
       if [ -f "cex-pack.json" ]; then
-        _cxvm_run_cex_pack_downloads "$@"
+        cxvm --app cex-pack downloads "$@"
       fi
       ;;
 
     downloads)
-      _cxvm_run_cex_pack_downloads "$@"
+      cxvm --app cex-pack downloads "$@"
+      return $?
       ;;
 
     download)
@@ -1734,7 +1810,8 @@ LIGHT_WRAP_EOF
       echo "Runtime Management Commands:"
       echo "  setup                 Display setup window & configure PATH, env, and default runtimes"
       echo "  install [ver]         Download and install a Cex runtime version (and fill .cex_boxes via cex-pack)"
-      echo "  downloads [manifest]  Download dependencies into .cex_boxes via cex-pack"
+      echo "  --app <app> <cmd...>  Dispatch directly to integrated application in ./bin/\$version/<app>"
+      echo "  downloads [manifest]  Download dependencies into .cex_boxes (binds to: cxvm --app cex-pack downloads)"
       echo "  download <ver> [plat] Download cross-platform bundles into cache to install cexr (or 'all')"
       echo "  use <ver>             Switch to specified Cex runtime version and set up cexr"
       echo "  current               Display currently active Cex version"

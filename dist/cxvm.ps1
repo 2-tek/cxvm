@@ -3,6 +3,7 @@
 
 param (
     [string]$Command = "help",
+    [string]$App = "",
     [string]$Version = "",
     [string]$Platform = "",
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -13,6 +14,63 @@ $cxvmHome = if ($env:CXVM_DIR) { $env:CXVM_DIR } else { Join-Path $HOME ".cxvm" 
 $githubRawUrl = "https://raw.githubusercontent.com/2-tek/cxvm/main"
 $factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { $githubRawUrl }
 $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x64" }
+
+function Run-App {
+    param (
+        [string]$AppName = "cex-pack",
+        [string]$AppCmd = "downloads",
+        [string[]]$AppArgs = @()
+    )
+
+    $curVer = (Get-CurrentVersion).TrimStart("v")
+    if (-not $curVer -or $curVer -eq "none") { $curVer = "8.0.0" }
+    
+    $candidates = @(
+        (Join-Path $PWD "bin\$curVer\$AppName.cmd"),
+        (Join-Path $PWD "bin\$curVer\$AppName"),
+        (Join-Path $PWD "bin\v$curVer\$AppName.cmd"),
+        (Join-Path $PWD "bin\v$curVer\$AppName"),
+        (Join-Path $PWD "bin\$AppName.cmd"),
+        (Join-Path $PWD "bin\$AppName"),
+        (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName.cmd"),
+        (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName"),
+        (Join-Path $PSScriptRoot "$curVer\$AppName.cmd"),
+        (Join-Path $PSScriptRoot "$curVer\$AppName"),
+        (Join-Path $PSScriptRoot "$AppName.cmd"),
+        (Join-Path $PSScriptRoot "$AppName"),
+        (Join-Path $cxvmHome "versions\v$curVer\bin\$AppName.cmd"),
+        (Join-Path $cxvmHome "versions\v$curVer\bin\$AppName"),
+        (Join-Path $cxvmHome "current\bin\$AppName.cmd"),
+        (Join-Path $cxvmHome "current\bin\$AppName"),
+        (Join-Path $cxvmHome "bin\$AppName.cmd"),
+        (Join-Path $cxvmHome "bin\$AppName")
+    )
+
+    foreach ($c in $candidates) {
+        if (Test-Path $c) {
+            Write-Host "==> [cxvm] Dispatching to $AppName via --app ($AppCmd)..." -ForegroundColor Cyan
+            & $c $AppCmd @AppArgs
+            return $LASTEXITCODE
+        }
+    }
+
+    if (Get-Command $AppName -ErrorAction SilentlyContinue) {
+        Write-Host "==> [cxvm] Dispatching to system $AppName via --app ($AppCmd)..." -ForegroundColor Cyan
+        & $AppName $AppCmd @AppArgs
+        return $LASTEXITCODE
+    }
+
+    Write-Host "[ERROR] Integrated app '$AppName' not found in ./bin/$curVer/$AppName or CXVM_DIR" -ForegroundColor Red
+    return 1
+}
+
+if ($Command -eq "--app" -or $Command.StartsWith("--app=")) {
+    $targetApp = if ($Command.StartsWith("--app=")) { $Command.Substring(6) } else { $Version }
+    $targetCmd = if ($Command.StartsWith("--app=")) { $Version } else { $Platform }
+    $appArgs = if ($Command.StartsWith("--app=")) { @($Platform) + $ExtraArgs } else { $ExtraArgs }
+    Run-App -AppName $targetApp -AppCmd $targetCmd -AppArgs $appArgs
+    exit $LASTEXITCODE
+}
 
 function Start-CvmServer {
     param (
@@ -593,6 +651,11 @@ switch ($Command) {
         if ($ExtraArgs) { $argsList += $ExtraArgs }
         Run-Cvm -CvmCmd $Command -CvmArgs $argsList
     }
+    "downloads" {
+        $mf = if ($Version) { $Version } else { "cex-pack.json" }
+        $appArgs = @($mf) + $ExtraArgs
+        Run-App -AppName "cex-pack" -AppCmd "downloads" -AppArgs $appArgs
+    }
     "install" {
         if (-not $Version) { $Version = "8.0.0" }
         $archive = "cex-v$Version-windows-$arch.zip"
@@ -605,7 +668,7 @@ switch ($Command) {
         New-Item -ItemType Directory -Force -Path $binDir | Out-Null
         
         $destZip = Join-Path $cacheDir $archive
-        $localZip = if (Test-Path $destZip) { $destZip } elseif (Test-Path "cxvm\downloads\$archive") { "cxvm\downloads\$archive" } elseif (Test-Path "packages\cxvm\downloads\$archive") { "packages\cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } else { "" }
+        $localZip = if (Test-Path $destZip) { $destZip } elseif (Test-Path "cxvm\downloads\$archive") { "cxvm\downloads\$archive" } elseif (Test-Path "downloads\$archive") { "downloads\$archive" } elseif (Test-Path "dist\$archive") { "dist\$archive" } else { "" }
         if ($localZip -and (Test-Path $localZip) -and ($localZip -ne $destZip)) {
             Copy-Item $localZip -Destination $destZip -Force
         } elseif (-not (Test-Path $destZip)) {
@@ -726,7 +789,7 @@ echo CexR Windows Runner ready.
             $bArchive = "cex-v$bVer-$bPlat.$ext"
             $destZip = Join-Path $cacheDir $bArchive
             Write-Host "==> [cxvm] Downloading cross-platform bundle for $bPlat (Cex v$bVer to install cexr)..." -ForegroundColor Cyan
-            $localZip = if (Test-Path $destZip) { $destZip } elseif (Test-Path "cxvm\downloads\$bArchive") { "cxvm\downloads\$bArchive" } elseif (Test-Path "packages\cxvm\downloads\$bArchive") { "packages\cxvm\downloads\$bArchive" } elseif (Test-Path "downloads\$bArchive") { "downloads\$bArchive" } else { "" }
+            $localZip = if (Test-Path $destZip) { $destZip } elseif (Test-Path "cxvm\downloads\$bArchive") { "cxvm\downloads\$bArchive" } elseif (Test-Path "downloads\$bArchive") { "downloads\$bArchive" } elseif (Test-Path "dist\$bArchive") { "dist\$bArchive" } else { "" }
             if ($localZip -and (Test-Path $localZip) -and ($localZip -ne $destZip)) {
                 Copy-Item $localZip -Destination $destZip -Force
             } elseif (Test-Path $destZip) {

@@ -6,9 +6,27 @@
 bin/*
 !bin/.gitkeep
 !bin/.cvmkeep
+!bin/cex
+!bin/cexr
+!bin/cxvm
+!bin/*.cmd
+!bin/*.ps1
+!bin/cex-pack
+!bin/*/
+!bin/**/cex-pack
+!bin/**/cex-pack.cmd
+!bin/**/.gitkeep
+!bin/**/.cvmkeep
 **/bin/*
 !**/bin/.gitkeep
 !**/bin/.cvmkeep
+!**/bin/*/
+!**/bin/*/.gitkeep
+!**/bin/*/.cvmkeep
+!**/bin/cex-pack
+!**/bin/cex-pack.cmd
+!**/bin/*/cex-pack
+!**/bin/*/cex-pack.cmd
 *.bin
 *.out
 # Rule 69: target is runtime, do not use .gitignore for dist bundle file (keep dist/ with download of cxvm cross platforms)
@@ -34,3 +52,4 @@ cex_boxes/
 .DS_Store
 *.log
 packages/*
+downloads/
