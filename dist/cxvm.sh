@@ -1813,13 +1813,16 @@ LIGHT_WRAP_EOF
         setup_script="$CXVM_DIR/bin/setup.sh"
       elif [ -f "scripts/setup.sh" ]; then
         setup_script="scripts/setup.sh"
+      elif [ -f "dist/setup.sh" ]; then
+        setup_script="dist/setup.sh"
       elif [ -f "downloads/setup.sh" ]; then
         setup_script="downloads/setup.sh"
+      elif [ -f "setup.sh" ]; then
+        setup_script="setup.sh"
       fi
 
       if [ -n "$setup_script" ]; then
-        bash "$setup_script" "$@"
-        return $?
+        exec bash "$setup_script" "$@"
       fi
 
       echo "==============================================================="

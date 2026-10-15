@@ -76,24 +76,34 @@ fetch_file() {
   local dest_path="$2"
 
   if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/$rel_path" ]; then
+    rm -f "$dest_path" 2>/dev/null || true
     cp -f "$SCRIPT_DIR/$rel_path" "$dest_path"
     return 0
   fi
   if [ -f "$INVOCATION_DIR/$rel_path" ]; then
+    rm -f "$dest_path" 2>/dev/null || true
     cp -f "$INVOCATION_DIR/$rel_path" "$dest_path"
     return 0
   fi
   if [ -f "$INVOCATION_DIR/dist/$rel_path" ]; then
+    rm -f "$dest_path" 2>/dev/null || true
     cp -f "$INVOCATION_DIR/dist/$rel_path" "$dest_path"
     return 0
   fi
 
+  local tmp_dest="${dest_path}.tmp.$$"
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$GITHUB_RAW/$rel_path" -o "$dest_path" 2>/dev/null || \
-    curl -fsSL "$GITHUB_RAW/dist/$rel_path" -o "$dest_path" 2>/dev/null || true
+    curl -fsSL "$GITHUB_RAW/$rel_path" -o "$tmp_dest" 2>/dev/null || \
+    curl -fsSL "$GITHUB_RAW/dist/$rel_path" -o "$tmp_dest" 2>/dev/null || true
   elif command -v wget >/dev/null 2>&1; then
-    wget -q "$GITHUB_RAW/$rel_path" -O "$dest_path" 2>/dev/null || \
-    wget -q "$GITHUB_RAW/dist/$rel_path" -O "$dest_path" 2>/dev/null || true
+    wget -q "$GITHUB_RAW/$rel_path" -O "$tmp_dest" 2>/dev/null || \
+    wget -q "$GITHUB_RAW/dist/$rel_path" -O "$tmp_dest" 2>/dev/null || true
+  fi
+  if [ -f "$tmp_dest" ] && [ -s "$tmp_dest" ]; then
+    rm -f "$dest_path" 2>/dev/null || true
+    mv -f "$tmp_dest" "$dest_path"
+  else
+    rm -f "$tmp_dest" 2>/dev/null || true
   fi
 }
 
@@ -267,8 +277,11 @@ COMPILER_SCRIPT
 
   # Create cex alias
   ln -sf "$target_ver_dir/bin/cexr" "$target_ver_dir/bin/cex" 2>/dev/null || true
+  rm -f "$target_ver_dir/bin/cxvm" 2>/dev/null || true
   cp -f "$CXVM_DIR/bin/cxvm" "$target_ver_dir/bin/cxvm" 2>/dev/null || true
+  rm -f "$target_ver_dir/bin/cex-pack" 2>/dev/null || true
   cp -f "$CXVM_DIR/bin/cex-pack" "$target_ver_dir/bin/cex-pack" 2>/dev/null || true
+  rm -f "$target_ver_dir/bin/cex-cli" 2>/dev/null || true
   cp -f "$CXVM_DIR/bin/cex-cli" "$target_ver_dir/bin/cex-cli" 2>/dev/null || true
   echo "[OK] Cex runtime v${ver} configured in $target_ver_dir"
 }
