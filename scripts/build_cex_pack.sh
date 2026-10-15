@@ -156,27 +156,62 @@ def run_downloads(manifest_file):
         return 0
 
     os.makedirs(box_dir, exist_ok=True)
+
+    # Clean up broken symlinks in .cex_boxes
+    for item in os.listdir(box_dir):
+        item_path = os.path.join(box_dir, item)
+        if os.path.islink(item_path) and not os.path.exists(item_path):
+            try:
+                os.unlink(item_path)
+            except OSError:
+                pass
+
     downloaded_records = []
     total_kb = 0
 
     parent_dir = os.path.dirname(manifest_dir)
 
+    # Discover workspace root dynamically by walking up from manifest_dir (Rule 72)
+    workspace_root = manifest_dir
+    curr = manifest_dir
+    while curr and curr != os.path.dirname(curr):
+        if (os.path.isdir(os.path.join(curr, "deps")) and curr != manifest_dir) or os.path.isfile(os.path.join(curr, "PROJECT_TARGET.md")):
+            workspace_root = curr
+            break
+        curr = os.path.dirname(curr)
+
     for pkg_raw, ver_spec in dependencies.items():
         clean_name = pkg_raw.lstrip("@")
         target_path = os.path.join(box_dir, clean_name)
+
+        # Safely remove existing symlink or file before creating directory
+        if os.path.islink(target_path) or os.path.isfile(target_path):
+            try:
+                os.unlink(target_path)
+            except OSError:
+                pass
         os.makedirs(target_path, exist_ok=True)
 
         # 1. Look for dependency source candidate directories dynamically (Rule 72)
-        home_dir = os.environ.get("HOME", "")
+        stripped_name = clean_name.replace("2tek/", "").replace("@2tek/", "")
         candidates = [
+            os.path.join(workspace_root, "deps", clean_name),
+            os.path.join(workspace_root, "deps", stripped_name),
+            os.path.join(workspace_root, "deps", f"cex-{stripped_name}"),
+            os.path.join(workspace_root, "frameworks", clean_name),
+            os.path.join(workspace_root, "frameworks", stripped_name),
+            os.path.join(workspace_root, "projects", clean_name),
+            os.path.join(workspace_root, "projects", stripped_name),
+            os.path.join(workspace_root, "core", clean_name),
+            os.path.join(workspace_root, clean_name),
             os.path.join(parent_dir, clean_name),
             os.path.join(parent_dir, "deps", clean_name),
-            os.path.join(home_dir, "Projects", "cex", "deps", clean_name) if home_dir else "",
-            os.path.join(home_dir, "cex", clean_name) if home_dir else "",
+            os.path.join(manifest_dir, "..", clean_name),
+            os.path.join(manifest_dir, "..", "deps", clean_name),
         ]
         found_src = ""
         for cand in candidates:
-            if cand and os.path.exists(cand) and cand != manifest_dir:
+            if cand and os.path.exists(cand) and os.path.abspath(cand) != os.path.abspath(manifest_dir):
                 found_src = cand
                 break
 
@@ -186,9 +221,30 @@ def run_downloads(manifest_file):
                     continue
                 s_item = os.path.join(found_src, item)
                 d_item = os.path.join(target_path, item)
+                if os.path.islink(d_item):
+                    try:
+                        os.unlink(d_item)
+                    except OSError:
+                        pass
                 if os.path.isdir(s_item):
                     if not os.path.exists(d_item):
                         shutil.copytree(s_item, d_item, ignore=shutil.ignore_patterns(".git*", ".cvm*"))
+                    else:
+                        for sub in os.listdir(s_item):
+                            if sub in [".git", ".cvm", "node_modules", ".cex_cache"]:
+                                continue
+                            s_sub = os.path.join(s_item, sub)
+                            d_sub = os.path.join(d_item, sub)
+                            if os.path.islink(d_sub):
+                                try:
+                                    os.unlink(d_sub)
+                                except OSError:
+                                    pass
+                            if os.path.isdir(s_sub):
+                                if not os.path.exists(d_sub):
+                                    shutil.copytree(s_sub, d_sub, ignore=shutil.ignore_patterns(".git*", ".cvm*"))
+                            elif not os.path.exists(d_sub):
+                                shutil.copy2(s_sub, d_sub)
                 elif not os.path.exists(d_item):
                     shutil.copy2(s_item, d_item)
 
