@@ -10,17 +10,26 @@ import os
 import json
 import shutil
 
-PACKAGE_SIZES = {
-    "cex-cli": (28, "0.28Mb"),
-    "cex-log": (14, "0.14Mb"),
-    "cexr": (174, "1.74Mb"),
-    "cex-service": (21, "0.21Mb"),
-    "cex-test": (25, "0.25Mb"),
-    "cex-lint": (24, "0.24Mb"),
-    "cex-pack": (30, "0.30Mb"),
-    "cexp": (99, "0.99Mb"),
-    "default": (50, "0.50Mb"),
-}
+def compute_dir_size(target_path):
+    total_bytes = 0
+    if os.path.exists(target_path):
+        if os.path.isfile(target_path):
+            total_bytes = os.path.getsize(target_path)
+        else:
+            for root, _, files in os.walk(target_path):
+                for file in files:
+                    fp = os.path.join(root, file)
+                    if not os.path.islink(fp):
+                        try:
+                            total_bytes += os.path.getsize(fp)
+                        except OSError:
+                            pass
+    kb = max(1, total_bytes // 1024)
+    mb_val = total_bytes / (1024.0 * 1024.0)
+    if mb_val < 0.01:
+        mb_val = 0.01
+    size_str = f"{mb_val:.2f}Mb"
+    return kb, size_str
 
 def print_help():
     print("================================================------------------")
@@ -112,15 +121,12 @@ def run_downloads(manifest_file):
 
     manifest_dir = os.path.dirname(os.path.abspath(manifest_file))
     box_dir = os.path.join(manifest_dir, ".cex_boxes")
-    linked_file = os.path.join(manifest_dir, "cex-pack-linked.json")
-    linked_name = "cex-pack-linked.json" if os.path.exists(linked_file) else "default"
 
     print("================================================------------------")
     print("   2-TEK CexPack Git/CVM Dependency Downloader (.cex_boxes)       ")
-    print(f"   Linked Version Resolution Engine ({linked_name})        ")
+    print("   Dependency Resolution Engine (dependencies)                    ")
     print("================================================------------------")
     print(f"Target Manifest : {manifest_file}")
-    print(f"Linked Manifest : {linked_name}")
     print(f"Target Directory: {box_dir}/\n")
 
     dependencies = manifest_data.get("dependencies", {})
@@ -176,7 +182,7 @@ def run_downloads(manifest_file):
                 json.dump(stub_pack, f, indent=2)
                 f.write("\n")
 
-        kb, size_str = PACKAGE_SIZES.get(clean_name, PACKAGE_SIZES["default"])
+        kb, size_str = compute_dir_size(target_path)
         total_kb += kb
 
         rec = {
@@ -185,16 +191,14 @@ def run_downloads(manifest_file):
             "size": size_str,
             "status": "UPDATED",
             "percent": 100,
-            "linked": linked_name
+            "source": "dependencies"
         }
         downloaded_records.append(rec)
 
-        print(f"  * [cex-log] Resolving {pkg_raw}@{ver_spec} from {linked_name}")
+        print(f"  * [cex-log] Resolving {pkg_raw}@{ver_spec} from dependencies")
         print(f"    -> Destination: {target_path} [ OK ]")
 
-    whole_mb = total_kb // 100
-    frac_mb = total_kb % 100
-    total_size_str = f"{whole_mb}.{frac_mb:02d}Mb"
+    _, total_size_str = compute_dir_size(box_dir)
 
     # Write PROGRESS.md
     progress_file = os.path.join(box_dir, "PROGRESS.md")
@@ -202,7 +206,7 @@ def run_downloads(manifest_file):
         f.write(f"current: {total_size_str}\n")
         f.write(".cex_boxes -> PROGRESS.md\n\n")
         for r in downloaded_records:
-            f.write(f"[{r['status']}][{r['percent']}%][{r['size']}][{r['size']}][{r['name']}][{r['linked']}]\n")
+            f.write(f"[{r['status']}][{r['percent']}%][{r['size']}][{r['size']}][{r['name']}][{r['source']}]\n")
         f.write(f"\nsummary:[{total_size_str}][{total_size_str}][100%]\n")
 
     print("")
