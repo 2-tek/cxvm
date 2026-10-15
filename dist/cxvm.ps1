@@ -447,8 +447,8 @@ function Run-Light {
   "target": "runtime",
   "main": "src/index.cex",
   "scripts": {
-    "start": "cexr run src/index.cex",
-    "dev": "cexr run src/index.cex",
+    "start": "cexr src/index.cex",
+    "dev": "cexr src/index.cex",
     "build": "cex build src/index.cex -o bin/server"
   },
   "dependencies": {
@@ -798,7 +798,7 @@ echo CexR Windows Runner ready.
                 Invoke-WebRequest -Uri "$factoryUrl/downloads/$bArchive" -OutFile $destZip -UseBasicParsing -ErrorAction SilentlyContinue
             }
             if (Test-Path $destZip) {
-                Write-Host "[OK] [cxvm] Ready: $destZip (to install cexr run 'cxvm install $bVer')" -ForegroundColor Green
+                Write-Host "[OK] [cxvm] Ready: $destZip (to install cexr 'cxvm install $bVer')" -ForegroundColor Green
             } else {
                 Write-Host "Error: Archive $bArchive could not be downloaded." -ForegroundColor Red
             }

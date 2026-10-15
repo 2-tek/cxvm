@@ -21,11 +21,11 @@ trigger: always_on
 
 | Operation | Canonical Command | Description |
 | :--- | :--- | :--- |
-| **Run CXVM App / Server** | `cexr run src/index.cex` \| `./bin/cexr run src/index.cex` | Execute Lighting MVC server on port 3080 with CexR v8 |
+| **Run CXVM App / Server** | `cexr src/index.cex` \| `./bin/cexr src/index.cex` | Execute Lighting MVC server on port 3080 with CexR v8 |
 | **Run CXVM CLI** | `./bin/cxvm <command>` \| `cxvm <command>` | Run CXVM version manager CLI |
 | **Cross-Platform Setup Window** | `./bin/cxvm setup` \| `./scripts/setup.sh` \| `.\scripts\setup.ps1` | Launch interactive terminal setup window for PATH & env |
 | **Web Setup Window** | `curl http://localhost:3080/setup` \| browser at `:3080/setup` | Open full visual Lighting MVC desktop window UI |
-| **Run Test Suites** | `cexr run tests/cxvm.test.cex` & `cexr run tests/factory.test.cex` | Execute full regression test suites |
+| **Run Test Suites** | `cexr tests/cxvm.test.cex` & `cexr tests/factory.test.cex` | Execute full regression test suites |
 | **Generate Distributions** | `bash scripts/generate_distributions.sh` | Build and package 36 platform bundles into `downloads/` & `dist/` |
 | **Compile Native Binary** | `./bin/cex build src/index.cex -o bin/cxvm-server` | Compile Cex code directly via `cexp` |
 | **Environment Doctor** | `./bin/cex doctor` \| `./bin/cxvm doctor` | Inspect environment, paths, active runtime, and toolchains |

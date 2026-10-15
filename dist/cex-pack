@@ -67,7 +67,7 @@ def scaffold_manifest():
             "cexp": "^8"
         },
         "scripts": {
-            "start": "cexr run src/index.cex",
+            "start": "cexr src/index.cex",
             "build": "cexp build src/index.cex -o bin/app",
             "downloads": "cxvm --app cex-pack downloads"
         },

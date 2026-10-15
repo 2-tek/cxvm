@@ -182,7 +182,7 @@ _cxvm_run_thunder() {
       "$thun_bin" "$thun_cmd" "$@"
       return $?
     elif command -v cexr >/dev/null 2>&1; then
-      THUNDER_CMD="thunder $thun_cmd $*" cexr run "$thun_bin"
+      THUNDER_CMD="thunder $thun_cmd $*" cexr "$thun_bin"
       return $?
     fi
   fi

@@ -14,6 +14,6 @@ Under no circumstances are JavaScript files (`.js`), Node.js scripts (`#!/usr/bi
 
 ## 2. Invariants
 1. **Pure .cex Execution**: All executable entrypoints and tools in package `bin/` must be written in the Cex native language (`.cex`).
-2. **Runtime Invocation**: Scripts and binaries in `bin/` are driven strictly by the native Cex toolchain (`cexr run bin/<tool>.cex` or direct machine compilation via `cexp`).
+2. **Runtime Invocation**: Scripts and binaries in `bin/` are driven strictly by the native Cex toolchain (`cexr bin/<tool>.cex` or direct machine compilation via `cexp`).
 3. **Zero JavaScript in bin/**: No `.js` files or wrappers are allowed in package `bin/`.
 4. **Rule 29 Conformance**: Every file must end with a single trailing newline.

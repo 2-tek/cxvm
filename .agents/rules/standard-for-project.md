@@ -33,7 +33,7 @@ trigger: always_on
 6. **Cross-Platform Setup Window**:
    - Provide an interactive visual setup window via CLI (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `setup.cmd`) and Web (`http://localhost:3080/setup`) to configure PATH, environment variables, default runtimes, and local `./bin/` dispatchers.
 7. **Automated Testing**:
-   - All tests live under `tests/` (`tests/cxvm.test.cex`, `tests/factory.test.cex`) and must pass cleanly with `cexr run <test_file>`.
+   - All tests live under `tests/` (`tests/cxvm.test.cex`, `tests/factory.test.cex`) and must pass cleanly with `cexr <test_file>`.
 8. **Rule (No Symbols)**:
    - All source code, console outputs, scripts, setup windows, documentation, and agent rules inside `cxvm` must use pure ASCII text without emojis, unicode symbols, or non-ASCII icon characters.
 9. **Rule (Pure Cex Binaries in bin/)**:

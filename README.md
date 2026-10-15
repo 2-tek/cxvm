@@ -90,7 +90,7 @@ powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 ```
 
 ### Web Setup Window (Lighting MVC):
-When running the Factory application (`cexr run src/index.cex` on port 3080):
+When running the Factory application (`cexr src/index.cex` on port 3080):
 - Open **`http://localhost:3080/setup`** in your browser to view the interactive Setup Window.
 - Monitor environment variables, PATH persistence, default version status, and live `cxvm doctor` diagnostics.
 
@@ -99,7 +99,7 @@ The project `./bin/` dispatchers are preconfigured to run cxvm using **v8.0.0** 
 
 ```bash
 # Run using default v8 runtime:
-./bin/cexr run src/index.cex
+./bin/cexr src/index.cex
 ./bin/cex run src/index.cex
 
 # Run using v6 runtime:
@@ -419,15 +419,15 @@ cxvm use 8.0.0
 cexr use v8
 
 # 2. Run cxvm Demonstration & Server Engine via CexR v8
-cexr run src/index.cex
+cexr src/index.cex
 # Or execute canonically via CexR v8 toolchain runner
 ./bin/cex run src/index.cex
 # Or load and execute via CexR v8 .cex_boxes dist loader
 cexr v8 run cxvm
 
 # 3. Run cxvm Verification Test Suites with CexR v8
-cexr run tests/cxvm.test.cex
-cexr run tests/factory.test.cex
+cexr tests/cxvm.test.cex
+cexr tests/factory.test.cex
 ```
 
 ---
