@@ -719,7 +719,26 @@ _cxvm_run_cex_cli() {
   local cli_cmd="${1:-build}"
   shift || true
 
-  # 1. Resolve cexr runner
+  # 1. If cex-pack.json defines a script for $cli_cmd, execute it
+  local manifest_script=""
+  if [ -f "cex-pack.json" ] && command -v python3 >/dev/null 2>&1; then
+    manifest_script="$(python3 -c "import json
+try:
+    with open('cex-pack.json', 'r', encoding='utf-8') as f:
+        d = json.load(f).get('scripts', {})
+    s = d.get('$cli_cmd', '')
+    if s: print(s)
+except Exception: pass
+" 2>/dev/null)"
+  fi
+
+  if [ -n "$manifest_script" ]; then
+    echo "==> [cxvm $cli_cmd] Executing script from cex-pack.json: $manifest_script"
+    eval "$manifest_script" "$@"
+    return $?
+  fi
+
+  # 2. Resolve cexr runner
   local cexr_cmd="cexr"
   if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
     cexr_cmd="$CXVM_DIR/current/bin/cexr"
@@ -727,15 +746,26 @@ _cxvm_run_cex_cli() {
     cexr_cmd="$CXVM_DIR/bin/cexr"
   fi
 
-  # 2. Locate cex-cli native .cex entrypoint
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  # 3. Discover workspace root dynamically by walking up (Rule 72)
+  local workspace_root="$(pwd)"
+  local curr="$(pwd)"
+  while [ -n "$curr" ] && [ "$curr" != "/" ]; do
+    if [ -d "$curr/deps" ] || [ -f "$curr/PROJECT_TARGET.md" ]; then
+      workspace_root="$curr"
+      break
+    fi
+    curr="$(dirname "$curr")"
+  done
+
+  # 4. Locate cex-cli native .cex entrypoint (MUST be a .cex file)
   local cli_candidates=(
-    "$CXVM_DIR/bin/cex-cli"
-    "$(pwd)/bin/cex-cli"
-    "$(pwd)/../cex-cli/bin/cex-cli.cex"
-    "$(pwd)/../cex-cli/src/index.cex"
+    "$workspace_root/deps/cex-cli/src/index.cex"
+    "$workspace_root/deps/cex-cli/src/cli.cex"
+    "$(pwd)/deps/cex-cli/src/index.cex"
+    "$(pwd)/../deps/cex-cli/src/index.cex"
     "$(pwd)/.cex_boxes/cex-cli/src/index.cex"
+    "$(pwd)/.cex_boxes/cex-cli/src/cli.cex"
+    "$(pwd)/bin/cex-cli.cex"
   )
 
   for cand in "${cli_candidates[@]}"; do
@@ -746,11 +776,13 @@ _cxvm_run_cex_cli() {
     fi
   done
 
-  # 3. Check standalone binary in CXVM_DIR/bin or PATH
+  # 5. Check standalone binary in CXVM_DIR/bin or PATH
   if [ -x "$CXVM_DIR/bin/cex-cli" ]; then
+    echo "==> [cxvm] Dispatching to cex-cli ($cli_cmd)..."
     "$CXVM_DIR/bin/cex-cli" "$cli_cmd" "$@"
     return $?
   elif command -v cex-cli >/dev/null 2>&1; then
+    echo "==> [cxvm] Dispatching to cex-cli ($cli_cmd)..."
     cex-cli "$cli_cmd" "$@"
     return $?
   fi
