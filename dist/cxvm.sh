@@ -595,8 +595,13 @@ EOF
     echo "[OK] Dev server active. Press 'h' for help, 'q' to quit."
 
     if [ "$auto_open" -eq 1 ]; then
-      _cxvm_open "http://localhost:${port}/" --target "$target"
+      if [ -n "$os_target" ]; then
+        _cxvm_open "http://localhost:${port}/" --os "$os_target"
+      else
+        _cxvm_open "http://localhost:${port}/" --target "$target"
+      fi
     fi
+
 
     if [ "$test_mode" -eq 1 ]; then
       return 0

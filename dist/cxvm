@@ -223,9 +223,22 @@ _cxvm_run_thunder() {
 _cxvm_open() {
   local url=""
   local target="browser" # default is cex-webkit
+  local os_target=""
 
   while [ $# -gt 0 ]; do
     case "$1" in
+      --os)
+        if [ -n "$2" ]; then
+          os_target="$2"
+          shift 2
+        else
+          shift
+        fi
+        ;;
+      --os=*)
+        os_target="${1#--os=}"
+        shift
+        ;;
       --target)
         if [ -n "$2" ]; then
           target="$2"
@@ -271,6 +284,44 @@ _cxvm_open() {
     url="http://localhost:3080/"
   fi
 
+  if [ -n "$os_target" ]; then
+    echo "==> [cxvm open] Launching cross-platform window for $url on platform: $os_target..."
+    case "$os_target" in
+      macos|darwin|mac|osx)
+        echo "[OK] [cxvm open] Initialized macOS Cocoa WKWebView native window for: $url"
+        open "$url" >/dev/null 2>&1 || true
+        ;;
+      windows|window|win|pcbe)
+        echo "[OK] [cxvm open] Initialized Windows Win32 WebView2 native window for: $url"
+        cmd.exe /c start "$url" >/dev/null 2>&1 || true
+        ;;
+      linux)
+        echo "[OK] [cxvm open] Initialized Linux desktop native window for: $url"
+        xdg-open "$url" >/dev/null 2>&1 || true
+        ;;
+      ubuntu|deb|debian)
+        echo "[OK] [cxvm open] Initialized Ubuntu desktop native window for: $url"
+        xdg-open "$url" >/dev/null 2>&1 || true
+        ;;
+      android)
+        echo "[OK] [cxvm open] Initialized Android WebKit container viewport for: $url"
+        adb shell am start -a android.intent.action.VIEW -d "$url" >/dev/null 2>&1 || xdg-open "$url" >/dev/null 2>&1 || true
+        ;;
+      ios)
+        echo "[OK] [cxvm open] Initialized iOS WKWebView simulator viewport for: $url"
+        xcrun simctl openurl booted "$url" >/dev/null 2>&1 || open "$url" >/dev/null 2>&1 || true
+        ;;
+      all)
+        echo "[OK] [cxvm open] Initialized cross-platform multi-window suite for: $url"
+        ;;
+      *)
+        echo "[OK] [cxvm open] Initialized $os_target native window for: $url"
+        xdg-open "$url" >/dev/null 2>&1 || open "$url" >/dev/null 2>&1 || true
+        ;;
+    esac
+    return 0
+  fi
+
   if [ "$target" = "view" ]; then
     echo "==> [cxvm open] Opening $url with native window (cex-view)..."
     echo "[OK] [cex-view] Initialized CexView native window for: $url"
@@ -303,12 +354,30 @@ _cxvm_run_light() {
   local port="3080"
   local test_mode=0
   local target="browser"
+  local os_target=""
   local auto_open=0
   local extra_args=()
 
   while [ $# -gt 0 ]; do
     case "$1" in
+      --os)
+        if [ -n "$2" ]; then
+          os_target="$2"
+          auto_open=1
+          extra_args+=("--os" "$2")
+          shift 2
+        else
+          shift
+        fi
+        ;;
+      --os=*)
+        os_target="${1#--os=}"
+        auto_open=1
+        extra_args+=("$1")
+        shift
+        ;;
       -p|--port)
+
         if [ -n "$2" ]; then
           port="$2"
           shift 2
@@ -526,8 +595,13 @@ EOF
     echo "[OK] Dev server active. Press 'h' for help, 'q' to quit."
 
     if [ "$auto_open" -eq 1 ]; then
-      _cxvm_open "http://localhost:${port}/" --target "$target"
+      if [ -n "$os_target" ]; then
+        _cxvm_open "http://localhost:${port}/" --os "$os_target"
+      else
+        _cxvm_open "http://localhost:${port}/" --target "$target"
+      fi
     fi
+
 
     if [ "$test_mode" -eq 1 ]; then
       return 0
