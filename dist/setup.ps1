@@ -130,15 +130,15 @@ if (Test-Path $cxvmScript) {
   Write-Host "  [OK] Thunder Standalone Server auto-started (single process, PID: $thPid, port: 3050)" -ForegroundColor Green
 }
 
-# Setup Lighting (Lighting Fullstack MVC engine, light CLI) integration in cxvm
+# Setup Lighting (Lighting Fullstack MVC engine, lighting CLI) integration in cxvm
 $lightBin = Join-Path $CxvmDir "bin\light.cmd"
 if (-not (Test-Path $lightBin)) {
-  "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" light %*" | Set-Content -Path $lightBin -Encoding ASCII
+  "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" lighting %*" | Set-Content -Path $lightBin -Encoding ASCII
 }
-Write-Host "  [OK] Integrated Lighting (light create, light dev, light build) configured in $(Join-Path $CxvmDir 'bin')" -ForegroundColor Green
+Write-Host "  [OK] Integrated Lighting (lighting create, lighting dev, lighting build) configured in $(Join-Path $CxvmDir 'bin')" -ForegroundColor Green
 
 # Step 4: Configure Project ./bin/ Dispatchers
-Write-Host "`n[4/5] Configuring Project ./bin/cexr & ./bin/cex for Default Run cxvm..." -ForegroundColor White
+Write-Host "`n[4/5] Configuring Project CEX_DIR/cexr-$type/$version/bin & $CEX_DIR/cexr-factory/$version/bin for Default Run cxvm..." -ForegroundColor White
 $targetBin = Join-Path $ProjectRoot "bin"
 New-Item -ItemType Directory -Force -Path $targetBin | Out-Null
 

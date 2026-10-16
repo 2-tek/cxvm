@@ -176,7 +176,7 @@ _cxvm_run_thunder() {
     echo "  [Step 4] Initialize CXVM_DIR:   /root/.cxvm (target platform: linux-x86_64)"
     echo "  [Step 5] Extract Bundles:       cex-v8.0.0-linux-x86_64.tar.gz (Default) & cex-v6.0.0-linux-x86_64.tar.gz (LTS)"
     echo "  [Step 6] Default Editions:      Runtime = cexr-factory (factory), Build = cexr-bean (bean)"
-    echo "  [Step 7] Versioned Binaries:    ./bin/8.0.0/cexp-v8, ./bin/1.0.26/cexr-factory, ./bin/1.0.26/cexr-bean, ./bin/1.0.5/cex-pack-bean"
+    echo "  [Step 7] Versioned Binaries:    CEX_DIR/cexp-v8/$version/bin, ./bin/1.0.26/cexr-factory, ./bin/1.0.26/cexr-bean, ./bin/1.0.5/cex-pack-bean"
     echo "  [Step 8] Virtual-Linux Doctor:  HEALTHY [OK]"
     echo "  Status:                         VIRTUAL-LINUX SETUP COMPLETE [OK]"
     return 0
@@ -366,7 +366,7 @@ _cxvm_open() {
 }
 
 # -----------------------------------------------------------------------------
-# Integrated Lighting Fullstack MVC Engine Runner (cxvm light ...)
+# Integrated Lighting Fullstack MVC Engine Runner (cxvm lighting ...)
 # -----------------------------------------------------------------------------
 _cxvm_run_light() {
   local light_cmd="${1:-dev}"
@@ -478,7 +478,7 @@ _cxvm_run_light() {
     fi
   fi
 
-  # 1. Built-in Scaffolder for `cxvm light create <projectName>`
+  # 1. Built-in Scaffolder for `cxvm lighting create <projectName>`
   if [ "$light_cmd" = "create" ]; then
     local proj_name="${extra_args[0]:-my-lighting-app}"
     echo "==> [cxvm light] Creating Lighting Fullstack MVC project '$proj_name'..."
@@ -492,8 +492,8 @@ _cxvm_run_light() {
   "target": "runtime",
   "main": "src/index.cex",
   "scripts": {
-    "start": "cxvm light dev",
-    "dev": "cxvm light dev",
+    "start": "cxvm lighting dev",
+    "dev": "cxvm lighting dev",
     "build": "cex build src/index.cex -o bin/server"
   },
   "dependencies": {
@@ -531,11 +531,11 @@ EOF
 PROJ_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
 CXVM_DIR="\${CXVM_DIR:-\$HOME/.cxvm}"
 if [ "\$1" = "dev" ] || [ "\$1" = "start" ]; then
-  exec "\$CXVM_DIR/bin/cxvm" light dev "\$@"
+  exec "\$CXVM_DIR/bin/cxvm" lighting dev "\$@"
 elif [ "\$1" = "build" ]; then
   exec "\$CXVM_DIR/bin/cex" build "\$PROJ_DIR/src/index.cex" -o "\$PROJ_DIR/bin/server"
 else
-  exec "\$CXVM_DIR/bin/cxvm" light "\$@"
+  exec "\$CXVM_DIR/bin/cxvm" lighting "\$@"
 fi
 EOF
     chmod +x "$proj_name/bin/light"
@@ -554,23 +554,23 @@ EOF
     echo "==> Project '$proj_name' created successfully!"
     echo "To get started:"
     echo "  cd $proj_name"
-    echo "  cxvm light dev     (or: ./bin/light dev)"
-    echo "  cxvm light build   (or: ./bin/light build)"
+    echo "  cxvm lighting dev     (or: ./bin/lighting dev)"
+    echo "  cxvm lighting build   (or: ./bin/lighting build)"
     return 0
   fi
 
-  # 2. Test runner for `cxvm light test [file]`
+  # 2. Test runner for `cxvm lighting test [file]`
   if [ "$light_cmd" = "test" ]; then
     local test_target="${extra_args[0]:-tests/hub.test.cex}"
     if [ ! -f "$test_target" ] && [ -f "tests/cxvm.test.cex" ]; then
       test_target="tests/cxvm.test.cex"
     fi
-    echo "==> [cxvm light test] Running $test_target via cexr..."
+    echo "==> [cxvm lighting test] Running $test_target via cexr..."
     "$cexr_cmd" "$test_target" "${extra_args[@]:1}"
     return $?
   fi
 
-  # 3. Compiler runner for `cxvm light build`
+  # 3. Compiler runner for `cxvm lighting build`
   if [ "$light_cmd" = "build" ]; then
     echo "==> [cxvm light] Compiling Lighting MVC project with cexp native compiler..."
     if [ -f "src/index.cex" ] && command -v cex >/dev/null 2>&1; then
@@ -581,19 +581,19 @@ EOF
     return 0
   fi
 
-  # 4. Diagnostics for `cxvm light doctor`
+  # 4. Diagnostics for `cxvm lighting doctor`
   if [ "$light_cmd" = "doctor" ]; then
     echo "==============================================================="
     echo "   Lighting Fullstack MVC Engine Diagnostic (Pure Cex)         "
     echo "==============================================================="
     echo "  Framework:     Lighting Fullstack MVC"
-    echo "  Scaffolder:    cxvm light create <projectName> [READY]"
+    echo "  Scaffolder:    cxvm lighting create <projectName> [READY]"
     echo "  Runtime:       CexR v8 Native Engine [READY]"
     echo "  Status:        HEALTHY [OK]"
     return 0
   fi
 
-  # 5. Development Server for `cxvm light dev` / `cxvm light start` / `cxvm light serve`
+  # 5. Development Server for `cxvm lighting dev` / `cxvm lighting start` / `cxvm lighting serve`
   if [ "$light_cmd" = "dev" ] || [ "$light_cmd" = "start" ] || [ "$light_cmd" = "serve" ]; then
     echo "==============================================================="
     echo "   2-TEK Lighting Fullstack MVC Engine: Development Server     "
@@ -723,7 +723,7 @@ EOF
   fi
 
   echo "Lighting Fullstack MVC Engine (as light)"
-  echo "Usage: cxvm light <command> [arguments]"
+  echo "Usage: cxvm lighting <command> [arguments]"
   echo ""
   echo "Commands:"
   echo "  create <projectName>   Create a new Lighting Fullstack MVC project"
@@ -810,7 +810,7 @@ _cxvm_run_cex_cli() {
 # Hook Dispatcher for cxvm dev, cxvm build, cxvm start
 # Default runtime (dev/start): cexr-factory (factory)
 # Default build:               cexr-bean (bean)
-# Calls: cxvm --app cexr $versionType <dev|build|start> <target_index>
+# Calls: cxvm --app cexr-$versionType <dev|build|start> <target_index>
 # -----------------------------------------------------------------------------
 _cxvm_hook_cexr() {
   local hook_cmd="${1:-dev}"
@@ -1770,13 +1770,13 @@ THUN_WRAP_EOF
         chmod +x "$CXVM_DIR/bin/thunder"
       fi
 
-      # Setup Lighting (Lighting Fullstack MVC engine, light CLI) integration in cxvm
+      # Setup Lighting (Lighting Fullstack MVC engine, lighting CLI) integration in cxvm
       if [ ! -f "$CXVM_DIR/bin/light" ]; then
         cat <<'LIGHT_WRAP_EOF' > "$CXVM_DIR/bin/light"
 #!/usr/bin/env bash
 # Lighting Fullstack MVC Engine Dispatcher
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-exec "$CXVM_DIR/bin/cxvm" light "$@"
+exec "$CXVM_DIR/bin/cxvm" lighting "$@"
 LIGHT_WRAP_EOF
         chmod +x "$CXVM_DIR/bin/light"
       fi
@@ -1804,7 +1804,7 @@ LIGHT_WRAP_EOF
       thun_pid="$(cat "$CXVM_DIR/thunder_server.pid" 2>/dev/null || echo "$$")"
       echo "  [OK] [auto-start] thunder server started (single process standalone, PID: $thun_pid, port: 3050)"
 
-      echo "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)"
+      echo "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm lighting create <project>)"
 
       if [ ! -e "$CXVM_DIR/current" ]; then
         cxvm use "$ver"
@@ -2016,8 +2016,8 @@ LIGHT_WRAP_EOF
     test)
       if [ -n "$1" ]; then
         local cexr_cmd="cexr"
-        if [ -x "./bin/cexr" ]; then
-          cexr_cmd="./bin/cexr"
+        if [ -x "CEX_DIR/cexr-$type/$version/bin" ]; then
+          cexr_cmd="CEX_DIR/cexr-$type/$version/bin"
         elif [ -x "$CXVM_DIR/current/cexr" ]; then
           cexr_cmd="$CXVM_DIR/current/cexr"
         elif [ -x "$CXVM_DIR/bin/cexr" ]; then
@@ -2095,8 +2095,8 @@ LIGHT_WRAP_EOF
       echo "  [OK] Default CexR Runtime Edition: ./bin/1.0.26/cexr-factory (factory)"
       echo "  [OK] Default CexR Build Edition:   ./bin/1.0.26/cexr-bean (bean)"
       echo "  [OK] Integrated CexLint Binary:    ./bin/1.0.8/cex-lint"
-      if [ -x "./bin/cexr" ]; then
-        "./bin/cexr" -v
+      if [ -x "CEX_DIR/cexr-$type/$version/bin" ]; then
+        "CEX_DIR/cexr-$type/$version/bin" -v
       elif [ -x "$CXVM_DIR/current/cexr" ]; then
         "$CXVM_DIR/current/cexr" -v
       fi
@@ -2135,13 +2135,13 @@ LIGHT_WRAP_EOF
       echo "  Thunder Daemon:      $thun_srv_status"
       echo "  Thunder Commands:    thunder, docker, container, run, ps, images, stats [READY]"
       local light_status="Not found"
-      if [ -x "$CXVM_DIR/bin/light" ] || command -v light >/dev/null 2>&1; then
-        light_status="INTEGRATED [Lighting Fullstack MVC, light CLI scaffolder READY]"
+      if [ -x "$CXVM_DIR/bin/light" ] || command -v lighting >/dev/null 2>&1; then
+        light_status="INTEGRATED [Lighting Fullstack MVC, lighting CLI scaffolder READY]"
       else
         light_status="INTEGRATED [Pure Cex Scaffolder fallback READY]"
       fi
       echo "  Lighting Engine:     $light_status"
-      echo "  Lighting Commands:   light, lighting, light create <project>, light dev, light build [READY]"
+      echo "  Lighting Commands:   light, lighting, lighting create <project>, lighting dev, lighting build [READY]"
       echo "  Target Opener:       INTEGRATED [--target (browser||view) | Browser (cex-webkit, default) | Native Window (cex-view) READY]"
       echo "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
       echo "  Cross-Platform:      Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)"
@@ -2177,10 +2177,10 @@ LIGHT_WRAP_EOF
       echo "  agents                Inspect .agents rule compliance via cex-cli"
       echo ""
       echo "Integrated Lighting Fullstack MVC Engine Commands:"
-      echo "  light create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
-      echo "  light dev             Start local development server on port 3080 (--target <browser|view>, --open)"
-      echo "  light build           Compile project with cexp native compiler"
-      echo "  light doctor          Run Lighting engine diagnostic"
+      echo "  lighting create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
+      echo "  lighting dev             Start local development server on port 3080 (--target <browser|view>, --open)"
+      echo "  lighting build           Compile project with cexp native compiler"
+      echo "  lighting doctor          Run Lighting engine diagnostic"
       echo ""
       echo "Integrated CodeVersionManager (CVM) Commands:"
       echo "  start [cvm|thunder] [-p <port>] Start CVM or Thunder as a server with single process (standalone)"

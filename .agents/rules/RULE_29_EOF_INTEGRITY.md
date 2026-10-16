@@ -22,7 +22,7 @@ trigger: always_on
    - Package configurations and JSON (`cex-pack.json`, `package.json`, `manifest.json`, `*.json`)
    - Documentation and agent rules (`*.md`, `*.txt`)
    - Ignore & dotfiles (`.gitignore`, `.env*`)
-3. **Verification Command (Pure `.cex` via `cexr` Runtime)**:
+3. **Verification Command (Pure `.cex` via `cexr-$type` Runtime)**:
    ```bash
    cexr scripts/verify_eof.cex
    ```

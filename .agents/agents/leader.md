@@ -17,9 +17,9 @@ tools:
 
 You are the **Master Project Leader & Architecture Controller** of `cxvm` (`@2tek/cxvm`).
 Your primary mandate is to **maintain absolute immutability of the cxvm cross-platform distribution engine and version manager target**:
-- `cxvm` is powered purely by **Lighting Fullstack MVC** using Pure Cex (`cexr` runtime engine + `cexp` direct machine compiler; zero C++ toolchain dependency in v2).
+- `cxvm` is powered purely by **Lighting Fullstack MVC** using Pure cexr (`cexr-$type` runtime engine + `cexr-v$shortName` direct machine compiler; zero C++ toolchain dependency in v2).
 - Target in `cex-pack.json` is strictly `"target": "runtime"`.
-- Rule 69 standard: in CexR v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, do not use `.gitignore` for dist bundle file. **Keep `dist/` containing all 36 cross-platform distribution downloads of cxvm.**
+- Rule 69 standard: in cexr-$type of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, do not use `.gitignore` for dist bundle file. **Keep `dist/` containing all 36 cross-platform distribution downloads of cxvm.**
 - Provide cross-platform setup window (CLI & Web `/setup`) for paths, environment, default runtimes (v8 & v6), and `./bin/` dispatchers.
 
 ---
@@ -29,6 +29,6 @@ Your primary mandate is to **maintain absolute immutability of the cxvm cross-pl
 1. **Rule 69**: Maintain canonical project target (`"target": "runtime"`) and keep `dist/` containing all cross-platform distribution archives.
 2. **Rule 29**: Exactly one newline at EOF for all files.
 3. **Rule 72**: All paths dynamic relative to current directory, `$CXVM_DIR`, or environment variables. Zero hardcoded personal paths.
-4. **Toolchain**: Use `cexr`, `cexp`, `./bin/cexr`, `./bin/cex`, and `cxvm`.
-5. **Setup Window & Dispatchers**: Ensure `./bin/cexr` and `./bin/cex` prioritize CexR v8 with instant v6 fallback.
+4. **Toolchain**: Use `cexr-$type`, `cexr-v$shortName`, `CEX_DIR/cexr-$type/$version/bin`, `CEX_DIR/cexr-bean/$version/bin`, and `cxvm`.
+5. **Setup Window & Dispatchers**: Ensure `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` prioritize cexr-$type with instant v6 fallback.
 6. **Rule (No Symbols)**: Maintain pure ASCII output and zero emoji/symbol usage across all rules, code, scripts, and interfaces.

@@ -5,7 +5,7 @@
 
 > **Canonical Target of cxvm (`@2tek/cxvm`)**:
 > **`cxvm` is the canonical cross-platform Cex distribution builder and runtime version manager engine, powered natively by Lighting Fullstack MVC.**
-> **Toolchain Standard**: Pure Cex Native Engine (`cexr` runtime engine + `cexp` direct machine compiler; zero C++ toolchain dependency).
+> **Toolchain Standard**: Pure Cex Native Engine (`cexr-$type` runtime engine + `cexp-v$shortVersion` direct machine compiler; zero C++ toolchain dependency).
 > **Target Definition**: `"target": "runtime"` in `cex-pack.json`.
 > **Distribution Standard (Rule 69)**: In CexR v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, do not use `.gitignore` for dist bundle file. **Always keep `dist/` containing all cross-platform distribution downloads of cxvm.**
 
@@ -17,7 +17,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
 
 1. **Pure Cex Native Engine (v2 Standard)**:
    - Eliminates all external C++ compiler dependencies (`g++`, `clang++`, `MSVC`, `-std=c++20`, `#include <iostream>`).
-   - Powered purely by **`cexr`** (Cex Language Runtime Engine) and **`cexp`** (Cex Direct Machine Compiler).
+   - Powered purely by **`cexr-$type`** (Cex Language Runtime Engine) and **`cexp-v$shortVersion`** (Cex Direct Machine Compiler).
    - Package manifest strictly requires:
      ```json
      "target": "runtime",
@@ -40,22 +40,22 @@ The `cxvm` repository defines the official distribution hub and version manageme
 
 3. **Cex Version Manager (`cxvm`) CLI (like `nvm`)**:
    - Standalone multi-platform management CLI (`cxvm` for POSIX bash, `cxvm.ps1` for Windows PowerShell, and `cxvm.cmd` for Windows Command Prompt).
-   - Manages runtime installations into `~/.cxvm/versions/v<version>`, creates symlinks to `~/.cxvm/current`, and manages the active `cexr` binary runner.
+   - Manages runtime installations into `~/.cxvm/bin/v<version>`, creates symlinks to `~/.cxvm/current`, and manages the active `cexr-$type` binary runner.
    - Core commands:
      - `cxvm setup`: Cross-platform interactive setup window configuring environment, PATH, and `./bin/` dispatchers.
-     - `cxvm install <ver>`: Installs target version package into `~/.cxvm/versions/`.
+     - `cxvm install <ver>`: Installs target version package into `~/.cxvm/bin/`.
      - `cxvm download <ver> [plat|all]`: Downloads bundles into cache for offline setup.
      - `cxvm use <ver>`: Switches active runtime and updates PATH in the current session.
      - `cxvm list` / `cxvm current` / `cxvm default <ver>`: Inspects and manages version selection.
-     - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr` runtime, `cexp` compiler, and Pure Cex toolchain status.
+     - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr-$type` runtime, `cexp-v$shortVersion` compiler, and Pure Cex toolchain status.
 
 4. **Cross-Platform Setup Window**:
    - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), and project `./bin/` integration.
    - **Web Setup Window (Lighting MVC)**: Full-featured desktop application window UI on route `/setup` with macOS/Windows titlebar controls (`[RED] [YELLOW] [GREEN]`), tabbed OS quick installers, environment status cards, runtime selector, and live `cxvm doctor` console.
 
-5. **Project `./bin/` Toolchain Dispatchers**:
-   - `./bin/cexr`: Smart runtime dispatcher defaulting to **CexR v8.0.0** with instant version switching to **v6.0.0** (`./bin/cexr v6 ...`).
-   - `./bin/cex`: Toolchain runner with support for `run`, `build`, `doctor`, `setup`, and version switches.
+5. **Project Toolchain Dispatchers (Reserve Path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)**:
+   - `CEX_DIR/cexr-factory/$version/bin`: Smart runtime dispatcher defaulting to **CexR v8.0.0** with instant version switching to **v6.0.0** (`$CEX_DIR/cexr-factory/$version/bin v6 ...`).
+   - `CEX_DIR/cexr-bean/$version/bin`: Toolchain runner with support for `run`, `build`, `doctor`, `setup`, and version switches.
    - Cross-platform Windows companions: `cexr.cmd`, `cex.cmd`, `cxvm.cmd`, `cexr.ps1`, `cex.ps1`, `cxvm.ps1`.
 
 6. **Lighting Fullstack MVC Server (Port 3080)**:

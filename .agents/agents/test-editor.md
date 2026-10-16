@@ -22,8 +22,8 @@ You verify that all automated test suites pass with a 100% success rate and that
 ## 2. Testing Directives
 
 1. **Verify Test Suites**:
-   - `cexr tests/cxvm.test.cex`: Verifies version manager commands, distribution downloads, routes, and `dist/` retention.
-   - `cexr tests/factory.test.cex`: Verifies models, factory controllers, setup window rendering, and artifact availability.
+   - `cexr-$type tests/cxvm.test.cex`: Verifies version manager commands, distribution downloads, routes, and `dist/` retention.
+   - `cexr-$type tests/factory.test.cex`: Verifies models, factory controllers, setup window rendering, and artifact availability.
 2. **Verify Distribution Bundles (Rule 69)**:
    - Ensure all 36 cross-platform distribution archives exist in `dist/` and `downloads/`.
    - Ensure `manifest.json` and `SHA256SUMS` match the bundles.

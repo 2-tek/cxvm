@@ -17,7 +17,7 @@ class GitHash {
         let h4: int = -1009589776; // 0xC3D2E1F0
 
         let len: int = (int)input.length();
-        let bitLen: long = (long)len * 8;
+        let bitLen: int64 = (long)len * 8;
 
         // Create padded buffer
         let padLen: int = len + 1;
@@ -168,7 +168,7 @@ class Base64 {
         let clean: string = "";
         for (let i: int = 0; i < len; i++) {
             let ch: char = b64[i];
-            if (ch != '\r' && ch != '\n' && ch != ' ') {
+            if ((int)ch != 13 && (int)ch != 10 && (int)ch != 32) {
                 clean = clean + ch;
             }
         }
@@ -179,8 +179,8 @@ class Base64 {
 
             let c0: int = (int)table.find(clean[i]);
             let c1: int = (int)table.find(clean[i + 1]);
-            let c2: int = clean[i + 2] == '=' ? 0 : (int)table.find(clean[i + 2]);
-            let c3: int = clean[i + 3] == '=' ? 0 : (int)table.find(clean[i + 3]);
+            let c2: int = (int)clean[i + 2] == 61 ? 0 : (int)table.find(clean[i + 2]);
+            let c3: int = (int)clean[i + 3] == 61 ? 0 : (int)table.find(clean[i + 3]);
 
             if (c0 < 0 || c1 < 0) break;
 
@@ -189,11 +189,11 @@ class Base64 {
             let char1: char = (char)((triplet >> 16) & 255);
             out = out + char1;
 
-            if (clean[i + 2] != '=') {
+            if ((int)clean[i + 2] != 61) {
                 let char2: char = (char)((triplet >> 8) & 255);
                 out = out + char2;
             }
-            if (clean[i + 3] != '=') {
+            if ((int)clean[i + 3] != 61) {
                 let char3: char = (char)(triplet & 255);
                 out = out + char3;
             }

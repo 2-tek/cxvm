@@ -5,14 +5,25 @@
 import "@cex-test/src/assert.cex";
 import "@cex-test/src/runner.cex";
 import fs from "fs";
-import "../src/lighting_mvc.cex";
-import "../src/types.cex";
-import "../src/models/platform_model.cex";
-import "../src/models/version_model.cex";
-import "../src/models/artifact_model.cex";
-import "../src/builder/dist_builder.cex";
-import "../src/cxvm/cxvm_engine.cex";
-import "../src/app.cex";
+import "@/src/lighting_mvc.cex";
+import "@/src/types.cex";
+import "@/src/platform_model.cex";
+import "@/src/version_model.cex";
+import "@/src/artifact_model.cex";
+import "@/src/dist_builder.cex";
+import "@/src/cvm/types.cex";
+import "@/src/cvm/hash_utils.cex";
+import "@/src/cvm/object_store.cex";
+import "@/src/cvm/diff_engine.cex";
+import "@/src/cvm/cvm_patch.cex";
+import "@/src/cvm/ref_manager.cex";
+import "@/src/cvm/merge_manager.cex";
+import "@/src/cvm/repository.cex";
+import "@/src/cvm/cli.cex";
+import "@/src/factory_controller.cex";
+import "@/src/factory_views.cex";
+import "@/src/cxvm_engine.cex";
+import "@/src/app.cex";
 
 fn main(): int {
     println("===============================================================================");
@@ -77,7 +88,7 @@ fn main(): int {
     Assert::isTrue(fs.exists("bin/1.0.5/cex-pack-bean"), "cex-pack-bean built with exact version & type in ./bin/1.0.5/cex-pack-bean");
     Assert::isTrue(fs.exists("bin/1.0.5/cex-pack"), "cex-pack integrated inside ./bin/1.0.5/cex-pack");
     Assert::isTrue(fs.exists("bin/1.0.8/cex-lint"), "cex-lint binary build integrated into ./bin/1.0.8/cex-lint");
-    Assert::isTrue(fs.exists("bin/8.0.0/cexp-v8"), "standalone cexp-v8 built with exact version & type in ./bin/8.0.0/cexp-v8");
+    Assert::isTrue(fs.exists("bin/8.0.0/cexp-v8"), "standalone cexp-v8 built with exact version & type in CEX_DIR/cexp-v8/$version/bin");
     Assert::isTrue(fs.exists("bin/7.0.0/cexp-v7"), "standalone cexp-v7 built with exact version & type in ./bin/7.0.0/cexp-v7");
     Assert::isTrue(fs.exists("bin/6.0.2/cexp-v6"), "standalone cexp-v6 built with exact version & type in ./bin/6.0.2/cexp-v6");
     Assert::isTrue(fs.exists("bin/5.0.0/cexp-v5"), "standalone cexp-v5 built with exact version & type in ./bin/5.0.0/cexp-v5");
@@ -90,7 +101,7 @@ fn main(): int {
     Assert::isTrue(fs.exists("bin/1.0.26/cexr-drawer"), "cexr-drawer built with exact version & type in ./bin/1.0.26/cexr-drawer");
     Assert::isTrue(fs.exists("bin/1.0.26/cexr-factory"), "cexr-factory built with exact version & type in ./bin/1.0.26/cexr-factory");
     Assert::isFalse(fs.exists("bin/cexp"), "no hardcoded flat ./bin/cexp");
-    Assert::isFalse(fs.exists("bin/cexr-bean"), "no hardcoded flat ./bin/cexr-bean");
+    Assert::isFalse(fs.exists("bin/cexr-bean"), "no hardcoded flat CEX_DIR/cexr-$type/$version/bin-bean");
     Assert::isFalse(fs.exists("bin/bean"), "no hardcoded non-version ./bin/bean directory");
     let mfRaw: string = fs.readFile("cex-pack.json");
     Assert::isTrue(mfRaw.find("\"lint\": \"cxvm --app cex-lint fix .\"") != -1, "cex-pack.json scripts.lint is configured as cxvm --app cex-lint fix .");
@@ -155,7 +166,7 @@ fn main(): int {
     Assert::isTrue(setupCmdRes->output.find("cexr-bean") != -1, "Setup output displays default build cexr-bean");
     Assert::isTrue(setupCmdRes->output.find("cexr-delivery") != -1, "Setup output displays cexr-delivery via cexr -v");
     Assert::isTrue(setupCmdRes->output.find("cexr-drawer") != -1, "Setup output displays cexr-drawer via cexr -v");
-    Assert::isTrue(setupCmdRes->output.find("./bin/8.0.0/cexp-v8") != -1, "Setup output displays ./bin/8.0.0/cexp-v8");
+    Assert::isTrue(setupCmdRes->output.find("CEX_DIR/cexp-v8/$version/bin") != -1, "Setup output displays CEX_DIR/cexp-v8/$version/bin");
     Assert::isTrue(setupCmdRes->output.find("./bin/1.0.8/cex-lint") != -1, "Setup output displays ./bin/1.0.8/cex-lint");
 
     let uninstRes: CxvmCommandResult* = cxvm->uninstall("2.0.0");

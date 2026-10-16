@@ -2,7 +2,7 @@
 trigger: always_on
 ---
 
-# Rule: CXVM Hook for dev, build, start (`cxvm --app cexr $versionType`) & Replace Python Scripts with `.cex` via `cexr` Runtime (RULE_CXVM_HOOK_CEXR_AND_NO_PYTHON)
+# Rule: CXVM Hook for dev, build, start (`cxvm --app cexr-$versionType`) & Replace Python Scripts with `.cex` via `cexr-$type` Runtime (RULE_CXVM_HOOK_CEXR_AND_NO_PYTHON)
 
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_CEX_TOOLCHAIN, RULE_PURE_CEX_BIN -->
 
@@ -10,11 +10,11 @@ trigger: always_on
 > 1. **CXVM Hook on `dev`, `build`, and `start`**:
 >    When using `cxvm dev`, `cxvm build`, or `cxvm start`, it operates as a **hook** that calls:
 >    ```bash
->    cxvm --app cexr $versionType <dev|build|start> <target_index>
+>    cxvm --app cexr-$versionType <dev|build|start> <target_index>
 >    ```
 >    where `$versionType` is the CexR runtime edition/version type (for example `$versionType=bean`, `delivery`, `drawer`, `factory`, or `8.0.0`) and `<target_index>` is the target index file (e.g. `src/index.cex`).
-> 2. **Replace Python Scripts with `.cex` via `cexr` Runtime**:
->    All scripts that previously used Python (`python`, `python3`, `#!/usr/bin/env python3`, `python3 -c`) MUST be replaced with native `.cex` scripts executed using the `cexr` runtime (`cexr <script.cex>`).
+> 2. **Replace Python Scripts with `.cex` via `cexr-$type` Runtime**:
+>    All scripts that previously used Python (`python`, `python3`, `#!/usr/bin/env python3`, `python3 -c`) MUST be replaced with native `.cex` scripts executed using the `cexr-$type` runtime (`cexr <script.cex>`).
 
 ---
 
@@ -22,9 +22,9 @@ trigger: always_on
 
 | CXVM Command | Hook Invocation | Example (`$versionType=bean`) |
 | :--- | :--- | :--- |
-| `cxvm dev [target_index]` | `cxvm --app cexr $versionType dev <target_index>` | `cxvm --app cexr bean dev src/index.cex` |
-| `cxvm build [target_index] [out_bin]` | `cxvm --app cexr $versionType build <target_index> [out_bin]` | `cxvm --app cexr bean build src/index.cex` |
-| `cxvm start [target_index]` | `cxvm --app cexr $versionType start <target_index>` | `cxvm --app cexr bean start src/index.cex` |
+| `cxvm dev [target_index]` | `cxvm --app cexr-$versionType dev <target_index>` | `cxvm --app cexr bean dev src/index.cex` |
+| `cxvm build [target_index] [out_bin]` | `cxvm --app cexr-$versionType build <target_index> [out_bin]` | `cxvm --app cexr bean build src/index.cex` |
+| `cxvm start [target_index]` | `cxvm --app cexr-$versionType start <target_index>` | `cxvm --app cexr bean start src/index.cex` |
 
 - **Resolution of `$versionType`**:
   1. Explicit `$versionType` argument if provided (`bean`, `delivery`, `drawer`, `factory`, `8.0.0`, `6.0.0`).
@@ -36,11 +36,11 @@ trigger: always_on
 
 ---
 
-## 2. Pure `.cex` Script Replacement via `cexr` Runtime
+## 2. Pure `.cex` Script Replacement via `cexr-$type` Runtime
 
 1. **Zero Python Dependency**:
    - Do NOT use `python` or `python3` in any shell script, batch script, PowerShell script, or verification rule.
-   - Replace all Python scripts with `.cex` source files executed by `cexr`:
+   - Replace all Python scripts with `.cex` source files executed by `cexr-$type`:
      - `scripts/cex_pack.cex` (replaces Python `cex-pack` validator and `.cex_boxes` downloader)
      - `scripts/generate_manifest.cex` (replaces inline `python3` manifest generator in `scripts/generate_distributions.sh`)
      - `scripts/verify_eof.cex` (replaces `python3 -c` in `RULE_29_EOF_INTEGRITY.md`)

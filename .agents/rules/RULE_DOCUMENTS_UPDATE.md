@@ -7,7 +7,7 @@ trigger: always_on
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols) -->
 
 > **DOCUMENTATION SYNCHRONIZATION DIRECTIVE**:
-> Whenever a new feature, command, API, model, or architectural component is added or modified in any project under the Cex ecosystem (e.g., `cxvm`, `cexp`, `cexr`, or packages in `cxvm/packages/*`):
+> Whenever a new feature, command, API, model, or architectural component is added or modified in any project under the Cex ecosystem (e.g., `cxvm`, `cexp-v$shortVersion`, `cexr-$type`, or packages in `cxvm/packages/*`):
 > **MANDATORY**: Update the central documentation book located at `documents/` (accessible via `../documents` from sibling projects, or referenced as `../{projectName}`).
 
 ---
@@ -33,4 +33,4 @@ trigger: always_on
    - Conformance with **Rule (No Symbols)**: Pure ASCII text only. Do not use emojis or unicode decorative symbols.
    - Conformance with **Rule 72 (Dynamic Paths)**: No hardcoded absolute user paths; use relative references (`../{projectName}`).
 6. **Pure Cex Toolchain**:
-   - Documentation generators, readers, scripts, and validators must be built in `.cex` utilizing Cex ecosystem libraries (`cexr`, `cexp`, `cex-view`, `cex-service`, `cex-pack`). No Node.js or JavaScript runtime dependencies.
+   - Documentation generators, readers, scripts, and validators must be built in `.cex` utilizing Cex ecosystem libraries (`cexr-$type`, `cexp-v$shortVersion`, `cex-view`, `cex-service`, `cex-pack`). No Node.js or JavaScript runtime dependencies.

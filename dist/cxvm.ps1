@@ -99,7 +99,7 @@ function Invoke-HookCexr {
         }
     }
 
-    Write-Host "==> [cxvm $HookCmd] Hook -> cxvm --app cexr $versionType $HookCmd $targetIndex" -ForegroundColor Cyan
+    Write-Host "==> [cxvm $HookCmd] Hook -> cxvm --app cexr-$versionType $HookCmd $targetIndex" -ForegroundColor Cyan
     return (Run-App -AppName "cexr" -AppCmd $versionType -AppArgs (@($HookCmd, $targetIndex) + $extra))
 }
 
@@ -502,7 +502,7 @@ function Run-Light {
         Write-Host "==> Project '$projName' created successfully!" -ForegroundColor Green
         Write-Host "To get started:" -ForegroundColor Yellow
         Write-Host "  cd $projName" -ForegroundColor Yellow
-        Write-Host "  cxvm light dev" -ForegroundColor Yellow
+        Write-Host "  cxvm lighting dev" -ForegroundColor Yellow
         return
     }
 
@@ -780,10 +780,10 @@ echo CexR Windows Runner ready.
                 "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" thunder %*" | Set-Content -Path $thWrapper -Encoding ASCII
             }
 
-            # Setup standalone Lighting (light CLI) in $cxvmHome\bin
+            # Setup standalone Lighting (lighting CLI) in $cxvmHome\bin
             $lightWrapper = Join-Path $binDir "light.cmd"
             if (-not (Test-Path $lightWrapper)) {
-                "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" light %*" | Set-Content -Path $lightWrapper -Encoding ASCII
+                "@echo off`npowershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0cxvm.ps1`" lighting %*" | Set-Content -Path $lightWrapper -Encoding ASCII
             }
 
             Write-Host "==> [cxvm] Successfully installed Cex v$Version into $targetDir" -ForegroundColor Green
@@ -808,7 +808,7 @@ echo CexR Windows Runner ready.
             $thPid = if (Test-Path (Join-Path $cxvmHome "thunder_server.pid")) { (Get-Content (Join-Path $cxvmHome "thunder_server.pid") -Raw).Trim() } else { "$PID" }
             Write-Host "  [OK] [auto-start] thunder server started (single process standalone, PID: $thPid, port: 3050)" -ForegroundColor Green
 
-            Write-Host "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm light create <project>)" -ForegroundColor Green
+            Write-Host "  [OK] [auto-start] lighting CLI & scaffolder engine ready (cxvm lighting create <project>)" -ForegroundColor Green
 
             if (-not (Test-Path (Join-Path $cxvmHome "current"))) {
                 & $PSCommandPath -Command "use" -Version $Version
@@ -1106,7 +1106,7 @@ echo CexR Windows Runner ready.
         Write-Host "  Thunder Daemon:      $thStatus"
         $lightStatus = if (Test-Path (Join-Path $cxvmHome 'bin\light.cmd')) { 'light.cmd [READY]' } else { 'INTEGRATED [READY]' }
         Write-Host "  Lighting Engine:     $lightStatus"
-        Write-Host "  Lighting Commands:   light, lighting, light create <project>, light dev, light build [READY]"
+        Write-Host "  Lighting Commands:   light, lighting, lighting create <project>, lighting dev, lighting build [READY]"
         Write-Host "  Target Opener:       INTEGRATED [--target (browser||view) | Browser (cex-webkit, default) | Native Window (cex-view) READY]"
         Write-Host "  Diagnostic:          HEALTHY [OK]" -ForegroundColor Green
     }
@@ -1117,9 +1117,9 @@ echo CexR Windows Runner ready.
         Write-Host "Commands:"
         Write-Host "  setup                 Display setup window & configure PATH, env, and default runtimes"
         Write-Host "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
-        Write-Host "  light create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
-        Write-Host "  light dev             Start local development server (--target <browser|view>, --open)"
-        Write-Host "  light build           Compile project with cexp native compiler"
+        Write-Host "  lighting create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
+        Write-Host "  lighting dev             Start local development server (--target <browser|view>, --open)"
+        Write-Host "  lighting build           Compile project with cexp native compiler"
         Write-Host "  open [url]            Open URL by Browser (cex-webkit, default) or native window (cex-view)"
         Write-Host "                        Options: --target (browser||view) or -t <browser|view>"
         Write-Host "  start cvm             Start CVM Web Studio server with single process (standalone)"

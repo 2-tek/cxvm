@@ -21,10 +21,10 @@ You implement features for the Lighting MVC web portal, REST API endpoints, CXVM
 
 ## 2. Invariants
 
-1. **Pure Cex in v2**: Zero C++ compiler dependencies (`g++`, `clang++`, `MSVC`). Execution is handled by `cexr` and machine compilation by `cexp`.
+1. **Pure Cex in v2**: Zero C++ compiler dependencies (`g++`, `clang++`, `MSVC`). Execution is handled by `cexr-$type` and machine compilation by `cexp-v$shortVersion`.
 2. **Rule 69 Compliance**: Retain `dist/` containing all 36 pre-built cross-platform distribution archives. Never ignore `dist/` when `"target": "runtime"`.
 3. **Cross-Platform Setup Window**: Implement terminal setup window (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `setup.cmd`) and web setup window (`/setup`).
-4. **Project Dispatchers**: Ensure `./bin/cexr` and `./bin/cex` prioritize CexR v8 by default, supporting instant switch to v6.
+4. **Project Dispatchers**: Ensure `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` prioritize CexR v8 by default, supporting instant switch to v6.
 5. **Rule 29 (EOF Integrity)**: All files must end with exactly ONE newline (`\n`).
 6. **Rule 72 (Dynamic Paths)**: Dynamic path resolution relative to current working directory, `$HOME`, or environment variables. Zero hardcoded personal paths.
 7. **Rule (No Symbols)**: All code, messages, and documentation must be pure ASCII without emojis or unicode symbols.

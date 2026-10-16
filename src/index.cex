@@ -113,18 +113,18 @@ fn main(): int {
     let thStopRes: CxvmCommandResult* = app->cxvm->stopThunder();
     print("    Result: "); println(thStopRes->success ? "PASSED [OK]" : "FAILED");
 
-    // 3d. Testing Integrated Lighting Fullstack MVC Engine (cxvm light, cxvm light create)
-    println("\n[3d. Testing Integrated Lighting Engine (cxvm light create, cxvm light dev, cxvm light build)]");
-    println("  ▶ Simulating: cxvm light create sample-service");
+    // 3d. Testing Integrated Lighting Fullstack MVC Engine (cxvm light, cxvm lighting create)
+    println("\n[3d. Testing Integrated Lighting Engine (cxvm lighting create, cxvm lighting dev, cxvm lighting build)]");
+    println("  ▶ Simulating: cxvm lighting create sample-service");
     let lightCreateRes: CxvmCommandResult* = app->cxvm->lightCreate("sample-service", ".");
     print("    Result: "); println(lightCreateRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(lightCreateRes->output);
 
-    println("  ▶ Simulating: cxvm light dev");
+    println("  ▶ Simulating: cxvm lighting dev");
     let lightDevCode: int = app->cxvm->lightExecute("dev", "", "");
     print("    Result: "); println(lightDevCode == 0 ? "PASSED [OK]" : "FAILED");
 
-    println("  ▶ Simulating: cxvm light doctor");
+    println("  ▶ Simulating: cxvm lighting doctor");
     let lightDocCode: int = app->cxvm->lightExecute("doctor", "", "");
     print("    Result: "); println(lightDocCode == 0 ? "PASSED [OK]" : "FAILED");
 

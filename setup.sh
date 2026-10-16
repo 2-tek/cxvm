@@ -315,7 +315,7 @@ exit 1
 DISPATCHER_CXVM
   chmod +x "$PROJECT_BIN/cxvm"
 
-  # ./bin/cexr dispatcher
+  # CEX_DIR/cexr-factory/$version/bin dispatcher
   cat << 'DISPATCHER_CEXR' > "$PROJECT_BIN/cexr"
 #!/usr/bin/env bash
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
@@ -342,9 +342,14 @@ exit 1
 DISPATCHER_CEXR
   chmod +x "$PROJECT_BIN/cexr"
 
-  # ./bin/cex dispatcher
+  # CEX_DIR/cexr-bean/$version/bin companion dispatcher
   ln -sf "$PROJECT_BIN/cexr" "$PROJECT_BIN/cex" 2>/dev/null || true
-  echo "[OK] Local project dispatchers created in $PROJECT_BIN"
+  # Reserve path: CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin
+  CEX_DIR="${CEX_DIR:-$HOME/.cex/bin}"
+  mkdir -p "$CEX_DIR/cexr-factory/$DEFAULT_VER" "$CEX_DIR/cexr-bean/$DEFAULT_VER" 2>/dev/null || true
+  ln -sf "$PROJECT_BIN/cexr" "$CEX_DIR/cexr-factory/$DEFAULT_VER/bin" 2>/dev/null || true
+  ln -sf "$PROJECT_BIN/cexr" "$CEX_DIR/cexr-bean/$DEFAULT_VER/bin" 2>/dev/null || true
+  echo "[OK] Local project dispatchers created in $PROJECT_BIN (Reserve Path: CEX_DIR/cexr-factory/$DEFAULT_VER/bin)"
 fi
 
 # ------------------------------------------------------------------------------

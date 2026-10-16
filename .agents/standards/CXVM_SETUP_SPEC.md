@@ -24,7 +24,7 @@ The `cxvm` setup system provides cross-platform initialization for the Cex envir
      - **v8.0.0** (Default CexR v8 runtime with `.cex_boxes` dist loader).
      - **v6.0.0** (LTS CexR v6 runtime with native JIT).
   6. Point active symlink `$CXVM_DIR/current` -> `$CXVM_DIR/versions/v8.0.0`.
-  7. Validate local `./bin/cexr` and `./bin/cex` dispatchers.
+  7. Validate local `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` dispatchers.
   8. Run diagnostic pre-flight checks and report success.
 
 ### 2.2 Web Setup Window (Lighting MVC)
@@ -51,8 +51,8 @@ The `cxvm` setup system provides cross-platform initialization for the Cex envir
 
 ## 4. Project `./bin/` Dispatchers
 
-Project-level `./bin/cexr` and `./bin/cex` scripts:
+Project-level `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` scripts:
 1. Check for local `$CXVM_DIR/versions/v8.0.0/bin/cexr`.
-2. Fall back to system `cexr` in `PATH` if available.
-3. Detect version flag arguments (e.g. `./bin/cexr v6 <script>` or `./bin/cex v6 run <script>`) to route to `$CXVM_DIR/versions/v6.0.0/bin/cexr`.
+2. Fall back to system `cexr-$type` in `PATH` if available.
+3. Detect version flag arguments (e.g. `CEX_DIR/cexr-$type/$version/bin v6 <script>` or `$CEX_DIR/cexr-factory/$version/bin v6 run <script>`) to route to `$CXVM_DIR/versions/v6.0.0/bin/cexr`.
 4. Windows companion scripts (`.cmd`, `.ps1`) provide identical functionality without POSIX bash requirements.

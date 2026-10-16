@@ -63,7 +63,7 @@ flowchart TD
 
 ### 2.3 CXVM Version Manager Engine
 - **Directory Layout**:
-  - `~/.cxvm/versions/v<version>`: Extracted binary runtimes.
+  - `~/.cxvm/bin/v<version>`: Extracted binary runtimes.
   - `~/.cxvm/current`: Active version symlink.
   - `~/.cxvm/downloads`: Local bundle archive cache.
 - **Shell Profile Integration**: Appends dynamic initialization block exporting `CXVM_DIR`, `CEX_HOME`, and prepending `$CXVM_DIR/current/bin` to `PATH`.
@@ -74,4 +74,4 @@ flowchart TD
 
 1. **`dist/` Retention**: In CexR v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, **do not use `.gitignore` for dist bundle file**.
 2. **Dual Availability**: All 36 cross-platform distribution archives reside in both `dist/` and `downloads/`.
-3. **No External C++**: The entire codebase in v2 is pure Cex, executed by `cexr` and compiled by `cexp`.
+3. **No External C++**: The entire codebase in v2 is pure Cex, executed by `cexr-$type` and compiled by `cexp-v$shortVersion`.

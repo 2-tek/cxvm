@@ -25,7 +25,7 @@ Both Git and CodeVersionManager (`.cvm`) track file blobs rather than empty dire
    - Directories designed to receive compiled outputs or binaries (e.g. `bin/`, `dist/`, `build/`, `tmp/`).
    - Binaries and transient files must be excluded by ignore rules, while the directory itself remains permanently checked in via `.gitkeep` and `.cvmkeep`.
 3. **Scaffolding and Project Initialization**:
-   - `cxvm init`, `cxvm light create`, and framework scaffolders must automatically place `.gitkeep` and `.cvmkeep` inside generated structural directories.
+   - `cxvm init`, `cxvm lighting create`, and framework scaffolders must automatically place `.gitkeep` and `.cvmkeep` inside generated structural directories.
 
 ---
 

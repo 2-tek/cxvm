@@ -10,7 +10,7 @@ CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 CEXR_BIN=""
 for r_cand in \
   "$SELF_DIR/cexr" \
-  "$SELF_DIR/../bin/cexr" \
+  "$SELF_DIR/.CEX_DIR/cexr-$type/$version/bin" \
   "$CXVM_DIR/current/bin/cexr" \
   "$CXVM_DIR/bin/cexr"; do
   if [ -x "$r_cand" ] && [ ! -d "$r_cand" ]; then

@@ -20,8 +20,8 @@ trigger: always_on
      - Step 1: Detect Host OS, Architecture, and Shell.
      - Step 2: Initialize `CXVM_DIR` (`~/.cxvm` or `%USERPROFILE%\.cxvm`).
      - Step 3: Configure environment variables (`CXVM_DIR`, `CEX_HOME`, `PATH`).
-     - Step 4: Install/link default runtimes: **v8.0.0** (Default) and **v6.0.0** (LTS), setting default `cexr` runtime to **`cexr-factory`** (`factory`) and default build to **`cexr-bean`** (`bean`).
-     - Step 5: Verify project `./bin/cexr` and `./bin/cex` dispatchers and run `cexr -v` to display all editions (`cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cexp`, `cex-pack`).
+     - Step 4: Install/link default runtimes: **v8.0.0** (Default) and **v6.0.0** (LTS), setting default `cexr-$type` runtime to **`cexr-factory`** (`factory`) and default build to **`cexr-bean`** (`bean`).
+     - Step 5: Verify project `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` dispatchers and run `cexr -v` to display all editions (`cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cexp-v$shortVersion`, `cex-pack`).
      - Step 6: Run `cxvm doctor` and report readiness.
 2. **Web Setup Window (`/setup`)**:
    - Delivered via Lighting Fullstack MVC at route `/setup`.
@@ -29,15 +29,15 @@ trigger: always_on
 
 ---
 
-## 2. Dispatcher Standards (`./bin/cexr` & `./bin/cex`)
+## 2. Dispatcher Standards (`CEX_DIR/cexr-$type/$version/bin` & `CEX_DIR/cexr-bean/$version/bin`)
 
 1. **Default Version (v8.0.0) & Default Editions (`cexr-factory` & `cexr-bean`)**:
-   - `./bin/cexr` and `./bin/cex` default to CexR v8.0.0 (`~/.cxvm/versions/v8.0.0/bin/cexr` or active CexR v8 binary).
+   - `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` default to CexR v8.0.0 (`~/.cxvm/bin/v8.0.0/bin/cexr` or active CexR v8 binary).
    - Default runtime edition (`run`, `dev`, `start`): **`cexr-factory`** (`CEXR_VERSION_TYPE=factory`).
    - Default build edition (`build`, `compile`): **`cexr-bean`** (`CEXR_BUILD_VERSION_TYPE=bean`).
-   - Running `cexr -v` displays all integrated editions (`cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cexp`, and `cex-pack`).
+   - Running `cexr -v` displays all integrated editions (`cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cexp-v$shortVersion`, and `cex-pack`).
 2. **Instant Version Switch (v6.0.0)**:
-   - Must support direct version invocation: `./bin/cexr v6 <file.cex>` or `./bin/cex v6 run <file.cex>` targeting CexR v6.0.0 without permanently altering global default.
+   - Must support direct version invocation: `CEX_DIR/cexr-$type/$version/bin v6 <file.cex>` or `$CEX_DIR/cexr-factory/$version/bin v6 run <file.cex>` targeting CexR v6.0.0 without permanently altering global default.
 3. **Cross-Platform Companions**:
    - `bin/cexr`, `bin/cex`, `bin/cxvm` (POSIX bash)
    - `bin/cexr.cmd`, `bin/cex.cmd`, `bin/cxvm.cmd` (Windows CMD)

@@ -1,20 +1,20 @@
 # 2-TEK Factory: Cross-Platform Cex Distribution & Version Manager (cxvm v2)
 
-Factory is a fullstack cross-platform toolchain distribution engine and runtime version manager for the C-ext (`.cex`) language, powered by the **Lighting Fullstack MVC Framework**. In v2, cxvm uses a **Pure Cex Toolchain** (`cexr` Runtime + `cexp` Compiler) with **zero C++ dependency**, managing native runtime bundles across Linux, macOS, and Windows.
+Factory is a fullstack cross-platform toolchain distribution engine and runtime version manager for the C-ext (`.cex`) language, powered by the **Lighting Fullstack MVC Framework**. In v2, cxvm uses a **Pure Cex Toolchain** (`cexr-$type` Runtime + `cexp-v$shortVersion` Compiler) with **zero C++ dependency**, managing native runtime bundles across Linux, macOS, and Windows.
 
 ---
 
 ## 1. Architectural Highlights
 
 - **Pure Cex Toolchain (Zero C++ Dependency)**:
-  - Powered directly by **`cexr`** (Cex Language Runtime Engine) and **`cexp`** (Cex Language Direct Machine Compiler).
+  - Powered directly by **`cexr-$type`** (Cex Language Runtime Engine) and **`cexp-v$shortVersion`** (Cex Language Direct Machine Compiler).
   - No external C++ compilers (`g++`, `clang++`, `MSVC`) or C++20 header dependencies required.
 - **Powered by Lighting MVC Framework**:
   - **Model Layer (`src/models/`)**: Active-record schema entities (`PlatformModel`, `VersionModel`, `ArtifactModel`) with validation and JSON serialization.
   - **View Layer (`src/views/`)**: High-throughput SSR template rendering (`FactoryViews`) providing the Web Portal, Downloads Explorer, and interactive `cxvm` Guide.
   - **Controller Layer (`src/controllers/`)**: HTTP dispatchers (`FactoryController`) handling SSR pages, dynamic install scripts (`install.sh`, `install.ps1`), cross-platform distribution downloads (`/downloads/:id`), and REST JSON APIs.
-  - **Distribution Engine (`src/builder/` & `scripts/generate_distributions.sh`)**: Cross-platform packaging pipeline that compiles and bundles runtime archives, `cexr` executables, checksums, and manifests into `cxvm/downloads/`.
-  - **Cex Version Manager (`src/cxvm/` & `downloads/cxvm*`)**: Cross-platform runtime version manager CLI enabling version switching and `cexr` setup across Linux, macOS, and Windows.
+  - **Distribution Engine (`src/builder/` & `scripts/generate_distributions.sh`)**: Cross-platform packaging pipeline that compiles and bundles runtime archives, `cexr-$type` executables, checksums, and manifests into `cxvm/downloads/`.
+  - **Cex Version Manager (`src/cxvm/` & `downloads/cxvm*`)**: Cross-platform runtime version manager CLI enabling version switching and `cexr-$type` setup across Linux, macOS, and Windows.
 - **Relocated Outside Packages**:
   - Located directly at repository root: `./cxvm`
   - Backward-compatibility symlinks: `packages/cxvm -> ../cxvm` and `bin/cxvm -> ../cxvm/downloads/cxvm`.
@@ -34,11 +34,11 @@ Factory is a fullstack cross-platform toolchain distribution engine and runtime 
 
 ---
 
-## 3. Quick Start & One-Line Installers to Setup `cexr`
+## 3. Quick Start & One-Line Installers to Setup `cexr-$type`
 
 ### POSIX Shell (Linux & macOS via GitHub):
 ```bash
-# Bootstrap cxvm and default CexR v8 runtime via GitHub
+# Bootstrap cxvm and default cexr-$type runtime via GitHub
 curl -fsSL https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/install.sh | bash
 
 # Or download standalone cxvm CLI script directly
@@ -50,7 +50,7 @@ bash cxvm/downloads/install.sh
 
 ### Windows PowerShell & CMD (via GitHub):
 ```powershell
-# Bootstrap cxvm and default CexR v8 runtime in PowerShell via GitHub
+# Bootstrap cxvm and default cexr-$type runtime in PowerShell via GitHub
 irm https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/install.ps1 | iex
 
 # Or download PowerShell & CMD scripts directly
@@ -66,10 +66,10 @@ powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 
 ---
 
-## 3. Cross-Platform Setup Window & `./bin` Toolchain Configuration
+## 3. Cross-Platform Setup Window & Reserve Build Target (`CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)
 
 ### Terminal Setup Window (Cross-Platform CLI):
-Run the setup window to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), and project dispatchers (`./bin/cexr` and `./bin/cex`):
+Run the setup window to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), and project dispatchers in reserve path format (`CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`, e.g. `CEX_DIR/cexr-factory/$version/bin` and `CEX_DIR/cexr-bean/$version/bin`):
 
 ```bash
 # Linux / macOS (POSIX)
@@ -90,21 +90,20 @@ powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 ```
 
 ### Web Setup Window (Lighting MVC):
-When running the Factory application (`cexr src/index.cex` on port 3080):
+When running the Factory application (`cexr-$type src/index.cex` on port 3080):
 - Open **`http://localhost:3080/setup`** in your browser to view the interactive Setup Window.
 - Monitor environment variables, PATH persistence, default version status, and live `cxvm doctor` diagnostics.
 
-### Running cxvm with Default `./bin/cexr` and `./bin/cex`:
-The project `./bin/` dispatchers are preconfigured to run cxvm using **v8.0.0** by default, with instant support for **v6.0.0**:
+### Running cxvm with Reserve Target Dispatchers:
+The project toolchain dispatchers resolve via reserve path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin` using **v8.0.0** by default, with instant support for **v6.0.0**:
 
 ```bash
 # Run using default v8 runtime:
-./bin/cexr src/index.cex
-./bin/cex run src/index.cex
+$CEX_DIR/cexr-factory/$version/bin src/index.cex
+$CEX_DIR/cexr-bean/$version/bin build src/index.cex
 
 # Run using v6 runtime:
-./bin/cexr v6 run src/index.cex
-./bin/cex v6 run src/index.cex
+$CEX_DIR/cexr-factory/$version/bin v6 run src/index.cex
 
 # Switch active version across sessions:
 cxvm use 8.0.0
@@ -117,25 +116,25 @@ cxvm use 6.0.0
 
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
-| `cxvm setup` | - | Displays cross-platform setup window, configures PATH & env, and links `./bin/cexr` & `./bin/cex` (v8 & v6) |
+| `cxvm setup` | - | Displays cross-platform setup window, configures PATH & env, and links `CEX_DIR/cexr-factory/$version/bin` & `CEX_DIR/cexr-bean/$version/bin` (v8 & v6) |
 | `cxvm init [name\|.]` | `npm init` | Initializes default Cex project (`my-project`, custom name, or `.` for current folder) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
-| `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr` runner |
-| `cxvm download 8.0.0 [plat]` | - | Downloads cross-platform bundle into cache for offline `cexr` setup |
-| `cxvm download 8.0.0 all` | - | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr` |
-| `cxvm use 8.0.0` | `nvm use 18` | Switches active version via symlink & activates `cexr` in PATH |
+| `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr-$type` runner |
+| `cxvm download 8.0.0 [plat]` | - | Downloads cross-platform bundle into cache for offline `cexr-$type` setup |
+| `cxvm download 8.0.0 all` | - | Downloads all 6 cross-platform targets (`linux`, `darwin`, `windows`) into cache to install `cexr-$type` |
+| `cxvm use 8.0.0` | `nvm use 18` | Switches active version via symlink & activates `cexr-$type` in PATH |
 | `cxvm list` | `nvm ls` | Lists locally installed Cex runtimes and active one |
 | `cxvm list-remote` | `nvm ls-remote` | Queries Factory catalog for available upstream releases |
 | `cxvm current` | `nvm current` | Prints active Cex runtime version (e.g. `v8.0.0`) |
-| `cxvm default 8.0.0` | `nvm alias default 18` | Configures default Cex version for new shells |
-| `cxvm uninstall 2.0.0` | `nvm uninstall 18` | Removes an installed version |
-| `cxvm doctor` | - | Runs pre-flight diagnostics for native `cexr`, `cexp`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
-| `cxvm light create <name>` | `nest new` | Hooks project creation logic in lighting to scaffold new Fullstack MVC project |
-| `cxvm light dev` | `npm run dev` | Starts local Lighting MVC development server on port 3080 |
-| `cxvm light dev --target view` | - | Starts Lighting MVC dev server and opens CexView native window |
-| `cxvm light build` | `npm run build` | Compiles Lighting project with `cexp` direct machine compiler |
-| `cxvm light doctor` | - | Runs Lighting engine diagnostic and verification |
+| `cxvm default 8.0.0` | Configures default Cex version for new shells |
+| `cxvm uninstall 2.0.0` | Removes an installed version |
+| `cxvm doctor` | - | Runs pre-flight diagnostics for native `cexr-$type`, `cexp-v$shortVersion`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
+| `cxvm --app lighting create <name>` | `nest new` | Hooks project creation logic in lighting to scaffold new Fullstack MVC project |
+| `cxvm --app lighting dev` | `npm run dev` | Starts local Lighting MVC development server on port 3080 |
+| `cxvm --app lighting dev --target view` | - | Starts Lighting MVC dev server and opens CexView native window |
+| `cxvm --app lighting build` | `npm run build` | Compiles Lighting project with `cexp-v$shortVersion` direct machine compiler |
+| `cxvm --app lighting doctor` | - | Runs Lighting engine diagnostic and verification |
 | `cxvm open [url] [--target <browser\|view>]` | - | Opens application or URL using CexWebKit browser (default) or CexView native window |
-| `cxvm thunder <cmd>` | Docker CLI (`docker`) | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`) |
+| `cxvm --app thunder <cmd>` | Docker CLI (`docker`) | Run Thunder container operations (`ps`, `run`, `stop`, `images`, `stats`) |
 | `cxvm docker <cmd>` | Docker CLI (`docker`) | Docker compatibility alias for Thunder |
 | `cxvm start thunder [-p <port>]` | - | Starts Thunder container engine daemon with single process (standalone) |
 | `cxvm status thunder` | - | Inspects status of standalone Thunder server |
@@ -192,12 +191,12 @@ cxvm use 6.0.0
 
 When installing `cxvm` via `cxvm install <version>`, `install.sh`, `setup.sh`, or `setup.ps1`:
 1. **Auto-Install Toolchains**: Automatically installs and configures:
-   - `cexr` (Cex Language Runtime Engine)
-   - `cexp` (Cex Direct Machine Compiler)
+   - `cexr-$type` (Cex Language Runtime Engine)
+   - `cexp-v$shortVersion` (Cex Direct Machine Compiler)
    - `cvm` (CodeVersionManager Engine & standalone server)
 2. **Auto-Start Runtime Services**:
-   - Initializes active `cexr` runtime engine
-   - Pre-warms `cexp` machine compiler
+   - Initializes active `cexr-$type` runtime engine
+   - Pre-warms `cexp-v$shortVersion` machine compiler
    - Auto-starts `cvm` server with a single process (standalone) in the background on port 4000.
 
 ### Lighting MVC HTTP REST API for CVM:
@@ -222,11 +221,11 @@ Thunder enables building, isolating, executing, and orchestrating native contain
 
 | Command | Action | Example |
 | :--- | :--- | :--- |
-| `cxvm thunder ps` / `cxvm docker ps` | List running containers with IDs, names, images, ports, and status | `cxvm thunder ps` |
-| `cxvm thunder run <image>` | Run container workload inside virtual microkernel isolation | `cxvm thunder run @2tek/cxvm:latest` |
-| `cxvm thunder stop <id>` | Gracefully stop running container instance | `cxvm thunder stop cxt-1a8f9` |
-| `cxvm thunder images` / `cxvm docker images` | List local OCI container images in cache | `cxvm thunder images` |
-| `cxvm thunder stats` | Inspect real-time virtual CPU, memory, vFS, and network metrics | `cxvm thunder stats` |
+| `cxvm --app thunder ps` / `cxvm docker ps` | List running containers with IDs, names, images, ports, and status | `cxvm --app thunder ps` |
+| `cxvm --app thunder run <image>` | Run container workload inside virtual microkernel isolation | `cxvm --app thunder run @2tek/cxvm:latest` |
+| `cxvm --app thunder stop <id>` | Gracefully stop running container instance | `cxvm --app thunder stop cxt-1a8f9` |
+| `cxvm --app thunder images` / `cxvm docker images` | List local OCI container images in cache | `cxvm --app thunder images` |
+| `cxvm --app thunder stats` | Inspect real-time virtual CPU, memory, vFS, and network metrics | `cxvm --app thunder stats` |
 | `cxvm start thunder [-p <port>]` | Start Thunder as a single-process standalone daemon in background | `cxvm start thunder` \| `cxvm start thunder -p 3050` |
 | `cxvm status thunder` | Check status of single-process standalone Thunder daemon | `cxvm status thunder` |
 | `cxvm stop thunder` | Stop background standalone Thunder daemon | `cxvm stop thunder` |
@@ -257,13 +256,13 @@ Thunder enables building, isolating, executing, and orchestrating native contain
 
 When setting up `cxvm` via `scripts/setup.sh`, `scripts/setup.ps1`, `install.sh`, `install.ps1`, or running `cxvm install <version>`:
 1. **Auto-Install Toolchains**: Installs and configures:
-   - `cexr` (Cex Language Runtime Engine)
-   - `cexp` (Cex Direct Machine Compiler)
+   - `cexr-$type` (Cex Language Runtime Engine)
+   - `cexp-v$shortVersion` (Cex Direct Machine Compiler)
    - `cvm` (CodeVersionManager Engine)
    - `thunder` (Thunder Container Engine & Virtual Linux Microkernel)
 2. **Auto-Start Runtime Services**:
-   - `cexr` runtime engine initialized
-   - `cexp` direct compiler pre-warmed
+   - `cexr-$type` runtime engine initialized
+   - `cexp-v$shortVersion` direct compiler pre-warmed
    - `cvm-server` auto-started as standalone single process on port 4000
    - `thunder-server` auto-started as standalone single process on port 3050
 
@@ -283,30 +282,26 @@ When the Factory application runs on port 3080:
 
 `cxvm` natively integrates **Lighting Fullstack MVC** (`@2tek/lighting`), allowing developers to immediately scaffold, develop, build, and deploy high-performance web applications using Pure Cex.
 
-### Scaffolding New Projects with `cxvm light create {projectName}`:
+### Scaffolding New Projects with `cxvm --app lighting create {projectName}`:
 To create a new project powered by Lighting Fullstack MVC:
 ```bash
-cxvm light create my-awesome-app
+cxvm --app lighting create my-awesome-app
 # Or using the alias:
-cxvm lighting create my-awesome-app
+cxvm --app lighting create my-awesome-app
 ```
 
 `cxvm` hooks directly into the logic scripts of `lighting` (`bin/light`, `scripts/create.sh`, `create.cex`):
 1. **Directory Structure**:
-   - `src/controllers/`: MVC controllers (e.g. `HomeController`, `FactoryController`).
-   - `src/models/`: Strongly-typed schema models with validation.
-   - `src/views/`: Server-rendered templates and HTML views.
-   - `public/`: Static assets and styling.
-   - `bin/light`: Project runner dispatcher.
+
 2. **Package Configuration (`cex-pack.json`)**: Configured with `"target": "runtime"` and dependency `@2tek/lighting: "^8.0.0"`.
 3. **Application Entrypoint (`src/index.cex`)**: High-throughput Lighting HTTP server pre-configured.
 
 ### Running & Building Lighting Applications:
 ```bash
 cd my-awesome-app
-cxvm light dev    # Or ./bin/light dev (starts server on port 3080)
-cxvm light build  # Or ./bin/light build (compiles native binary via cexp)
-cxvm light doctor # Runs diagnostic health check
+cxvm --app lighting dev    # Or ./bin/lighting dev (starts server on port 3080)
+cxvm --app lighting build  # Or ./bin/lighting build (compiles native binary via cexp)
+cxvm --app lighting doctor # Runs diagnostic health check
 ```
 
 ### Lighting MVC REST Endpoints:
@@ -336,13 +331,13 @@ cxvm open http://localhost:3080 --target view
 cxvm open http://localhost:3080 -t view
 
 # Target aliases in Lighting MVC runners:
-cxvm light dev --target view
-cxvm light dev --target browser
+cxvm --app lighting dev --target view
+cxvm --app lighting dev --target browser
 cxvm dev -t view
 ```
 
 ### Interactive Keyboard Shortcuts:
-During `cxvm dev` / `cxvm light dev` / `cxvm serve`:
+During `cxvm dev` / `cxvm --app lighting dev`
 - Press `[o]` or type `open` to open in browser (`cex-webkit`).
 - Type `o view` to open in native desktop window (`cex-view`).
 - Type `o browser` to switch back to browser.
@@ -357,77 +352,24 @@ During `cxvm dev` / `cxvm light dev` / `cxvm serve`:
 
 The following distribution archives (36 bundles: 6 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
-- **v8.0.0 (CexR v8 .cex_boxes Dist Loader Runtime & Direct Compiler - Default)**:
-  - `cex-v8.0.0-linux-x86_64.tar.gz`
-  - `cex-v8.0.0-linux-aarch64.tar.gz`
-  - `cex-v8.0.0-darwin-arm64.tar.gz`
-  - `cex-v8.0.0-darwin-x86_64.tar.gz`
-  - `cex-v8.0.0-windows-x64.zip`
-  - `cex-v8.0.0-windows-arm64.zip`
-- **v6.0.0 (CexR v6 High-Performance Native Server Engine & Direct Machine Compiler - LTS)**:
-  - `cex-v6.0.0-linux-x86_64.tar.gz`
-  - `cex-v6.0.0-linux-aarch64.tar.gz`
-  - `cex-v6.0.0-darwin-arm64.tar.gz`
-  - `cex-v6.0.0-darwin-x86_64.tar.gz`
-  - `cex-v6.0.0-windows-x64.zip`
-  - `cex-v6.0.0-windows-arm64.zip`
-- **v5.0.0 (CexR v5 Native Server Engine & Direct Machine Compiler - LTS)**:
-  - `cex-v5.0.0-linux-x86_64.tar.gz`
-  - `cex-v5.0.0-linux-aarch64.tar.gz`
-  - `cex-v5.0.0-darwin-arm64.tar.gz`
-  - `cex-v5.0.0-darwin-x86_64.tar.gz`
-  - `cex-v5.0.0-windows-x64.zip`
-  - `cex-v5.0.0-windows-arm64.zip`
-- **v3.0.0 (CexR v3 Native Machine Engine & CexP v3 Direct Compiler - LTS)**:
-  - `cex-v3.0.0-linux-x86_64.tar.gz`
-  - `cex-v3.0.0-linux-aarch64.tar.gz`
-  - `cex-v3.0.0-darwin-arm64.tar.gz`
-  - `cex-v3.0.0-darwin-x86_64.tar.gz`
-  - `cex-v3.0.0-windows-x64.zip`
-  - `cex-v3.0.0-windows-arm64.zip`
-- **v2.0.0 (CexR v2 Multi-Source Compiler & Self-Hosted Engine - LTS)**:
-  - `cex-v2.0.0-linux-x86_64.tar.gz`
-  - `cex-v2.0.0-linux-aarch64.tar.gz`
-  - `cex-v2.0.0-darwin-arm64.tar.gz`
-  - `cex-v2.0.0-darwin-x86_64.tar.gz`
-  - `cex-v2.0.0-windows-x64.zip`
-  - `cex-v2.0.0-windows-arm64.zip`
-- **v1.0.0 (CexR v1 C++ Transpiler Runtime & Standard Libraries - LEGACY)**:
-  - `cex-v1.0.0-linux-x86_64.tar.gz`
-  - `cex-v1.0.0-linux-aarch64.tar.gz`
-  - `cex-v1.0.0-darwin-arm64.tar.gz`
-  - `cex-v1.0.0-darwin-x86_64.tar.gz`
-  - `cex-v1.0.0-windows-x64.zip`
-  - `cex-v1.0.0-windows-arm64.zip`
-- **Installers & Manager CLI**:
-  - `install.sh` (POSIX curl | bash installer)
-  - `install.ps1` (PowerShell installer)
-  - `cxvm` / `cxvm.sh` (POSIX version manager CLI)
-  - `cxvm.ps1` (Windows PowerShell version manager CLI)
-  - `cxvm.cmd` (Windows Command Prompt launcher)
-  - `manifest.json` (Distribution catalog & cryptographic hashes)
-  - `SHA256SUMS` (Standard SHA-256 checksums file)
-
----
-
-## 10. Execution & Testing with CexR v8
+## 10. Execution & Testing with cexr-$type
 
 ```bash
-# 1. Switch to CexR v8 Runtime via cxvm
+# 1. Switch to cexr-$type Runtime via cxvm
 cxvm use 8.0.0
-# Or activate CexR v8 via toolchain
-cexr use v8
+# Or activate cexr-$type via toolchain
+cexr-$type use v8
 
-# 2. Run cxvm Demonstration & Server Engine via CexR v8
-cexr src/index.cex
-# Or execute canonically via CexR v8 toolchain runner
-./bin/cex run src/index.cex
-# Or load and execute via CexR v8 .cex_boxes dist loader
-cexr v8 run cxvm
+# 2. Run cxvm Demonstration & Server Engine via cexr-$type
+cexr-$type src/index.cex
+# Or execute canonically via cexr-$type toolchain runner
+$CEX_DIR/cexr-factory/$version/bin src/index.cex
+# Or load and execute via cexr-$type .cex_boxes dist loader
+cexr-$type run cxvm
 
-# 3. Run cxvm Verification Test Suites with CexR v8
-cexr tests/cxvm.test.cex
-cexr tests/factory.test.cex
+# 3. Run cxvm Verification Test Suites with cexr-$type
+cexr-$type tests/cxvm.test.cex
+cexr-$type tests/factory.test.cex
 ```
 
 ---
