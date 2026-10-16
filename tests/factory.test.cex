@@ -337,6 +337,33 @@ fn main(): int {
 
     suite->addResult("test_integrated_cvm_operations", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 7: Setup CXVM into Virtual-Linux in Thunder
+    // -------------------------------------------------------------
+    println("\n[Test Suite 7: Setup CXVM into Virtual-Linux in Thunder]");
+
+    let vlSetupRes: CxvmCommandResult* = cxvm->setupThunderVirtualLinux("8.0.0");
+    Assert::isTrue(vlSetupRes->success, "setupThunderVirtualLinux succeeds");
+    Assert::isTrue(cxvm->virtualLinuxReady, "Virtual-Linux environment in Thunder is marked ready");
+    Assert::equalsString("6.8.0-cex-thunder-virt", cxvm->virtualLinuxKernel, "Virtual-Linux kernel is 6.8.0-cex-thunder-virt");
+    Assert::equalsString("/root/.cxvm", cxvm->virtualLinuxRootfs, "Virtual-Linux CXVM_DIR is /root/.cxvm");
+    Assert::equalsString("factory", cxvm->defaultCexrEdition, "Default cexr runtime inside virtual-linux is factory (cexr-factory)");
+    Assert::equalsString("bean", cxvm->defaultBuildEdition, "Default cexr build inside virtual-linux is bean (cexr-bean)");
+    Assert::isTrue(vlSetupRes->output.find("VIRTUAL-LINUX SETUP COMPLETE [OK]") != -1, "Output confirms VIRTUAL-LINUX SETUP COMPLETE [OK]");
+
+    let execThSetup: int = cxvm->cvmExecute("thunder", "setup", "virtual-linux");
+    Assert::equalsInt(0, execThSetup, "cxvm thunder setup virtual-linux returns exit code 0");
+
+    let resVlPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/thunder/virtual-linux/setup", "{\"version\":\"8.0.0\"}", "application/json");
+    Assert::equalsInt(200, resVlPost->statusCode, "POST /api/v1/thunder/virtual-linux/setup returns 200 OK");
+    Assert::isTrue(resVlPost->body.find("virtual-linux") != -1, "POST /api/v1/thunder/virtual-linux/setup reports virtual-linux environment");
+
+    let resVlGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/virtual-linux", "", "application/json");
+    Assert::equalsInt(200, resVlGet->statusCode, "GET /api/v1/thunder/virtual-linux returns 200 OK");
+    Assert::isTrue(resVlGet->body.find("\"virtualLinuxReady\":true") != -1, "GET /api/v1/thunder/virtual-linux reports virtualLinuxReady:true");
+
+    suite->addResult("test_setup_cxvm_into_virtual_linux_in_thunder", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

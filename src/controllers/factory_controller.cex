@@ -469,6 +469,54 @@ class FactoryController extends BaseController {
         return this.json(doc);
     }
 
+    public apiThunderVirtualLinuxSetup(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let ver: string = "8.0.0";
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("version")) {
+                ver = parsed->get("version")->asString();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->setupThunderVirtualLinux(ver);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "environment", "virtual-linux");
+        JsonDoc::setStr(doc, "engine", "ThunderEngine");
+        JsonDoc::setBool(doc, "virtualLinuxReady", cxvm->virtualLinuxReady);
+        JsonDoc::setStr(doc, "kernel", cxvm->virtualLinuxKernel);
+        JsonDoc::setStr(doc, "platform", "linux-x86_64");
+        JsonDoc::setStr(doc, "cxvmDir", cxvm->virtualLinuxRootfs);
+        JsonDoc::setStr(doc, "containerId", cxvm->virtualLinuxContainerId);
+        JsonDoc::setStr(doc, "network", "thunder-net (" + cxvm->virtualLinuxIp + ")");
+        JsonDoc::setStr(doc, "rootfs", "overlayfs");
+        JsonDoc::setStr(doc, "cgroups", "v2");
+        JsonDoc::setStr(doc, "activeVersion", cxvm->current());
+        JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
+        JsonDoc::setStr(doc, "defaultCexrRuntime", "cexr-factory");
+        JsonDoc::setStr(doc, "defaultCexrBuild", "cexr-bean");
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiThunderVirtualLinuxStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "environment", "virtual-linux");
+        JsonDoc::setStr(doc, "engine", "ThunderEngine");
+        JsonDoc::setBool(doc, "virtualLinuxReady", cxvm->virtualLinuxReady);
+        JsonDoc::setStr(doc, "kernel", cxvm->virtualLinuxKernel);
+        JsonDoc::setStr(doc, "platform", "linux-x86_64");
+        JsonDoc::setStr(doc, "cxvmDir", cxvm->virtualLinuxRootfs);
+        JsonDoc::setStr(doc, "containerId", cxvm->virtualLinuxContainerId);
+        JsonDoc::setStr(doc, "network", "thunder-net (" + cxvm->virtualLinuxIp + ")");
+        JsonDoc::setStr(doc, "rootfs", "overlayfs");
+        JsonDoc::setStr(doc, "cgroups", "v2");
+        JsonDoc::setStr(doc, "activeVersion", cxvm->current());
+        JsonDoc::setStr(doc, "defaultCexrRuntime", "cexr-" + cxvm->defaultCexrEdition);
+        JsonDoc::setStr(doc, "defaultCexrBuild", "cexr-" + cxvm->defaultBuildEdition);
+        return this.json(doc);
+    }
+
     public apiLightStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "SUCCESS");

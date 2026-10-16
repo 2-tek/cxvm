@@ -77,6 +77,8 @@ class FactoryApp {
         this.router->post("/api/v1/thunder/server/stop", "factory.apiThunderServerStop");
         this.router->get("/api/v1/thunder/containers", "factory.apiThunderContainers");
         this.router->get("/api/v1/thunder/images", "factory.apiThunderImages");
+        this.router->post("/api/v1/thunder/virtual-linux/setup", "factory.apiThunderVirtualLinuxSetup");
+        this.router->get("/api/v1/thunder/virtual-linux", "factory.apiThunderVirtualLinuxStatus");
         this.router->get("/api/v1/light/status", "factory.apiLightStatus");
         this.router->post("/api/v1/light/create", "factory.apiLightCreate");
         this.router->post("/api/v1/open", "factory.apiOpen");
@@ -234,6 +236,14 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiThunderImages") {
             return this.controller->apiThunderImages(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderVirtualLinuxSetup") {
+            return this.controller->apiThunderVirtualLinuxSetup(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiThunderVirtualLinuxStatus") {
+            return this.controller->apiThunderVirtualLinuxStatus(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.apiLightStatus") {

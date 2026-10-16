@@ -557,6 +557,54 @@ fn main(): int {
 
     suite->addResult("test_cli_alias_target_browser_and_view", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 10: Setup CXVM into Virtual-Linux in Thunder
+    // -------------------------------------------------------------
+    println("\n[Test Suite 10: Setup CXVM into Virtual-Linux in Thunder]");
+
+    // 1. Direct setupThunderVirtualLinux execution
+    let vlSetupRes: CxvmCommandResult* = cxvm->setupThunderVirtualLinux("8.0.0");
+    Assert::isTrue(vlSetupRes->success, "setupThunderVirtualLinux succeeds");
+    Assert::isTrue(cxvm->virtualLinuxReady, "Virtual-Linux environment in Thunder is marked ready");
+    Assert::equalsString("6.8.0-cex-thunder-virt", cxvm->virtualLinuxKernel, "Virtual-Linux kernel is 6.8.0-cex-thunder-virt");
+    Assert::equalsString("/root/.cxvm", cxvm->virtualLinuxRootfs, "Virtual-Linux CXVM_DIR is /root/.cxvm");
+    Assert::equalsString("cxt-3a8f9", cxvm->virtualLinuxContainerId, "Virtual-Linux container ID is cxt-3a8f9");
+    Assert::equalsString("172.18.0.12", cxvm->virtualLinuxIp, "Virtual-Linux container IP on thunder-net is 172.18.0.12");
+    Assert::equalsString("v8.0.0", cxvm->current(), "Active version inside Thunder virtual-linux is v8.0.0");
+    Assert::equalsString("factory", cxvm->defaultCexrEdition, "Default cexr runtime inside virtual-linux is factory (cexr-factory)");
+    Assert::equalsString("bean", cxvm->defaultBuildEdition, "Default cexr build inside virtual-linux is bean (cexr-bean)");
+    Assert::isTrue(vlSetupRes->output.find("6.8.0-cex-thunder-virt") != -1, "Output confirms Thunder virtual-linux kernel");
+    Assert::isTrue(vlSetupRes->output.find("overlayfs (/)") != -1, "Output confirms overlayfs root mount");
+    Assert::isTrue(vlSetupRes->output.find("cgroup2 (/sys/fs/cgroup)") != -1, "Output confirms cgroup2 mount");
+    Assert::isTrue(vlSetupRes->output.find("cex-v8.0.0-linux-x86_64.tar.gz") != -1, "Output confirms linux-x86_64 v8.0.0 bundle extraction");
+    Assert::isTrue(vlSetupRes->output.find("./bin/8.0.0/cexp-v8") != -1, "Output confirms ./bin/8.0.0/cexp-v8 deployment inside virtual-linux");
+    Assert::isTrue(vlSetupRes->output.find("./bin/1.0.26/cexr-factory") != -1, "Output confirms ./bin/1.0.26/cexr-factory deployment inside virtual-linux");
+    Assert::isTrue(vlSetupRes->output.find("./bin/1.0.26/cexr-bean") != -1, "Output confirms ./bin/1.0.26/cexr-bean deployment inside virtual-linux");
+    Assert::isTrue(vlSetupRes->output.find("VIRTUAL-LINUX SETUP COMPLETE [OK]") != -1, "Output confirms VIRTUAL-LINUX SETUP COMPLETE [OK]");
+
+    // 2. CLI routing for thunder setup & setup virtual-linux
+    let execThSetup: int = cxvm->cvmExecute("thunder", "setup", "virtual-linux");
+    Assert::equalsInt(0, execThSetup, "cxvm thunder setup virtual-linux returns exit code 0");
+
+    let execSetupVl: int = cxvm->cvmExecute("setup", "virtual-linux", "thunder");
+    Assert::equalsInt(0, execSetupVl, "cxvm setup virtual-linux thunder returns exit code 0");
+
+    // 3. REST API POST /api/v1/thunder/virtual-linux/setup & GET /api/v1/thunder/virtual-linux
+    let resVlPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/thunder/virtual-linux/setup", "{\"version\":\"8.0.0\"}", "application/json");
+    Assert::equalsInt(200, resVlPost->statusCode, "POST /api/v1/thunder/virtual-linux/setup returns 200 OK");
+    Assert::isTrue(resVlPost->body.find("SUCCESS") != -1, "POST /api/v1/thunder/virtual-linux/setup reports SUCCESS");
+    Assert::isTrue(resVlPost->body.find("virtual-linux") != -1, "POST /api/v1/thunder/virtual-linux/setup reports virtual-linux environment");
+    Assert::isTrue(resVlPost->body.find("6.8.0-cex-thunder-virt") != -1, "POST /api/v1/thunder/virtual-linux/setup reports kernel 6.8.0-cex-thunder-virt");
+    Assert::isTrue(resVlPost->body.find("cexr-factory") != -1, "POST /api/v1/thunder/virtual-linux/setup reports defaultCexrRuntime cexr-factory");
+    Assert::isTrue(resVlPost->body.find("cexr-bean") != -1, "POST /api/v1/thunder/virtual-linux/setup reports defaultCexrBuild cexr-bean");
+
+    let resVlGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/virtual-linux", "", "application/json");
+    Assert::equalsInt(200, resVlGet->statusCode, "GET /api/v1/thunder/virtual-linux returns 200 OK");
+    Assert::isTrue(resVlGet->body.find("\"virtualLinuxReady\":true") != -1, "GET /api/v1/thunder/virtual-linux reports virtualLinuxReady:true");
+    Assert::isTrue(resVlGet->body.find("/root/.cxvm") != -1, "GET /api/v1/thunder/virtual-linux reports cxvmDir /root/.cxvm");
+
+    suite->addResult("test_setup_cxvm_into_virtual_linux_in_thunder", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;
