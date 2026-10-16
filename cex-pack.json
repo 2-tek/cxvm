@@ -20,8 +20,10 @@
   "scripts": {
     "install": "cex-pack downloads",
     "downloads": "cex-pack downloads",
-    "dev": "cexr src/index.cex",
-    "lint": "cexr src/index.cex",
+    "dev": "cxvm --app cexr bean dev src/index.cex",
+    "start": "cxvm --app cexr bean start src/index.cex",
+    "build": "cxvm --app cexr bean build src/index.cex",
+    "lint": "cexr scripts/verify_eof.cex",
     "test": "cexr tests/cxvm.test.cex"
   },
   "dependencies": {

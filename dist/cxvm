@@ -56,7 +56,7 @@ _cxvm_start_cvm_server() {
     done
   fi
 
-  if [ -n "$srv_bin" ] && command -v python3 >/dev/null 2>&1; then
+  if [ -n "$srv_bin" ] && [ -x "$srv_bin" ]; then
     local cmd_args=("$srv_bin" "$action" "-p" "$port")
     if [ "$foreground" -eq 1 ]; then
       cmd_args+=("-f")
@@ -65,19 +65,23 @@ _cxvm_start_cvm_server() {
     return $?
   fi
 
-  # Fallback to direct Python 3 execution
-  if command -v python3 >/dev/null 2>&1; then
-    if [ -f "$srv_bin" ]; then
-      local cmd_args=(python3 "$srv_bin" "$action" "-p" "$port")
-      if [ "$foreground" -eq 1 ]; then
-        cmd_args+=("-f")
+  # Fallback to direct cexr runtime execution of cvm_server.cex
+  if command -v cexr >/dev/null 2>&1; then
+    local s_dir
+    s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    for c_src in "$s_dir/cvm-server.cex" "$s_dir/../scripts/cvm_server.cex" "$(pwd)/scripts/cvm_server.cex"; do
+      if [ -f "$c_src" ]; then
+        local cmd_args=(cexr "$c_src" "$action" "-p" "$port")
+        if [ "$foreground" -eq 1 ]; then
+          cmd_args+=("-f")
+        fi
+        "${cmd_args[@]}" "${extra_args[@]}"
+        return $?
       fi
-      "${cmd_args[@]}" "${extra_args[@]}"
-      return $?
-    fi
+    done
   fi
 
-  # Fallback: run via cvm CLI if node is available
+  # Fallback: run via cvm CLI
   _cxvm_run_cvm start "$@"
 }
 
@@ -130,7 +134,7 @@ _cxvm_start_thunder_server() {
     done
   fi
 
-  if [ -n "$srv_bin" ] && command -v python3 >/dev/null 2>&1; then
+  if [ -n "$srv_bin" ] && [ -x "$srv_bin" ]; then
     local cmd_args=("$srv_bin" "$action" "-p" "$port")
     if [ "$foreground" -eq 1 ]; then
       cmd_args+=("-f")
@@ -139,15 +143,19 @@ _cxvm_start_thunder_server() {
     return $?
   fi
 
-  if command -v python3 >/dev/null 2>&1; then
-    if [ -f "$srv_bin" ]; then
-      local cmd_args=(python3 "$srv_bin" "$action" "-p" "$port")
-      if [ "$foreground" -eq 1 ]; then
-        cmd_args+=("-f")
+  if command -v cexr >/dev/null 2>&1; then
+    local s_dir
+    s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    for t_src in "$s_dir/thunder-server.cex" "$s_dir/../scripts/thunder_server.cex" "$(pwd)/scripts/thunder_server.cex"; do
+      if [ -f "$t_src" ]; then
+        local cmd_args=(cexr "$t_src" "$action" "-p" "$port")
+        if [ "$foreground" -eq 1 ]; then
+          cmd_args+=("-f")
+        fi
+        "${cmd_args[@]}" "${extra_args[@]}"
+        return $?
       fi
-      "${cmd_args[@]}" "${extra_args[@]}"
-      return $?
-    fi
+    done
   fi
 
   _cxvm_run_thunder "$action" "${extra_args[@]}"
@@ -203,12 +211,12 @@ _cxvm_run_thunder() {
     return $?
   fi
 
-  # 3. Direct built-in fallback via thunder-server
+  # 3. Direct built-in fallback via thunder-server (.cex via cexr runtime)
   local s_dir
   s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   for cand in "$CXVM_DIR/bin/thunder-server" "$s_dir/thunder-server" "$s_dir/downloads/thunder-server"; do
-    if [ -f "$cand" ] && command -v python3 >/dev/null 2>&1; then
-      python3 "$cand" "$thun_cmd" "$@"
+    if [ -x "$cand" ]; then
+      "$cand" "$thun_cmd" "$@"
       return $?
     fi
   done
@@ -721,15 +729,8 @@ _cxvm_run_cex_cli() {
 
   # 1. If cex-pack.json defines a script for $cli_cmd, execute it
   local manifest_script=""
-  if [ -f "cex-pack.json" ] && command -v python3 >/dev/null 2>&1; then
-    manifest_script="$(python3 -c "import json
-try:
-    with open('cex-pack.json', 'r', encoding='utf-8') as f:
-        d = json.load(f).get('scripts', {})
-    s = d.get('$cli_cmd', '')
-    if s: print(s)
-except Exception: pass
-" 2>/dev/null)"
+  if [ -f "cex-pack.json" ]; then
+    manifest_script="$(sed -n "/\"scripts\"/,/}/ s/.*\"$cli_cmd\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" cex-pack.json | head -n 1)"
   fi
 
   if [ -n "$manifest_script" ]; then
@@ -792,6 +793,49 @@ except Exception: pass
 }
 
 # -----------------------------------------------------------------------------
+# Hook Dispatcher for cxvm dev, cxvm build, cxvm start
+# Calls: cxvm --app cexr $versionType <dev|build|start> <target_index> (example=bean)
+# -----------------------------------------------------------------------------
+_cxvm_hook_cexr() {
+  local hook_cmd="${1:-dev}"
+  shift || true
+
+  local version_type="${CEXR_VERSION_TYPE:-bean}"
+  local target_index="src/index.cex"
+
+  if [ -f "cex-pack.json" ]; then
+    local mf_runtime
+    mf_runtime="$(sed -n 's/.*"runtime"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+    case "$mf_runtime" in
+      bean|delivery|drawer|factory)
+        version_type="$mf_runtime"
+        ;;
+    esac
+    local mf_main
+    mf_main="$(sed -n 's/.*"main"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+    if [ -n "$mf_main" ]; then
+      target_index="$mf_main"
+    fi
+  fi
+
+  case "${1:-}" in
+    bean|delivery|drawer|factory)
+      version_type="$1"
+      shift
+      ;;
+  esac
+
+  if [ -n "${1:-}" ] && [ "${1#-}" = "$1" ]; then
+    target_index="$1"
+    shift
+  fi
+
+  echo "==> [cxvm $hook_cmd] Hook -> cxvm --app cexr $version_type $hook_cmd $target_index"
+  _cxvm_run_app "cexr" "$version_type" "$hook_cmd" "$target_index" "$@"
+  return $?
+}
+
+# -----------------------------------------------------------------------------
 # Integrated App Runner (--app <name> <command> [args...])
 # Prioritizes ./bin/$version/<app> with cex-pack integrated inside ./bin/$version/cex-pack
 # -----------------------------------------------------------------------------
@@ -820,11 +864,13 @@ _cxvm_run_app() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   local pwd_dir="$(pwd)"
 
-  # Candidate binaries for $app_name prioritized by active version
+  # Candidate binaries for $app_name prioritized by edition ($app_cmd) and active version
   local candidates=(
+    "$pwd_dir/bin/$app_cmd/$app_name"
     "$pwd_dir/bin/$ver_clean/$app_name"
     "$pwd_dir/bin/$ver_v/$app_name"
     "$pwd_dir/bin/$app_name"
+    "$script_dir/../bin/$app_cmd/$app_name"
     "$script_dir/../bin/$ver_clean/$app_name"
     "$script_dir/../bin/$ver_v/$app_name"
     "$script_dir/../bin/$app_name"
@@ -838,6 +884,7 @@ _cxvm_run_app() {
     "$CXVM_DIR/versions/$ver_clean/bin/$app_name"
     "$CXVM_DIR/current/bin/$app_name"
     "$CXVM_DIR/bin/$app_name"
+    "$pwd_dir/../$app_name/bin/$app_cmd/$app_name"
     "$pwd_dir/../$app_name/bin/$app_name"
     "$pwd_dir/.cex_boxes/$app_name/bin/$app_name"
   )
@@ -1455,7 +1502,15 @@ RUNNER_EOF
       fi
 
       # Setup cexp (Direct Machine Compiler) in target version
-      cat <<'CEXP_EOF' > "$ver_dir/bin/cexp"
+      if [ -x "./bin/$ver/cexp" ]; then
+        cp -f "./bin/$ver/cexp" "$ver_dir/bin/cexp"
+      elif [ ! -f "$ver_dir/bin/cexp" ]; then
+        if [ -x "./bin/cexp" ]; then
+          cp -f "./bin/cexp" "$ver_dir/bin/cexp"
+        elif [ -x "$HOME/.cex/bin/$ver/cexp" ]; then
+          cp -f "$HOME/.cex/bin/$ver/cexp" "$ver_dir/bin/cexp"
+        else
+          cat <<'CEXP_EOF' > "$ver_dir/bin/cexp"
 #!/usr/bin/env bash
 # CexP: Pure Cex Direct Machine Compiler & ELF/PE Generator
 set -e
@@ -1465,19 +1520,32 @@ if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
   echo "CexP v8.0.0 (Pure Cex Direct Machine Compiler & ELF/PE Generator)"
   exit 0
 fi
-if [ -x "$HOME/.local/bin/cexp" ] && [ "$(readlink -f "$HOME/.local/bin/cexp" 2>/dev/null)" != "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" ]; then
-  exec "$HOME/.local/bin/cexp" "$@"
-elif [ -x "$CEX_BIN_DIR/cexr" ]; then
+if [ -x "$CEX_BIN_DIR/cexr" ]; then
   exec "$CEX_BIN_DIR/cexr" build "$@"
 fi
 echo "CexP Direct Machine Compiler ready. Usage: cexp build <file.cex> -o <binary>"
 CEXP_EOF
-      chmod +x "$ver_dir/bin/cexp"
+        fi
+      fi
+      chmod +x "$ver_dir/bin/cexp" 2>/dev/null || true
+
+      # Setup cexr-$type editions in target version if present
+      for vtype in bean delivery drawer factory; do
+        if [ -x "./bin/$vtype/cexr-$vtype" ]; then
+          cp -f "./bin/$vtype/cexr-$vtype" "$ver_dir/bin/cexr-$vtype"
+          chmod +x "$ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+        elif [ -x "./bin/cexr-$vtype" ] && [ ! -f "$ver_dir/bin/cexr-$vtype" ]; then
+          cp -f "./bin/cexr-$vtype" "$ver_dir/bin/cexr-$vtype"
+          chmod +x "$ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+        fi
+      done
 
       # Setup cex-pack in target version if missing
       if [ ! -f "$ver_dir/bin/cex-pack" ]; then
         if [ -x "./bin/$ver/cex-pack" ]; then
           cp -f "./bin/$ver/cex-pack" "$ver_dir/bin/cex-pack"
+        elif [ -x "./bin/1.0.5/cex-pack" ]; then
+          cp -f "./bin/1.0.5/cex-pack" "$ver_dir/bin/cex-pack"
         elif [ -x "$CXVM_DIR/bin/cex-pack" ]; then
           cp -f "$CXVM_DIR/bin/cex-pack" "$ver_dir/bin/cex-pack"
         elif [ -x "dist/cex-pack" ]; then
@@ -1779,7 +1847,11 @@ LIGHT_WRAP_EOF
         shift
         _cxvm_run_light dev "$@"
       else
-        _cxvm_run_light dev "$@"
+        local hook_action="$cmd"
+        if [ "$hook_action" = "serve" ]; then
+          hook_action="dev"
+        fi
+        _cxvm_hook_cexr "$hook_action" "$@"
       fi
       ;;
 
@@ -1813,19 +1885,8 @@ LIGHT_WRAP_EOF
     build)
       if [ "$1" = "cvm" ] || [ "$1" = "thunder" ]; then
         echo "==> [cxvm build] Building $1 subsystem..."
-      elif [ -f "cex-pack.json" ]; then
-        _cxvm_run_cex_cli build "$@"
       else
-        echo "==> [cxvm build] Compiling project with cexp native machine compiler..."
-        mkdir -p bin dist
-        if [ -f "src/index.cex" ]; then
-          if command -v cexp >/dev/null 2>&1; then
-            cexp build src/index.cex -o bin/app 2>/dev/null || true
-          fi
-          echo "[OK] Production binary built successfully in bin/"
-        else
-          echo "[OK] Production build completed"
-        fi
+        _cxvm_hook_cexr "build" "$@"
       fi
       ;;
 

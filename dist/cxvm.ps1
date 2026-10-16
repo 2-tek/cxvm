@@ -26,12 +26,16 @@ function Run-App {
     if (-not $curVer -or $curVer -eq "none") { $curVer = "8.0.0" }
     
     $candidates = @(
+        (Join-Path $PWD "bin\$AppCmd\$AppName.cmd"),
+        (Join-Path $PWD "bin\$AppCmd\$AppName"),
         (Join-Path $PWD "bin\$curVer\$AppName.cmd"),
         (Join-Path $PWD "bin\$curVer\$AppName"),
         (Join-Path $PWD "bin\v$curVer\$AppName.cmd"),
         (Join-Path $PWD "bin\v$curVer\$AppName"),
         (Join-Path $PWD "bin\$AppName.cmd"),
         (Join-Path $PWD "bin\$AppName"),
+        (Join-Path $PSScriptRoot "..\bin\$AppCmd\$AppName.cmd"),
+        (Join-Path $PSScriptRoot "..\bin\$AppCmd\$AppName"),
         (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName.cmd"),
         (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName"),
         (Join-Path $PSScriptRoot "$curVer\$AppName.cmd"),
@@ -62,6 +66,31 @@ function Run-App {
 
     Write-Host "[ERROR] Integrated app '$AppName' not found in ./bin/$curVer/$AppName or CXVM_DIR" -ForegroundColor Red
     return 1
+}
+
+function Invoke-HookCexr {
+    param (
+        [string]$HookCmd = "dev",
+        [string[]]$HookArgs = @()
+    )
+
+    $versionType = if ($env:CEXR_VERSION_TYPE) { $env:CEXR_VERSION_TYPE } else { "bean" }
+    $targetIndex = "src/index.cex"
+    $extra = @()
+
+    foreach ($a in $HookArgs) {
+        if (-not $a) { continue }
+        if ($a -in "bean","delivery","drawer","factory") {
+            $versionType = $a
+        } elseif (-not $a.StartsWith("-") -and $targetIndex -eq "src/index.cex") {
+            $targetIndex = $a
+        } else {
+            $extra += $a
+        }
+    }
+
+    Write-Host "==> [cxvm $HookCmd] Hook -> cxvm --app cexr $versionType $HookCmd $targetIndex" -ForegroundColor Cyan
+    return (Run-App -AppName "cexr" -AppCmd $versionType -AppArgs (@($HookCmd, $targetIndex) + $extra))
 }
 
 if ($Command -eq "--app" -or $Command.StartsWith("--app=")) {
@@ -151,15 +180,15 @@ function Start-CvmServer {
         }
     }
 
-    $py = if (Get-Command "python3" -ErrorAction SilentlyContinue) { "python3" } elseif (Get-Command "python" -ErrorAction SilentlyContinue) { "python" } else { "" }
+    $cexrCmd = if (Get-Command "cexr" -ErrorAction SilentlyContinue) { "cexr" } elseif (Test-Path (Join-Path $cxvmHome "bin\cexr.cmd")) { Join-Path $cxvmHome "bin\cexr.cmd" } else { "" }
 
-    if ($py -and (Test-Path $srvBin)) {
+    if ($cexrCmd -and (Test-Path $srvBin)) {
         if ($Foreground) {
             Write-Host "==> [cxvm] Starting CVM Server in foreground on port $Port..." -ForegroundColor Cyan
-            & $py $srvBin start -p $Port -f
+            & $cexrCmd $srvBin start -p $Port -f
         } else {
             Write-Host "==> [cxvm] Starting CVM standalone server (single process) on port $Port..." -ForegroundColor Cyan
-            & $py $srvBin start -p $Port
+            & $cexrCmd $srvBin start -p $Port
             $srvPid = if (Test-Path $pidFile) { (Get-Content $pidFile -Raw).Trim() } else { "$PID" }
             Write-Host "[OK] [cxvm] CVM Server started in background (PID: $srvPid, port: $Port)" -ForegroundColor Green
             Write-Host "  Web Studio: http://localhost:$Port" -ForegroundColor Cyan
@@ -167,7 +196,7 @@ function Start-CvmServer {
         }
         return $true
     } else {
-        Write-Host "==> [cxvm] Python not detected or cvm-server not found, running CVM CLI fallback..." -ForegroundColor Yellow
+        Write-Host "==> [cxvm] CexR or cvm-server not found, running CVM CLI fallback..." -ForegroundColor Yellow
         Run-Cvm -CvmCmd "start" -CvmArgs $ServerArgs
     }
 }
@@ -251,15 +280,15 @@ function Start-ThunderServer {
         }
     }
 
-    $py = if (Get-Command "python3" -ErrorAction SilentlyContinue) { "python3" } elseif (Get-Command "python" -ErrorAction SilentlyContinue) { "python" } else { "" }
+    $cexrCmd = if (Get-Command "cexr" -ErrorAction SilentlyContinue) { "cexr" } elseif (Test-Path (Join-Path $cxvmHome "bin\cexr.cmd")) { Join-Path $cxvmHome "bin\cexr.cmd" } else { "" }
 
-    if ($py -and (Test-Path $srvBin)) {
+    if ($cexrCmd -and (Test-Path $srvBin)) {
         if ($Foreground) {
             Write-Host "==> [cxvm] Starting Thunder Server in foreground on port $Port..." -ForegroundColor Cyan
-            & $py $srvBin start -p $Port -f
+            & $cexrCmd $srvBin start -p $Port -f
         } else {
             Write-Host "==> [cxvm] Starting Thunder standalone server (single process) on port $Port..." -ForegroundColor Cyan
-            & $py $srvBin start -p $Port
+            & $cexrCmd $srvBin start -p $Port
             $srvPid = if (Test-Path $pidFile) { (Get-Content $pidFile -Raw).Trim() } else { "$PID" }
             Write-Host "[OK] [cxvm] Thunder Server started in background (PID: $srvPid, port: $Port)" -ForegroundColor Green
             Write-Host "  Web Dashboard: http://localhost:$Port" -ForegroundColor Cyan
@@ -267,7 +296,7 @@ function Start-ThunderServer {
         }
         return $true
     } else {
-        Write-Host "==> [cxvm] Python not detected or thunder-server not found, running Thunder CLI fallback..." -ForegroundColor Yellow
+        Write-Host "==> [cxvm] CexR or thunder-server not found, running Thunder CLI fallback..." -ForegroundColor Yellow
         Run-Thunder -ThunderCmd "ps" -ThunderArgs $ServerArgs
     }
 }
@@ -298,9 +327,9 @@ function Run-Thunder {
             }
         }
     }
-    $py = if (Get-Command "python3" -ErrorAction SilentlyContinue) { "python3" } elseif (Get-Command "python" -ErrorAction SilentlyContinue) { "python" } else { "" }
-    if ($py -and (Test-Path $srvBin)) {
-        & $py $srvBin $ThunderCmd @ThunderArgs
+    $cexrCmd = if (Get-Command "cexr" -ErrorAction SilentlyContinue) { "cexr" } elseif (Test-Path (Join-Path $cxvmHome "bin\cexr.cmd")) { Join-Path $cxvmHome "bin\cexr.cmd" } else { "" }
+    if ($cexrCmd -and (Test-Path $srvBin)) {
+        & $cexrCmd $srvBin $ThunderCmd @ThunderArgs
         return
     }
 
@@ -571,12 +600,11 @@ switch ($Command) {
         Invoke-CxvmOpen -Url $urlArg -Target $targetArg -OpenArgs $ExtraArgs
     }
     "start" {
-        $sub = if ($Version) { $Version } else { if ($ExtraArgs.Count -gt 0) { $ExtraArgs[0] } else { "cvm" } }
-        if ($sub -eq "cvm" -or ($sub -like "-*" -and $sub -ne "thunder" -and $sub -ne "docker")) {
+        $sub = if ($Version) { $Version } else { "" }
+        if ($sub -eq "cvm") {
             $p = 4000
             $fg = $false
             $all = @()
-            if ($Version -and $Version -ne "cvm") { $all += $Version }
             if ($Platform) { $all += $Platform }
             if ($ExtraArgs) { $all += $ExtraArgs }
             for ($i = 0; $i -lt $all.Count; $i++) {
@@ -607,8 +635,10 @@ switch ($Command) {
                 }
             }
             Start-ThunderServer -Action "start" -Port $p -Foreground $fg
+        } elseif ($sub -eq "light" -or $sub -eq "lighting") {
+            Run-Light -LightCmd "dev" -LightArgs (@($Platform) + $ExtraArgs)
         } else {
-            Run-Cvm -CvmCmd "start" -CvmArgs (@($Version, $Platform) + $ExtraArgs)
+            Invoke-HookCexr -HookCmd "start" -HookArgs (@($Version, $Platform) + $ExtraArgs)
         }
     }
     "stop" {
@@ -1022,22 +1052,11 @@ echo CexR Windows Runner ready.
         Write-Host "  cxvm start   (or: cxvm dev)"
         Write-Host "  cxvm build"
     }
-    "start" {
-        Write-Host "==> [cxvm start] Starting project..." -ForegroundColor Cyan
-        if (Test-Path "src\index.cex") {
-            Write-Host "[OK] Project running at src\index.cex" -ForegroundColor Green
-        }
-    }
     "dev" {
-        Write-Host "==> [cxvm dev] Starting project development mode..." -ForegroundColor Cyan
-        if (Test-Path "src\index.cex") {
-            Write-Host "[OK] Development server active at src\index.cex" -ForegroundColor Green
-        }
+        Invoke-HookCexr -HookCmd "dev" -HookArgs (@($Version, $Platform) + $ExtraArgs)
     }
     "build" {
-        Write-Host "==> [cxvm build] Compiling project with cexp native compiler..." -ForegroundColor Cyan
-        New-Item -ItemType Directory -Force -Path "bin" | Out-Null
-        Write-Host "[OK] Production binary built successfully in bin/" -ForegroundColor Green
+        Invoke-HookCexr -HookCmd "build" -HookArgs (@($Version, $Platform) + $ExtraArgs)
     }
     "doctor" {
         Write-Host "===============================================================" -ForegroundColor Cyan

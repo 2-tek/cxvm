@@ -5,11 +5,11 @@ trigger: always_on
 # 2-TEK cxvm: Project Standards & Governance
 
 <!-- Standard Specification: .agents/rules/standard-for-project.md -->
-<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), Rule (Documents Update) -->
+<!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), Rule (Documents Update), RULE_CEX_TOOLCHAIN -->
 
 > **CORE PRINCIPLE**:
 > `cxvm` (`@2tek/cxvm`) is the official cross-platform distribution engine and runtime version manager for the Cex native language ecosystem.
-> It is powered natively by **Lighting Fullstack MVC** using Pure Cex (`cexr` runtime engine + `cexp` direct machine compiler), with zero C++ build dependencies in v2.
+> It is powered natively by **Lighting Fullstack MVC** using Pure Cex (`cexr` runtime engine + `cexp` direct machine compiler), with zero C++ build dependencies and zero Python script dependencies in v2.
 >
 > In conformance with **Rule 69**:
 > In CexR v8 of `.cex_boxes`; when loaded, dependencies load from the dist file of `.cex_boxes/{dependencyName}` to runtime, with `cex-pack.json`. If target is runtime, do not use `.gitignore` for dist bundle file.
@@ -23,22 +23,26 @@ trigger: always_on
    - Manifest `target` must always remain `"target": "runtime"`.
    - `dist/` must remain un-ignored in `.gitignore` and contain pre-built cross-platform packages, installer scripts, `manifest.json`, and `SHA256SUMS`.
 2. **Rule 29 (EOF Integrity)**:
-   - Every file must terminate with exactly one newline character (`\n`).
+   - Every file must terminate with exactly one newline character (`\n`), verified via `cexr scripts/verify_eof.cex`.
 3. **Rule 72 (Dynamic Paths)**:
    - Zero hardcoded personal paths (`/home/user/...`). All paths resolve relative to `$HOME`, `$CXVM_DIR`, `$CEX_HOME`, or the working directory.
-4. **Pure Cex Standard (v2)**:
-   - In v2, do not use C++ compilers (`g++`, `clang++`, `MSVC`). Execution is handled directly by `cexr` and machine compilation by `cexp`.
-5. **Project Dispatchers & Default Runtimes**:
+4. **Pure Cex Standard & Zero Python Scripts (v2)**:
+   - In v2, do not use C++ compilers (`g++`, `clang++`, `MSVC`) or Python scripts (`python`, `python3`, `#!/usr/bin/env python3`, `python3 -c`). Execution and utility scripts are written in `.cex` and handled directly by the `cexr` runtime and `cexp` machine compiler.
+5. **CXVM Hook for `dev`, `build`, and `start`**:
+   - When invoking `cxvm dev`, `cxvm build`, or `cxvm start`, it acts as a hook calling:
+     `cxvm --app cexr $versionType <dev|build|start> <target_index>`
+     (where `$versionType` is the CexR edition/version type, e.g. `bean`, `delivery`, `drawer`, `factory`, with `example=bean`, and `<target_index>` is the target index file such as `src/index.cex`).
+6. **Project Dispatchers & Default Runtimes**:
    - Default `./bin/cexr` and `./bin/cex` prioritize **CexR v8.0.0** (with quick-switch support for **v6.0.0**).
-6. **Cross-Platform Setup Window**:
+7. **Cross-Platform Setup Window**:
    - Provide an interactive visual setup window via CLI (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `setup.cmd`) and Web (`http://localhost:3080/setup`) to configure PATH, environment variables, default runtimes, and local `./bin/` dispatchers.
-7. **Automated Testing**:
+8. **Automated Testing**:
    - All tests live under `tests/` (`tests/cxvm.test.cex`, `tests/factory.test.cex`) and must pass cleanly with `cexr <test_file>`.
-8. **Rule (No Symbols)**:
+9. **Rule (No Symbols)**:
    - All source code, console outputs, scripts, setup windows, documentation, and agent rules inside `cxvm` must use pure ASCII text without emojis, unicode symbols, or non-ASCII icon characters.
-9. **Rule (Pure Cex Binaries in bin/)**:
-   - Across `cxvm` and packages, `bin/` directories must contain exclusively `.cex` files. Absolutely no `.js` files or JavaScript/Node.js scripts are permitted.
-10. **Rule (Documents Update - RULE_DOCUMENTS_UPDATE)**:
+10. **Rule (Pure Cex Binaries & Scripts)**:
+    - Across `cxvm` and packages, `bin/` and `scripts/` tools must use native `.cex` files executed by `cexr` runtime. Absolutely no `.py`/Python or `.js`/Node.js scripts are permitted.
+11. **Rule (Documents Update - RULE_DOCUMENTS_UPDATE)**:
     - Whenever a new feature, command, API, or architectural change is introduced in any project (`cxvm`, `cexp`, `cexr`, or packages), update the central documentation book at `documents/` under `../{projectName}`.
 
 ---
@@ -51,10 +55,15 @@ cxvm/
 |   +-- PRODUCT_TARGET.md         # Canonical target specification
 |   +-- rules/                    # Enforced coding and architecture rules
 |   +-- standards/                # Architectural layout and setup window specifications
-+-- bin/                          # Toolchain entry dispatchers (cexr, cex, cxvm, .cmd, .ps1)
++-- bin/                          # Toolchain entry dispatchers (cexr, cex, cxvm, cex-pack.cex)
 +-- dist/                         # Retained cross-platform distribution bundles (Rule 69)
 +-- downloads/                    # Public download mirror store (36 bundles + manifests)
-+-- scripts/                      # Build automation and setup scripts
++-- scripts/                      # Build automation, .cex tools, and setup scripts
+|   +-- cex_pack.cex              # Pure .cex Cex-Pack manifest validator & dependency downloader
+|   +-- generate_manifest.cex     # Pure .cex distribution manifest generator
+|   +-- verify_eof.cex            # Pure .cex Rule 29 EOF integrity verifier
+|   +-- cvm_server.cex            # Pure .cex CVM standalone server controller
+|   +-- thunder_server.cex        # Pure .cex Thunder standalone server controller
 |   +-- generate_distributions.sh # Distribution builder and dist sync
 |   +-- setup.sh                  # POSIX setup window script
 |   +-- setup.ps1                 # Windows PowerShell setup window script

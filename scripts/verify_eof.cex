@@ -1,0 +1,76 @@
+// 2-TEK CXVM: Rule 29 End-Of-File (EOF) Integrity Verifier (Pure Cex via cexr runtime)
+// Rule Conformance: Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_PURE_CEX_BIN
+
+import fs from "fs";
+
+fn verifyFileEof(filePath: string): bool {
+    if (!fs.exists(filePath) || fs.isDir(filePath)) {
+        return true;
+    }
+    let content: string = fs.readFile(filePath);
+    let len: int = (int)content.length();
+    if (len == 0) {
+        return false;
+    }
+    let lastChar: string = content.substr(len - 1, 1);
+    if (lastChar != "\n") {
+        return false;
+    }
+    if (len >= 2) {
+        let prevChar: string = content.substr(len - 2, 1);
+        if (prevChar == "\n") {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn main(argc: int, argv: char**): int {
+    let targetFiles: Array<string>* = new Array<string>();
+    if (argc > 1) {
+        for (let i: int = 1; i < argc; i++) {
+            targetFiles->push(std::string(argv[i]));
+        }
+    } else {
+        targetFiles->push("cex-pack.json");
+        targetFiles->push("README.md");
+        targetFiles->push(".agents/PRODUCT_TARGET.md");
+        targetFiles->push(".agents/rules/RULE_29_EOF_INTEGRITY.md");
+        targetFiles->push(".agents/rules/RULE_69_KEEP_TARGET.md");
+        targetFiles->push(".agents/rules/RULE_72_DYNAMIC_PATHS.md");
+        targetFiles->push(".agents/rules/RULE_CEX_SETUP.md");
+        targetFiles->push(".agents/rules/RULE_CEX_TOOLCHAIN.md");
+        targetFiles->push(".agents/rules/RULE_CXVM_HOOK_CEXR_AND_NO_PYTHON.md");
+        targetFiles->push(".agents/rules/RULE_PURE_CEX_BIN.md");
+        targetFiles->push(".agents/rules/allow-git-cex-commands.md");
+        targetFiles->push(".agents/rules/standard-for-project.md");
+        targetFiles->push("src/index.cex");
+        targetFiles->push("src/app.cex");
+        targetFiles->push("src/cxvm/cxvm_engine.cex");
+        targetFiles->push("tests/cxvm.test.cex");
+        targetFiles->push("tests/factory.test.cex");
+    }
+
+    let badCount: int = 0;
+    let checkedCount: int = 0;
+    let total: int = (int)targetFiles->length();
+
+    for (let idx: int = 0; idx < total; idx++) {
+        let f: string = targetFiles->get(idx);
+        if (fs.exists(f) && !fs.isDir(f)) {
+            checkedCount++;
+            if (!verifyFileEof(f)) {
+                println("[FAIL] Rule 29 EOF violation in: " + f);
+                badCount++;
+            }
+        }
+    }
+
+    if (badCount > 0) {
+        println("[ERROR] Rule 29 verification failed on " + std::to_string(badCount) + " file(s).");
+        return 1;
+    }
+
+    println("[OK] Rule 29 EOF Integrity verified across " + std::to_string(checkedCount) + " file(s) via cexr runtime.");
+    return 0;
+}

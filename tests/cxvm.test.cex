@@ -74,10 +74,28 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/cxvm.ps1"), "cxvm.ps1 exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm.cmd"), "cxvm.cmd exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cex-pack"), "cex-pack binary exists in downloads");
+    Assert::isTrue(fs.exists("bin/1.0.5/cex-pack"), "cex-pack integrated inside ./bin/1.0.5/cex-pack");
     Assert::isTrue(fs.exists("bin/8.0.0/cex-pack"), "cex-pack integrated inside ./bin/8.0.0/cex-pack");
     Assert::isTrue(fs.exists("bin/v8.0.0/cex-pack"), "cex-pack integrated inside ./bin/v8.0.0/cex-pack");
     Assert::isTrue(fs.exists("bin/6.0.0/cex-pack"), "cex-pack integrated inside ./bin/6.0.0/cex-pack");
     Assert::isTrue(fs.exists("bin/cex-pack"), "cex-pack binary exists in ./bin/cex-pack");
+    Assert::isTrue(fs.exists("bin/8.0.0/cexp"), "standalone cexp integrated inside ./bin/8.0.0/cexp");
+    Assert::isTrue(fs.exists("bin/7.0.0/cexp"), "standalone cexp integrated inside ./bin/7.0.0/cexp");
+    Assert::isTrue(fs.exists("bin/6.0.0/cexp"), "standalone cexp integrated inside ./bin/6.0.0/cexp");
+    Assert::isTrue(fs.exists("bin/5.0.0/cexp"), "standalone cexp integrated inside ./bin/5.0.0/cexp");
+    Assert::isTrue(fs.exists("bin/4.0.0/cexp"), "standalone cexp integrated inside ./bin/4.0.0/cexp");
+    Assert::isTrue(fs.exists("bin/3.0.0/cexp"), "standalone cexp integrated inside ./bin/3.0.0/cexp");
+    Assert::isTrue(fs.exists("bin/2.0.0/cexp"), "standalone cexp integrated inside ./bin/2.0.0/cexp");
+    Assert::isTrue(fs.exists("bin/1.0.0/cexp"), "standalone cexp integrated inside ./bin/1.0.0/cexp");
+    Assert::isTrue(fs.exists("bin/cexp"), "standalone cexp integrated directly in ./bin/cexp");
+    Assert::isTrue(fs.exists("bin/bean/cexr-bean"), "cexr-bean integrated inside ./bin/bean/cexr-bean");
+    Assert::isTrue(fs.exists("bin/delivery/cexr-delivery"), "cexr-delivery integrated inside ./bin/delivery/cexr-delivery");
+    Assert::isTrue(fs.exists("bin/drawer/cexr-drawer"), "cexr-drawer integrated inside ./bin/drawer/cexr-drawer");
+    Assert::isTrue(fs.exists("bin/factory/cexr-factory"), "cexr-factory integrated inside ./bin/factory/cexr-factory");
+    Assert::isTrue(fs.exists("bin/cexr-bean"), "cexr-bean integrated directly in ./bin/cexr-bean");
+    Assert::isTrue(fs.exists("bin/cexr-delivery"), "cexr-delivery integrated directly in ./bin/cexr-delivery");
+    Assert::isTrue(fs.exists("bin/cexr-drawer"), "cexr-drawer integrated directly in ./bin/cexr-drawer");
+    Assert::isTrue(fs.exists("bin/cexr-factory"), "cexr-factory integrated directly in ./bin/cexr-factory");
     Assert::isTrue(fs.exists(downDir + "/manifest.json"), "manifest.json exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
     Assert::isTrue(fs.exists("dist") && fs.exists("dist/cex-v8.0.0-linux-x86_64.tar.gz"), "dist/ directory contains cross-platform distribution bundles");
@@ -153,6 +171,15 @@ fn main(): int {
 
     let appRes: int = cxvm->appExecute("cex-pack", "downloads", "cex-pack.json");
     Assert::equalsInt(0, appRes, "cxvm downloads dispatching via --app cex-pack returns 0 OK");
+
+    let hookDevRes: int = cxvm->cvmExecute("dev", "bean", "src/index.cex");
+    Assert::equalsInt(0, hookDevRes, "cxvm dev hooks to cxvm --app cexr bean dev src/index.cex");
+    let hookBuildRes: int = cxvm->cvmExecute("build", "bean", "src/index.cex");
+    Assert::equalsInt(0, hookBuildRes, "cxvm build hooks to cxvm --app cexr bean build src/index.cex");
+    let hookStartRes: int = cxvm->cvmExecute("start", "bean", "src/index.cex");
+    Assert::equalsInt(0, hookStartRes, "cxvm start hooks to cxvm --app cexr bean start src/index.cex");
+    let appCexrRes: int = cxvm->appExecute("cexr", "bean", "dev src/index.cex");
+    Assert::equalsInt(0, appCexrRes, "cxvm --app cexr bean dev src/index.cex returns 0 OK");
     suite->addResult("test_cxvm_version_manager", true, "", 1);
 
     // -------------------------------------------------------------

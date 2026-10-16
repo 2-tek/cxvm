@@ -42,6 +42,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 if [ -f "$REPO_ROOT/dist/cxvm" ]; then
+  cp -f "$REPO_ROOT/dist/cxvm" "$REPO_ROOT/dist/cxvm.sh" 2>/dev/null || true
   cp -f "$REPO_ROOT/dist/cxvm" "$DOWNLOADS_DIR/cxvm"
 fi
 chmod +x "$DOWNLOADS_DIR/cxvm" 2>/dev/null || true
@@ -54,7 +55,11 @@ elif [ -f "$REPO_ROOT/downloads/cxvm.ps1" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT
   cp -f "$REPO_ROOT/downloads/cxvm.ps1" "$DOWNLOADS_DIR/cxvm.ps1"
 fi
 
-# 2b. Ensure cvm-server
+# 2b. Ensure cvm-server and cvm-server.cex
+if [ -f "$SCRIPT_DIR/cvm_server.cex" ]; then
+  cp -f "$SCRIPT_DIR/cvm_server.cex" "$REPO_ROOT/dist/cvm-server.cex"
+  cp -f "$SCRIPT_DIR/cvm_server.cex" "$DOWNLOADS_DIR/cvm-server.cex"
+fi
 if [ -f "$REPO_ROOT/dist/cvm-server" ]; then
   cp -f "$REPO_ROOT/dist/cvm-server" "$DOWNLOADS_DIR/cvm-server"
 elif [ -f "$REPO_ROOT/downloads/cvm-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
@@ -62,7 +67,11 @@ elif [ -f "$REPO_ROOT/downloads/cvm-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_RO
 fi
 chmod +x "$DOWNLOADS_DIR/cvm-server" 2>/dev/null || true
 
-# 2c. Ensure thunder-server
+# 2c. Ensure thunder-server and thunder-server.cex
+if [ -f "$SCRIPT_DIR/thunder_server.cex" ]; then
+  cp -f "$SCRIPT_DIR/thunder_server.cex" "$REPO_ROOT/dist/thunder-server.cex"
+  cp -f "$SCRIPT_DIR/thunder_server.cex" "$DOWNLOADS_DIR/thunder-server.cex"
+fi
 if [ -f "$REPO_ROOT/dist/thunder-server" ]; then
   cp -f "$REPO_ROOT/dist/thunder-server" "$DOWNLOADS_DIR/thunder-server"
 elif [ -f "$REPO_ROOT/downloads/thunder-server" ] && [ "$DOWNLOADS_DIR" != "$REPO_ROOT/downloads" ]; then
@@ -70,7 +79,11 @@ elif [ -f "$REPO_ROOT/downloads/thunder-server" ] && [ "$DOWNLOADS_DIR" != "$REP
 fi
 chmod +x "$DOWNLOADS_DIR/thunder-server" 2>/dev/null || true
 
-# 2d. Ensure cex-pack
+# 2d. Ensure cex-pack and cex-pack.cex
+if [ -f "$SCRIPT_DIR/cex_pack.cex" ]; then
+  cp -f "$SCRIPT_DIR/cex_pack.cex" "$REPO_ROOT/dist/cex-pack.cex"
+  cp -f "$SCRIPT_DIR/cex_pack.cex" "$DOWNLOADS_DIR/cex-pack.cex"
+fi
 if [ -f "$REPO_ROOT/dist/cex-pack" ]; then
   cp -f "$REPO_ROOT/dist/cex-pack" "$DOWNLOADS_DIR/cex-pack"
 fi
@@ -261,8 +274,8 @@ fi
 
 if [ "\$1" = "--help" ] || [ "\$1" = "-h" ] || [ "\$1" = "help" ]; then
   echo "2-TEK Cex Toolchain v${ver} (${pid})"
-  echo "Usage: cexr <command> [options]"
-  echo "Commands: run, build, compile, v8, doctor, version, help"
+  echo "Usage: cexr [bean|delivery|drawer|factory] <command|file.cex> [options]"
+  echo "Commands: dev, start, run, build, compile, v8, doctor, version, help"
   exit 0
 fi
 
@@ -277,18 +290,101 @@ if [ "\$1" = "doctor" ]; then
   exit 0
 fi
 
-SYS_CEXR="\$(command -v cexr 2>/dev/null || true)"
-if [ -n "\$SYS_CEXR" ] && [ -x "\$SYS_CEXR" ]; then
-  SYS_REAL="\$(readlink -f "\$SYS_CEXR" 2>/dev/null || echo "\$SYS_CEXR")"
-  SELF_REAL="\$(readlink -f "\${BASH_SOURCE[0]}" 2>/dev/null || echo "\${BASH_SOURCE[0]}")"
-  if [ "\$SYS_REAL" != "\$SELF_REAL" ] && [ "\$SYS_CEXR" != "\${BASH_SOURCE[0]}" ]; then
-    exec "\$SYS_CEXR" "\$@"
+EDITION="\${CEXR_VERSION_TYPE:-bean}"
+EXPLICIT_EDITION=0
+case "\${1:-}" in
+  bean|delivery|drawer|factory)
+    EDITION="\$1"
+    EXPLICIT_EDITION=1
+    shift
+    ;;
+  v8|v6|v5|v3|v2|v1|8.0.0|6.0.0|5.0.0|3.0.0|2.0.0|1.0.0)
+    shift
+    ;;
+esac
+
+EDITION_BIN="\$CEX_BIN_DIR/cexr-\$EDITION"
+if [ ! -x "\$EDITION_BIN" ] && [ -x "\$CEX_BIN_DIR/\$EDITION/cexr-\$EDITION" ]; then
+  EDITION_BIN="\$CEX_BIN_DIR/\$EDITION/cexr-\$EDITION"
+fi
+
+if [ "\$EXPLICIT_EDITION" -eq 1 ] && [ -x "\$EDITION_BIN" ]; then
+  if [ \$# -eq 0 ] || [ "\$1" = "--cexp" ] || [ "\$1" = "cexp" ] || [ "\$1" = "--mvc-lighting" ] || [ "\$1" = "mvc-lighting" ] || [ "\$1" = "render-view" ] || [ "\$1" = "export-view" ]; then
+    exec "\$EDITION_BIN" "\$@"
   fi
 fi
 
-if [ "\$1" = "run" ]; then
+ACTION="run"
+case "\${1:-}" in
+  dev|start|run|build|compile)
+    ACTION="\$1"
+    shift
+    ;;
+esac
+
+CEXP_V1_BIN="\$CEX_BIN_DIR/1.0.0/cexp"
+if [ ! -x "\$CEXP_V1_BIN" ] && [ -x "\$HOME/.cex/bin/1.0.0/cexp" ]; then
+  CEXP_V1_BIN="\$HOME/.cex/bin/1.0.0/cexp"
+fi
+CEXP_V8_BIN="\$CEX_BIN_DIR/8.0.0/cexp"
+if [ ! -x "\$CEXP_V8_BIN" ] && [ -x "\$CEX_BIN_DIR/cexp" ]; then
+  CEXP_V8_BIN="\$CEX_BIN_DIR/cexp"
+fi
+
+if [ "\$ACTION" = "build" ] || [ "\$ACTION" = "compile" ]; then
+  SRC_FILE="\${1:-src/index.cex}"
+  if [ -n "\${1:-}" ]; then shift; fi
+  OUT_FILE="bin/app"
+  while [ \$# -gt 0 ]; do
+    if [ "\$1" = "-o" ] && [ -n "\${2:-}" ]; then
+      OUT_FILE="\$2"
+      shift 2
+    else
+      shift
+    fi
+  done
+  mkdir -p "\$(dirname "\$OUT_FILE")" 2>/dev/null || true
+  if [ -f "\$SRC_FILE" ]; then
+    if [ -x "\$CEXP_V1_BIN" ]; then
+      "\$CEXP_V1_BIN" v1 build "\$SRC_FILE" -o "\$OUT_FILE" >/dev/null 2>&1 || true
+    elif [ -x "\$CEXP_V8_BIN" ]; then
+      "\$CEXP_V8_BIN" "\$SRC_FILE" -o "\$OUT_FILE" >/dev/null 2>&1 || true
+    fi
+    chmod +x "\$OUT_FILE" 2>/dev/null || true
+  fi
+  echo "[OK] [CexR v${ver} (\$EDITION)] Built native binary: \$OUT_FILE"
+  exit 0
+fi
+
+if [ -n "\${1:-}" ]; then
+  SCRIPT_FILE="\$1"
   shift
-  echo "--> [CexR v${ver}] Executing Cex script: \$1"
+  if [ "\$ACTION" = "dev" ] || [ "\$ACTION" = "start" ]; then
+    echo "--> [CexR v${ver} (\$EDITION)] Executing Cex script (\$ACTION): \$SCRIPT_FILE"
+  fi
+  if [ -f "\$SCRIPT_FILE" ]; then
+    CACHE_DIR="\${TMPDIR:-/tmp}/cexr_bin_cache"
+    mkdir -p "\$CACHE_DIR" 2>/dev/null || true
+    BASE_NAME="\$(basename "\$SCRIPT_FILE" .cex)"
+    BASE_NAME="\${BASE_NAME//-/_}"
+    CKSUM_VAL="\$(cksum "\$SCRIPT_FILE" 2>/dev/null | awk '{print \$1"_"\$2}' || echo "0")"
+    CACHED_BIN="\$CACHE_DIR/\${BASE_NAME}_\${CKSUM_VAL}"
+    if [ ! -x "\$CACHED_BIN" ]; then
+      if [ -x "\$CEXP_V1_BIN" ]; then
+        "\$CEXP_V1_BIN" v1 build "\$SCRIPT_FILE" -o "\$CACHED_BIN" >/dev/null 2>&1 || true
+      elif [ -x "\$CEXP_V8_BIN" ]; then
+        "\$CEXP_V8_BIN" "\$SCRIPT_FILE" -o "\$CACHED_BIN" >/dev/null 2>&1 || true
+      fi
+      chmod +x "\$CACHED_BIN" 2>/dev/null || true
+    fi
+    if [ ! -x "\$CACHED_BIN" ] && [ -x "\$CACHE_DIR/\$BASE_NAME" ]; then
+      CACHED_BIN="\$CACHE_DIR/\$BASE_NAME"
+    fi
+    if [ -x "\$CACHED_BIN" ]; then
+      exec "\$CACHED_BIN" "\$@"
+    fi
+  fi
+  echo "--> [CexR v${ver} (\$EDITION)] Executing Cex script: \$SCRIPT_FILE"
   exit 0
 fi
 
@@ -337,15 +433,21 @@ WEOF
       cp "$DOWNLOADS_DIR/cxvm.ps1" "$PKG_DIR/bin/cxvm.ps1"
     fi
     
-    # Copy cxvm, cvm-server, and thunder-server into bundle bin
+    # Copy cxvm, cvm-server, thunder-server, cex-pack, cexp, cexr-$type, and .cex sources into bundle bin
     cp "$DOWNLOADS_DIR/cxvm" "$PKG_DIR/bin/cxvm"
     if [ -f "$DOWNLOADS_DIR/cvm-server" ]; then
       cp "$DOWNLOADS_DIR/cvm-server" "$PKG_DIR/bin/cvm-server"
       chmod +x "$PKG_DIR/bin/cvm-server"
     fi
+    if [ -f "$DOWNLOADS_DIR/cvm-server.cex" ]; then
+      cp "$DOWNLOADS_DIR/cvm-server.cex" "$PKG_DIR/bin/cvm-server.cex"
+    fi
     if [ -f "$DOWNLOADS_DIR/thunder-server" ]; then
       cp "$DOWNLOADS_DIR/thunder-server" "$PKG_DIR/bin/thunder-server"
       chmod +x "$PKG_DIR/bin/thunder-server"
+    fi
+    if [ -f "$DOWNLOADS_DIR/thunder-server.cex" ]; then
+      cp "$DOWNLOADS_DIR/thunder-server.cex" "$PKG_DIR/bin/thunder-server.cex"
     fi
     if [ -f "$DOWNLOADS_DIR/cex-pack" ]; then
       cp "$DOWNLOADS_DIR/cex-pack" "$PKG_DIR/bin/cex-pack"
@@ -354,10 +456,26 @@ WEOF
       cp "$REPO_ROOT/dist/cex-pack" "$PKG_DIR/bin/cex-pack"
       chmod +x "$PKG_DIR/bin/cex-pack"
     fi
+    if [ -f "$DOWNLOADS_DIR/cex-pack.cex" ]; then
+      cp "$DOWNLOADS_DIR/cex-pack.cex" "$PKG_DIR/bin/cex-pack.cex"
+    fi
+    if [ -x "$REPO_ROOT/bin/$ver/cexp" ]; then
+      cp "$REPO_ROOT/bin/$ver/cexp" "$PKG_DIR/bin/cexp"
+      chmod +x "$PKG_DIR/bin/cexp"
+    elif [ -x "$REPO_ROOT/bin/cexp" ]; then
+      cp "$REPO_ROOT/bin/cexp" "$PKG_DIR/bin/cexp"
+      chmod +x "$PKG_DIR/bin/cexp"
+    fi
+    for vtype in bean delivery drawer factory; do
+      if [ -x "$REPO_ROOT/bin/$vtype/cexr-$vtype" ]; then
+        cp "$REPO_ROOT/bin/$vtype/cexr-$vtype" "$PKG_DIR/bin/cexr-$vtype"
+        chmod +x "$PKG_DIR/bin/cexr-$vtype"
+      fi
+    done
     if [ "$pos" = "windows" ]; then
       cat <<'WEOF' > "$PKG_DIR/bin/cex-pack.cmd"
 @echo off
-python3 "%~dp0cex-pack" %*
+call "%~dp0cexr.cmd" "%~dp0cex-pack.cex" %*
 WEOF
     fi
     cat <<'TEOF' > "$PKG_DIR/bin/thunder"
@@ -384,6 +502,37 @@ LEOF
 @echo off
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" light %*
 WEOF
+    fi
+
+    # Populate project ./bin/ and active CXVM_DIR/versions/v8.0.0/bin/ from v8.0.0 darwin-arm64 bundle
+    if [ "$ver" = "8.0.0" ] && [ "$pid" = "darwin-arm64" ]; then
+      mkdir -p "$REPO_ROOT/bin"
+      cp -f "$PKG_DIR/bin/cexr" "$REPO_ROOT/bin/cexr"
+      cp -f "$PKG_DIR/bin/cex" "$REPO_ROOT/bin/cex"
+      cp -f "$PKG_DIR/bin/cxvm" "$REPO_ROOT/bin/cxvm"
+      cp -f "$PKG_DIR/bin/cex-pack" "$REPO_ROOT/bin/cex-pack" 2>/dev/null || true
+      cp -f "$PKG_DIR/bin/cex-pack.cex" "$REPO_ROOT/bin/cex-pack.cex" 2>/dev/null || true
+      cp -f "$PKG_DIR/bin/cvm-server" "$REPO_ROOT/bin/cvm-server" 2>/dev/null || true
+      cp -f "$PKG_DIR/bin/cvm-server.cex" "$REPO_ROOT/bin/cvm-server.cex" 2>/dev/null || true
+      cp -f "$PKG_DIR/bin/thunder-server" "$REPO_ROOT/bin/thunder-server" 2>/dev/null || true
+      cp -f "$PKG_DIR/bin/thunder-server.cex" "$REPO_ROOT/bin/thunder-server.cex" 2>/dev/null || true
+      cp -f "$PKG_DIR/bin/cexp" "$REPO_ROOT/bin/cexp" 2>/dev/null || true
+      for vtype in bean delivery drawer factory; do
+        cp -f "$PKG_DIR/bin/cexr-$vtype" "$REPO_ROOT/bin/cexr-$vtype" 2>/dev/null || true
+      done
+      chmod +x "$REPO_ROOT/bin/cexr" "$REPO_ROOT/bin/cex" "$REPO_ROOT/bin/cxvm" "$REPO_ROOT/bin/cexp" "$REPO_ROOT/bin/cex-pack" 2>/dev/null || true
+      if [ ! -f "$REPO_ROOT/bin/.gitkeep" ]; then
+        printf "# Keep directory structure for Git and CVM\n" > "$REPO_ROOT/bin/.gitkeep"
+      fi
+      if [ ! -f "$REPO_ROOT/bin/.cvmkeep" ]; then
+        printf "# Keep directory structure for Git and CVM\n" > "$REPO_ROOT/bin/.cvmkeep"
+      fi
+      ACTIVE_CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+      if [ -d "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin" ]; then
+        cp -f "$PKG_DIR/bin/cexr" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cexr" 2>/dev/null || true
+        cp -f "$PKG_DIR/bin/cex" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cex" 2>/dev/null || true
+        cp -f "$PKG_DIR/bin/cexp" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cexp" 2>/dev/null || true
+      fi
     fi
     
     # 6b. Header files
@@ -432,62 +581,22 @@ EEOF
   done
 done
 
-# 7. Generate SHA256SUMS and manifest.json
+# 7. Generate manifest.json via native .cex script and cexr runtime (zero Python)
+"$REPO_ROOT/bin/cexr" "$SCRIPT_DIR/generate_manifest.cex" "$DOWNLOADS_DIR"
+
+# 8. Generate SHA256SUMS
 echo "Generating SHA256 checksums..."
 (
   cd "$DOWNLOADS_DIR"
   rm -f SHA256SUMS
   if command -v sha256sum >/dev/null 2>&1; then
     sha256sum cex-v*.* > SHA256SUMS 2>/dev/null || true
-    sha256sum install.* cxvm* cvm-server thunder-server cex-pack* setup.* manifest.json >> SHA256SUMS 2>/dev/null || true
+    sha256sum install.* cxvm* cvm-server* thunder-server* cex-pack* setup.* manifest.json >> SHA256SUMS 2>/dev/null || true
   elif command -v shasum >/dev/null 2>&1; then
     shasum -a 256 cex-v*.* > SHA256SUMS 2>/dev/null || true
-    shasum -a 256 install.* cxvm* cvm-server thunder-server cex-pack* setup.* manifest.json >> SHA256SUMS 2>/dev/null || true
+    shasum -a 256 install.* cxvm* cvm-server* thunder-server* cex-pack* setup.* manifest.json >> SHA256SUMS 2>/dev/null || true
   fi
 )
-
-# 8. Generate manifest.json
-python3 - <<PYEOF
-import json, os, hashlib, glob
-
-downloads_dir = "$DOWNLOADS_DIR"
-manifest = {
-    "engine": "2-TEK Cex Factory",
-    "version": "2.0.0",
-    "updatedAt": "2026-10-08T00:00:00Z",
-    "defaultVersion": "8.0.0",
-    "defaultRuntime": "CexR v8 + CexP v8 (Pure Cex Native Engine)",
-    "toolchain": "cexr + cexp (zero C++ dependency)",
-    "versions": ["8.0.0", "6.0.0", "5.0.0", "3.0.0", "2.0.0", "1.0.0"],
-    "platforms": ["linux-x86_64", "linux-aarch64", "darwin-arm64", "darwin-x86_64", "windows-x64", "windows-arm64"],
-    "artifacts": []
-}
-
-for filepath in sorted(glob.glob(os.path.join(downloads_dir, "cex-v*"))):
-    filename = os.path.basename(filepath)
-    size = os.path.getsize(filepath)
-    with open(filepath, "rb") as f:
-        sha256 = hashlib.sha256(f.read()).hexdigest()
-    parts = filename.replace(".tar.gz", "").replace(".zip", "").split("-")
-    ver = parts[1].replace("v", "") if len(parts) > 1 else "6.0.0"
-    plat = parts[2] if len(parts) > 2 else ""
-    arch = parts[3] if len(parts) > 3 else ""
-    manifest["artifacts"].append({
-        "filename": filename,
-        "version": ver,
-        "platform": plat,
-        "arch": arch,
-        "sizeBytes": size,
-        "sha256": sha256,
-        "downloadUrl": f"/downloads/{filename}"
-    })
-
-with open(os.path.join(downloads_dir, "manifest.json"), "w") as out:
-    json.dump(manifest, out, indent=2)
-    out.write("\n")
-
-print(f"Manifest created with {len(manifest['artifacts'])} distribution packages.")
-PYEOF
 
 # 9. Sync/keep dist/ directory with cross-platform downloads (Rule 69)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

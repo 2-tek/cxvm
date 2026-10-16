@@ -1,397 +1,243 @@
 #!/usr/bin/env bash
-# 2-TEK Factory: CexPack Build & Integration Engine
-# Compiles/builds cex-pack binary and integrates it into ./bin/$version/cex-pack
-# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+# 2-TEK Factory: CexPack, CexP & CexR Binary Integration Engine
+# Integrates built versions of:
+#   - ./bin/$lastVersion/cex-pack (1.0.5 / 8.0.0) -> ./bin/cex-pack
+#   - ./bin/8.x.x/cexp (and standalone 1.0.0..8.0.0) -> ./bin/cexp
+#   - ./bin/$versionType/cexr-$type (bean, delivery, drawer, factory) -> ./bin/cexr-$type
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_PURE_CEX_BIN
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+DEPS_CEX_PACK_DIR="$(cd "$ROOT_DIR/../deps/cex-pack" 2>/dev/null && pwd || echo "")"
 CEX_PACK_DIR="$(cd "$ROOT_DIR/../cex-pack" 2>/dev/null && pwd || echo "")"
+CEXP_REPO_DIR="$(cd "$ROOT_DIR/../cexp" 2>/dev/null && pwd || echo "")"
+CEXR_REPO_DIR="$(cd "$ROOT_DIR/../cexr" 2>/dev/null && pwd || echo "")"
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 
 echo "==============================================================="
-echo "   2-TEK Cex Factory: CexPack Build & Integration Engine       "
+echo "   2-TEK Cex Factory: Toolchain Binary Integration Engine      "
 echo "==============================================================="
 
-# 1. Build cex-pack executable script
+# 1. Integrate built cex-pack binary and cex_pack.cex source
 CEX_PACK_BIN="$ROOT_DIR/dist/cex-pack"
-mkdir -p "$ROOT_DIR/dist" "$ROOT_DIR/downloads"
+CEX_PACK_CEX="$ROOT_DIR/dist/cex-pack.cex"
+mkdir -p "$ROOT_DIR/dist" "$ROOT_DIR/downloads" "$ROOT_DIR/bin"
 
-cat << 'CEXP_BIN_EOF' > "$CEX_PACK_BIN"
-#!/usr/bin/env python3
-"""
-2-TEK Cex-Pack: Native Manifest Validator & Package Manager
-Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
-Integrated with @2tek/cli Task Dispatcher Engine and .cex_boxes Dependency Downloader.
-"""
+printf "# Keep directory structure for Git and CVM\n" > "$ROOT_DIR/bin/.gitkeep"
+printf "# Keep directory structure for Git and CVM\n" > "$ROOT_DIR/bin/.cvmkeep"
 
-import sys
-import os
-import json
-import shutil
+cp -f "$SCRIPT_DIR/cex_pack.cex" "$CEX_PACK_CEX"
+cp -f "$SCRIPT_DIR/cex_pack.cex" "$ROOT_DIR/downloads/cex-pack.cex"
+cp -f "$SCRIPT_DIR/cex_pack.cex" "$ROOT_DIR/bin/cex-pack.cex"
 
-def compute_dir_size(target_path):
-    total_bytes = 0
-    if os.path.exists(target_path):
-        if os.path.isfile(target_path):
-            total_bytes = os.path.getsize(target_path)
-        else:
-            for root, _, files in os.walk(target_path):
-                for file in files:
-                    fp = os.path.join(root, file)
-                    if not os.path.islink(fp):
-                        try:
-                            total_bytes += os.path.getsize(fp)
-                        except OSError:
-                            pass
-    kb = max(1, total_bytes // 1024)
-    mb_val = total_bytes / (1024.0 * 1024.0)
-    if mb_val < 0.01:
-        mb_val = 0.01
-    size_str = f"{mb_val:.2f}Mb"
-    return kb, size_str
+BUILT_CEX_PACK=""
+for cp_cand in \
+  "$DEPS_CEX_PACK_DIR/bin/cex-pack" \
+  "$CEX_PACK_DIR/bin/cex-pack" \
+  "$ROOT_DIR/bin/1.0.5/cex-pack" \
+  "$ROOT_DIR/bin/8.0.0/cex-pack"; do
+  if [ -n "$cp_cand" ] && [ -x "$cp_cand" ] && [ ! -d "$cp_cand" ]; then
+    if ! head -c 2 "$cp_cand" 2>/dev/null | grep -q "^#!"; then
+      BUILT_CEX_PACK="$cp_cand"
+      break
+    fi
+  fi
+done
 
-def print_help():
-    print("================================================------------------")
-    print("   2-TEK Cex-Pack: Native Manifest Validator & Package Manager    ")
-    print("   Integrated with @2tek/cli Task Dispatcher Engine               ")
-    print("================================================------------------")
-    print("  Usage: cex-pack [command] [options] <filepath>")
-    print("")
-    print("  Commands:")
-    print("    check [file]       Validate JSON syntax and manifest schema (default: cex-pack.json)")
-    print("    downloads [file]   Download dependencies defined in manifest into .cex_boxes/")
-    print("    lint [file]        Perform deep linter and rule governance checks")
-    print("    init               Scaffold a standard governance-compliant cex-pack.json")
-    print("    help               Display this help documentation")
-    print("")
-    print("  Options:")
-    print("    --verbose          Show verbose tokenization and step breakdown")
-    print("    --help, -h         Show command line options")
-    print("    --version, -v      Display version info")
-    print("================================================------------------")
+if [ -n "$BUILT_CEX_PACK" ]; then
+  cp -f "$BUILT_CEX_PACK" "$CEX_PACK_BIN"
+  chmod +x "$CEX_PACK_BIN"
+  echo "[OK] Located built native cex-pack binary: $BUILT_CEX_PACK"
+else
+  cat << 'CEXP_BIN_EOF' > "$CEX_PACK_BIN"
+#!/usr/bin/env bash
+# 2-TEK Cex-Pack: Native Manifest Validator & Package Manager Dispatcher (.cex via cexr runtime)
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_PURE_CEX_BIN
 
-def print_version():
-    print("cex-pack v1.1.0 (2-TEK Cex Manifest Validator & Package Manager)")
-    print("  Integrated Engine: @2tek/cli v1.0.0")
+set -e
 
-def scaffold_manifest():
-    default_manifest = {
-        "name": os.path.basename(os.getcwd()) or "my-cex-app",
-        "version": "1.1.0",
-        "description": "Default Cex application package",
-        "main": "src/index.cex",
-        "target": "runtime",
-        "required": {
-            "cexr": "^8",
-            "cexp": "^8"
-        },
-        "scripts": {
-            "start": "cexr src/index.cex",
-            "build": "cexp build src/index.cex -o bin/app",
-            "downloads": "cxvm --app cex-pack downloads"
-        },
-        "dependencies": {
-            "cex-test": "1.0.0"
-        }
-    }
-    with open("cex-pack.json", "w", encoding="utf-8") as f:
-        json.dump(default_manifest, f, indent=2)
-        f.write("\n")
-    print("[CexPack] Scaffolded standard governance-compliant 'cex-pack.json' template.")
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 
-def run_check(manifest_file):
-    if not os.path.exists(manifest_file):
-        print(f"[ERROR] Manifest file not found: {manifest_file}", file=sys.stderr)
-        return 1
-    try:
-        with open(manifest_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        req = ["name", "version"]
-        missing = [r for r in req if r not in data]
-        if missing:
-            print(f"[ERROR] Manifest missing required fields: {missing}", file=sys.stderr)
-            return 1
-        print(f"[OK] Manifest '{manifest_file}' syntax and structure: VALID [OK]")
-        return 0
-    except Exception as e:
-        print(f"[ERROR] Invalid JSON in {manifest_file}: {e}", file=sys.stderr)
-        return 1
-
-def run_lint(manifest_file):
-    if not os.path.exists(manifest_file):
-        print(f"[ERROR] Manifest file not found: {manifest_file}", file=sys.stderr)
-        return 1
-    code = run_check(manifest_file)
-    if code == 0:
-        print(f"[OK] Linter passed for '{manifest_file}' [OK]")
-    return code
-
-def run_downloads(manifest_file):
-    if not os.path.exists(manifest_file):
-        print(f"[ERROR] Manifest file not found: {manifest_file}", file=sys.stderr)
-        return 1
-
-    try:
-        with open(manifest_file, "r", encoding="utf-8") as f:
-            manifest_data = json.load(f)
-    except Exception as e:
-        print(f"[ERROR] Failed to parse {manifest_file}: {e}", file=sys.stderr)
-        return 1
-
-    manifest_dir = os.path.dirname(os.path.abspath(manifest_file))
-    box_dir = os.path.join(manifest_dir, ".cex_boxes")
-
-    print("================================================------------------")
-    print("   2-TEK CexPack Git/CVM Dependency Downloader (.cex_boxes)       ")
-    print("   Dependency Resolution Engine (dependencies)                    ")
-    print("================================================------------------")
-    print(f"Target Manifest : {manifest_file}")
-    print(f"Target Directory: {box_dir}/\n")
-
-    dependencies = manifest_data.get("dependencies", {})
-    if not dependencies:
-        print(f"[WARN] No dependencies declared in {manifest_file}")
-        return 0
-
-    os.makedirs(box_dir, exist_ok=True)
-
-    # Clean up broken symlinks in .cex_boxes
-    for item in os.listdir(box_dir):
-        item_path = os.path.join(box_dir, item)
-        if os.path.islink(item_path) and not os.path.exists(item_path):
-            try:
-                os.unlink(item_path)
-            except OSError:
-                pass
-
-    downloaded_records = []
-    total_kb = 0
-
-    parent_dir = os.path.dirname(manifest_dir)
-
-    # Discover workspace root dynamically by walking up from manifest_dir (Rule 72)
-    workspace_root = manifest_dir
-    curr = manifest_dir
-    while curr and curr != os.path.dirname(curr):
-        if (os.path.isdir(os.path.join(curr, "deps")) and curr != manifest_dir) or os.path.isfile(os.path.join(curr, "PROJECT_TARGET.md")):
-            workspace_root = curr
-            break
-        curr = os.path.dirname(curr)
-
-    for pkg_raw, ver_spec in dependencies.items():
-        clean_name = pkg_raw.lstrip("@")
-        target_path = os.path.join(box_dir, clean_name)
-
-        # Safely remove existing symlink or file before creating directory
-        if os.path.islink(target_path) or os.path.isfile(target_path):
-            try:
-                os.unlink(target_path)
-            except OSError:
-                pass
-        os.makedirs(target_path, exist_ok=True)
-
-        # 1. Look for dependency source candidate directories dynamically (Rule 72)
-        stripped_name = clean_name.replace("2tek/", "").replace("@2tek/", "")
-        candidates = [
-            os.path.join(workspace_root, "deps", clean_name),
-            os.path.join(workspace_root, "deps", stripped_name),
-            os.path.join(workspace_root, "deps", f"cex-{stripped_name}"),
-            os.path.join(workspace_root, "frameworks", clean_name),
-            os.path.join(workspace_root, "frameworks", stripped_name),
-            os.path.join(workspace_root, "projects", clean_name),
-            os.path.join(workspace_root, "projects", stripped_name),
-            os.path.join(workspace_root, "core", clean_name),
-            os.path.join(workspace_root, clean_name),
-            os.path.join(parent_dir, clean_name),
-            os.path.join(parent_dir, "deps", clean_name),
-            os.path.join(manifest_dir, "..", clean_name),
-            os.path.join(manifest_dir, "..", "deps", clean_name),
-        ]
-        found_src = ""
-        for cand in candidates:
-            if cand and os.path.exists(cand) and os.path.abspath(cand) != os.path.abspath(manifest_dir):
-                found_src = cand
-                break
-
-        if found_src:
-            for item in os.listdir(found_src):
-                if item in [".git", ".cvm", "node_modules", ".cex_cache"]:
-                    continue
-                s_item = os.path.join(found_src, item)
-                d_item = os.path.join(target_path, item)
-                if os.path.islink(d_item):
-                    try:
-                        os.unlink(d_item)
-                    except OSError:
-                        pass
-                if os.path.isdir(s_item):
-                    if not os.path.exists(d_item):
-                        shutil.copytree(s_item, d_item, ignore=shutil.ignore_patterns(".git*", ".cvm*"))
-                    else:
-                        for sub in os.listdir(s_item):
-                            if sub in [".git", ".cvm", "node_modules", ".cex_cache"]:
-                                continue
-                            s_sub = os.path.join(s_item, sub)
-                            d_sub = os.path.join(d_item, sub)
-                            if os.path.islink(d_sub):
-                                try:
-                                    os.unlink(d_sub)
-                                except OSError:
-                                    pass
-                            if os.path.isdir(s_sub):
-                                if not os.path.exists(d_sub):
-                                    shutil.copytree(s_sub, d_sub, ignore=shutil.ignore_patterns(".git*", ".cvm*"))
-                            elif not os.path.exists(d_sub):
-                                shutil.copy2(s_sub, d_sub)
-                elif not os.path.exists(d_item):
-                    shutil.copy2(s_item, d_item)
-
-        # 2. Ensure basic package structure
-        if not os.path.exists(os.path.join(target_path, "cex-pack.json")):
-            stub_pack = {
-                "name": clean_name,
-                "version": ver_spec,
-                "target": "runtime"
-            }
-            with open(os.path.join(target_path, "cex-pack.json"), "w", encoding="utf-8") as f:
-                json.dump(stub_pack, f, indent=2)
-                f.write("\n")
-
-        kb, size_str = compute_dir_size(target_path)
-        total_kb += kb
-
-        rec = {
-            "name": pkg_raw,
-            "version": ver_spec,
-            "size": size_str,
-            "status": "UPDATED",
-            "percent": 100,
-            "source": "dependencies"
-        }
-        downloaded_records.append(rec)
-
-        print(f"  * [cex-log] Resolving {pkg_raw}@{ver_spec} from dependencies")
-        print(f"    -> Destination: {target_path} [ OK ]")
-
-    _, total_size_str = compute_dir_size(box_dir)
-
-    # Write PROGRESS.md
-    progress_file = os.path.join(box_dir, "PROGRESS.md")
-    with open(progress_file, "w", encoding="utf-8") as f:
-        f.write(f"current: {total_size_str}\n")
-        f.write(".cex_boxes -> PROGRESS.md\n\n")
-        for r in downloaded_records:
-            f.write(f"[{r['status']}][{r['percent']}%][{r['size']}][{r['size']}][{r['name']}][{r['source']}]\n")
-        f.write(f"\nsummary:[{total_size_str}][{total_size_str}][100%]\n")
-
-    print("")
-    print("+------------------------------------------------------------------------------+")
-    print(f"| [CexPack] Cloned {len(downloaded_records)} dependencies via Git into {box_dir}/")
-    print("+------------------------------------------------------------------------------+")
-    return 0
-
-def main():
-    args = sys.argv[1:]
-    if not args:
-        print_help()
-        return 0
-
-    cmd = args[0]
-    target_file = args[1] if len(args) > 1 else "cex-pack.json"
-
-    if cmd in ["--help", "-h", "help"]:
-        print_help()
-        return 0
-    elif cmd in ["--version", "-v", "version"]:
-        print_version()
-        return 0
-    elif cmd == "init":
-        scaffold_manifest()
-        return 0
-    elif cmd in ["downloads", "download", "--downloads", "--download"]:
-        return run_downloads(target_file)
-    elif cmd in ["check", "--check"]:
-        return run_check(target_file)
-    elif cmd in ["lint", "--lint"]:
-        return run_lint(target_file)
-    elif os.path.exists(cmd):
-        return run_check(cmd)
-    else:
-        print(f"[ERROR] Unknown cex-pack command: {cmd}", file=sys.stderr)
-        print_help()
-        return 1
-
-if __name__ == "__main__":
-    sys.exit(main())
-CEXP_BIN_EOF
-
-chmod +x "$CEX_PACK_BIN"
-cp -f "$CEX_PACK_BIN" "$ROOT_DIR/downloads/cex-pack"
-echo "[OK] Built $CEX_PACK_BIN"
-
-# 2. Also build inside sibling cex-pack repository if present (build first)
-if [ -n "$CEX_PACK_DIR" ] && [ -d "$CEX_PACK_DIR" ]; then
-  mkdir -p "$CEX_PACK_DIR/bin"
-  cp -f "$CEX_PACK_BIN" "$CEX_PACK_DIR/bin/cex-pack"
-  chmod +x "$CEX_PACK_DIR/bin/cex-pack"
-  echo "[OK] Integrated into $CEX_PACK_DIR/bin/cex-pack"
+CEXR_BIN=""
+for r_cand in \
+  "$SELF_DIR/cexr" \
+  "$SELF_DIR/../bin/cexr" \
+  "$CXVM_DIR/current/bin/cexr" \
+  "$CXVM_DIR/bin/cexr"; do
+  if [ -x "$r_cand" ] && [ ! -d "$r_cand" ]; then
+    CEXR_BIN="$r_cand"
+    break
+  fi
+done
+if [ -z "$CEXR_BIN" ]; then
+  CEXR_BIN="$(command -v cexr 2>/dev/null || echo "cexr")"
 fi
 
-# 3. Integrate inside ./bin/$version/cex-pack for all tracked versions
-VERSIONS=("8.0.0" "6.0.0" "5.0.0" "3.0.0" "2.0.0" "1.0.0")
+CEX_PACK_SRC=""
+for s_cand in \
+  "$SELF_DIR/cex-pack.cex" \
+  "$SELF_DIR/../scripts/cex_pack.cex" \
+  "$SELF_DIR/../../scripts/cex_pack.cex" \
+  "$(pwd)/scripts/cex_pack.cex" \
+  "$(pwd)/bin/cex-pack.cex" \
+  "$CXVM_DIR/bin/cex-pack.cex"; do
+  if [ -f "$s_cand" ]; then
+    CEX_PACK_SRC="$s_cand"
+    break
+  fi
+done
 
-# Root ./bin/cex-pack
-cp -f "$CEX_PACK_BIN" "$ROOT_DIR/bin/cex-pack"
-chmod +x "$ROOT_DIR/bin/cex-pack"
+if [ -n "$CEX_PACK_SRC" ]; then
+  exec "$CEXR_BIN" "$CEX_PACK_SRC" "$@"
+fi
 
-for ver in "${VERSIONS[@]}"; do
-  # Direct version folder ./bin/$ver/cex-pack
+echo "[ERROR] cex-pack.cex not found for cexr runtime execution" >&2
+exit 1
+CEXP_BIN_EOF
+  chmod +x "$CEX_PACK_BIN"
+fi
+
+cp -f "$CEX_PACK_BIN" "$ROOT_DIR/downloads/cex-pack"
+
+# 2. Integrate cex-pack into ./bin/$lastVersion/cex-pack (1.0.5 & 8.0.0) and ./bin/cex-pack
+PACK_VERSIONS=("1.0.5" "8.0.0" "7.0.0" "6.0.2" "6.0.0" "5.0.0" "4.0.0" "3.0.1" "3.0.0" "2.0.0" "1.0.0")
+for ver in "${PACK_VERSIONS[@]}"; do
   VER_DIR="$ROOT_DIR/bin/$ver"
   mkdir -p "$VER_DIR"
   cp -f "$CEX_PACK_BIN" "$VER_DIR/cex-pack"
+  cp -f "$CEX_PACK_CEX" "$VER_DIR/cex-pack.cex"
   chmod +x "$VER_DIR/cex-pack"
-  
-  # Also create Windows batch wrapper
   cat << 'CMD_EOF' > "$VER_DIR/cex-pack.cmd"
 @echo off
-python3 "%~dp0cex-pack" %*
+cexr "%~dp0cex-pack.cex" %*
 CMD_EOF
-
-  # Maintain directory markers
   printf "# Keep directory structure for Git and CVM\n" > "$VER_DIR/.gitkeep"
   printf "# Keep directory structure for Git and CVM\n" > "$VER_DIR/.cvmkeep"
 
-  # Also support v-prefixed ./bin/v$ver/cex-pack
   V_DIR="$ROOT_DIR/bin/v$ver"
   mkdir -p "$V_DIR"
   cp -f "$CEX_PACK_BIN" "$V_DIR/cex-pack"
+  cp -f "$CEX_PACK_CEX" "$V_DIR/cex-pack.cex"
   chmod +x "$V_DIR/cex-pack"
   cat << 'CMD_EOF' > "$V_DIR/cex-pack.cmd"
 @echo off
-python3 "%~dp0cex-pack" %*
+cexr "%~dp0cex-pack.cex" %*
 CMD_EOF
   printf "# Keep directory structure for Git and CVM\n" > "$V_DIR/.gitkeep"
   printf "# Keep directory structure for Git and CVM\n" > "$V_DIR/.cvmkeep"
 
-  # Sync into $CXVM_DIR/versions/v$ver/bin if CXVM_DIR exists
   if [ -d "$CXVM_DIR/versions/v$ver/bin" ]; then
     cp -f "$CEX_PACK_BIN" "$CXVM_DIR/versions/v$ver/bin/cex-pack"
+    cp -f "$CEX_PACK_CEX" "$CXVM_DIR/versions/v$ver/bin/cex-pack.cex"
     chmod +x "$CXVM_DIR/versions/v$ver/bin/cex-pack"
   fi
 done
 
-# Sync to global $CXVM_DIR/bin/cex-pack and current if available
+# Integrate ./bin/$lastVersion/cex-pack directly into ./bin/cex-pack
+cp -f "$ROOT_DIR/bin/1.0.5/cex-pack" "$ROOT_DIR/bin/cex-pack"
+chmod +x "$ROOT_DIR/bin/cex-pack"
+echo "[OK] Integrated ./bin/1.0.5/cex-pack and ./bin/8.0.0/cex-pack -> ./bin/cex-pack"
+
+# 3. Integrate standalone cexp versions (1.0.0 .. 8.0.0) into ./bin/$ver/cexp and ./bin/cexp
+CEXP_VERSIONS=("8.0.0" "7.0.0" "6.0.2" "6.0.0" "5.0.0" "4.0.0" "3.0.1" "3.0.0" "2.0.0" "1.0.0")
+for ver in "${CEXP_VERSIONS[@]}"; do
+  FOUND_CEXP=""
+  for cexp_cand in \
+    "$CEXP_REPO_DIR/bin/$ver/cexp" \
+    "$HOME/.cex/bin/$ver/cexp" \
+    "$ROOT_DIR/bin/$ver/cexp"; do
+    if [ -n "$cexp_cand" ] && [ -x "$cexp_cand" ] && [ ! -d "$cexp_cand" ]; then
+      FOUND_CEXP="$cexp_cand"
+      break
+    fi
+  done
+
+  if [ -n "$FOUND_CEXP" ]; then
+    mkdir -p "$ROOT_DIR/bin/$ver" "$ROOT_DIR/bin/v$ver"
+    if [ "$FOUND_CEXP" != "$ROOT_DIR/bin/$ver/cexp" ]; then
+      cp -f "$FOUND_CEXP" "$ROOT_DIR/bin/$ver/cexp"
+    fi
+    cp -f "$ROOT_DIR/bin/$ver/cexp" "$ROOT_DIR/bin/v$ver/cexp"
+    chmod +x "$ROOT_DIR/bin/$ver/cexp" "$ROOT_DIR/bin/v$ver/cexp"
+    if [ -d "$CXVM_DIR/versions/v$ver/bin" ]; then
+      cp -f "$ROOT_DIR/bin/$ver/cexp" "$CXVM_DIR/versions/v$ver/bin/cexp"
+      chmod +x "$CXVM_DIR/versions/v$ver/bin/cexp"
+    fi
+  fi
+done
+
+if [ -x "$ROOT_DIR/bin/8.0.0/cexp" ]; then
+  cp -f "$ROOT_DIR/bin/8.0.0/cexp" "$ROOT_DIR/bin/cexp"
+  cp -f "$ROOT_DIR/bin/8.0.0/cexp" "$ROOT_DIR/dist/cexp"
+  cp -f "$ROOT_DIR/bin/8.0.0/cexp" "$ROOT_DIR/downloads/cexp"
+  chmod +x "$ROOT_DIR/bin/cexp" "$ROOT_DIR/dist/cexp" "$ROOT_DIR/downloads/cexp"
+  if [ -d "$CXVM_DIR/bin" ]; then
+    cp -f "$ROOT_DIR/bin/8.0.0/cexp" "$CXVM_DIR/bin/cexp"
+    chmod +x "$CXVM_DIR/bin/cexp"
+  fi
+  echo "[OK] Integrated standalone ./bin/8.0.0/cexp (and v1.0.0..v8.0.0) -> ./bin/cexp"
+fi
+
+# 4. Integrate built cexr-$type editions into ./bin/$versionType/cexr-$type and ./bin/cexr-$type
+CEXR_TYPES=("bean" "delivery" "drawer" "factory")
+for vtype in "${CEXR_TYPES[@]}"; do
+  FOUND_CEXR_TYPE=""
+  for cr_cand in \
+    "$CEXR_REPO_DIR/bin/$vtype/cexr-$vtype" \
+    "$CEXR_REPO_DIR/bin/cexr-$vtype" \
+    "$ROOT_DIR/bin/$vtype/cexr-$vtype" \
+    "$ROOT_DIR/bin/cexr-$vtype"; do
+    if [ -n "$cr_cand" ] && [ -x "$cr_cand" ] && [ ! -d "$cr_cand" ]; then
+      FOUND_CEXR_TYPE="$cr_cand"
+      break
+    fi
+  done
+
+  if [ -n "$FOUND_CEXR_TYPE" ]; then
+    TYPE_DIR="$ROOT_DIR/bin/$vtype"
+    mkdir -p "$TYPE_DIR"
+    if [ "$FOUND_CEXR_TYPE" != "$TYPE_DIR/cexr-$vtype" ]; then
+      cp -f "$FOUND_CEXR_TYPE" "$TYPE_DIR/cexr-$vtype"
+    fi
+    cp -f "$TYPE_DIR/cexr-$vtype" "$ROOT_DIR/bin/cexr-$vtype"
+    cp -f "$TYPE_DIR/cexr-$vtype" "$ROOT_DIR/bin/8.0.0/cexr-$vtype"
+    cp -f "$TYPE_DIR/cexr-$vtype" "$ROOT_DIR/bin/v8.0.0/cexr-$vtype"
+    cp -f "$TYPE_DIR/cexr-$vtype" "$ROOT_DIR/dist/cexr-$vtype"
+    cp -f "$TYPE_DIR/cexr-$vtype" "$ROOT_DIR/downloads/cexr-$vtype"
+    if [ -x "$ROOT_DIR/bin/8.0.0/cexp" ]; then
+      cp -f "$ROOT_DIR/bin/8.0.0/cexp" "$TYPE_DIR/cexp"
+      chmod +x "$TYPE_DIR/cexp"
+    fi
+    chmod +x "$TYPE_DIR/cexr-$vtype" "$ROOT_DIR/bin/cexr-$vtype" "$ROOT_DIR/bin/8.0.0/cexr-$vtype" "$ROOT_DIR/bin/v8.0.0/cexr-$vtype" "$ROOT_DIR/dist/cexr-$vtype" "$ROOT_DIR/downloads/cexr-$vtype"
+    printf "# Keep directory structure for Git and CVM\n" > "$TYPE_DIR/.gitkeep"
+    printf "# Keep directory structure for Git and CVM\n" > "$TYPE_DIR/.cvmkeep"
+    if [ -d "$CXVM_DIR/bin" ]; then
+      cp -f "$TYPE_DIR/cexr-$vtype" "$CXVM_DIR/bin/cexr-$vtype"
+      chmod +x "$CXVM_DIR/bin/cexr-$vtype"
+    fi
+    if [ -d "$CXVM_DIR/versions/v8.0.0/bin" ]; then
+      cp -f "$TYPE_DIR/cexr-$vtype" "$CXVM_DIR/versions/v8.0.0/bin/cexr-$vtype"
+      chmod +x "$CXVM_DIR/versions/v8.0.0/bin/cexr-$vtype"
+    fi
+    echo "[OK] Integrated ./bin/$vtype/cexr-$vtype -> ./bin/cexr-$vtype"
+  fi
+done
+
+# Sync cex-pack to global $CXVM_DIR/bin/cex-pack and current if available
 if [ -d "$CXVM_DIR/bin" ]; then
   cp -f "$CEX_PACK_BIN" "$CXVM_DIR/bin/cex-pack"
+  cp -f "$CEX_PACK_CEX" "$CXVM_DIR/bin/cex-pack.cex"
   chmod +x "$CXVM_DIR/bin/cex-pack"
 fi
 if [ -d "$CXVM_DIR/current/bin" ]; then
   cp -f "$CEX_PACK_BIN" "$CXVM_DIR/current/bin/cex-pack"
+  cp -f "$CEX_PACK_CEX" "$CXVM_DIR/current/bin/cex-pack.cex"
   chmod +x "$CXVM_DIR/current/bin/cex-pack"
 fi
 
 echo "==============================================================="
-echo "  [OK] CexPack successfully built & integrated into ./bin/$version/cex-pack"
+echo "  [OK] Toolchain binaries integrated into ./bin/ successfully! "
 echo "==============================================================="

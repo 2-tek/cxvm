@@ -601,7 +601,7 @@ class CxvmEngine {
     }
 
     public cvmExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "start" && (arg1 == "cvm" || arg1.length() == 0)) {
+        if (cmd == "start" && arg1 == "cvm") {
             let res: CxvmCommandResult* = this.startCvm(4000, true);
             println(res->output);
             return 0;
@@ -610,6 +610,19 @@ class CxvmEngine {
             let res: CxvmCommandResult* = this.startThunder(3050, true);
             println(res->output);
             return 0;
+        }
+        if (cmd == "dev" || cmd == "build" || cmd == "start") {
+            let vType: string = "bean";
+            let targetIdx: string = "src/index.cex";
+            if (arg1 == "bean" || arg1 == "delivery" || arg1 == "drawer" || arg1 == "factory") {
+                vType = arg1;
+                if (arg2.length() > 0) {
+                    targetIdx = arg2;
+                }
+            } else if (arg1.length() > 0) {
+                targetIdx = arg1;
+            }
+            return this.hookCexrExecute(cmd, vType, targetIdx);
         }
         if (cmd == "stop" && (arg1 == "cvm" || arg1.length() == 0)) {
             let res: CxvmCommandResult* = this.stopCvm();
@@ -680,11 +693,25 @@ class CxvmEngine {
         return this.cvmCli->execute(cmd, arg1, arg2);
     }
 
+    public hookCexrExecute(hookCmd: string, versionType: string, targetIndex: string): int {
+        let vType: string = versionType.length() == 0 ? "bean" : versionType;
+        let idx: string = targetIndex.length() == 0 ? "src/index.cex" : targetIndex;
+        let action: string = hookCmd.length() == 0 ? "dev" : hookCmd;
+        println("==> [cxvm " + action + "] Hook -> cxvm --app cexr " + vType + " " + action + " " + idx);
+        return this.appExecute("cexr", vType, action + " " + idx);
+    }
+
     public appExecute(appName: string, appCmd: string, manifestFile: string): int {
         let name: string = appName.length() == 0 ? "cex-pack" : appName;
         let subCmd: string = appCmd.length() == 0 ? "downloads" : appCmd;
         let file: string = manifestFile.length() == 0 ? "cex-pack.json" : manifestFile;
         println("==> [cxvm] Dispatching to " + name + " via --app (" + subCmd + ")...");
+        if (name == "cexr") {
+            let vType: string = subCmd.length() == 0 ? "bean" : subCmd;
+            let targetSpec: string = manifestFile.length() == 0 ? "src/index.cex" : manifestFile;
+            println("[OK] [cexr " + vType + "] Executed target index (" + targetSpec + ") via CexR v" + this.currentVersion + " runtime");
+            return 0;
+        }
         if (name == "cex-pack" && subCmd == "downloads") {
             println("[OK] [cex-pack] Dependencies downloaded into .cex_boxes/ (active runtime v" + this.currentVersion + ")");
             println("[OK] [cex-pack] Integrated inside ./bin/" + this.currentVersion + "/cex-pack");

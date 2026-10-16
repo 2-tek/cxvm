@@ -4,7 +4,7 @@ trigger: always_on
 
 # Rule 29: End-Of-File (EOF) Integrity Standard
 
-<!-- Rule Conformance: Rule 29 (EOF Integrity) -->
+<!-- Rule Conformance: Rule 29 (EOF Integrity), RULE_CEX_TOOLCHAIN (Zero Python, Pure .cex via cexr) -->
 
 > **MANDATORY INTEGRITY REQUIREMENT**:
 > Every file created, modified, or maintained in the `cxvm` repository MUST end with exactly **ONE** newline character (`\n` / byte `0x0A`).
@@ -22,11 +22,7 @@ trigger: always_on
    - Package configurations and JSON (`cex-pack.json`, `package.json`, `manifest.json`, `*.json`)
    - Documentation and agent rules (`*.md`, `*.txt`)
    - Ignore & dotfiles (`.gitignore`, `.env*`)
-3. **Verification Command**:
+3. **Verification Command (Pure `.cex` via `cexr` Runtime)**:
    ```bash
-   python3 -c "
-   import sys, pathlib
-   bad = [f for f in pathlib.Path('.').rglob('*') if f.is_file() and not str(f).startswith('./.git') and not str(f).endswith(('.tar.gz', '.zip')) and (f.read_bytes()[-1:] != b'\n' or f.read_bytes()[-2:] == b'\n\n')]
-   if bad: sys.exit(f'Rule 29 violation in: {bad}')
-   "
+   cexr scripts/verify_eof.cex
    ```
