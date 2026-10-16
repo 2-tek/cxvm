@@ -1190,7 +1190,8 @@ cxvm() {
   "scripts": {
     "start": "cxvm start",
     "dev": "cxvm dev",
-    "build": "cxvm build"
+    "build": "cxvm build",
+    "lint": "cxvm --app cex-lint fix ."
   },
   "dependencies": {
     "cex-test": "1.0.0",
@@ -1898,6 +1899,10 @@ LIGHT_WRAP_EOF
 
     watch)
       _cxvm_run_cex_cli watch "$@"
+      ;;
+
+    lint)
+      _cxvm_run_cex_cli lint "$@"
       ;;
 
     agents)

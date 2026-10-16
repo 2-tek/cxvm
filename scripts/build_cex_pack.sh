@@ -173,6 +173,43 @@ printf "# Keep directory structure for Git and CVM\n" > "$PACK_TARGET_DIR/.gitke
 printf "# Keep directory structure for Git and CVM\n" > "$PACK_TARGET_DIR/.cvmkeep"
 echo "[OK] Deployed ./bin/$CEX_PACK_VER/${CEX_PACK_NAME}-bean & ./bin/$CEX_PACK_VER/${CEX_PACK_NAME}"
 
+# 1b. Resolve and deploy cex-lint -> ./bin/$CEX_LINT_VER/cex-lint-bean & ./bin/$CEX_LINT_VER/cex-lint
+DEPS_CEX_LINT_DIR="$(cd "$ROOT_DIR/../deps/cex-lint" 2>/dev/null && pwd || echo "")"
+CEX_LINT_MF=""
+if [ -n "$DEPS_CEX_LINT_DIR" ] && [ -f "$DEPS_CEX_LINT_DIR/cex-pack.json" ]; then
+  CEX_LINT_MF="$DEPS_CEX_LINT_DIR/cex-pack.json"
+fi
+CEX_LINT_VER="$(read_manifest_field "$CEX_LINT_MF" "version")"
+CEX_LINT_VER="${CEX_LINT_VER:-1.0.8}"
+CEX_LINT_NAME="$(read_manifest_field "$CEX_LINT_MF" "name")"
+CEX_LINT_NAME="${CEX_LINT_NAME##*/}"
+CEX_LINT_NAME="${CEX_LINT_NAME#@}"
+CEX_LINT_NAME="${CEX_LINT_NAME:-cex-lint}"
+
+BUILT_CEX_LINT=""
+for cl_cand in \
+  "$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_VER/$CEX_LINT_NAME-bean" \
+  "$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_VER/$CEX_LINT_NAME" \
+  "$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_NAME" \
+  "$STAGE_DIR/$CEX_LINT_VER/$CEX_LINT_NAME-bean" \
+  "$STAGE_DIR/$CEX_LINT_VER/$CEX_LINT_NAME"; do
+  if [ -n "$cl_cand" ] && [ -x "$cl_cand" ] && [ ! -d "$cl_cand" ]; then
+    BUILT_CEX_LINT="$cl_cand"
+    break
+  fi
+done
+
+if [ -n "$BUILT_CEX_LINT" ]; then
+  LINT_TARGET_DIR="$ROOT_DIR/bin/$CEX_LINT_VER"
+  mkdir -p "$LINT_TARGET_DIR"
+  cp -f "$BUILT_CEX_LINT" "$LINT_TARGET_DIR/${CEX_LINT_NAME}-bean"
+  cp -f "$BUILT_CEX_LINT" "$LINT_TARGET_DIR/${CEX_LINT_NAME}"
+  chmod +x "$LINT_TARGET_DIR/${CEX_LINT_NAME}-bean" "$LINT_TARGET_DIR/${CEX_LINT_NAME}"
+  printf "# Keep directory structure for Git and CVM\n" > "$LINT_TARGET_DIR/.gitkeep"
+  printf "# Keep directory structure for Git and CVM\n" > "$LINT_TARGET_DIR/.cvmkeep"
+  echo "[OK] Deployed ./bin/$CEX_LINT_VER/${CEX_LINT_NAME}-bean & ./bin/$CEX_LINT_VER/${CEX_LINT_NAME}"
+fi
+
 # 2. Resolve and deploy standalone cexp versions -> ./bin/$version/cexp-$type
 CEXP_ROOT_NAME="cexp"
 if [ -n "$CEXP_REPO_DIR" ] && [ -f "$CEXP_REPO_DIR/cex-pack.json" ]; then

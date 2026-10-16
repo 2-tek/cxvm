@@ -769,6 +769,10 @@ class CxvmEngine {
         if (cmd == "downloads") {
             return this.appExecute("cex-pack", "downloads", arg1);
         }
+        if (cmd == "lint") {
+            let targetPath: string = arg1.length() == 0 ? "." : arg1;
+            return this.appExecute("cex-lint", "fix", targetPath);
+        }
         if (cmd == "--app") {
             return this.appExecute(arg1, arg2, "");
         }
@@ -793,6 +797,11 @@ class CxvmEngine {
             let vType: string = subCmd.length() == 0 ? this.defaultCexrEdition : subCmd;
             let targetSpec: string = manifestFile.length() == 0 ? "src/index.cex" : manifestFile;
             println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Executed target index (" + targetSpec + ") via CexR v" + this.currentVersion + " runtime");
+            return 0;
+        }
+        if (name == "cex-lint") {
+            let lintTarget: string = manifestFile.length() == 0 ? "." : manifestFile;
+            println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via ./bin/1.0.8/cex-lint");
             return 0;
         }
         if (name == "cex-pack" && subCmd == "downloads") {

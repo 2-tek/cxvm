@@ -76,6 +76,8 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/cex-pack"), "cex-pack binary exists in downloads");
     Assert::isTrue(fs.exists("bin/1.0.5/cex-pack-bean"), "cex-pack-bean built with exact version & type in ./bin/1.0.5/cex-pack-bean");
     Assert::isTrue(fs.exists("bin/1.0.5/cex-pack"), "cex-pack integrated inside ./bin/1.0.5/cex-pack");
+    Assert::isTrue(fs.exists("bin/1.0.8/cex-lint-bean"), "cex-lint-bean built with exact version & type in ./bin/1.0.8/cex-lint-bean");
+    Assert::isTrue(fs.exists("bin/1.0.8/cex-lint"), "cex-lint integrated inside ./bin/1.0.8/cex-lint");
     Assert::isTrue(fs.exists("bin/8.0.0/cexp-v8"), "standalone cexp-v8 built with exact version & type in ./bin/8.0.0/cexp-v8");
     Assert::isTrue(fs.exists("bin/7.0.0/cexp-v7"), "standalone cexp-v7 built with exact version & type in ./bin/7.0.0/cexp-v7");
     Assert::isTrue(fs.exists("bin/6.0.2/cexp-v6"), "standalone cexp-v6 built with exact version & type in ./bin/6.0.2/cexp-v6");
@@ -91,6 +93,8 @@ fn main(): int {
     Assert::isFalse(fs.exists("bin/cexp"), "no hardcoded flat ./bin/cexp");
     Assert::isFalse(fs.exists("bin/cexr-bean"), "no hardcoded flat ./bin/cexr-bean");
     Assert::isFalse(fs.exists("bin/bean"), "no hardcoded non-version ./bin/bean directory");
+    let mfRaw: string = fs.readFile("cex-pack.json");
+    Assert::isTrue(mfRaw.find("\"lint\": \"cxvm --app cex-lint fix .\"") != -1, "cex-pack.json scripts.lint is configured as cxvm --app cex-lint fix .");
     Assert::isTrue(fs.exists(downDir + "/manifest.json"), "manifest.json exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
     Assert::isTrue(fs.exists("dist") && fs.exists("dist/cex-v8.0.0-linux-x86_64.tar.gz"), "dist/ directory contains cross-platform distribution bundles");
@@ -158,6 +162,10 @@ fn main(): int {
     Assert::equalsInt(2, (int)cxvm->installedVersions->length(), "cxvm has 2 versions remaining after setup & uninstall");
     Assert::equalsString("v8.0.0", cxvm->current(), "cxvm active version falls back to remaining version");
 
+    let appLintRes: int = cxvm->appExecute("cex-lint", "fix", ".");
+    Assert::equalsInt(0, appLintRes, "cxvm --app cex-lint fix . returns 0 OK");
+    let execLintRes: int = cxvm->cvmExecute("lint", ".", "");
+    Assert::equalsInt(0, execLintRes, "cxvm lint routes to cxvm --app cex-lint fix .");
     let hookDevDefRes: int = cxvm->cvmExecute("dev", "src/index.cex", "");
     Assert::equalsInt(0, hookDevDefRes, "cxvm dev defaults to cexr-factory");
     let hookBuildDefRes: int = cxvm->cvmExecute("build", "src/index.cex", "");

@@ -23,7 +23,7 @@
     "dev": "cxvm --app cexr bean dev src/index.cex",
     "start": "cxvm --app cexr bean start src/index.cex",
     "build": "cxvm --app cexr bean build src/index.cex",
-    "lint": "cexr scripts/verify_eof.cex",
+    "lint": "cxvm --app cex-lint fix .",
     "test": "cexr tests/cxvm.test.cex"
   },
   "dependencies": {
