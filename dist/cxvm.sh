@@ -885,48 +885,127 @@ _cxvm_run_app() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   local pwd_dir="$(pwd)"
 
-  # Candidate binaries for $app_name prioritized by ./bin/$version/$name-$type and active version
-  local candidates=(
-    "$pwd_dir/bin/$app_name"
-    "$pwd_dir/bin/$ver_clean/${app_name}-${app_cmd}"
-    "$pwd_dir/bin/$ver_clean/$app_name"
-  )
-  for vcand in "$pwd_dir"/bin/*/"${app_name}-${app_cmd}" "$pwd_dir"/bin/*/"$app_name" "$pwd_dir"/bin/*/"${app_name}-bean" "$script_dir"/../bin/*/"${app_name}-${app_cmd}" "$script_dir"/../bin/*/"$app_name" "$script_dir"/../bin/*/"${app_name}-bean" "$CXVM_DIR"/bin/*/"${app_name}-${app_cmd}" "$CXVM_DIR"/bin/*/"$app_name" "$CXVM_DIR"/bin/*/"${app_name}-bean"; do
-    if [ -x "$vcand" ] && [ ! -d "$vcand" ]; then
-      candidates+=("$vcand")
+  # Candidate binaries for $app_name prioritized strictly by /bin/$exactlyverions/$name-$type
+  local target_bin="${app_name}"
+  local is_cexr_edition=0
+  if [ "$app_name" = "cexr" ] && [ -n "$app_cmd" ]; then
+    case "$app_cmd" in
+      factory|bean|delivery|drawer)
+        target_bin="${app_name}-${app_cmd}"
+        is_cexr_edition=1
+        ;;
+    esac
+  fi
+
+  local candidates=()
+  if [ "$is_cexr_edition" -eq 1 ]; then
+    candidates+=(
+      "$CXVM_DIR/bin/$ver_clean/$target_bin"
+      "$HOME/.cex/bin/$ver_clean/$target_bin"
+      "$CXVM_DIR/bin/8.0.0/$target_bin"
+      "$HOME/.cex/bin/8.0.0/$target_bin"
+      "$CXVM_DIR/bin/1.0.26/$target_bin"
+      "$HOME/.cex/bin/1.0.26/$target_bin"
+      "$script_dir/../bin/$ver_clean/$target_bin"
+      "$script_dir/../bin/8.0.0/$target_bin"
+      "$CXVM_DIR/bin/$target_bin"
+      "$HOME/.cex/bin/$target_bin"
+    )
+    for vcand in "$CXVM_DIR"/bin/*/"$target_bin" "$HOME"/.cex/bin/*/"$target_bin" "$script_dir"/../bin/*/"$target_bin"; do
+      if [ -x "$vcand" ] && [ ! -d "$vcand" ]; then
+        candidates+=("$vcand")
+      fi
+    done
+    if [ -x "$pwd_dir/bin/$ver_clean/$target_bin" ]; then
+      candidates+=("$pwd_dir/bin/$ver_clean/$target_bin")
     fi
-  done
-  candidates+=(
-    "$script_dir/../bin/$app_name"
-    "$script_dir/$ver_clean/$app_name"
-    "$script_dir/$app_name"
-    "$CXVM_DIR/bin/$ver_clean/$app_name"
-    "$CXVM_DIR/current/$app_name"
-    "$CXVM_DIR/bin/$app_name"
-    "$pwd_dir/../$app_name/bin/$app_name"
-    "$pwd_dir/../deps/$app_name/bin/$app_name"
-    "$pwd_dir/.cex_boxes/$app_name/bin/$app_name"
-  )
+  else
+    candidates+=(
+      "$CXVM_DIR/bin/$ver_clean/${app_name}-${app_cmd}"
+      "$CXVM_DIR/bin/$ver_clean/$app_name"
+      "$HOME/.cex/bin/$ver_clean/${app_name}-${app_cmd}"
+      "$HOME/.cex/bin/$ver_clean/$app_name"
+      "$CXVM_DIR/bin/8.0.0/${app_name}-${app_cmd}"
+      "$CXVM_DIR/bin/8.0.0/$app_name"
+      "$script_dir/../bin/$ver_clean/${app_name}-${app_cmd}"
+      "$script_dir/../bin/$ver_clean/$app_name"
+      "$CXVM_DIR/bin/$app_name"
+      "$HOME/.cex/bin/$app_name"
+    )
+    for vcand in "$CXVM_DIR"/bin/*/"${app_name}-${app_cmd}" "$CXVM_DIR"/bin/*/"$app_name" "$HOME"/.cex/bin/*/"${app_name}-${app_cmd}" "$HOME"/.cex/bin/*/"$app_name"; do
+      if [ -x "$vcand" ] && [ ! -d "$vcand" ]; then
+        candidates+=("$vcand")
+      fi
+    done
+    if [ -x "$pwd_dir/bin/$ver_clean/${app_name}-${app_cmd}" ]; then
+      candidates+=("$pwd_dir/bin/$ver_clean/${app_name}-${app_cmd}")
+    fi
+    if [ -x "$pwd_dir/bin/$ver_clean/$app_name" ]; then
+      candidates+=("$pwd_dir/bin/$ver_clean/$app_name")
+    fi
+  fi
 
   for cand in "${candidates[@]}"; do
     if [ -x "$cand" ] && [ ! -d "$cand" ]; then
-      echo "==> [cxvm] Dispatching to $app_name via --app ($app_cmd)..."
       local base_cand
       base_cand="$(basename "$cand")"
-      if [ "$base_cand" = "${app_name}-${app_cmd}" ]; then
-        "$cand" "$@"
+      if [ "$is_cexr_edition" -eq 1 ]; then
+        if [ "$base_cand" = "$target_bin" ]; then
+          echo "==> [cxvm] Dispatching to $target_bin via --app ($app_cmd)..."
+          if "$cand" "$@"; then
+            return 0
+          else
+            local ret=$?
+            [ $ret -eq 126 ] && continue
+            return $ret
+          fi
+        fi
+      elif [ "$base_cand" = "${app_name}-${app_cmd}" ]; then
+        echo "==> [cxvm] Dispatching to $base_cand via --app ($app_cmd)..."
+        if "$cand" "$@"; then
+          return 0
+        else
+          local ret=$?
+          [ $ret -eq 126 ] && continue
+          return $ret
+        fi
       elif [ "$app_name" = "cex-lint" ] && [ "$app_cmd" = "fix" ]; then
-        "$cand" --fix "$@"
+        echo "==> [cxvm] Dispatching to $app_name via --app ($app_cmd)..."
+        if "$cand" --fix "$@"; then
+          return 0
+        else
+          local ret=$?
+          [ $ret -eq 126 ] && continue
+          return $ret
+        fi
       elif [ -n "$app_cmd" ]; then
-        "$cand" "$app_cmd" "$@"
+        echo "==> [cxvm] Dispatching to $app_name via --app ($app_cmd)..."
+        if "$cand" "$app_cmd" "$@"; then
+          return 0
+        else
+          local ret=$?
+          [ $ret -eq 126 ] && continue
+          return $ret
+        fi
       else
-        "$cand" "$@"
+        echo "==> [cxvm] Dispatching to $app_name via --app..."
+        if "$cand" "$@"; then
+          return 0
+        else
+          local ret=$?
+          [ $ret -eq 126 ] && continue
+          return $ret
+        fi
       fi
-      return $?
     fi
   done
 
-  # Check PATH for $app_name
+  # Check PATH for $target_bin or $app_name
+  if [ "$is_cexr_edition" -eq 1 ] && command -v "$target_bin" >/dev/null 2>&1; then
+    echo "==> [cxvm] Dispatching to system $target_bin via --app ($app_cmd)..."
+    "$target_bin" "$@"
+    return $?
+  fi
   if command -v "$app_name" >/dev/null 2>&1; then
     echo "==> [cxvm] Dispatching to system $app_name via --app ($app_cmd)..."
     if [ -n "$app_cmd" ]; then

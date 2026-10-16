@@ -176,7 +176,7 @@ install_runtime_version() {
   local ext="tar.gz"
   if [ "$TARGET_OS" = "windows" ]; then ext="zip"; fi
   local archive_name="cex-v${ver}-${TARGET_OS}-${TARGET_ARCH}.${ext}"
-  local target_ver_dir="$CXVM_DIR/versions/v${ver}"
+  local target_ver_dir="$CXVM_DIR/bin/${ver}"
 
   echo "[INFO] Setting up Cex runtime v${ver}..."
   mkdir -p "$target_ver_dir/bin" "$target_ver_dir/include/cex" "$target_ver_dir/lib"
@@ -291,7 +291,7 @@ install_runtime_version "$DEFAULT_VER"
 install_runtime_version "$SECONDARY_VER"
 
 # Link active default version to current
-ln -sfn "$CXVM_DIR/versions/v${DEFAULT_VER}" "$CXVM_DIR/current"
+ln -sfn "$CXVM_DIR/bin/${DEFAULT_VER}" "$CXVM_DIR/current"
 ln -sf "$CXVM_DIR/current/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
 ln -sf "$CXVM_DIR/current/bin/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
 ln -sf "$CXVM_DIR/current/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
@@ -321,14 +321,14 @@ DISPATCHER_CXVM
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 if [ "$1" = "v6" ] || [ "$1" = "6.0.0" ]; then
   shift
-  if [ -x "$CXVM_DIR/versions/v6.0.0/bin/cexr" ]; then
-    exec "$CXVM_DIR/versions/v6.0.0/bin/cexr" "$@"
+  if [ -x "$CXVM_DIR/bin/6.0.0/cexr" ]; then
+    exec "$CXVM_DIR/bin/6.0.0/cexr" "$@"
   fi
 fi
 if [ "$1" = "v8" ] || [ "$1" = "8.0.0" ]; then
   shift
-  if [ -x "$CXVM_DIR/versions/v8.0.0/bin/cexr" ]; then
-    exec "$CXVM_DIR/versions/v8.0.0/bin/cexr" "$@"
+  if [ -x "$CXVM_DIR/bin/8.0.0/cexr" ]; then
+    exec "$CXVM_DIR/bin/8.0.0/cexr" "$@"
   fi
 fi
 if [ -x "$CXVM_DIR/bin/cexr" ]; then

@@ -589,13 +589,13 @@ WEOF
         printf "# Keep directory structure for Git and CVM\n" > "$REPO_ROOT/bin/.cvmkeep"
       fi
       ACTIVE_CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-      if [ -d "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin" ]; then
-        cp -f "$PKG_DIR/bin/cexr" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cexr" 2>/dev/null || true
-        cp -f "$PKG_DIR/bin/cex" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cex" 2>/dev/null || true
-        cp -f "$PKG_DIR/bin/cexp" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cexp" 2>/dev/null || true
-        cp -f "$PKG_DIR/bin/cex-pack" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cex-pack" 2>/dev/null || true
+      if [ -d "$ACTIVE_CXVM_DIR/bin/8.0.0" ]; then
+        cp -f "$PKG_DIR/bin/cexr" "$ACTIVE_CXVM_DIR/bin/8.0.0/cexr" 2>/dev/null || true
+        cp -f "$PKG_DIR/bin/cex" "$ACTIVE_CXVM_DIR/bin/8.0.0/cex" 2>/dev/null || true
+        cp -f "$PKG_DIR/bin/cexp" "$ACTIVE_CXVM_DIR/bin/8.0.0/cexp" 2>/dev/null || true
+        cp -f "$PKG_DIR/bin/cex-pack" "$ACTIVE_CXVM_DIR/bin/8.0.0/cex-pack" 2>/dev/null || true
         for vtype in bean delivery drawer factory; do
-          cp -f "$PKG_DIR/bin/cexr-$vtype" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cexr-$vtype" 2>/dev/null || true
+          cp -f "$PKG_DIR/bin/cexr-$vtype" "$ACTIVE_CXVM_DIR/bin/8.0.0/cexr-$vtype" 2>/dev/null || true
         done
       fi
     fi
