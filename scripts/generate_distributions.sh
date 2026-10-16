@@ -267,14 +267,39 @@ CEX_BIN_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 export CEX_HOME="\${CEX_HOME:-\$(cd "\$CEX_BIN_DIR/.." && pwd)}"
 export PATH="\$CEX_HOME/bin:\$PATH"
 
+resolve_versioned_bin() {
+  local bname="\$1"
+  local found=""
+  for cand in "\$CEX_BIN_DIR"/*/"\$bname" "\$CEX_BIN_DIR/../bin"/*/"\$bname" "\$HOME/.cex/bin"/*/"\$bname" "\$HOME/.cxvm/bin"/*/"\$bname"; do
+    if [ -x "\$cand" ] && [ ! -d "\$cand" ]; then
+      found="\$cand"
+    fi
+  done
+  if [ -n "\$found" ]; then
+    printf '%s' "\$found"
+    return 0
+  fi
+  if [ -x "\$CEX_BIN_DIR/\$bname" ] && [ ! -d "\$CEX_BIN_DIR/\$bname" ]; then
+    printf '%s' "\$CEX_BIN_DIR/\$bname"
+    return 0
+  fi
+  return 1
+}
+
 if [ "\$1" = "--version" ] || [ "\$1" = "-v" ] || [ "\$1" = "version" ]; then
+  FACTORY_BIN="\$(resolve_versioned_bin "cexr-factory" || true)"
+  BEAN_BIN="\$(resolve_versioned_bin "cexr-bean" || true)"
+  DELIVERY_BIN="\$(resolve_versioned_bin "cexr-delivery" || true)"
+  DRAWER_BIN="\$(resolve_versioned_bin "cexr-drawer" || true)"
+  CEXP_BIN="\$(resolve_versioned_bin "cexp-v8" || resolve_versioned_bin "cexp" || true)"
+  PACK_BIN="\$(resolve_versioned_bin "cex-pack" || resolve_versioned_bin "cex-pack-bean" || true)"
   echo "CexR v${ver} (Native Machine Engine; Default Runtime: cexr-factory; Default Build: cexr-bean; CexR v8 .cex_boxes Dist Loader for ${pid}; Pure Cex Toolchain)"
-  echo "  [default-runtime] cexr-factory : \$( "\$CEX_BIN_DIR/cexr-factory" -v 2>/dev/null || "\$CEX_BIN_DIR/factory/cexr-factory" -v 2>/dev/null || echo "CexR [factory] standalone (version ${ver}, cexp ^8) - target: support for api cex-virtual-dom, cex-dom ; jit debug runtime; best for development" )"
-  echo "  [default-build]   cexr-bean    : \$( "\$CEX_BIN_DIR/cexr-bean" -v 2>/dev/null || "\$CEX_BIN_DIR/bean/cexr-bean" -v 2>/dev/null || echo "CexR [bean] standalone (version ${ver}, cexp ^8) - target: one time compile, best performance with API" )"
-  echo "  [edition]         cexr-delivery: \$( "\$CEX_BIN_DIR/cexr-delivery" -v 2>/dev/null || "\$CEX_BIN_DIR/delivery/cexr-delivery" -v 2>/dev/null || echo "CexR [delivery] standalone (version ${ver}, cexp ^8) - target: jit support api only; best for api debug" )"
-  echo "  [edition]         cexr-drawer  : \$( "\$CEX_BIN_DIR/cexr-drawer" -v 2>/dev/null || "\$CEX_BIN_DIR/drawer/cexr-drawer" -v 2>/dev/null || echo "CexR [drawer] standalone (version ${ver}, cexp ^8) - target: jit support, but only cex-virtual-dom, cex-dom support, best for client" )"
-  echo "  [compiler]        cexp         : \$( "\$CEX_BIN_DIR/cexp" --version 2>/dev/null | head -n 1 || echo "CexP v${ver} Standalone Native Machine Compiler" )"
-  echo "  [pack-manager]    cex-pack     : \$( "\$CEX_BIN_DIR/cex-pack" --version 2>/dev/null | head -n 1 || echo "cex-pack v1.0.5 (CexR v8)" )"
+  echo "  [default-runtime] cexr-factory : \$( [ -n "\$FACTORY_BIN" ] && "\$FACTORY_BIN" -v 2>/dev/null || echo "CexR [factory] standalone (version ${ver}, cexp ^8) - target: support for api cex-virtual-dom, cex-dom ; jit debug runtime; best for development" )"
+  echo "  [default-build]   cexr-bean    : \$( [ -n "\$BEAN_BIN" ] && "\$BEAN_BIN" -v 2>/dev/null || echo "CexR [bean] standalone (version ${ver}, cexp ^8) - target: one time compile, best performance with API" )"
+  echo "  [edition]         cexr-delivery: \$( [ -n "\$DELIVERY_BIN" ] && "\$DELIVERY_BIN" -v 2>/dev/null || echo "CexR [delivery] standalone (version ${ver}, cexp ^8) - target: jit support api only; best for api debug" )"
+  echo "  [edition]         cexr-drawer  : \$( [ -n "\$DRAWER_BIN" ] && "\$DRAWER_BIN" -v 2>/dev/null || echo "CexR [drawer] standalone (version ${ver}, cexp ^8) - target: jit support, but only cex-virtual-dom, cex-dom support, best for client" )"
+  echo "  [compiler]        cexp         : \$( [ -n "\$CEXP_BIN" ] && "\$CEXP_BIN" --version 2>/dev/null | head -n 1 || echo "CexP v${ver} Standalone Native Machine Compiler" )"
+  echo "  [pack-manager]    cex-pack     : \$( [ -n "\$PACK_BIN" ] && "\$PACK_BIN" --version 2>/dev/null | head -n 1 || echo "cex-pack v1.0.5 (CexR v8)" )"
   exit 0
 fi
 
@@ -283,6 +308,7 @@ if [ "\$1" = "--help" ] || [ "\$1" = "-h" ] || [ "\$1" = "help" ]; then
   echo "Usage: cexr [bean|delivery|drawer|factory] <command|file.cex> [options]"
   echo "Default Runtime Edition: cexr-factory (factory)"
   echo "Default Build Edition:   cexr-bean (bean)"
+  echo "Default Build Output:    ./bin/\$version/\$name-\$type"
   echo "Commands: dev, start, run, build, compile, v8, doctor, version (-v), help"
   exit 0
 fi
@@ -310,17 +336,19 @@ case "\${1:-}" in
     EXPLICIT_EDITION=1
     shift
     ;;
-  v8|v6|v5|v3|v2|v1|8.0.0|6.0.0|5.0.0|3.0.0|2.0.0|1.0.0)
+  v8|v7|v6|v5|v4|v3|v2|v1)
+    BUILD_EDITION="\$1"
+    EXPLICIT_EDITION=1
+    shift
+    ;;
+  8.0.0|6.0.0|5.0.0|3.0.0|2.0.0|1.0.0)
     shift
     ;;
 esac
 
-EDITION_BIN="\$CEX_BIN_DIR/cexr-\$EDITION"
-if [ ! -x "\$EDITION_BIN" ] && [ -x "\$CEX_BIN_DIR/\$EDITION/cexr-\$EDITION" ]; then
-  EDITION_BIN="\$CEX_BIN_DIR/\$EDITION/cexr-\$EDITION"
-fi
+EDITION_BIN="\$(resolve_versioned_bin "cexr-\$EDITION" || true)"
 
-if [ "\$EXPLICIT_EDITION" -eq 1 ] && [ -x "\$EDITION_BIN" ]; then
+if [ "\$EXPLICIT_EDITION" -eq 1 ] && [ -n "\$EDITION_BIN" ] && [ -x "\$EDITION_BIN" ]; then
   if [ \$# -eq 0 ] || [ "\$1" = "-v" ] || [ "\$1" = "--version" ] || [ "\$1" = "--cexp" ] || [ "\$1" = "cexp" ] || [ "\$1" = "--mvc-lighting" ] || [ "\$1" = "mvc-lighting" ] || [ "\$1" = "render-view" ] || [ "\$1" = "export-view" ]; then
     exec "\$EDITION_BIN" "\$@"
   fi
@@ -334,14 +362,8 @@ case "\${1:-}" in
     ;;
 esac
 
-CEXP_V1_BIN="\$CEX_BIN_DIR/1.0.0/cexp"
-if [ ! -x "\$CEXP_V1_BIN" ] && [ -x "\$HOME/.cex/bin/1.0.0/cexp" ]; then
-  CEXP_V1_BIN="\$HOME/.cex/bin/1.0.0/cexp"
-fi
-CEXP_V8_BIN="\$CEX_BIN_DIR/8.0.0/cexp"
-if [ ! -x "\$CEXP_V8_BIN" ] && [ -x "\$CEX_BIN_DIR/cexp" ]; then
-  CEXP_V8_BIN="\$CEX_BIN_DIR/cexp"
-fi
+CEXP_V1_BIN="\$(resolve_versioned_bin "cexp-v1" || resolve_versioned_bin "cexp" || true)"
+CEXP_V8_BIN="\$(resolve_versioned_bin "cexp-v8" || resolve_versioned_bin "cexp" || true)"
 
 if [ "\$ACTION" = "build" ] || [ "\$ACTION" = "compile" ]; then
   if [ "\$EXPLICIT_EDITION" -eq 0 ]; then
@@ -349,21 +371,41 @@ if [ "\$ACTION" = "build" ] || [ "\$ACTION" = "compile" ]; then
   fi
   SRC_FILE="\${1:-src/index.cex}"
   if [ -n "\${1:-}" ]; then shift; fi
-  OUT_FILE="bin/app"
+  PKG_VER="1.0.0"
+  PKG_NAME="app"
+  PKG_TYPE="\$EDITION"
+  if [ -f "cex-pack.json" ]; then
+    _mf_ver="\$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+    if [ -n "\$_mf_ver" ]; then PKG_VER="\$_mf_ver"; fi
+    _mf_name="\$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+    if [ -n "\$_mf_name" ]; then
+      PKG_NAME="\${_mf_name##*/}"
+      PKG_NAME="\${PKG_NAME#@}"
+    fi
+    _mf_ed="\$(sed -n 's/.*"edition"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+    if [ -n "\$_mf_ed" ] && [ "\$EXPLICIT_EDITION" -eq 0 ]; then
+      PKG_TYPE="\$_mf_ed"
+    fi
+  fi
+  DEFAULT_OUT_FILE="bin/\${PKG_VER}/\${PKG_NAME}-\${PKG_TYPE}"
+  OUT_FILE="\$DEFAULT_OUT_FILE"
   while [ \$# -gt 0 ]; do
     if [ "\$1" = "-o" ] && [ -n "\${2:-}" ]; then
       OUT_FILE="\$2"
       shift 2
+    elif [ "\${1#-}" = "\$1" ] && [ "\$OUT_FILE" = "\$DEFAULT_OUT_FILE" ]; then
+      OUT_FILE="\$1"
+      shift
     else
       shift
     fi
   done
   mkdir -p "\$(dirname "\$OUT_FILE")" 2>/dev/null || true
   if [ -f "\$SRC_FILE" ]; then
-    if [ -x "\$CEXP_V1_BIN" ]; then
+    if [ -n "\$CEXP_V1_BIN" ] && [ -x "\$CEXP_V1_BIN" ]; then
       "\$CEXP_V1_BIN" v1 build "\$SRC_FILE" -o "\$OUT_FILE" >/dev/null 2>&1 || true
-    elif [ -x "\$CEXP_V8_BIN" ]; then
-      "\$CEXP_V8_BIN" "\$SRC_FILE" -o "\$OUT_FILE" >/dev/null 2>&1 || true
+    elif [ -n "\$CEXP_V8_BIN" ] && [ -x "\$CEXP_V8_BIN" ]; then
+      "\$CEXP_V8_BIN" build "\$SRC_FILE" -o "\$OUT_FILE" >/dev/null 2>&1 || true
     fi
     chmod +x "\$OUT_FILE" 2>/dev/null || true
   fi
@@ -385,9 +427,9 @@ if [ -n "\${1:-}" ]; then
     CKSUM_VAL="\$(cksum "\$SCRIPT_FILE" 2>/dev/null | awk '{print \$1"_"\$2}' || echo "0")"
     CACHED_BIN="\$CACHE_DIR/\${BASE_NAME}_\${CKSUM_VAL}"
     if [ ! -x "\$CACHED_BIN" ]; then
-      if [ -x "\$CEXP_V1_BIN" ]; then
+      if [ -n "\$CEXP_V1_BIN" ] && [ -x "\$CEXP_V1_BIN" ]; then
         "\$CEXP_V1_BIN" v1 build "\$SCRIPT_FILE" -o "\$CACHED_BIN" >/dev/null 2>&1 || true
-      elif [ -x "\$CEXP_V8_BIN" ]; then
+      elif [ -n "\$CEXP_V8_BIN" ] && [ -x "\$CEXP_V8_BIN" ]; then
         "\$CEXP_V8_BIN" "\$SCRIPT_FILE" -o "\$CACHED_BIN" >/dev/null 2>&1 || true
       fi
       chmod +x "\$CACHED_BIN" 2>/dev/null || true
@@ -484,18 +526,22 @@ WEOF
     if [ -f "$DOWNLOADS_DIR/cex-pack.cex" ]; then
       cp "$DOWNLOADS_DIR/cex-pack.cex" "$PKG_DIR/bin/cex-pack.cex"
     fi
-    if [ -x "$REPO_ROOT/bin/$ver/cexp" ]; then
-      cp "$REPO_ROOT/bin/$ver/cexp" "$PKG_DIR/bin/cexp"
-      chmod +x "$PKG_DIR/bin/cexp"
-    elif [ -x "$REPO_ROOT/bin/cexp" ]; then
-      cp "$REPO_ROOT/bin/cexp" "$PKG_DIR/bin/cexp"
-      chmod +x "$PKG_DIR/bin/cexp"
-    fi
-    for vtype in bean delivery drawer factory; do
-      if [ -x "$REPO_ROOT/bin/$vtype/cexr-$vtype" ]; then
-        cp "$REPO_ROOT/bin/$vtype/cexr-$vtype" "$PKG_DIR/bin/cexr-$vtype"
-        chmod +x "$PKG_DIR/bin/cexr-$vtype"
+    maj_v="${ver%%.*}"
+    for cexp_match in "$REPO_ROOT/bin/${maj_v}."*/"cexp-v${maj_v}" "$REPO_ROOT/dist/cexp"; do
+      if [ -x "$cexp_match" ] && [ ! -d "$cexp_match" ]; then
+        cp "$cexp_match" "$PKG_DIR/bin/cexp"
+        chmod +x "$PKG_DIR/bin/cexp"
+        break
       fi
+    done
+    for vtype in bean delivery drawer factory; do
+      for cr_match in "$REPO_ROOT/bin"/*/"cexr-$vtype" "$REPO_ROOT/dist/cexr-$vtype"; do
+        if [ -x "$cr_match" ] && [ ! -d "$cr_match" ]; then
+          cp "$cr_match" "$PKG_DIR/bin/cexr-$vtype"
+          chmod +x "$PKG_DIR/bin/cexr-$vtype"
+          break
+        fi
+      done
     done
     if [ "$pos" = "windows" ]; then
       cat <<'WEOF' > "$PKG_DIR/bin/cex-pack.cmd"
@@ -529,23 +575,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0cxvm.ps1" light %*
 WEOF
     fi
 
-    # Populate project ./bin/ and active CXVM_DIR/versions/v8.0.0/bin/ from v8.0.0 darwin-arm64 bundle
+    # Populate project ./bin/ dispatchers (cexr, cex, cxvm only; built binaries stay in ./bin/$version/$name-$type)
     if [ "$ver" = "8.0.0" ] && [ "$pid" = "darwin-arm64" ]; then
       mkdir -p "$REPO_ROOT/bin"
       cp -f "$PKG_DIR/bin/cexr" "$REPO_ROOT/bin/cexr"
       cp -f "$PKG_DIR/bin/cex" "$REPO_ROOT/bin/cex"
       cp -f "$PKG_DIR/bin/cxvm" "$REPO_ROOT/bin/cxvm"
-      cp -f "$PKG_DIR/bin/cex-pack" "$REPO_ROOT/bin/cex-pack" 2>/dev/null || true
-      cp -f "$PKG_DIR/bin/cex-pack.cex" "$REPO_ROOT/bin/cex-pack.cex" 2>/dev/null || true
-      cp -f "$PKG_DIR/bin/cvm-server" "$REPO_ROOT/bin/cvm-server" 2>/dev/null || true
-      cp -f "$PKG_DIR/bin/cvm-server.cex" "$REPO_ROOT/bin/cvm-server.cex" 2>/dev/null || true
-      cp -f "$PKG_DIR/bin/thunder-server" "$REPO_ROOT/bin/thunder-server" 2>/dev/null || true
-      cp -f "$PKG_DIR/bin/thunder-server.cex" "$REPO_ROOT/bin/thunder-server.cex" 2>/dev/null || true
-      cp -f "$PKG_DIR/bin/cexp" "$REPO_ROOT/bin/cexp" 2>/dev/null || true
-      for vtype in bean delivery drawer factory; do
-        cp -f "$PKG_DIR/bin/cexr-$vtype" "$REPO_ROOT/bin/cexr-$vtype" 2>/dev/null || true
-      done
-      chmod +x "$REPO_ROOT/bin/cexr" "$REPO_ROOT/bin/cex" "$REPO_ROOT/bin/cxvm" "$REPO_ROOT/bin/cexp" "$REPO_ROOT/bin/cex-pack" 2>/dev/null || true
+      chmod +x "$REPO_ROOT/bin/cexr" "$REPO_ROOT/bin/cex" "$REPO_ROOT/bin/cxvm" 2>/dev/null || true
       if [ ! -f "$REPO_ROOT/bin/.gitkeep" ]; then
         printf "# Keep directory structure for Git and CVM\n" > "$REPO_ROOT/bin/.gitkeep"
       fi

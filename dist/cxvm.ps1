@@ -26,16 +26,26 @@ function Run-App {
     if (-not $curVer -or $curVer -eq "none") { $curVer = "8.0.0" }
     
     $candidates = @(
-        (Join-Path $PWD "bin\$AppCmd\$AppName.cmd"),
-        (Join-Path $PWD "bin\$AppCmd\$AppName"),
-        (Join-Path $PWD "bin\$curVer\$AppName.cmd"),
-        (Join-Path $PWD "bin\$curVer\$AppName"),
-        (Join-Path $PWD "bin\v$curVer\$AppName.cmd"),
-        (Join-Path $PWD "bin\v$curVer\$AppName"),
         (Join-Path $PWD "bin\$AppName.cmd"),
         (Join-Path $PWD "bin\$AppName"),
-        (Join-Path $PSScriptRoot "..\bin\$AppCmd\$AppName.cmd"),
-        (Join-Path $PSScriptRoot "..\bin\$AppCmd\$AppName"),
+        (Join-Path $PWD "bin\$curVer\$AppName-$AppCmd.cmd"),
+        (Join-Path $PWD "bin\$curVer\$AppName-$AppCmd"),
+        (Join-Path $PWD "bin\$curVer\$AppName.cmd"),
+        (Join-Path $PWD "bin\$curVer\$AppName")
+    )
+    if (Test-Path (Join-Path $PWD "bin")) {
+        Get-ChildItem -Path (Join-Path $PWD "bin") -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            $candidates += (Join-Path $_.FullName "$AppName-$AppCmd.cmd")
+            $candidates += (Join-Path $_.FullName "$AppName-$AppCmd")
+            $candidates += (Join-Path $_.FullName "$AppName.cmd")
+            $candidates += (Join-Path $_.FullName "$AppName")
+            $candidates += (Join-Path $_.FullName "$AppName-bean.cmd")
+            $candidates += (Join-Path $_.FullName "$AppName-bean")
+        }
+    }
+    $candidates += @(
+        (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName-$AppCmd.cmd"),
+        (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName-$AppCmd"),
         (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName.cmd"),
         (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName"),
         (Join-Path $PSScriptRoot "$curVer\$AppName.cmd"),
@@ -51,7 +61,7 @@ function Run-App {
     )
 
     foreach ($c in $candidates) {
-        if (Test-Path $c) {
+        if (Test-Path $c -PathType Leaf) {
             Write-Host "==> [cxvm] Dispatching to $AppName via --app ($AppCmd)..." -ForegroundColor Cyan
             & $c $AppCmd @AppArgs
             return $LASTEXITCODE

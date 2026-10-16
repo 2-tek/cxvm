@@ -871,27 +871,25 @@ _cxvm_run_app() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   local pwd_dir="$(pwd)"
 
-  # Candidate binaries for $app_name prioritized by edition ($app_cmd) and active version
+  # Candidate binaries for $app_name prioritized by ./bin/$version/$name-$type and active version
   local candidates=(
-    "$pwd_dir/bin/$app_cmd/$app_name"
-    "$pwd_dir/bin/$ver_clean/$app_name"
-    "$pwd_dir/bin/$ver_v/$app_name"
     "$pwd_dir/bin/$app_name"
-    "$script_dir/../bin/$app_cmd/$app_name"
-    "$script_dir/../bin/$ver_clean/$app_name"
-    "$script_dir/../bin/$ver_v/$app_name"
+    "$pwd_dir/bin/$ver_clean/${app_name}-${app_cmd}"
+    "$pwd_dir/bin/$ver_clean/$app_name"
+  )
+  for vcand in "$pwd_dir"/bin/*/"${app_name}-${app_cmd}" "$pwd_dir"/bin/*/"$app_name" "$pwd_dir"/bin/*/"${app_name}-bean" "$script_dir"/../bin/*/"${app_name}-${app_cmd}" "$script_dir"/../bin/*/"$app_name" "$script_dir"/../bin/*/"${app_name}-bean"; do
+    if [ -x "$vcand" ] && [ ! -d "$vcand" ]; then
+      candidates+=("$vcand")
+    fi
+  done
+  candidates+=(
     "$script_dir/../bin/$app_name"
-    "$script_dir/bin/$ver_clean/$app_name"
-    "$script_dir/bin/$ver_v/$app_name"
-    "$script_dir/bin/$app_name"
     "$script_dir/$ver_clean/$app_name"
-    "$script_dir/$ver_v/$app_name"
     "$script_dir/$app_name"
     "$CXVM_DIR/versions/$ver_v/bin/$app_name"
     "$CXVM_DIR/versions/$ver_clean/bin/$app_name"
     "$CXVM_DIR/current/bin/$app_name"
     "$CXVM_DIR/bin/$app_name"
-    "$pwd_dir/../$app_name/bin/$app_cmd/$app_name"
     "$pwd_dir/../$app_name/bin/$app_name"
     "$pwd_dir/.cex_boxes/$app_name/bin/$app_name"
   )
@@ -899,7 +897,11 @@ _cxvm_run_app() {
   for cand in "${candidates[@]}"; do
     if [ -x "$cand" ] && [ ! -d "$cand" ]; then
       echo "==> [cxvm] Dispatching to $app_name via --app ($app_cmd)..."
-      if [ -n "$app_cmd" ]; then
+      local base_cand
+      base_cand="$(basename "$cand")"
+      if [ "$base_cand" = "${app_name}-${app_cmd}" ]; then
+        "$cand" "$@"
+      elif [ -n "$app_cmd" ]; then
         "$cand" "$app_cmd" "$@"
       else
         "$cand" "$@"
@@ -1509,15 +1511,17 @@ RUNNER_EOF
       fi
 
       # Setup cexp (Direct Machine Compiler) in target version
-      if [ -x "./bin/$ver/cexp" ]; then
-        cp -f "./bin/$ver/cexp" "$ver_dir/bin/cexp"
+      local found_cexp=""
+      for cexp_cand in ./bin/"$ver"/cexp-* ./bin/*/cexp-v8 ./bin/*/cexp "$HOME/.cex/bin/$ver/cexp"; do
+        if [ -x "$cexp_cand" ] && [ ! -d "$cexp_cand" ]; then
+          found_cexp="$cexp_cand"
+          break
+        fi
+      done
+      if [ -n "$found_cexp" ]; then
+        cp -f "$found_cexp" "$ver_dir/bin/cexp"
       elif [ ! -f "$ver_dir/bin/cexp" ]; then
-        if [ -x "./bin/cexp" ]; then
-          cp -f "./bin/cexp" "$ver_dir/bin/cexp"
-        elif [ -x "$HOME/.cex/bin/$ver/cexp" ]; then
-          cp -f "$HOME/.cex/bin/$ver/cexp" "$ver_dir/bin/cexp"
-        else
-          cat <<'CEXP_EOF' > "$ver_dir/bin/cexp"
+        cat <<'CEXP_EOF' > "$ver_dir/bin/cexp"
 #!/usr/bin/env bash
 # CexP: Pure Cex Direct Machine Compiler & ELF/PE Generator
 set -e
@@ -1532,35 +1536,32 @@ if [ -x "$CEX_BIN_DIR/cexr" ]; then
 fi
 echo "CexP Direct Machine Compiler ready. Usage: cexp build <file.cex> -o <binary>"
 CEXP_EOF
-        fi
       fi
       chmod +x "$ver_dir/bin/cexp" 2>/dev/null || true
 
-      # Setup cexr-$type editions in target version if present
+      # Setup cexr-$type editions in target version if present in ./bin/$version/cexr-$type
       for vtype in bean delivery drawer factory; do
-        if [ -x "./bin/$vtype/cexr-$vtype" ]; then
-          cp -f "./bin/$vtype/cexr-$vtype" "$ver_dir/bin/cexr-$vtype"
-          chmod +x "$ver_dir/bin/cexr-$vtype" 2>/dev/null || true
-        elif [ -x "./bin/cexr-$vtype" ] && [ ! -f "$ver_dir/bin/cexr-$vtype" ]; then
-          cp -f "./bin/cexr-$vtype" "$ver_dir/bin/cexr-$vtype"
-          chmod +x "$ver_dir/bin/cexr-$vtype" 2>/dev/null || true
-        fi
+        for cexr_cand in ./bin/*/cexr-"$vtype"; do
+          if [ -x "$cexr_cand" ] && [ ! -d "$cexr_cand" ]; then
+            cp -f "$cexr_cand" "$ver_dir/bin/cexr-$vtype"
+            chmod +x "$ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+          fi
+        done
       done
 
       # Setup cex-pack in target version if missing
       if [ ! -f "$ver_dir/bin/cex-pack" ]; then
-        if [ -x "./bin/$ver/cex-pack" ]; then
-          cp -f "./bin/$ver/cex-pack" "$ver_dir/bin/cex-pack"
-        elif [ -x "./bin/1.0.5/cex-pack" ]; then
-          cp -f "./bin/1.0.5/cex-pack" "$ver_dir/bin/cex-pack"
-        elif [ -x "$CXVM_DIR/bin/cex-pack" ]; then
-          cp -f "$CXVM_DIR/bin/cex-pack" "$ver_dir/bin/cex-pack"
-        elif [ -x "dist/cex-pack" ]; then
-          cp -f "dist/cex-pack" "$ver_dir/bin/cex-pack"
-        elif [ -x "downloads/cex-pack" ]; then
-          cp -f "downloads/cex-pack" "$ver_dir/bin/cex-pack"
+        local found_pack=""
+        for pack_cand in ./bin/*/cex-pack ./bin/*/cex-pack-bean "$CXVM_DIR/bin/cex-pack" "dist/cex-pack" "downloads/cex-pack"; do
+          if [ -x "$pack_cand" ] && [ ! -d "$pack_cand" ]; then
+            found_pack="$pack_cand"
+            break
+          fi
+        done
+        if [ -n "$found_pack" ]; then
+          cp -f "$found_pack" "$ver_dir/bin/cex-pack"
+          chmod +x "$ver_dir/bin/cex-pack" 2>/dev/null || true
         fi
-        chmod +x "$ver_dir/bin/cex-pack" 2>/dev/null || true
       fi
 
       # Ensure permissions

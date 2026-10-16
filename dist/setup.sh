@@ -236,26 +236,25 @@ install_runtime_version() {
     fi
   fi
 
-  # Copy integrated binaries (cexr-$type, cexp, cex-pack, cexr) if present in REPO_ROOT/bin
+  # Copy integrated binaries (cexr-$type, cexp-$type, cex-pack, cexr) from REPO_ROOT/bin/$version/$name-$type
   if [ -x "$REPO_ROOT/bin/cexr" ]; then
     cp -f "$REPO_ROOT/bin/cexr" "$target_ver_dir/bin/cexr" 2>/dev/null || true
     chmod +x "$target_ver_dir/bin/cexr" 2>/dev/null || true
   fi
-  if [ -x "$REPO_ROOT/bin/$ver/cexp" ]; then
-    cp -f "$REPO_ROOT/bin/$ver/cexp" "$target_ver_dir/bin/cexp" 2>/dev/null || true
-    chmod +x "$target_ver_dir/bin/cexp" 2>/dev/null || true
-  elif [ -x "$REPO_ROOT/bin/cexp" ]; then
-    cp -f "$REPO_ROOT/bin/cexp" "$target_ver_dir/bin/cexp" 2>/dev/null || true
-    chmod +x "$target_ver_dir/bin/cexp" 2>/dev/null || true
-  fi
-  for vtype in bean delivery drawer factory; do
-    if [ -x "$REPO_ROOT/bin/$vtype/cexr-$vtype" ]; then
-      cp -f "$REPO_ROOT/bin/$vtype/cexr-$vtype" "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
-      chmod +x "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
-    elif [ -x "$REPO_ROOT/bin/cexr-$vtype" ]; then
-      cp -f "$REPO_ROOT/bin/cexr-$vtype" "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
-      chmod +x "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+  for cexp_cand in "$REPO_ROOT/bin/$ver"/cexp-* "$REPO_ROOT/bin"/*/cexp-v8 "$REPO_ROOT/bin"/*/cexp; do
+    if [ -x "$cexp_cand" ] && [ ! -d "$cexp_cand" ]; then
+      cp -f "$cexp_cand" "$target_ver_dir/bin/cexp" 2>/dev/null || true
+      chmod +x "$target_ver_dir/bin/cexp" 2>/dev/null || true
+      break
     fi
+  done
+  for vtype in bean delivery drawer factory; do
+    for cexr_cand in "$REPO_ROOT/bin"/*/cexr-"$vtype"; do
+      if [ -x "$cexr_cand" ] && [ ! -d "$cexr_cand" ]; then
+        cp -f "$cexr_cand" "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+        chmod +x "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+      fi
+    done
   done
 
   # Create executable cexr runner if missing
