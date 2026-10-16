@@ -173,7 +173,7 @@ printf "# Keep directory structure for Git and CVM\n" > "$PACK_TARGET_DIR/.gitke
 printf "# Keep directory structure for Git and CVM\n" > "$PACK_TARGET_DIR/.cvmkeep"
 echo "[OK] Deployed ./bin/$CEX_PACK_VER/${CEX_PACK_NAME}-bean & ./bin/$CEX_PACK_VER/${CEX_PACK_NAME}"
 
-# 1b. Resolve and deploy cex-lint -> ./bin/$CEX_LINT_VER/cex-lint-bean & ./bin/$CEX_LINT_VER/cex-lint
+# 1b. Build and integrate cex-lint binary -> ./bin/$CEX_LINT_VER/cex-lint
 DEPS_CEX_LINT_DIR="$(cd "$ROOT_DIR/../deps/cex-lint" 2>/dev/null && pwd || echo "")"
 CEX_LINT_MF=""
 if [ -n "$DEPS_CEX_LINT_DIR" ] && [ -f "$DEPS_CEX_LINT_DIR/cex-pack.json" ]; then
@@ -186,28 +186,38 @@ CEX_LINT_NAME="${CEX_LINT_NAME##*/}"
 CEX_LINT_NAME="${CEX_LINT_NAME#@}"
 CEX_LINT_NAME="${CEX_LINT_NAME:-cex-lint}"
 
+LINT_TARGET_DIR="$ROOT_DIR/bin/$CEX_LINT_VER"
+mkdir -p "$LINT_TARGET_DIR"
+rm -f "$LINT_TARGET_DIR/${CEX_LINT_NAME}-bean" 2>/dev/null || true
+
 BUILT_CEX_LINT=""
-for cl_cand in \
-  "$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_VER/$CEX_LINT_NAME-bean" \
-  "$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_VER/$CEX_LINT_NAME" \
-  "$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_NAME" \
-  "$STAGE_DIR/$CEX_LINT_VER/$CEX_LINT_NAME-bean" \
-  "$STAGE_DIR/$CEX_LINT_VER/$CEX_LINT_NAME"; do
-  if [ -n "$cl_cand" ] && [ -x "$cl_cand" ] && [ ! -d "$cl_cand" ]; then
-    BUILT_CEX_LINT="$cl_cand"
-    break
-  fi
-done
+if [ -n "$DEPS_CEX_LINT_DIR" ] && [ -x "$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_NAME" ]; then
+  BUILT_CEX_LINT="$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_NAME"
+else
+  for cl_cand in \
+    "$DEPS_CEX_LINT_DIR/bin/$CEX_LINT_VER/$CEX_LINT_NAME" \
+    "$STAGE_DIR/$CEX_LINT_VER/$CEX_LINT_NAME"; do
+    if [ -n "$cl_cand" ] && [ -x "$cl_cand" ] && [ ! -d "$cl_cand" ]; then
+      BUILT_CEX_LINT="$cl_cand"
+      break
+    fi
+  done
+fi
 
 if [ -n "$BUILT_CEX_LINT" ]; then
-  LINT_TARGET_DIR="$ROOT_DIR/bin/$CEX_LINT_VER"
-  mkdir -p "$LINT_TARGET_DIR"
-  cp -f "$BUILT_CEX_LINT" "$LINT_TARGET_DIR/${CEX_LINT_NAME}-bean"
   cp -f "$BUILT_CEX_LINT" "$LINT_TARGET_DIR/${CEX_LINT_NAME}"
-  chmod +x "$LINT_TARGET_DIR/${CEX_LINT_NAME}-bean" "$LINT_TARGET_DIR/${CEX_LINT_NAME}"
+  cp -f "$BUILT_CEX_LINT" "$ROOT_DIR/dist/${CEX_LINT_NAME}"
+  cp -f "$BUILT_CEX_LINT" "$ROOT_DIR/downloads/${CEX_LINT_NAME}"
+  chmod +x "$LINT_TARGET_DIR/${CEX_LINT_NAME}" "$ROOT_DIR/dist/${CEX_LINT_NAME}" "$ROOT_DIR/downloads/${CEX_LINT_NAME}"
   printf "# Keep directory structure for Git and CVM\n" > "$LINT_TARGET_DIR/.gitkeep"
   printf "# Keep directory structure for Git and CVM\n" > "$LINT_TARGET_DIR/.cvmkeep"
-  echo "[OK] Deployed ./bin/$CEX_LINT_VER/${CEX_LINT_NAME}-bean & ./bin/$CEX_LINT_VER/${CEX_LINT_NAME}"
+  if [ -d "$CXVM_DIR/bin" ]; then
+    mkdir -p "$CXVM_DIR/bin/$CEX_LINT_VER"
+    cp -f "$LINT_TARGET_DIR/${CEX_LINT_NAME}" "$CXVM_DIR/bin/$CEX_LINT_VER/${CEX_LINT_NAME}"
+    cp -f "$LINT_TARGET_DIR/${CEX_LINT_NAME}" "$CXVM_DIR/bin/${CEX_LINT_NAME}"
+    chmod +x "$CXVM_DIR/bin/$CEX_LINT_VER/${CEX_LINT_NAME}" "$CXVM_DIR/bin/${CEX_LINT_NAME}"
+  fi
+  echo "[OK] Integrated binary build of cex-lint into ./bin/$CEX_LINT_VER/${CEX_LINT_NAME}"
 fi
 
 # 2. Resolve and deploy standalone cexp versions -> ./bin/$version/cexp-$type
@@ -275,11 +285,10 @@ for vnum in 1 2 3 4 5 6 7 8; do
     if [ "$ctype" = "v8" ]; then
       LATEST_CEXP_V8="$CEXP_VER_DIR/$target_bin_name"
     fi
-    if [ -d "$CXVM_DIR/versions/v$cver/bin" ]; then
-      mkdir -p "$CXVM_DIR/versions/v$cver/bin/$cver"
-      cp -f "$CEXP_VER_DIR/$target_bin_name" "$CXVM_DIR/versions/v$cver/bin/$cver/$target_bin_name"
-      cp -f "$CEXP_VER_DIR/$target_bin_name" "$CXVM_DIR/versions/v$cver/bin/cexp"
-      chmod +x "$CXVM_DIR/versions/v$cver/bin/$cver/$target_bin_name" "$CXVM_DIR/versions/v$cver/bin/cexp"
+    if [ -d "$CXVM_DIR/bin" ]; then
+      mkdir -p "$CXVM_DIR/bin/$cver"
+      cp -f "$CEXP_VER_DIR/$target_bin_name" "$CXVM_DIR/bin/$cver/$target_bin_name"
+      chmod +x "$CXVM_DIR/bin/$cver/$target_bin_name"
     fi
     echo "[OK] Deployed ./bin/$cver/$target_bin_name"
   fi
@@ -354,12 +363,6 @@ for vtype in "${CEXR_TYPES[@]}"; do
       cp -f "$CEXR_VER_DIR/$target_cexr_name" "$CXVM_DIR/bin/$target_cexr_name"
       chmod +x "$CXVM_DIR/bin/$CEXR_VER/$target_cexr_name" "$CXVM_DIR/bin/$target_cexr_name"
     fi
-    if [ -d "$CXVM_DIR/versions/v8.0.0/bin" ]; then
-      mkdir -p "$CXVM_DIR/versions/v8.0.0/bin/$CEXR_VER"
-      cp -f "$CEXR_VER_DIR/$target_cexr_name" "$CXVM_DIR/versions/v8.0.0/bin/$CEXR_VER/$target_cexr_name"
-      cp -f "$CEXR_VER_DIR/$target_cexr_name" "$CXVM_DIR/versions/v8.0.0/bin/$target_cexr_name"
-      chmod +x "$CXVM_DIR/versions/v8.0.0/bin/$CEXR_VER/$target_cexr_name" "$CXVM_DIR/versions/v8.0.0/bin/$target_cexr_name"
-    fi
     echo "[OK] Deployed ./bin/$CEXR_VER/$target_cexr_name"
   fi
 done
@@ -383,22 +386,23 @@ if [ -f "$ROOT_DIR/cex-pack.json" ]; then
   done
 fi
 
-# Sync cex-pack to global $CXVM_DIR/bin and current if available
+# Ensure bin/cxvm is synced from dist/cxvm
+if [ -f "$ROOT_DIR/dist/cxvm" ]; then
+  cp -f "$ROOT_DIR/dist/cxvm" "$ROOT_DIR/bin/cxvm"
+  chmod +x "$ROOT_DIR/bin/cxvm"
+fi
+
+# Sync cex-pack to global $CXVM_DIR/bin if available
 if [ -d "$CXVM_DIR/bin" ]; then
   mkdir -p "$CXVM_DIR/bin/$CEX_PACK_VER"
+  cp -f "$CEX_PACK_BIN" "$CXVM_DIR/bin/$CEX_PACK_VER/${CEX_PACK_NAME}-bean"
   cp -f "$CEX_PACK_BIN" "$CXVM_DIR/bin/$CEX_PACK_VER/$CEX_PACK_NAME"
   cp -f "$CEX_PACK_BIN" "$CXVM_DIR/bin/$CEX_PACK_NAME"
   cp -f "$CEX_PACK_CEX" "$CXVM_DIR/bin/cex-pack.cex"
-  chmod +x "$CXVM_DIR/bin/$CEX_PACK_VER/$CEX_PACK_NAME" "$CXVM_DIR/bin/$CEX_PACK_NAME"
-fi
-if [ -d "$CXVM_DIR/current/bin" ]; then
-  mkdir -p "$CXVM_DIR/current/bin/$CEX_PACK_VER"
-  cp -f "$CEX_PACK_BIN" "$CXVM_DIR/current/bin/$CEX_PACK_VER/$CEX_PACK_NAME"
-  cp -f "$CEX_PACK_BIN" "$CXVM_DIR/current/bin/$CEX_PACK_NAME"
-  cp -f "$CEX_PACK_CEX" "$CXVM_DIR/current/bin/cex-pack.cex"
-  chmod +x "$CXVM_DIR/current/bin/$CEX_PACK_VER/$CEX_PACK_NAME" "$CXVM_DIR/current/bin/$CEX_PACK_NAME"
+  chmod +x "$CXVM_DIR/bin/$CEX_PACK_VER/${CEX_PACK_NAME}-bean" "$CXVM_DIR/bin/$CEX_PACK_VER/$CEX_PACK_NAME" "$CXVM_DIR/bin/$CEX_PACK_NAME"
 fi
 
 echo "==============================================================="
 echo "  [OK] Toolchain binaries deployed to ./bin/\$version/\$name-\$type!"
 echo "==============================================================="
+

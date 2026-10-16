@@ -76,8 +76,7 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/cex-pack"), "cex-pack binary exists in downloads");
     Assert::isTrue(fs.exists("bin/1.0.5/cex-pack-bean"), "cex-pack-bean built with exact version & type in ./bin/1.0.5/cex-pack-bean");
     Assert::isTrue(fs.exists("bin/1.0.5/cex-pack"), "cex-pack integrated inside ./bin/1.0.5/cex-pack");
-    Assert::isTrue(fs.exists("bin/1.0.8/cex-lint-bean"), "cex-lint-bean built with exact version & type in ./bin/1.0.8/cex-lint-bean");
-    Assert::isTrue(fs.exists("bin/1.0.8/cex-lint"), "cex-lint integrated inside ./bin/1.0.8/cex-lint");
+    Assert::isTrue(fs.exists("bin/1.0.8/cex-lint"), "cex-lint binary build integrated into ./bin/1.0.8/cex-lint");
     Assert::isTrue(fs.exists("bin/8.0.0/cexp-v8"), "standalone cexp-v8 built with exact version & type in ./bin/8.0.0/cexp-v8");
     Assert::isTrue(fs.exists("bin/7.0.0/cexp-v7"), "standalone cexp-v7 built with exact version & type in ./bin/7.0.0/cexp-v7");
     Assert::isTrue(fs.exists("bin/6.0.2/cexp-v6"), "standalone cexp-v6 built with exact version & type in ./bin/6.0.2/cexp-v6");
@@ -168,6 +167,8 @@ fn main(): int {
     Assert::isTrue(setupCmdRes->output.find("cexr-bean") != -1, "Setup output displays default build cexr-bean");
     Assert::isTrue(setupCmdRes->output.find("cexr-delivery") != -1, "Setup output displays cexr-delivery via cexr -v");
     Assert::isTrue(setupCmdRes->output.find("cexr-drawer") != -1, "Setup output displays cexr-drawer via cexr -v");
+    Assert::isTrue(setupCmdRes->output.find("./bin/8.0.0/cexp-v8") != -1, "Setup output displays ./bin/8.0.0/cexp-v8");
+    Assert::isTrue(setupCmdRes->output.find("./bin/1.0.8/cex-lint") != -1, "Setup output displays ./bin/1.0.8/cex-lint");
 
     let uninstRes: CxvmCommandResult* = cxvm->uninstall("2.0.0");
     Assert::isTrue(uninstRes->success, "cxvm uninstall 2.0.0 succeeds");

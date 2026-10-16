@@ -59,11 +59,11 @@ echo "[INFO] Detected Platform: $TARGET_OS ($TARGET_ARCH)"
 echo "[INFO] Installation Directory: $CXVM_DIR"
 
 # ------------------------------------------------------------------------------
-# 2. Directory Hierarchy Setup
+# 2. Directory Hierarchy Setup (/bin/$version/$name-$type layout)
 # ------------------------------------------------------------------------------
 mkdir -p "$CXVM_DIR/bin"
-mkdir -p "$CXVM_DIR/versions"
 mkdir -p "$CXVM_DIR/cache"
+rm -rf "$CXVM_DIR/versions" 2>/dev/null || true
 
 # ------------------------------------------------------------------------------
 # 3. Install cxvm Executable & Server Scripts
@@ -113,12 +113,13 @@ if [ ! -s "$CXVM_DIR/bin/cxvm" ]; then
 fi
 fetch_file "dist/cxvm.sh" "$CXVM_DIR/bin/cxvm.sh"
 fetch_file "dist/cex-pack" "$CXVM_DIR/bin/cex-pack"
+fetch_file "dist/cex-lint" "$CXVM_DIR/bin/cex-lint"
 fetch_file "dist/cex-cli" "$CXVM_DIR/bin/cex-cli"
 fetch_file "dist/cvm-server" "$CXVM_DIR/bin/cvm-server"
 fetch_file "dist/thunder-server" "$CXVM_DIR/bin/thunder-server"
 
 chmod +x "$CXVM_DIR/bin/cxvm"* "$CXVM_DIR/bin/cex-"* "$CXVM_DIR/bin/cvm-server"* "$CXVM_DIR/bin/thunder-server"* 2>/dev/null || true
-echo "[OK] cxvm, cex-pack, and cex-cli installed in $CXVM_DIR/bin"
+echo "[OK] cxvm, cex-pack, cex-lint, and cex-cli installed in $CXVM_DIR/bin"
 
 # ------------------------------------------------------------------------------
 # 4. Environment Variables & PATH Configuration
@@ -130,13 +131,14 @@ export CEXR_VERSION_TYPE="$DEFAULT_CEXR_EDITION"
 export CEXR_BUILD_VERSION_TYPE="$DEFAULT_BUILD_EDITION"
 echo "$DEFAULT_CEXR_EDITION" > "$CXVM_DIR/default-cexr-edition"
 echo "$DEFAULT_BUILD_EDITION" > "$CXVM_DIR/default-cexr-build-edition"
+echo "$DEFAULT_VER" > "$CXVM_DIR/default"
 
 CONFIG_ENTRY="
 # 2-TEK CXVM: Cex Version Manager
 export CXVM_DIR=\"$CXVM_DIR\"
 export CEXR_VERSION_TYPE=\"factory\"
 export CEXR_BUILD_VERSION_TYPE=\"bean\"
-export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\"
+export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current:\$PATH\"
 "
 
 SHELL_RC_FILES=("$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile")
@@ -162,18 +164,20 @@ fi
 
 # Export in active subshell immediately
 export CXVM_DIR="$CXVM_DIR"
-export PATH="$CXVM_DIR/bin:$CXVM_DIR/current/bin:$PATH"
+export PATH="$CXVM_DIR/bin:$CXVM_DIR/current:$PATH"
 
 # Symlink to /usr/local/bin or ~/.local/bin for immediate invocation without reload
 if [ -w "/usr/local/bin" ] 2>/dev/null; then
   ln -sf "$CXVM_DIR/bin/cxvm" "/usr/local/bin/cxvm" 2>/dev/null || true
   ln -sf "$CXVM_DIR/bin/cex-pack" "/usr/local/bin/cex-pack" 2>/dev/null || true
+  ln -sf "$CXVM_DIR/bin/cex-lint" "/usr/local/bin/cex-lint" 2>/dev/null || true
   ln -sf "$CXVM_DIR/bin/cex-cli" "/usr/local/bin/cex-cli" 2>/dev/null || true
-  echo "[OK] Symlinked cxvm, cex-pack, cex-cli to /usr/local/bin"
+  echo "[OK] Symlinked cxvm, cex-pack, cex-lint, cex-cli to /usr/local/bin"
 fi
 mkdir -p "$HOME/.local/bin"
 ln -sf "$CXVM_DIR/bin/cxvm" "$HOME/.local/bin/cxvm" 2>/dev/null || true
 ln -sf "$CXVM_DIR/bin/cex-pack" "$HOME/.local/bin/cex-pack" 2>/dev/null || true
+ln -sf "$CXVM_DIR/bin/cex-lint" "$HOME/.local/bin/cex-lint" 2>/dev/null || true
 ln -sf "$CXVM_DIR/bin/cex-cli" "$HOME/.local/bin/cex-cli" 2>/dev/null || true
 
 REPO_ROOT="$INVOCATION_DIR"
@@ -189,17 +193,41 @@ if [ -n "$SCRIPT_DIR" ]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 5. Install Default Runtime Version (v8.0.0 & v6.0.0)
+# 5. Deploy Versioned Toolchain Binaries (/bin/$version/$name-$type)
 # ------------------------------------------------------------------------------
+echo "[INFO] Deploying versioned toolchain binaries into $CXVM_DIR/bin/\$version/\$name-\$type..."
+
+# Sync all versioned directories from $REPO_ROOT/bin/$version/$name-$type
+if [ -d "$REPO_ROOT/bin" ]; then
+  for vdir in "$REPO_ROOT/bin"/*; do
+    if [ -d "$vdir" ]; then
+      vname="$(basename "$vdir")"
+      mkdir -p "$CXVM_DIR/bin/$vname"
+      for bfile in "$vdir"/*; do
+        if [ -f "$bfile" ]; then
+          bbase="$(basename "$bfile")"
+          cp -f "$bfile" "$CXVM_DIR/bin/$vname/$bbase" 2>/dev/null || true
+          if [ -x "$bfile" ]; then
+            chmod +x "$CXVM_DIR/bin/$vname/$bbase" 2>/dev/null || true
+            echo "[OK] Deployed /bin/$vname/$bbase -> $CXVM_DIR/bin/$vname/$bbase"
+          fi
+        fi
+      done
+    fi
+  done
+fi
+
 install_runtime_version() {
   local ver="$1"
+  local short_ver="v${ver%%.*}"
   local ext="tar.gz"
   if [ "$TARGET_OS" = "windows" ]; then ext="zip"; fi
   local archive_name="cex-v${ver}-${TARGET_OS}-${TARGET_ARCH}.${ext}"
-  local target_ver_dir="$CXVM_DIR/versions/v${ver}"
+  local target_ver_dir="$CXVM_DIR/bin/${ver}"
 
-  echo "[INFO] Setting up Cex runtime v${ver}..."
-  mkdir -p "$target_ver_dir/bin" "$target_ver_dir/include/cex" "$target_ver_dir/lib"
+  echo "[INFO] Setting up Cex runtime v${ver} (${short_ver}) in $target_ver_dir..."
+  mkdir -p "$target_ver_dir" "$target_ver_dir/include/cex" "$target_ver_dir/lib"
+  ln -sfn "." "$target_ver_dir/bin" 2>/dev/null || true
 
   local archive_path="$CXVM_DIR/cache/$archive_name"
 
@@ -214,7 +242,6 @@ install_runtime_version() {
     elif [ -f "$INVOCATION_DIR/$archive_name" ]; then
       cp -f "$INVOCATION_DIR/$archive_name" "$archive_path"
     else
-      # Fetch from GitHub
       echo "[INFO] Downloading $archive_name from GitHub repository..."
       if command -v curl >/dev/null 2>&1; then
         curl -fsSL "$GITHUB_RAW/dist/$archive_name" -o "$archive_path" 2>/dev/null || \
@@ -225,46 +252,73 @@ install_runtime_version() {
     fi
   fi
 
-  # Extract package archive if found
+  # Extract package archive if found into temporary staging and deploy into /bin/$version/$name-$type
   if [ -f "$archive_path" ] && [ -s "$archive_path" ]; then
-    echo "[INFO] Extracting $archive_name into $target_ver_dir..."
+    echo "[INFO] Extracting $archive_name into /bin/${ver}/cexp-${short_ver}..."
+    local tmp_ext="${CXVM_DIR}/cache/.extract_${ver}_$$"
+    mkdir -p "$tmp_ext"
     if [ "$ext" = "zip" ]; then
-      unzip -q -o "$archive_path" -d "$target_ver_dir" 2>/dev/null || true
+      unzip -q -o "$archive_path" -d "$tmp_ext" 2>/dev/null || true
     else
-      tar -xzf "$archive_path" -C "$target_ver_dir" --strip-components=1 2>/dev/null || \
-      tar -xzf "$archive_path" -C "$target_ver_dir" 2>/dev/null || true
+      tar -xzf "$archive_path" -C "$tmp_ext" --strip-components=1 2>/dev/null || \
+      tar -xzf "$archive_path" -C "$tmp_ext" 2>/dev/null || true
     fi
+    if [ -d "$tmp_ext/include" ]; then
+      cp -rf "$tmp_ext/include/"* "$target_ver_dir/include/" 2>/dev/null || true
+    fi
+    if [ -d "$tmp_ext/lib" ]; then
+      cp -rf "$tmp_ext/lib/"* "$target_ver_dir/lib/" 2>/dev/null || true
+    fi
+    if [ -d "$tmp_ext/bin" ]; then
+      for sub in "$tmp_ext/bin"/*; do
+        if [ -d "$sub" ]; then
+          sver="$(basename "$sub")"
+          mkdir -p "$CXVM_DIR/bin/$sver"
+          cp -rf "$sub/"* "$CXVM_DIR/bin/$sver/" 2>/dev/null || true
+        elif [ -f "$sub" ] && [ "$(basename "$sub")" != "cex-lint" ]; then
+          cp -f "$sub" "$target_ver_dir/$(basename "$sub")" 2>/dev/null || true
+        fi
+      done
+    fi
+    rm -f "$target_ver_dir/cex-lint" 2>/dev/null || true
+    rm -rf "$tmp_ext" 2>/dev/null || true
   fi
 
-  # Copy integrated binaries (cexr-$type, cexp-$type, cex-pack, cexr) from REPO_ROOT/bin/$version/$name-$type
-  if [ -x "$REPO_ROOT/bin/cexr" ]; then
-    cp -f "$REPO_ROOT/bin/cexr" "$target_ver_dir/bin/cexr" 2>/dev/null || true
-    chmod +x "$target_ver_dir/bin/cexr" 2>/dev/null || true
-  fi
-  for cexp_cand in "$REPO_ROOT/bin/$ver"/cexp-* "$REPO_ROOT/bin"/*/cexp-v8 "$REPO_ROOT/bin"/*/cexp; do
+  # Deploy cexp-$short_ver into $CXVM_DIR/bin/$ver/cexp-$short_ver
+  for cexp_cand in "$REPO_ROOT/bin/$ver/cexp-${short_ver}" "$REPO_ROOT/bin"/*/"cexp-${short_ver}" "$REPO_ROOT/bin"/*/cexp-v8; do
     if [ -x "$cexp_cand" ] && [ ! -d "$cexp_cand" ]; then
-      cp -f "$cexp_cand" "$target_ver_dir/bin/cexp" 2>/dev/null || true
-      chmod +x "$target_ver_dir/bin/cexp" 2>/dev/null || true
+      cp -f "$cexp_cand" "$target_ver_dir/cexp-${short_ver}" 2>/dev/null || true
+      cp -f "$cexp_cand" "$target_ver_dir/cexp" 2>/dev/null || true
+      chmod +x "$target_ver_dir/cexp-${short_ver}" "$target_ver_dir/cexp" 2>/dev/null || true
       break
     fi
   done
+
+  if [ -x "$REPO_ROOT/bin/cexr" ]; then
+    cp -f "$REPO_ROOT/bin/cexr" "$target_ver_dir/cexr" 2>/dev/null || true
+    chmod +x "$target_ver_dir/cexr" 2>/dev/null || true
+  fi
+
   for vtype in bean delivery drawer factory; do
     for cexr_cand in "$REPO_ROOT/bin"/*/cexr-"$vtype"; do
       if [ -x "$cexr_cand" ] && [ ! -d "$cexr_cand" ]; then
-        cp -f "$cexr_cand" "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
-        chmod +x "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+        rver="$(basename "$(dirname "$cexr_cand")")"
+        mkdir -p "$CXVM_DIR/bin/$rver"
+        cp -f "$cexr_cand" "$CXVM_DIR/bin/$rver/cexr-$vtype" 2>/dev/null || true
+        cp -f "$cexr_cand" "$target_ver_dir/cexr-$vtype" 2>/dev/null || true
+        chmod +x "$CXVM_DIR/bin/$rver/cexr-$vtype" "$target_ver_dir/cexr-$vtype" 2>/dev/null || true
       fi
     done
   done
 
   # Create executable cexr runner if missing
-  if [ ! -x "$target_ver_dir/bin/cexr" ]; then
-    cat <<'RUNNER_SCRIPT' > "$target_ver_dir/bin/cexr"
+  if [ ! -x "$target_ver_dir/cexr" ]; then
+    cat <<'RUNNER_SCRIPT' > "$target_ver_dir/cexr"
 #!/usr/bin/env bash
 # CexR: Native Cex Language Runtime Engine
 CEX_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
-export PATH="$CEX_HOME/bin:$PATH"
+export PATH="$CEX_BIN_DIR:$CEX_HOME/bin:$PATH"
 
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
   echo "CexR v8.0.0 (Native Machine Engine; Default Runtime: cexr-factory; Default Build: cexr-bean; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)"
@@ -274,6 +328,7 @@ if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
   echo "  [edition]         cexr-drawer  : $( "$CEX_BIN_DIR/cexr-drawer" -v 2>/dev/null || echo "CexR [drawer] standalone (version 8.0.0, cexp ^8) - target: jit support, but only cex-virtual-dom, cex-dom support, best for client" )"
   echo "  [compiler]        cexp         : $( "$CEX_BIN_DIR/cexp" --version 2>/dev/null | head -n 1 || echo "CexP v8.0.0 Standalone Native Machine Compiler" )"
   echo "  [pack-manager]    cex-pack     : $( "$CEX_BIN_DIR/cex-pack" --version 2>/dev/null | head -n 1 || echo "cex-pack v1.0.5 (CexR v8)" )"
+  echo "  [linter]          cex-lint     : CexLint v1.0.8 (./bin/1.0.8/cex-lint)"
   exit 0
 fi
 
@@ -290,7 +345,7 @@ if [ "$1" = "doctor" ]; then
   echo "   Cex Toolchain Doctor (CexR Active CEX_HOME)                 "
   echo "==============================================================="
   echo "  CEX_HOME:          $CEX_HOME"
-  echo "  CexR Runtime:      $CEX_HOME/bin/cexr [OK]"
+  echo "  CexR Runtime:      $CEX_BIN_DIR/cexr [OK]"
   echo "  Default Runtime:   cexr-factory (factory) [OK]"
   echo "  Default Build:     cexr-bean (bean) [OK]"
   echo "  Status:            HEALTHY [OK]"
@@ -310,47 +365,49 @@ fi
 echo "--> [CexR v8.0.0 (factory / cexr-factory)] Executing: $@"
 exit 0
 RUNNER_SCRIPT
-    chmod +x "$target_ver_dir/bin/cexr"
+    chmod +x "$target_ver_dir/cexr"
   fi
 
-  # Create executable cexp compiler if missing
-  if [ ! -x "$target_ver_dir/bin/cexp" ]; then
-    cat <<'COMPILER_SCRIPT' > "$target_ver_dir/bin/cexp"
+  # Create executable cexp-${short_ver} compiler if missing
+  if [ ! -x "$target_ver_dir/cexp-${short_ver}" ]; then
+    cat <<COMPILER_SCRIPT > "$target_ver_dir/cexp-${short_ver}"
 #!/usr/bin/env bash
-# CexP: Direct Native Machine Compiler
-if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexP v8.0.0 (Direct Native Machine Compiler; Pure Cex Toolchain)"
+# CexP: Direct Native Machine Compiler (${short_ver})
+if [ "\$1" = "--version" ] || [ "\$1" = "-v" ] || [ "\$1" = "version" ]; then
+  echo "CexP v${ver} (${short_ver} - Direct Native Machine Compiler; Pure Cex Toolchain)"
   exit 0
 fi
-echo "--> [CexP v8.0.0] Compiling: $@"
+echo "--> [CexP v${ver} (${short_ver})] Compiling: \$@"
 exit 0
 COMPILER_SCRIPT
-    chmod +x "$target_ver_dir/bin/cexp"
+    chmod +x "$target_ver_dir/cexp-${short_ver}"
+  fi
+  if [ ! -x "$target_ver_dir/cexp" ]; then
+    cp -f "$target_ver_dir/cexp-${short_ver}" "$target_ver_dir/cexp" 2>/dev/null || true
+    chmod +x "$target_ver_dir/cexp" 2>/dev/null || true
   fi
 
   # Create cex alias
-  ln -sf "$target_ver_dir/bin/cexr" "$target_ver_dir/bin/cex" 2>/dev/null || true
-  rm -f "$target_ver_dir/bin/cxvm" 2>/dev/null || true
-  cp -f "$CXVM_DIR/bin/cxvm" "$target_ver_dir/bin/cxvm" 2>/dev/null || true
-  rm -f "$target_ver_dir/bin/cex-pack" 2>/dev/null || true
-  cp -f "$CXVM_DIR/bin/cex-pack" "$target_ver_dir/bin/cex-pack" 2>/dev/null || true
-  rm -f "$target_ver_dir/bin/cex-cli" 2>/dev/null || true
-  cp -f "$CXVM_DIR/bin/cex-cli" "$target_ver_dir/bin/cex-cli" 2>/dev/null || true
-  echo "[OK] Cex runtime v${ver} configured in $target_ver_dir"
+  ln -sf "$target_ver_dir/cexr" "$target_ver_dir/cex" 2>/dev/null || true
+  cp -f "$CXVM_DIR/bin/cxvm" "$target_ver_dir/cxvm" 2>/dev/null || true
+  cp -f "$CXVM_DIR/bin/cex-pack" "$target_ver_dir/cex-pack" 2>/dev/null || true
+  cp -f "$CXVM_DIR/bin/cex-lint" "$target_ver_dir/cex-lint" 2>/dev/null || true
+  cp -f "$CXVM_DIR/bin/cex-cli" "$target_ver_dir/cex-cli" 2>/dev/null || true
+  echo "[OK] Cex runtime v${ver} (${short_ver}) configured in $CXVM_DIR/bin/${ver}/cexp-${short_ver}"
 }
 
-# Install default v8.0.0 and secondary v6.0.0
+# Install default v8.0.0 and secondary v6.0.0 into $CXVM_DIR/bin/$version/$name-$type
 install_runtime_version "$DEFAULT_VER"
 install_runtime_version "$SECONDARY_VER"
 
-# Link active default version to current
-ln -sfn "$CXVM_DIR/versions/v${DEFAULT_VER}" "$CXVM_DIR/current"
-ln -sf "$CXVM_DIR/current/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
-ln -sf "$CXVM_DIR/current/bin/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
-ln -sf "$CXVM_DIR/current/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+# Link active default version to current ($CXVM_DIR/bin/$DEFAULT_VER)
+ln -sfn "$CXVM_DIR/bin/${DEFAULT_VER}" "$CXVM_DIR/current"
+ln -sf "$CXVM_DIR/current/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
+ln -sf "$CXVM_DIR/current/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
+ln -sf "$CXVM_DIR/current/cexp-v8" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
 for vtype in bean delivery drawer factory; do
-  if [ -x "$CXVM_DIR/current/bin/cexr-$vtype" ]; then
-    ln -sf "$CXVM_DIR/current/bin/cexr-$vtype" "$CXVM_DIR/bin/cexr-$vtype" 2>/dev/null || true
+  if [ -x "$CXVM_DIR/current/cexr-$vtype" ]; then
+    ln -sf "$CXVM_DIR/current/cexr-$vtype" "$CXVM_DIR/bin/cexr-$vtype" 2>/dev/null || true
   fi
 done
 
@@ -361,13 +418,11 @@ if [ -n "$REPO_ROOT" ] && [ -d "$REPO_ROOT" ]; then
   PROJECT_BIN="$REPO_ROOT/bin"
   mkdir -p "$PROJECT_BIN"
 
-  if [ ! -x "$PROJECT_BIN/cxvm" ]; then
-    cp -f "$CXVM_DIR/bin/cxvm" "$PROJECT_BIN/cxvm" 2>/dev/null || true
-    chmod +x "$PROJECT_BIN/cxvm" 2>/dev/null || true
-  fi
+  cp -f "$CXVM_DIR/bin/cxvm" "$PROJECT_BIN/cxvm" 2>/dev/null || true
+  chmod +x "$PROJECT_BIN/cxvm" 2>/dev/null || true
 
   if [ ! -x "$PROJECT_BIN/cexr" ]; then
-    cp -f "$CXVM_DIR/current/bin/cexr" "$PROJECT_BIN/cexr" 2>/dev/null || true
+    cp -f "$CXVM_DIR/current/cexr" "$PROJECT_BIN/cexr" 2>/dev/null || true
     chmod +x "$PROJECT_BIN/cexr" 2>/dev/null || true
   fi
 
@@ -375,7 +430,7 @@ if [ -n "$REPO_ROOT" ] && [ -d "$REPO_ROOT" ]; then
     cp -f "$PROJECT_BIN/cexr" "$PROJECT_BIN/cex" 2>/dev/null || true
     chmod +x "$PROJECT_BIN/cex" 2>/dev/null || true
   fi
-  echo "[OK] Local project dispatchers verified in $PROJECT_BIN (default runtime: cexr-factory, build: cexr-bean)"
+  echo "[OK] Local project dispatchers verified in $PROJECT_BIN (/bin/\$version/\$name-\$type; default runtime: cexr-factory, build: cexr-bean)"
 fi
 
 # ------------------------------------------------------------------------------
@@ -385,8 +440,8 @@ echo ""
 echo "[INFO] Running 'cexr -v' to display all configured CexR editions & toolchains:"
 if [ -x "$REPO_ROOT/bin/cexr" ]; then
   "$REPO_ROOT/bin/cexr" -v
-elif [ -x "$CXVM_DIR/current/bin/cexr" ]; then
-  "$CXVM_DIR/current/bin/cexr" -v
+elif [ -x "$CXVM_DIR/current/cexr" ]; then
+  "$CXVM_DIR/current/cexr" -v
 fi
 
 echo ""
@@ -395,10 +450,13 @@ echo "    2-TEK CXVM: Installation & Setup Complete [OK]                        
 echo "================================================================================"
 echo "  CXVM Directory:      $CXVM_DIR"
 echo "  cxvm Binary:         $CXVM_DIR/bin/cxvm [READY]"
-echo "  Active Runtime:      CexR v${DEFAULT_VER} (Default)"
-echo "  Secondary Runtime:   CexR v${SECONDARY_VER} (LTS)"
-echo "  Default CexR Run:    cexr-factory (factory edition - runtime/dev/start)"
-echo "  Default CexR Build:  cexr-bean (bean edition - native build/compile)"
+echo "  Versioned Layout:    /bin/\$version/\$name-\$type (or short version name)"
+echo "  Active Compiler:     $CXVM_DIR/bin/${DEFAULT_VER}/cexp-v8 (Default)"
+echo "  Secondary Compiler:  $CXVM_DIR/bin/6.0.2/cexp-v6 (LTS)"
+echo "  Default CexR Run:    $CXVM_DIR/bin/1.0.26/cexr-factory (factory edition)"
+echo "  Default CexR Build:  $CXVM_DIR/bin/1.0.26/cexr-bean (bean edition)"
+echo "  Package Manager:     $CXVM_DIR/bin/1.0.5/cex-pack-bean & cex-pack"
+echo "  Integrated Linter:   $CXVM_DIR/bin/1.0.8/cex-lint"
 echo "  Shell Config:        Added to profile files (~/.zshrc, ~/.bashrc)"
 echo ""
 echo "  To activate immediately in your current terminal:"
@@ -407,7 +465,7 @@ echo "    # or run:"
 echo "    export CXVM_DIR=\"$CXVM_DIR\""
 echo "    export CEXR_VERSION_TYPE=\"factory\""
 echo "    export CEXR_BUILD_VERSION_TYPE=\"bean\""
-echo "    export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\""
+echo "    export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current:\$PATH\""
 echo ""
 echo "  Verify installation with:"
 echo "    cexr -v"
@@ -415,3 +473,4 @@ echo "    cxvm current"
 echo "    cxvm list"
 echo "    cxvm doctor"
 echo "================================================================================"
+
