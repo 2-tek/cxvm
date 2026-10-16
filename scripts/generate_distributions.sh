@@ -268,14 +268,22 @@ export CEX_HOME="\${CEX_HOME:-\$(cd "\$CEX_BIN_DIR/.." && pwd)}"
 export PATH="\$CEX_HOME/bin:\$PATH"
 
 if [ "\$1" = "--version" ] || [ "\$1" = "-v" ] || [ "\$1" = "version" ]; then
-  echo "CexR v${ver} (Native Machine Engine; Cex v2 Self-Hosted; Cex v3 Machine Code; CexR v8 .cex_boxes Dist Loader for ${pid}; Pure Cex Toolchain)"
+  echo "CexR v${ver} (Native Machine Engine; Default Runtime: cexr-factory; Default Build: cexr-bean; CexR v8 .cex_boxes Dist Loader for ${pid}; Pure Cex Toolchain)"
+  echo "  [default-runtime] cexr-factory : \$( "\$CEX_BIN_DIR/cexr-factory" -v 2>/dev/null || "\$CEX_BIN_DIR/factory/cexr-factory" -v 2>/dev/null || echo "CexR [factory] standalone (version ${ver}, cexp ^8) - target: support for api cex-virtual-dom, cex-dom ; jit debug runtime; best for development" )"
+  echo "  [default-build]   cexr-bean    : \$( "\$CEX_BIN_DIR/cexr-bean" -v 2>/dev/null || "\$CEX_BIN_DIR/bean/cexr-bean" -v 2>/dev/null || echo "CexR [bean] standalone (version ${ver}, cexp ^8) - target: one time compile, best performance with API" )"
+  echo "  [edition]         cexr-delivery: \$( "\$CEX_BIN_DIR/cexr-delivery" -v 2>/dev/null || "\$CEX_BIN_DIR/delivery/cexr-delivery" -v 2>/dev/null || echo "CexR [delivery] standalone (version ${ver}, cexp ^8) - target: jit support api only; best for api debug" )"
+  echo "  [edition]         cexr-drawer  : \$( "\$CEX_BIN_DIR/cexr-drawer" -v 2>/dev/null || "\$CEX_BIN_DIR/drawer/cexr-drawer" -v 2>/dev/null || echo "CexR [drawer] standalone (version ${ver}, cexp ^8) - target: jit support, but only cex-virtual-dom, cex-dom support, best for client" )"
+  echo "  [compiler]        cexp         : \$( "\$CEX_BIN_DIR/cexp" --version 2>/dev/null | head -n 1 || echo "CexP v${ver} Standalone Native Machine Compiler" )"
+  echo "  [pack-manager]    cex-pack     : \$( "\$CEX_BIN_DIR/cex-pack" --version 2>/dev/null | head -n 1 || echo "cex-pack v1.0.5 (CexR v8)" )"
   exit 0
 fi
 
 if [ "\$1" = "--help" ] || [ "\$1" = "-h" ] || [ "\$1" = "help" ]; then
   echo "2-TEK Cex Toolchain v${ver} (${pid})"
   echo "Usage: cexr [bean|delivery|drawer|factory] <command|file.cex> [options]"
-  echo "Commands: dev, start, run, build, compile, v8, doctor, version, help"
+  echo "Default Runtime Edition: cexr-factory (factory)"
+  echo "Default Build Edition:   cexr-bean (bean)"
+  echo "Commands: dev, start, run, build, compile, v8, doctor, version (-v), help"
   exit 0
 fi
 
@@ -285,16 +293,20 @@ if [ "\$1" = "doctor" ]; then
   echo "==============================================================="
   echo "  CEX_HOME:          \$CEX_HOME"
   echo "  CexR Runtime:      \$CEX_HOME/bin/cexr [OK]"
+  echo "  Default Runtime:   cexr-factory (factory) [OK]"
+  echo "  Default Build:     cexr-bean (bean) [OK]"
   echo "  Target Triple:     ${ptriple}"
   echo "  Status:            HEALTHY [OK]"
   exit 0
 fi
 
-EDITION="\${CEXR_VERSION_TYPE:-bean}"
+EDITION="\${CEXR_VERSION_TYPE:-factory}"
+BUILD_EDITION="\${CEXR_BUILD_VERSION_TYPE:-bean}"
 EXPLICIT_EDITION=0
 case "\${1:-}" in
   bean|delivery|drawer|factory)
     EDITION="\$1"
+    BUILD_EDITION="\$1"
     EXPLICIT_EDITION=1
     shift
     ;;
@@ -309,7 +321,7 @@ if [ ! -x "\$EDITION_BIN" ] && [ -x "\$CEX_BIN_DIR/\$EDITION/cexr-\$EDITION" ]; 
 fi
 
 if [ "\$EXPLICIT_EDITION" -eq 1 ] && [ -x "\$EDITION_BIN" ]; then
-  if [ \$# -eq 0 ] || [ "\$1" = "--cexp" ] || [ "\$1" = "cexp" ] || [ "\$1" = "--mvc-lighting" ] || [ "\$1" = "mvc-lighting" ] || [ "\$1" = "render-view" ] || [ "\$1" = "export-view" ]; then
+  if [ \$# -eq 0 ] || [ "\$1" = "-v" ] || [ "\$1" = "--version" ] || [ "\$1" = "--cexp" ] || [ "\$1" = "cexp" ] || [ "\$1" = "--mvc-lighting" ] || [ "\$1" = "mvc-lighting" ] || [ "\$1" = "render-view" ] || [ "\$1" = "export-view" ]; then
     exec "\$EDITION_BIN" "\$@"
   fi
 fi
@@ -332,6 +344,9 @@ if [ ! -x "\$CEXP_V8_BIN" ] && [ -x "\$CEX_BIN_DIR/cexp" ]; then
 fi
 
 if [ "\$ACTION" = "build" ] || [ "\$ACTION" = "compile" ]; then
+  if [ "\$EXPLICIT_EDITION" -eq 0 ]; then
+    EDITION="\$BUILD_EDITION"
+  fi
   SRC_FILE="\${1:-src/index.cex}"
   if [ -n "\${1:-}" ]; then shift; fi
   OUT_FILE="bin/app"
@@ -352,7 +367,7 @@ if [ "\$ACTION" = "build" ] || [ "\$ACTION" = "compile" ]; then
     fi
     chmod +x "\$OUT_FILE" 2>/dev/null || true
   fi
-  echo "[OK] [CexR v${ver} (\$EDITION)] Built native binary: \$OUT_FILE"
+  echo "[OK] [CexR v${ver} (\$EDITION / cexr-\$EDITION)] Built native binary: \$OUT_FILE"
   exit 0
 fi
 
@@ -411,12 +426,22 @@ set "CEX_HOME=%CD%"
 popd
 set "PATH=%CEX_HOME%\bin;%PATH%"
 
-if "%~1"=="--version" (
-    echo CexR v${ver} (Native Machine Engine; CexR v8 .cex_boxes Dist Loader for ${pid}; Pure Cex Toolchain)
-    exit /b 0
-)
+if "%~1"=="--version" goto :show_version
+if "%~1"=="-v" goto :show_version
+if "%~1"=="version" goto :show_version
+goto :after_version
+:show_version
+echo CexR v${ver} (Native Machine Engine; Default Runtime: cexr-factory; Default Build: cexr-bean; CexR v8 .cex_boxes Dist Loader for ${pid}; Pure Cex Toolchain)
+echo   [default-runtime] cexr-factory : CexR [factory] standalone (version ${ver}, cexp ^^8) - target: support for api cex-virtual-dom, cex-dom ; jit debug runtime; best for development
+echo   [default-build]   cexr-bean    : CexR [bean] standalone (version ${ver}, cexp ^^8) - target: one time compile, best performance with API
+echo   [edition]         cexr-delivery: CexR [delivery] standalone (version ${ver}, cexp ^^8) - target: jit support api only; best for api debug
+echo   [edition]         cexr-drawer  : CexR [drawer] standalone (version ${ver}, cexp ^^8) - target: jit support, but only cex-virtual-dom, cex-dom support, best for client
+echo   [compiler]        cexp         : Cex Engine (cexp) version ${ver}
+echo   [pack-manager]    cex-pack     : cex-pack v1.0.5 (CexR v8)
+exit /b 0
+:after_version
 if "%~1"=="doctor" (
-    echo Cex Toolchain Doctor: Active CEX_HOME=%CEX_HOME% [OK]
+    echo Cex Toolchain Doctor: Active CEX_HOME=%CEX_HOME% [Default Runtime: cexr-factory, Default Build: cexr-bean] [OK]
     exit /b 0
 )
 echo 2-TEK Cex Toolchain v${ver} (${pid})
@@ -532,6 +557,10 @@ WEOF
         cp -f "$PKG_DIR/bin/cexr" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cexr" 2>/dev/null || true
         cp -f "$PKG_DIR/bin/cex" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cex" 2>/dev/null || true
         cp -f "$PKG_DIR/bin/cexp" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cexp" 2>/dev/null || true
+        cp -f "$PKG_DIR/bin/cex-pack" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cex-pack" 2>/dev/null || true
+        for vtype in bean delivery drawer factory; do
+          cp -f "$PKG_DIR/bin/cexr-$vtype" "$ACTIVE_CXVM_DIR/versions/v8.0.0/bin/cexr-$vtype" 2>/dev/null || true
+        done
       fi
     fi
     

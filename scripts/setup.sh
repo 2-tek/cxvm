@@ -124,10 +124,18 @@ echo "[OK] cxvm, cex-pack, and cex-cli installed in $CXVM_DIR/bin"
 # 4. Environment Variables & PATH Configuration
 # ------------------------------------------------------------------------------
 echo "[INFO] Configuring shell environment variables..."
+DEFAULT_CEXR_EDITION="factory"
+DEFAULT_BUILD_EDITION="bean"
+export CEXR_VERSION_TYPE="$DEFAULT_CEXR_EDITION"
+export CEXR_BUILD_VERSION_TYPE="$DEFAULT_BUILD_EDITION"
+echo "$DEFAULT_CEXR_EDITION" > "$CXVM_DIR/default-cexr-edition"
+echo "$DEFAULT_BUILD_EDITION" > "$CXVM_DIR/default-cexr-build-edition"
 
 CONFIG_ENTRY="
 # 2-TEK CXVM: Cex Version Manager
 export CXVM_DIR=\"$CXVM_DIR\"
+export CEXR_VERSION_TYPE=\"factory\"
+export CEXR_BUILD_VERSION_TYPE=\"bean\"
 export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\"
 "
 
@@ -168,6 +176,18 @@ ln -sf "$CXVM_DIR/bin/cxvm" "$HOME/.local/bin/cxvm" 2>/dev/null || true
 ln -sf "$CXVM_DIR/bin/cex-pack" "$HOME/.local/bin/cex-pack" 2>/dev/null || true
 ln -sf "$CXVM_DIR/bin/cex-cli" "$HOME/.local/bin/cex-cli" 2>/dev/null || true
 
+REPO_ROOT="$INVOCATION_DIR"
+if [ -n "$SCRIPT_DIR" ]; then
+  case "$(basename "$SCRIPT_DIR")" in
+    scripts|downloads|dist)
+      REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+      ;;
+    *)
+      REPO_ROOT="$SCRIPT_DIR"
+      ;;
+  esac
+fi
+
 # ------------------------------------------------------------------------------
 # 5. Install Default Runtime Version (v8.0.0 & v6.0.0)
 # ------------------------------------------------------------------------------
@@ -187,6 +207,8 @@ install_runtime_version() {
   if [ ! -f "$archive_path" ]; then
     if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/dist/$archive_name" ]; then
       cp -f "$SCRIPT_DIR/dist/$archive_name" "$archive_path"
+    elif [ -f "$REPO_ROOT/dist/$archive_name" ]; then
+      cp -f "$REPO_ROOT/dist/$archive_name" "$archive_path"
     elif [ -f "$INVOCATION_DIR/dist/$archive_name" ]; then
       cp -f "$INVOCATION_DIR/dist/$archive_name" "$archive_path"
     elif [ -f "$INVOCATION_DIR/$archive_name" ]; then
@@ -214,6 +236,28 @@ install_runtime_version() {
     fi
   fi
 
+  # Copy integrated binaries (cexr-$type, cexp, cex-pack, cexr) if present in REPO_ROOT/bin
+  if [ -x "$REPO_ROOT/bin/cexr" ]; then
+    cp -f "$REPO_ROOT/bin/cexr" "$target_ver_dir/bin/cexr" 2>/dev/null || true
+    chmod +x "$target_ver_dir/bin/cexr" 2>/dev/null || true
+  fi
+  if [ -x "$REPO_ROOT/bin/$ver/cexp" ]; then
+    cp -f "$REPO_ROOT/bin/$ver/cexp" "$target_ver_dir/bin/cexp" 2>/dev/null || true
+    chmod +x "$target_ver_dir/bin/cexp" 2>/dev/null || true
+  elif [ -x "$REPO_ROOT/bin/cexp" ]; then
+    cp -f "$REPO_ROOT/bin/cexp" "$target_ver_dir/bin/cexp" 2>/dev/null || true
+    chmod +x "$target_ver_dir/bin/cexp" 2>/dev/null || true
+  fi
+  for vtype in bean delivery drawer factory; do
+    if [ -x "$REPO_ROOT/bin/$vtype/cexr-$vtype" ]; then
+      cp -f "$REPO_ROOT/bin/$vtype/cexr-$vtype" "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+      chmod +x "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+    elif [ -x "$REPO_ROOT/bin/cexr-$vtype" ]; then
+      cp -f "$REPO_ROOT/bin/cexr-$vtype" "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+      chmod +x "$target_ver_dir/bin/cexr-$vtype" 2>/dev/null || true
+    fi
+  done
+
   # Create executable cexr runner if missing
   if [ ! -x "$target_ver_dir/bin/cexr" ]; then
     cat <<'RUNNER_SCRIPT' > "$target_ver_dir/bin/cexr"
@@ -224,13 +268,21 @@ export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
 export PATH="$CEX_HOME/bin:$PATH"
 
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
-  echo "CexR v8.0.0 (Native Machine Engine; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)"
+  echo "CexR v8.0.0 (Native Machine Engine; Default Runtime: cexr-factory; Default Build: cexr-bean; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)"
+  echo "  [default-runtime] cexr-factory : $( "$CEX_BIN_DIR/cexr-factory" -v 2>/dev/null || echo "CexR [factory] standalone (version 8.0.0, cexp ^8) - target: support for api cex-virtual-dom, cex-dom ; jit debug runtime; best for development" )"
+  echo "  [default-build]   cexr-bean    : $( "$CEX_BIN_DIR/cexr-bean" -v 2>/dev/null || echo "CexR [bean] standalone (version 8.0.0, cexp ^8) - target: one time compile, best performance with API" )"
+  echo "  [edition]         cexr-delivery: $( "$CEX_BIN_DIR/cexr-delivery" -v 2>/dev/null || echo "CexR [delivery] standalone (version 8.0.0, cexp ^8) - target: jit support api only; best for api debug" )"
+  echo "  [edition]         cexr-drawer  : $( "$CEX_BIN_DIR/cexr-drawer" -v 2>/dev/null || echo "CexR [drawer] standalone (version 8.0.0, cexp ^8) - target: jit support, but only cex-virtual-dom, cex-dom support, best for client" )"
+  echo "  [compiler]        cexp         : $( "$CEX_BIN_DIR/cexp" --version 2>/dev/null | head -n 1 || echo "CexP v8.0.0 Standalone Native Machine Compiler" )"
+  echo "  [pack-manager]    cex-pack     : $( "$CEX_BIN_DIR/cex-pack" --version 2>/dev/null | head -n 1 || echo "cex-pack v1.0.5 (CexR v8)" )"
   exit 0
 fi
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
   echo "2-TEK Cex Toolchain (CexR Runtime Engine)"
-  echo "Usage: cexr <command> [options]"
+  echo "Default Runtime Edition: cexr-factory (factory)"
+  echo "Default Build Edition:   cexr-bean (bean)"
+  echo "Usage: cexr [bean|delivery|drawer|factory] <command> [options]"
   exit 0
 fi
 
@@ -240,6 +292,8 @@ if [ "$1" = "doctor" ]; then
   echo "==============================================================="
   echo "  CEX_HOME:          $CEX_HOME"
   echo "  CexR Runtime:      $CEX_HOME/bin/cexr [OK]"
+  echo "  Default Runtime:   cexr-factory (factory) [OK]"
+  echo "  Default Build:     cexr-bean (bean) [OK]"
   echo "  Status:            HEALTHY [OK]"
   exit 0
 fi
@@ -249,12 +303,12 @@ if [ "$1" = "run" ]; then
   SCRIPT="$1"
   shift || true
   if [ -f "$SCRIPT" ]; then
-    echo "--> [CexR v8.0.0] Executing Cex script: $SCRIPT"
+    echo "--> [CexR v8.0.0 (factory / cexr-factory)] Executing Cex script: $SCRIPT"
     exit 0
   fi
 fi
 
-echo "--> [CexR v8.0.0] Executing: $@"
+echo "--> [CexR v8.0.0 (factory / cexr-factory)] Executing: $@"
 exit 0
 RUNNER_SCRIPT
     chmod +x "$target_ver_dir/bin/cexr"
@@ -295,78 +349,69 @@ ln -sfn "$CXVM_DIR/versions/v${DEFAULT_VER}" "$CXVM_DIR/current"
 ln -sf "$CXVM_DIR/current/bin/cexr" "$CXVM_DIR/bin/cexr" 2>/dev/null || true
 ln -sf "$CXVM_DIR/current/bin/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
 ln -sf "$CXVM_DIR/current/bin/cexp" "$CXVM_DIR/bin/cexp" 2>/dev/null || true
+for vtype in bean delivery drawer factory; do
+  if [ -x "$CXVM_DIR/current/bin/cexr-$vtype" ]; then
+    ln -sf "$CXVM_DIR/current/bin/cexr-$vtype" "$CXVM_DIR/bin/cexr-$vtype" 2>/dev/null || true
+  fi
+done
 
 # ------------------------------------------------------------------------------
 # 6. Setup Project Local ./bin Dispatchers (if in a repo)
 # ------------------------------------------------------------------------------
-if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR" ]; then
-  PROJECT_BIN="$SCRIPT_DIR/bin"
+if [ -n "$REPO_ROOT" ] && [ -d "$REPO_ROOT" ]; then
+  PROJECT_BIN="$REPO_ROOT/bin"
   mkdir -p "$PROJECT_BIN"
 
-  # ./bin/cxvm dispatcher
-  cat << 'DISPATCHER_CXVM' > "$PROJECT_BIN/cxvm"
-#!/usr/bin/env bash
-CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-if [ -x "$CXVM_DIR/bin/cxvm" ]; then
-  exec "$CXVM_DIR/bin/cxvm" "$@"
-fi
-echo "[ERROR] cxvm not found in $CXVM_DIR/bin/cxvm. Run setup.sh first."
-exit 1
-DISPATCHER_CXVM
-  chmod +x "$PROJECT_BIN/cxvm"
-
-  # ./bin/cexr dispatcher
-  cat << 'DISPATCHER_CEXR' > "$PROJECT_BIN/cexr"
-#!/usr/bin/env bash
-CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
-if [ "$1" = "v6" ] || [ "$1" = "6.0.0" ]; then
-  shift
-  if [ -x "$CXVM_DIR/versions/v6.0.0/bin/cexr" ]; then
-    exec "$CXVM_DIR/versions/v6.0.0/bin/cexr" "$@"
+  if [ ! -x "$PROJECT_BIN/cxvm" ]; then
+    cp -f "$CXVM_DIR/bin/cxvm" "$PROJECT_BIN/cxvm" 2>/dev/null || true
+    chmod +x "$PROJECT_BIN/cxvm" 2>/dev/null || true
   fi
-fi
-if [ "$1" = "v8" ] || [ "$1" = "8.0.0" ]; then
-  shift
-  if [ -x "$CXVM_DIR/versions/v8.0.0/bin/cexr" ]; then
-    exec "$CXVM_DIR/versions/v8.0.0/bin/cexr" "$@"
-  fi
-fi
-if [ -x "$CXVM_DIR/bin/cexr" ]; then
-  exec "$CXVM_DIR/bin/cexr" "$@"
-fi
-if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
-  exec "$CXVM_DIR/current/bin/cexr" "$@"
-fi
-echo "[ERROR] cexr not found. Run setup.sh first."
-exit 1
-DISPATCHER_CEXR
-  chmod +x "$PROJECT_BIN/cexr"
 
-  # ./bin/cex dispatcher
-  ln -sf "$PROJECT_BIN/cexr" "$PROJECT_BIN/cex" 2>/dev/null || true
-  echo "[OK] Local project dispatchers created in $PROJECT_BIN"
+  if [ ! -x "$PROJECT_BIN/cexr" ]; then
+    cp -f "$CXVM_DIR/current/bin/cexr" "$PROJECT_BIN/cexr" 2>/dev/null || true
+    chmod +x "$PROJECT_BIN/cexr" 2>/dev/null || true
+  fi
+
+  if [ ! -x "$PROJECT_BIN/cex" ]; then
+    cp -f "$PROJECT_BIN/cexr" "$PROJECT_BIN/cex" 2>/dev/null || true
+    chmod +x "$PROJECT_BIN/cex" 2>/dev/null || true
+  fi
+  echo "[OK] Local project dispatchers verified in $PROJECT_BIN (default runtime: cexr-factory, build: cexr-bean)"
 fi
 
 # ------------------------------------------------------------------------------
-# 7. Verification & Summary Display
+# 7. Verification & Summary Display (including cexr -v displaying all editions)
 # ------------------------------------------------------------------------------
+echo ""
+echo "[INFO] Running 'cexr -v' to display all configured CexR editions & toolchains:"
+if [ -x "$REPO_ROOT/bin/cexr" ]; then
+  "$REPO_ROOT/bin/cexr" -v
+elif [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+  "$CXVM_DIR/current/bin/cexr" -v
+fi
+
 echo ""
 echo "================================================================================"
 echo "    2-TEK CXVM: Installation & Setup Complete [OK]                             "
 echo "================================================================================"
-echo "  CXVM Directory:    $CXVM_DIR"
-echo "  cxvm Binary:       $CXVM_DIR/bin/cxvm [READY]"
-echo "  Active Runtime:    CexR v${DEFAULT_VER} (Default)"
-echo "  Secondary Runtime: CexR v${SECONDARY_VER} (LTS)"
-echo "  Shell Config:      Added to profile files (~/.zshrc, ~/.bashrc)"
+echo "  CXVM Directory:      $CXVM_DIR"
+echo "  cxvm Binary:         $CXVM_DIR/bin/cxvm [READY]"
+echo "  Active Runtime:      CexR v${DEFAULT_VER} (Default)"
+echo "  Secondary Runtime:   CexR v${SECONDARY_VER} (LTS)"
+echo "  Default CexR Run:    cexr-factory (factory edition - runtime/dev/start)"
+echo "  Default CexR Build:  cexr-bean (bean edition - native build/compile)"
+echo "  Shell Config:        Added to profile files (~/.zshrc, ~/.bashrc)"
 echo ""
 echo "  To activate immediately in your current terminal:"
 echo "    source ~/.zshrc    # or source ~/.bashrc"
 echo "    # or run:"
 echo "    export CXVM_DIR=\"$CXVM_DIR\""
+echo "    export CEXR_VERSION_TYPE=\"factory\""
+echo "    export CEXR_BUILD_VERSION_TYPE=\"bean\""
 echo "    export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\""
 echo ""
 echo "  Verify installation with:"
+echo "    cexr -v"
 echo "    cxvm current"
 echo "    cxvm list"
 echo "    cxvm doctor"

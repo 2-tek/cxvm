@@ -234,6 +234,9 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "cxvmHome", cxvm->cxvmHome);
         JsonDoc::setStr(doc, "currentActive", cxvm->current());
         JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
+        JsonDoc::setStr(doc, "defaultCexrRuntime", "cexr-factory");
+        JsonDoc::setStr(doc, "defaultCexrBuild", "cexr-bean");
+        JsonDoc::setStr(doc, "cexrVersionCommand", "cexr -v");
 
         let arr: JsonValue* = JsonDoc::arr();
         let count: int = (int)cxvm->installedVersions->length();
@@ -243,8 +246,12 @@ class FactoryController extends BaseController {
         JsonDoc::setVal(doc, "installedVersions", arr);
 
         let disp: JsonValue* = JsonDoc::obj();
-        JsonDoc::setStr(disp, "cexr", "./bin/cexr (v8 default, v6 supported)");
+        JsonDoc::setStr(disp, "cexr", "./bin/cexr (v8 default: cexr-factory for run, cexr-bean for build)");
         JsonDoc::setStr(disp, "cex", "./bin/cex");
+        JsonDoc::setStr(disp, "cexrFactory", "./bin/cexr-factory");
+        JsonDoc::setStr(disp, "cexrBean", "./bin/cexr-bean");
+        JsonDoc::setStr(disp, "cexrDelivery", "./bin/cexr-delivery");
+        JsonDoc::setStr(disp, "cexrDrawer", "./bin/cexr-drawer");
         JsonDoc::setVal(doc, "dispatchers", disp);
 
         JsonDoc::setStr(doc, "toolchain", "Pure Cex Native Engine (zero C++ dependency; powered by cexr + cexp)");
@@ -259,6 +266,8 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "message", res->message);
         JsonDoc::setStr(doc, "activeVersion", cxvm->current());
         JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
+        JsonDoc::setStr(doc, "defaultCexrRuntime", "cexr-factory");
+        JsonDoc::setStr(doc, "defaultCexrBuild", "cexr-bean");
         return this.json(doc);
     }
 

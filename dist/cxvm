@@ -794,13 +794,18 @@ _cxvm_run_cex_cli() {
 
 # -----------------------------------------------------------------------------
 # Hook Dispatcher for cxvm dev, cxvm build, cxvm start
-# Calls: cxvm --app cexr $versionType <dev|build|start> <target_index> (example=bean)
+# Default runtime (dev/start): cexr-factory (factory)
+# Default build:               cexr-bean (bean)
+# Calls: cxvm --app cexr $versionType <dev|build|start> <target_index>
 # -----------------------------------------------------------------------------
 _cxvm_hook_cexr() {
   local hook_cmd="${1:-dev}"
   shift || true
 
-  local version_type="${CEXR_VERSION_TYPE:-bean}"
+  local version_type="${CEXR_VERSION_TYPE:-factory}"
+  if [ "$hook_cmd" = "build" ] || [ "$hook_cmd" = "compile" ]; then
+    version_type="${CEXR_BUILD_VERSION_TYPE:-bean}"
+  fi
   local target_index="src/index.cex"
 
   if [ -f "cex-pack.json" ]; then
@@ -808,7 +813,9 @@ _cxvm_hook_cexr() {
     mf_runtime="$(sed -n 's/.*"runtime"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
     case "$mf_runtime" in
       bean|delivery|drawer|factory)
-        version_type="$mf_runtime"
+        if [ "$hook_cmd" != "build" ] && [ "$hook_cmd" != "compile" ]; then
+          version_type="$mf_runtime"
+        fi
         ;;
     esac
     local mf_main
@@ -1902,10 +1909,10 @@ LIGHT_WRAP_EOF
 
     setup)
       local setup_script=""
-      if [ -f "$CXVM_DIR/bin/setup.sh" ]; then
-        setup_script="$CXVM_DIR/bin/setup.sh"
-      elif [ -f "scripts/setup.sh" ]; then
+      if [ -f "scripts/setup.sh" ]; then
         setup_script="scripts/setup.sh"
+      elif [ -f "$CXVM_DIR/bin/setup.sh" ]; then
+        setup_script="$CXVM_DIR/bin/setup.sh"
       elif [ -f "dist/setup.sh" ]; then
         setup_script="dist/setup.sh"
       elif [ -f "downloads/setup.sh" ]; then
@@ -1923,11 +1930,22 @@ LIGHT_WRAP_EOF
       echo "==============================================================="
       echo "==> Configuring Environment & PATH for cxvm..."
       mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/versions" "$CXVM_DIR/cache"
+      export CEXR_VERSION_TYPE="factory"
+      export CEXR_BUILD_VERSION_TYPE="bean"
+      echo "factory" > "$CXVM_DIR/default-cexr-edition"
+      echo "bean" > "$CXVM_DIR/default-cexr-build-edition"
       cxvm install 8.0.0
       cxvm install 6.0.0
       cxvm default 8.0.0
       cxvm use 8.0.0
-      echo "==> Setup complete! Active default: v8.0.0 (v6.0.0 ready)"
+      echo "  [OK] Default CexR Runtime Edition: cexr-factory (factory)"
+      echo "  [OK] Default CexR Build Edition:   cexr-bean (bean)"
+      if [ -x "./bin/cexr" ]; then
+        "./bin/cexr" -v
+      elif [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+        "$CXVM_DIR/current/bin/cexr" -v
+      fi
+      echo "==> Setup complete! Active default: v8.0.0 (cexr-factory default, cexr-bean for build)"
       ;;
 
     doctor)
@@ -1939,6 +1957,8 @@ LIGHT_WRAP_EOF
       echo "  CXVM Home:           $CXVM_DIR"
       echo "  Active Version:      $(cxvm current)"
       echo "  CexR Runtime:        $([ -x "$CXVM_DIR/current/bin/cexr" ] && echo "$CXVM_DIR/current/bin/cexr [READY]" || ([ -x "$(command -v cexr 2>/dev/null)" ] && echo "$(command -v cexr) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)"))"
+      echo "  CexR Default Run:    cexr-factory (factory) [READY]"
+      echo "  CexR Default Build:  cexr-bean (bean) [READY]"
       echo "  CexP Compiler:       $([ -x "$CXVM_DIR/current/bin/cexp" ] && echo "$CXVM_DIR/current/bin/cexp [READY]" || ([ -x "$CXVM_DIR/current/bin/cex" ] && echo "$CXVM_DIR/current/bin/cex [READY]" || ([ -x "$(command -v cexp 2>/dev/null)" ] && echo "$(command -v cexp) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)")))"
       echo "  CVM VCS Engine:      $([ -x "$CXVM_DIR/bin/cvm" ] && echo "$CXVM_DIR/bin/cvm [READY]" || ([ -x "$(command -v cvm 2>/dev/null)" ] && echo "$(command -v cvm) [READY]" || ([ -x "$(command -v git 2>/dev/null)" ] && echo "$(command -v git) (git fallback) [READY]" || echo "Not found")))"
       local cvm_srv_status="STOPPED (run: cxvm start cvm)"

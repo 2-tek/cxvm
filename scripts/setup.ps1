@@ -1,6 +1,6 @@
 # ==============================================================================
 # 2-TEK Cex Factory: Windows PowerShell CXVM Setup Window & Toolchain Configurator
-# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
 # ==============================================================================
 [CmdletBinding()]
 param(
@@ -16,16 +16,18 @@ $CxvmDir = if ($env:CXVM_DIR) { $env:CXVM_DIR } else { Join-Path $HOME ".cxvm" }
 
 function Show-SetupWindow {
   Clear-Host
-  Write-Host "╔═══════════════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-  Write-Host "║                  ⚙️  CXVM WINDOWS SETUP WINDOW (POWERSHELL)                   ║" -ForegroundColor Cyan
-  Write-Host "║         Cex Version Manager: Environment, PATH & Toolchain Setup              ║" -ForegroundColor Yellow
-  Write-Host "╚═══════════════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
-  Write-Host "  Platform:    Windows (x64 / arm64 PowerShell)" -ForegroundColor White
-  Write-Host "  CXVM Home:   $CxvmDir" -ForegroundColor Blue
-  Write-Host "  Project:     $ProjectRoot" -ForegroundColor White
-  Write-Host "  Default:     CexR v$DefaultVersion (Pure Cex Native Engine: cexr + cexp)" -ForegroundColor Green
-  Write-Host "  Supported:   CexR v$SecondaryVersion (LTS Native Engine & JIT)" -ForegroundColor Magenta
-  Write-Host "─────────────────────────────────────────────────────────────────────────────────" -ForegroundColor Cyan
+  Write-Host "================================================================================" -ForegroundColor Cyan
+  Write-Host "              [SETUP] CXVM WINDOWS SETUP WINDOW (POWERSHELL)                    " -ForegroundColor Cyan
+  Write-Host "         Cex Version Manager: Environment, PATH & Toolchain Setup               " -ForegroundColor Yellow
+  Write-Host "================================================================================" -ForegroundColor Cyan
+  Write-Host "  Platform:      Windows (x64 / arm64 PowerShell)" -ForegroundColor White
+  Write-Host "  CXVM Home:     $CxvmDir" -ForegroundColor Blue
+  Write-Host "  Project:       $ProjectRoot" -ForegroundColor White
+  Write-Host "  Default:       CexR v$DefaultVersion (Pure Cex Native Engine: cexr + cexp)" -ForegroundColor Green
+  Write-Host "  Default Run:   cexr-factory (factory edition)" -ForegroundColor Green
+  Write-Host "  Default Build: cexr-bean (bean edition)" -ForegroundColor Green
+  Write-Host "  Supported:     CexR v$SecondaryVersion (LTS Native Engine & JIT)" -ForegroundColor Magenta
+  Write-Host "--------------------------------------------------------------------------------" -ForegroundColor Cyan
 }
 
 Show-SetupWindow
@@ -52,13 +54,19 @@ if (Test-Path (Join-Path $downloadsDir "cvm-server")) {
 if (Test-Path (Join-Path $downloadsDir "thunder-server")) {
   Copy-Item -Force (Join-Path $downloadsDir "thunder-server") (Join-Path $binDir "thunder-server")
 }
+"factory" | Set-Content -Path (Join-Path $CxvmDir "default-cexr-edition") -Encoding ASCII
+"bean" | Set-Content -Path (Join-Path $CxvmDir "default-cexr-build-edition") -Encoding ASCII
 Write-Host "  [OK] CXVM core hierarchy established in $CxvmDir" -ForegroundColor Green
 
 # Step 2: Environment Variables & PATH Persistence
 Write-Host "`n[2/5] Configuring Windows Environment Variables & User PATH..." -ForegroundColor White
 $currentBin = Join-Path $CxvmDir "current\bin"
 [Environment]::SetEnvironmentVariable("CXVM_DIR", $CxvmDir, "User")
+[Environment]::SetEnvironmentVariable("CEXR_VERSION_TYPE", "factory", "User")
+[Environment]::SetEnvironmentVariable("CEXR_BUILD_VERSION_TYPE", "bean", "User")
 $env:CXVM_DIR = $CxvmDir
+$env:CEXR_VERSION_TYPE = "factory"
+$env:CEXR_BUILD_VERSION_TYPE = "bean"
 
 $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
 if (-not $userPath) { $userPath = "" }
@@ -76,7 +84,7 @@ if ($pathModified) {
   [Environment]::SetEnvironmentVariable("PATH", $userPath, "User")
   Write-Host "  [OK] Added CXVM bin and current\bin to Windows User PATH" -ForegroundColor Green
 } else {
-  Write-Host "  ℹ CXVM already present in Windows User PATH" -ForegroundColor Yellow
+  Write-Host "  [INFO] CXVM already present in Windows User PATH" -ForegroundColor Yellow
 }
 $env:PATH = "$binDir;$currentBin;$env:PATH"
 
@@ -85,12 +93,12 @@ try {
   if ($PROFILE -and (Test-Path $PROFILE)) {
     $profileContent = Get-Content $PROFILE -Raw
     if ($profileContent -notmatch "CXVM_DIR") {
-      Add-Content $PROFILE "`n# cxvm: Cex Version Manager`n`$env:CXVM_DIR = `"$CxvmDir`"`n`$env:PATH = `"`$env:CXVM_DIR\bin;`$env:CXVM_DIR\current\bin;`$env:PATH`""
+      Add-Content $PROFILE "`n# cxvm: Cex Version Manager`n`$env:CXVM_DIR = `"$CxvmDir`"`n`$env:CEXR_VERSION_TYPE = `"factory`"`n`$env:CEXR_BUILD_VERSION_TYPE = `"bean`"`n`$env:PATH = `"`$env:CXVM_DIR\bin;`$env:CXVM_DIR\current\bin;`$env:PATH`""
       Write-Host "  [OK] Configured CXVM PATH in `$PROFILE" -ForegroundColor Green
     }
   }
 } catch {
-  Write-Host "  ℹ Skipped PowerShell profile customization" -ForegroundColor Gray
+  Write-Host "  [INFO] Skipped PowerShell profile customization" -ForegroundColor Gray
 }
 
 # Step 3: Install Cex Runtimes (v8 & v6)
@@ -99,7 +107,7 @@ $cxvmScript = Join-Path $binDir "cxvm.ps1"
 if (Test-Path $cxvmScript) {
   Write-Host "  --> Installing Cex v$DefaultVersion (Pure Cex Native Engine)..." -ForegroundColor Gray
   & $cxvmScript install $DefaultVersion | Out-Null
-  Write-Host "  [OK] CexR v$DefaultVersion installed." -ForegroundColor Green
+  Write-Host "  [OK] CexR v$DefaultVersion installed (Default Runtime: cexr-factory, Default Build: cexr-bean)." -ForegroundColor Green
 
   Write-Host "  --> Installing Cex v$SecondaryVersion (LTS High-Performance Engine)..." -ForegroundColor Gray
   & $cxvmScript install $SecondaryVersion | Out-Null
@@ -221,11 +229,15 @@ if (Test-Path `$InstalledCxvm) {
 
 Write-Host "  [OK] Windows executables (cexr.cmd, cex.cmd, cxvm.cmd, cexr.ps1, cex.ps1, cxvm.ps1) generated in $targetBin" -ForegroundColor Green
 
-# Step 5: Verification & Doctor
-Write-Host "`n[5/5] Running System Diagnostic Verification..." -ForegroundColor White
-Write-Host "╔═══════════════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║                     SETUP COMPLETE — SYSTEM DIAGNOSTIC                       ║" -ForegroundColor Cyan
-Write-Host "╚═══════════════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+# Step 5: Verification & Doctor (including cexr -v displaying all editions)
+Write-Host "`n[5/5] Running 'cexr -v' & System Diagnostic Verification..." -ForegroundColor White
+Write-Host "================================================================================" -ForegroundColor Cyan
+Write-Host "                     SETUP COMPLETE - SYSTEM DIAGNOSTIC                         " -ForegroundColor Cyan
+Write-Host "================================================================================" -ForegroundColor Cyan
+
+if (Test-Path $cexrCmd) {
+  & $cexrCmd -v
+}
 
 if (Test-Path $cxvmScript) {
   & $cxvmScript doctor
@@ -233,15 +245,19 @@ if (Test-Path $cxvmScript) {
   & $cxvmScript list
 }
 
-Write-Host "`n═══════════════════════════════════════════════════════════════════════════════" -ForegroundColor Green
+Write-Host "`n================================================================================" -ForegroundColor Green
 Write-Host "  [OK] CXVM Environment, PATH, and Default Runtimes Setup Successfully!" -ForegroundColor Green
-Write-Host "═══════════════════════════════════════════════════════════════════════════════" -ForegroundColor Green
+Write-Host "  [OK] Default Runtime: cexr-factory (factory) | Default Build: cexr-bean (bean)" -ForegroundColor Green
+Write-Host "================================================================================" -ForegroundColor Green
 Write-Host "`nTo activate in your current PowerShell session, run:" -ForegroundColor White
 Write-Host "  `$env:CXVM_DIR = `"$CxvmDir`"" -ForegroundColor Cyan
+Write-Host "  `$env:CEXR_VERSION_TYPE = `"factory`"" -ForegroundColor Cyan
+Write-Host "  `$env:CEXR_BUILD_VERSION_TYPE = `"bean`"" -ForegroundColor Cyan
 Write-Host "  `$env:PATH = `"`$CxvmDir\bin;`$CxvmDir\current\bin;`$env:PATH`"" -ForegroundColor Cyan
 Write-Host "`nOr execute commands with project bin:" -ForegroundColor White
+Write-Host "  .\bin\cexr.cmd -v" -ForegroundColor Yellow
 Write-Host "  .\bin\cexr.cmd run src\index.cex" -ForegroundColor Yellow
-Write-Host "  .\bin\cex.cmd run src\index.cex" -ForegroundColor Yellow
+Write-Host "  .\bin\cex.cmd build src\index.cex" -ForegroundColor Yellow
 Write-Host "  cxvm use 6.0.0  # switch to v6" -ForegroundColor Yellow
 Write-Host "  cxvm use 8.0.0  # switch to v8" -ForegroundColor Yellow
 Write-Host ""
