@@ -345,10 +345,19 @@ DISPATCHER_CEXR
   # CEX_DIR/cexr-bean/$version/bin companion dispatcher
   ln -sf "$PROJECT_BIN/cexr" "$PROJECT_BIN/cex" 2>/dev/null || true
   # Reserve path: CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin
-  CEX_DIR="${CEX_DIR:-$HOME/.cex/bin}"
-  mkdir -p "$CEX_DIR/cexr-factory/$DEFAULT_VER" "$CEX_DIR/cexr-bean/$DEFAULT_VER" 2>/dev/null || true
-  ln -sf "$PROJECT_BIN/cexr" "$CEX_DIR/cexr-factory/$DEFAULT_VER/bin" 2>/dev/null || true
-  ln -sf "$PROJECT_BIN/cexr" "$CEX_DIR/cexr-bean/$DEFAULT_VER/bin" 2>/dev/null || true
+  CEX_HOME_DIR="${CEX_HOME:-$HOME/.cex}"
+  mkdir -p "$CEX_HOME_DIR/cexr-factory/$DEFAULT_VER" "$CEX_HOME_DIR/cexr-bean/$DEFAULT_VER" "$CEX_HOME_DIR/cexp-v8/$DEFAULT_VER" 2>/dev/null || true
+  ln -sf "$PROJECT_BIN/cexr" "$CEX_HOME_DIR/cexr-factory/$DEFAULT_VER/bin" 2>/dev/null || true
+  ln -sf "$PROJECT_BIN/cexr" "$CEX_HOME_DIR/cexr-bean/$DEFAULT_VER/bin" 2>/dev/null || true
+  if [ -x "$CXVM_DIR/bin/cexp" ]; then
+    ln -sf "$CXVM_DIR/bin/cexp" "$CEX_HOME_DIR/cexp-v8/$DEFAULT_VER/bin" 2>/dev/null || true
+  fi
+  mkdir -p "$CXVM_DIR/cexr-factory/$DEFAULT_VER" "$CXVM_DIR/cexr-bean/$DEFAULT_VER" "$CXVM_DIR/cexp-v8/$DEFAULT_VER" 2>/dev/null || true
+  ln -sf "$PROJECT_BIN/cexr" "$CXVM_DIR/cexr-factory/$DEFAULT_VER/bin" 2>/dev/null || true
+  ln -sf "$PROJECT_BIN/cexr" "$CXVM_DIR/cexr-bean/$DEFAULT_VER/bin" 2>/dev/null || true
+  if [ -x "$CXVM_DIR/bin/cexp" ]; then
+    ln -sf "$CXVM_DIR/bin/cexp" "$CXVM_DIR/cexp-v8/$DEFAULT_VER/bin" 2>/dev/null || true
+  fi
   echo "[OK] Local project dispatchers created in $PROJECT_BIN (Reserve Path: CEX_DIR/cexr-factory/$DEFAULT_VER/bin)"
 fi
 
