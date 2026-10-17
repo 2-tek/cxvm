@@ -28,6 +28,8 @@ function Run-App {
     $cexDir = if ($env:CEX_DIR) { $env:CEX_DIR } elseif ($env:CEX_HOME) { $env:CEX_HOME } else { (Join-Path $HOME ".cex") }
     $cxmvHome = if ($env:CXMV_DIR) { $env:CXMV_DIR } else { $cxvmHome }
     $candidates = @(
+        (Join-Path $PWD "dist\cxvm-bean\$curVer\bin"),
+        (Join-Path $PWD "dist\$AppName\$curVer\bin"),
         (Join-Path $cxvmHome "cxvm-bean\$curVer\binary"),
         (Join-Path $cxmvHome "cxvm-bean\$curVer\binary"),
         (Join-Path $cxvmHome "$AppName\$curVer\binary"),
@@ -134,7 +136,14 @@ function Invoke-HookCexr {
                 if ($mf.version) { $pkgVer = $mf.version }
             } catch {}
         }
+        $distTargetDir = Join-Path $PWD "dist\$pkgName-$versionType\$pkgVer"
+        if (-not (Test-Path $distTargetDir)) { New-Item -ItemType Directory -Path $distTargetDir -Force | Out-Null }
+        $distBin = Join-Path $distTargetDir "bin"
+        if (Test-Path (Join-Path $PSScriptRoot "cxvm.cmd")) {
+            Copy-Item (Join-Path $PSScriptRoot "cxvm.cmd") $distBin -Force -ErrorAction SilentlyContinue
+        }
         $targetDir = Join-Path $cxvmHome "$pkgName-$versionType\$pkgVer\binary"
+        Write-Host "[OK] [cxvm build] Target integrated binary built into: ./dist/`$name-`$type/`$version/bin (./dist/$pkgName-$versionType/$pkgVer/bin)" -ForegroundColor Green
         Write-Host "[OK] [cxvm build] Integrated target build directory: CXVM_DIR/`$name-`$type/`$version/binary (CXVM_DIR/$pkgName-$versionType/$pkgVer/binary)" -ForegroundColor Green
     }
     return (Run-App -AppName $appName -AppCmd $HookCmd -AppArgs (@($targetIndex) + $extra))

@@ -144,11 +144,14 @@ class SetupRunner {
         let cxvmVerDir: string = cxvmDir + "/cxvm/" + pkgVer;
         let cxvmDefDir: string = cxvmDir + "/cxvm/" + this.defaultVer;
 
-        child_process.execSync("mkdir -p \"" + targetDir + "\" \"" + targetDirAlias + "\" \"" + cxvmVerDir + "\" \"" + cxvmDefDir + "\"");
+        let distTargetDir: string = curPwd + "/dist/" + pkgName + "-" + pkgType + "/" + pkgVer;
+        child_process.execSync("mkdir -p \"" + targetDir + "\" \"" + targetDirAlias + "\" \"" + cxvmVerDir + "\" \"" + cxvmDefDir + "\" \"" + distTargetDir + "\"");
 
         let realCxvmBin: string = (fs.exists("dist/cxvm")) ? (curPwd + "/dist/cxvm") : (cxvmDir + "/bin/cxvm");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + targetDir + "/binary\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + targetDir + "/bin\"");
+        child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + distTargetDir + "/bin\"");
+        child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + distTargetDir + "/binary\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmVerDir + "/bin\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmDefDir + "/bin\"");
 
@@ -184,7 +187,8 @@ class SetupRunner {
         println("  CXVM Directory:    " + cxvmDir + " (alias: " + cxmvDir + ")");
         println("  cxvm Binary:       " + cxvmDir + "/bin/cxvm [READY]");
         println("  cexr Exact Version:" + this.cexrExactVersion + " (Reserve Path: CEX_DIR/cexr-factory/" + this.cexrExactVersion + "/bin)");
-        println("  Integrated Build:  " + targetDir + "/binary (CXVM_DIR/$name-$type/$version/binary)");
+        println("  Integrated Build:  " + distTargetDir + "/bin (./dist/$name-$type/$version/bin)");
+        println("  Target Directory:  " + targetDir + "/binary (CXVM_DIR/$name-$type/$version/binary)");
         println("  Target Build cxvm: " + cxvmDir + "/cxvm/$version/bin (alias: CXMV_DIR/cxvm/$version/bin)");
         println("  Active Runtime:    CexR v" + this.defaultVer + " (Default)");
         println("  Secondary Runtime: CexR v" + this.secondaryVer + " (LTS)");

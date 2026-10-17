@@ -1182,7 +1182,16 @@ _cxvm_hook_cexr() {
     fi
     local cxvm_dir="${CXVM_DIR:-${CXMV_DIR:-$HOME/.cxvm}}"
     local target_dir="$cxvm_dir/${pkg_name}-${version_type}/${pkg_ver}/binary"
-    mkdir -p "$(dirname "$target_dir")" 2>/dev/null || true
+    local dist_target_dir="dist/${pkg_name}-${version_type}/${pkg_ver}"
+    mkdir -p "$(dirname "$target_dir")" "$dist_target_dir" 2>/dev/null || true
+    if [ -f "dist/cxvm" ]; then
+      cp -f "dist/cxvm" "$dist_target_dir/bin" 2>/dev/null || true
+      chmod +x "$dist_target_dir/bin" 2>/dev/null || true
+    elif [ -f "bin/cxvm" ]; then
+      cp -f "bin/cxvm" "$dist_target_dir/bin" 2>/dev/null || true
+      chmod +x "$dist_target_dir/bin" 2>/dev/null || true
+    fi
+    echo "[OK] [cxvm build] Target integrated binary built into: ./dist/\$name-\$type/\$version/bin (./dist/${pkg_name}-${version_type}/${pkg_ver}/bin)"
     echo "[OK] [cxvm build] Integrated target build directory: CXVM_DIR/\$name-\$type/\$version/binary (CXVM_DIR/${pkg_name}-${version_type}/${pkg_ver}/binary)"
   fi
   _cxvm_run_app "$app_name" "$hook_cmd" "$target_index" "$@"
@@ -1239,6 +1248,12 @@ _cxvm_run_app() {
   local candidates=()
   # 1. Registered binary app in CEX_DIR and CXVM_DIR (reserve paths and bin)
   candidates+=(
+    "$pwd_dir/dist/cxvm-bean/$ver_clean/bin"
+    "$pwd_dir/dist/$target_bin/$ver_clean/bin"
+    "$pwd_dir/dist/$app_name/$ver_clean/bin"
+    "$script_dir/../dist/cxvm-bean/$ver_clean/bin"
+    "$script_dir/../dist/$target_bin/$ver_clean/bin"
+    "$script_dir/../dist/$app_name/$ver_clean/bin"
     "$cxvm_dir/cxvm-bean/$ver_clean/binary"
     "$cxmv_dir/cxvm-bean/$ver_clean/binary"
     "$cxvm_dir/$target_bin/$ver_clean/binary"

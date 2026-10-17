@@ -375,7 +375,8 @@ class CxvmEngine {
         outMsg += "  Dispatcher:          CEX_DIR/cexr-$type/1.0.26/bin & $CEX_DIR/cexr-factory/1.0.26/bin configured for default run cxvm\n";
         outMsg += "  Registered Apps:     CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)\n";
         outMsg += "  Target Build cxvm:   CXMV_DIR/cxvm/$version/bin (CXVM_DIR/cxvm/$version/bin)\n";
-        outMsg += "  Integrated Build:    CXVM_DIR/$name-$type/$version/binary (CXVM_DIR/cxvm-bean/2.0.0/binary)\n";
+        outMsg += "  Integrated Build:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/2.0.0/bin)\n";
+        outMsg += "  Target Directory:    CXVM_DIR/$name-$type/$version/binary (CXVM_DIR/cxvm-bean/2.0.0/binary)\n";
         outMsg += "  Hook Dispatcher:     cexp --app $appName action (short command: dev, build, start)\n";
         outMsg += "  CVM Subsystem:       cvm commit, cvm push, cvm status integrated [OK]\n";
         outMsg += "  Thunder Subsystem:   thunder run, thunder ps, virtual kernel integrated [OK]\n";
@@ -834,7 +835,9 @@ class CxvmEngine {
                     pkgVer = parsed->get("version")->asString();
                 }
             }
+            let distDir: string = "./dist/" + pkgName + "-" + vType + "/" + pkgVer + "/bin";
             let targetDir: string = "CXVM_DIR/" + pkgName + "-" + vType + "/" + pkgVer + "/binary";
+            println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
             println("[OK] [cxvm build] Integrated target build directory: CXVM_DIR/$name-$type/$version/binary (" + targetDir + ")");
         }
         return this.appExecute(appName, action, idx);
@@ -847,7 +850,9 @@ class CxvmEngine {
         println("==> [cxvm " + act + "] Hook -> cexp --app " + app + " " + act + " " + idx);
         if (act == "build" || act == "compile") {
             let vType: string = (app.find("cexr-") == 0) ? app.substr(5) : this.defaultBuildEdition;
+            let distDir: string = "./dist/cxvm-" + vType + "/" + this.currentVersion + "/bin";
             let targetDir: string = "CXVM_DIR/cxvm-" + vType + "/" + this.currentVersion + "/binary";
+            println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
             println("[OK] [cxvm build] Integrated target build directory: CXVM_DIR/$name-$type/$version/binary (" + targetDir + ")");
         }
         return this.appExecute(app, act, idx);
@@ -865,7 +870,8 @@ class CxvmEngine {
         msg += "  - cex-lint:      CEX_DIR/cex-lint/1.0.8/bin\n";
         msg += "  - cxvm:          CXVM_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - target build:  CXMV_DIR/cxvm/" + this.currentVersion + "/bin\n";
-        msg += "  - integrated:    CXVM_DIR/$name-$type/$version/binary (CXVM_DIR/cxvm-bean/" + this.currentVersion + "/binary)\n";
+        msg += "  - integrated:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/" + this.currentVersion + "/bin)\n";
+        msg += "  - directory:     CXVM_DIR/$name-$type/$version/binary (CXVM_DIR/cxvm-bean/" + this.currentVersion + "/binary)\n";
         msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cxvm)\n";
         return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Binary apps registered in CEX_DIR", msg);
     }
@@ -897,9 +903,11 @@ class CxvmEngine {
                         pkgVer = parsed->get("version")->asString();
                     }
                 }
+                let distDir: string = "./dist/" + pkgName + "-" + vType + "/" + pkgVer + "/bin";
                 let targetDir: string = "CXVM_DIR/" + pkgName + "-" + vType + "/" + pkgVer + "/binary";
+                println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
                 println("[OK] [cxvm build] Integrated target build directory: CXVM_DIR/$name-$type/$version/binary (" + targetDir + ")");
-                println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Compiled target index (" + targetSpec + ") to " + targetDir + " (target build: CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
+                println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Compiled target index (" + targetSpec + ") to " + distDir + " (target build: CXMV_DIR/cxvm/" + this.currentVersion + "/bin, CXVM_DIR/$name-$type/$version/binary)");
                 return 0;
             }
             println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Executed target index (" + targetSpec + ") via CexR v" + this.currentVersion + " runtime (registered in CEX_DIR)");
@@ -907,11 +915,13 @@ class CxvmEngine {
         }
         if (name == "cxvm") {
             let pkgType: string = this.defaultBuildEdition;
+            let distDir: string = "./dist/cxvm-" + pkgType + "/" + this.currentVersion + "/bin";
             let targetDir: string = "CXVM_DIR/cxvm-" + pkgType + "/" + this.currentVersion + "/binary";
             if (subCmd == "build" || subCmd == "compile") {
+                println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
                 println("[OK] [cxvm build] Integrated target build directory: CXVM_DIR/$name-$type/$version/binary (" + targetDir + ")");
             }
-            println("[OK] [cxvm] Target build output located at " + targetDir + " (CXVM_DIR/cxvm/" + this.currentVersion + "/bin, CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
+            println("[OK] [cxvm] Target build output located at " + distDir + " (" + targetDir + ", CXVM_DIR/cxvm/" + this.currentVersion + "/bin, CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
             return 0;
         }
         if (name == "cexp" || name.find("cexp-") == 0) {
