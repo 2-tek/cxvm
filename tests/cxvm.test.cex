@@ -217,6 +217,10 @@ fn main(): int {
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-factory") != -1, "register output contains cexr-factory");
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-bean") != -1, "register output contains cexr-bean");
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/bin") != -1, "register output contains CEX_DIR/bin");
+    Assert::isTrue(regCexDirRes->output.find("CXMV_DIR/cxvm") != -1, "register output contains target build CXMV_DIR/cxvm");
+    Assert::isTrue(setupCmdRes->output.find("CXMV_DIR/cxvm") != -1, "setup output contains target build CXMV_DIR/cxvm");
+    let appCxvmRes: int = cxvm->appExecute("cxvm", "build", "src/index.cex");
+    Assert::equalsInt(0, appCxvmRes, "cxvm --app cxvm build returns 0 OK");
     suite->addResult("test_cxvm_version_manager", true, "", 1);
 
     // -------------------------------------------------------------

@@ -23,6 +23,7 @@ trigger: always_on
 > All ecosystem binaries (`cexp-v8`, `cexp`, `cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm`, `cvm`, `thunder`, `lighting`) MUST be registered in `CEX_DIR`:
 > - Reserve path: `CEX_DIR/$appName/$version/bin`
 > - Direct companion binary: `CEX_DIR/bin/$appName`
+> - CXVM Target Build: `CXMV_DIR/cxvm/$version/bin` (alias `CXVM_DIR/cxvm/$version/bin`)
 >
 > **ZERO PYTHON SCRIPTS -- PURE `.cex` WITH `cexr-$type` RUNTIME**:
 > All scripts, manifest generators, package managers (`cex-pack`), standalone servers (`cvm-server`, `thunder-server`), and verification utilities MUST be written in `.cex` and executed using the `cexr-$type` runtime (`cexr <script.cex>` or `cxvm --app cexr-$versionType <script.cex>`). Any script using Python (`python`, `python3`, `#!/usr/bin/env python3`, `python3 -c`) is strictly prohibited and replaced by `.cex` with `cexr-$type` runtime.
@@ -49,7 +50,7 @@ trigger: always_on
 | **Web Setup Window** | `curl http://localhost:3080/setup` \| browser at `:3080/setup` | Open full visual Lighting MVC desktop window UI |
 | **Run Test Suites** | `cexr tests/cxvm.test.cex` & `cexr tests/factory.test.cex` | Execute full regression test suites |
 | **Generate Distributions** | `bash scripts/generate_distributions.sh` | Build and package 36 platform bundles into `downloads/` & `dist/` |
-| **Compile Native Binary** | `$CEX_DIR/cexr-factory/$version/bin build src/index.cex -o bin/cxvm-server` | Compile Cex code directly via `cexp-v$shortVersion` |
+| **Compile Native Binary / Target Build** | `$CEX_DIR/cexr-bean/$version/bin build src/index.cex -o CXMV_DIR/cxvm/$version/bin` | Compile Cex code directly via `cexp-v$shortVersion` targeting `CXMV_DIR/cxvm/$version/bin` |
 | **Environment Doctor** | `$CEX_DIR/cexr-factory/$version/bin doctor` \| `./bin/cxvm doctor` | Inspect environment, paths, active runtime, and toolchains |
 | **Switch Active Runtime** | `cxvm use <version>` \| `./bin/cxvm use <version>` | Update active runtime symlink and session PATH |
 | **Install Version** | `cxvm install <version>` | Download and install pre-built runtime package |

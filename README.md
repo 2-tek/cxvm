@@ -100,7 +100,7 @@ The project toolchain dispatchers resolve via reserve path `CEX_DIR|CEX_HOME.../
 ```bash
 # Run using default v8 runtime:
 $CEX_DIR/cexr-factory/$version/bin src/index.cex
-$CEX_DIR/cexr-bean/$version/bin build src/index.cex
+$CEX_DIR/cexr-bean/$version/bin build src/index.cex -o CXMV_DIR/cxvm/$version/bin
 
 # Run using v6 runtime:
 $CEX_DIR/cexr-factory/$version/bin v6 run src/index.cex
@@ -129,7 +129,7 @@ cxvm use 6.0.0
 | `cxvm uninstall 2.0.0` | Removes an installed version |
 | `cxvm doctor` | - | Runs pre-flight diagnostics for native `cexr-$type`, `cexp-v$shortVersion`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
 | `cxvm dev [target]` | `npm run dev` | Hook calling `cexp --app cexr-factory dev <target>` (short command) |
-| `cxvm build [target]` | `npm run build` | Hook calling `cexp --app cexr-bean build <target>` (short command) |
+| `cxvm build [target]` | `npm run build` | Hook calling `cexp --app cexr-bean build <target>` (target build: `CXMV_DIR/cxvm/$version/bin`) |
 | `cxvm start [target]` | `npm start` | Hook calling `cexp --app cexr-bean start <target>` (short command) |
 | `cexp --app <app> <action>` | - | Direct app dispatcher executing registered binary apps in `CEX_DIR` |
 | `cxvm --app lighting create <name>` | `nest new` | Hooks project creation logic in lighting to scaffold new Fullstack MVC project |

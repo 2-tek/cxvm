@@ -77,6 +77,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
 | Compiler Requirement | `"cexp": "^8"` | CexP v8 Direct Machine Compiler |
 | Server Port | `3080` | Factory MVC Default Port |
 | Primary Store | `dist/` & `downloads/` | **Keep `dist/` with downloads of cxvm cross platforms** |
+| Target Build | `CXMV_DIR/cxvm/$version/bin` | Official cxvm target build output (alias `CXVM_DIR/cxvm/$version/bin`) |
 
 ---
 

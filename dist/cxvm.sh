@@ -1214,19 +1214,27 @@ _cxvm_run_app() {
   fi
 
   local cex_dir="${CEX_DIR:-${CEX_HOME:-$HOME/.cex}}"
+  local cxvm_dir="${CXVM_DIR:-${CXMV_DIR:-$HOME/.cxvm}}"
+  local cxmv_dir="${CXMV_DIR:-$cxvm_dir}"
   local candidates=()
   # 1. Registered binary app in CEX_DIR and CXVM_DIR (reserve paths and bin)
   candidates+=(
     "$cex_dir/$target_bin/$ver_clean/bin"
     "$cex_dir/$app_name/$ver_clean/bin"
-    "$CXVM_DIR/$target_bin/$ver_clean/bin"
-    "$CXVM_DIR/$app_name/$ver_clean/bin"
+    "$cxvm_dir/$target_bin/$ver_clean/bin"
+    "$cxvm_dir/$app_name/$ver_clean/bin"
+    "$cxmv_dir/$target_bin/$ver_clean/bin"
+    "$cxmv_dir/$app_name/$ver_clean/bin"
+    "$cxvm_dir/cxvm/$ver_clean/bin"
+    "$cxmv_dir/cxvm/$ver_clean/bin"
     "$cex_dir/bin/$target_bin"
     "$cex_dir/bin/$app_name"
     "$cex_dir/$target_bin"
     "$cex_dir/$app_name"
     "$HOME/.cex/bin/$target_bin"
     "$HOME/.cex/bin/$app_name"
+    "$cxvm_dir/bin/$target_bin"
+    "$cxmv_dir/bin/$target_bin"
   )
   if [ "$is_cexr_edition" -eq 1 ]; then
     candidates+=(
@@ -2529,7 +2537,8 @@ LIGHT_WRAP_EOF
       echo "  [OK] Default CexR Runtime Edition: ./bin/1.0.26/cexr-factory (factory)"
       echo "  [OK] Default CexR Build Edition:   ./bin/1.0.26/cexr-bean (bean)"
       echo "  [OK] Integrated CexLint Binary:    ./bin/1.0.8/cex-lint"
-      echo "  [OK] Registered Apps:              CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)"
+      echo "  [OK] Registered Apps:              CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cxvm)"
+      echo "  [OK] Target Build cxvm:            CXMV_DIR/cxvm/\$version/bin (alias: CXVM_DIR/cxvm/\$version/bin)"
       echo "  [OK] Hook Dispatcher:              cexp --app \$appName action (short command: dev, build, start)"
       if [ -x "CEX_DIR/cexr-$type/$version/bin" ]; then
         "CEX_DIR/cexr-$type/$version/bin" -v
@@ -2540,6 +2549,10 @@ LIGHT_WRAP_EOF
       ;;
 
     doctor)
+      local ver_cur
+      ver_cur="$(cxvm current 2>/dev/null || echo 'v8.0.0')"
+      local ver_clean="${ver_cur#v}"
+      [ -z "$ver_clean" ] && ver_clean="8.0.0"
       echo "==============================================================="
       echo "   Cex Version Manager (cxvm v2) System Diagnostic Doctor      "
       echo "==============================================================="
@@ -2547,6 +2560,7 @@ LIGHT_WRAP_EOF
       echo "  Architecture:        $(uname -m)"
       echo "  CXVM Home:           $CXVM_DIR"
       echo "  Active Version:      $(cxvm current)"
+      echo "  Target Build cxvm:   $([ -x "$CXVM_DIR/cxvm/$ver_clean/bin" ] && echo "$CXVM_DIR/cxvm/$ver_clean/bin [READY]" || echo "CXMV_DIR/cxvm/$ver_clean/bin [CONFIGURED]")"
       echo "  CexR Runtime:        $([ -x "$CXVM_DIR/current/cexr" ] && echo "$CXVM_DIR/current/cexr [READY]" || ([ -x "$(command -v cexr 2>/dev/null)" ] && echo "$(command -v cexr) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)"))"
       echo "  CexR Default Run:    ./bin/1.0.26/cexr-factory (factory) [READY]"
       echo "  CexR Default Build:  ./bin/1.0.26/cexr-bean (bean) [READY]"

@@ -6,7 +6,8 @@
 set -e
 
 # Detect directories dynamically
-CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+CXVM_DIR="${CXVM_DIR:-${CXMV_DIR:-$HOME/.cxvm}}"
+CXMV_DIR="${CXMV_DIR:-$CXVM_DIR}"
 GITHUB_RAW="https://raw.githubusercontent.com/2-tek/cxvm/main"
 GITHUB_REPO="https://github.com/2-tek/cxvm"
 DEFAULT_VER="8.0.0"
@@ -372,13 +373,15 @@ DISPATCHER_CEXR
     local ver="${3:-$DEFAULT_VER}"
 
     if [ -x "$bin_src" ]; then
-      mkdir -p "$CEX_DIR/$app/$ver" "$CEX_HOME_DIR/$app/$ver" "$CXVM_DIR/$app/$ver" 2>/dev/null || true
+      mkdir -p "$CEX_DIR/$app/$ver" "$CEX_HOME_DIR/$app/$ver" "$CXVM_DIR/$app/$ver" "$CXMV_DIR/$app/$ver" 2>/dev/null || true
       ln -sf "$bin_src" "$CEX_DIR/$app/$ver/bin" 2>/dev/null || true
       ln -sf "$bin_src" "$CEX_HOME_DIR/$app/$ver/bin" 2>/dev/null || true
       ln -sf "$bin_src" "$CXVM_DIR/$app/$ver/bin" 2>/dev/null || true
+      ln -sf "$bin_src" "$CXMV_DIR/$app/$ver/bin" 2>/dev/null || true
       ln -sf "$bin_src" "$CEX_DIR/bin/$app" 2>/dev/null || true
       ln -sf "$bin_src" "$CEX_HOME_DIR/bin/$app" 2>/dev/null || true
       ln -sf "$bin_src" "$CXVM_DIR/bin/$app" 2>/dev/null || true
+      ln -sf "$bin_src" "$CXMV_DIR/bin/$app" 2>/dev/null || true
     fi
   }
 
@@ -414,11 +417,24 @@ DISPATCHER_CEXR
     register_binary_app "cex-lint" "$PROJECT_BIN/1.0.8/cex-lint" "1.0.8"
     register_binary_app "cex-lint" "$PROJECT_BIN/1.0.8/cex-lint" "$DEFAULT_VER"
   fi
+  # Target build of cxvm to CXMV_DIR/cxvm/$version/bin & CXVM_DIR/cxvm/$version/bin
+  cxvm_ver="2.0.0"
+  if [ -f "$INVOCATION_DIR/cex-pack.json" ]; then
+    parsed_ver="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$INVOCATION_DIR/cex-pack.json" | head -n 1)"
+    if [ -n "$parsed_ver" ]; then
+      cxvm_ver="$parsed_ver"
+    fi
+  fi
   if [ -x "$PROJECT_BIN/2.0.0/cxvm-bean" ]; then
-    register_binary_app "cxvm-bean" "$PROJECT_BIN/2.0.0/cxvm-bean" "2.0.0"
+    register_binary_app "cxvm-bean" "$PROJECT_BIN/2.0.0/cxvm-bean" "$cxvm_ver"
+    register_binary_app "cxvm" "$PROJECT_BIN/2.0.0/cxvm-bean" "$cxvm_ver"
   fi
   if [ -x "$PROJECT_BIN/cxvm" ]; then
+    register_binary_app "cxvm" "$PROJECT_BIN/cxvm" "$cxvm_ver"
     register_binary_app "cxvm" "$PROJECT_BIN/cxvm" "$DEFAULT_VER"
+  elif [ -x "$CXVM_DIR/bin/cxvm" ]; then
+    register_binary_app "cxvm" "$CXVM_DIR/bin/cxvm" "$cxvm_ver"
+    register_binary_app "cxvm" "$CXVM_DIR/bin/cxvm" "$DEFAULT_VER"
   fi
   if [ -x "$INVOCATION_DIR/dist/cvm-server" ]; then
     register_binary_app "cvm" "$INVOCATION_DIR/dist/cvm-server" "$DEFAULT_VER"
@@ -430,7 +446,8 @@ DISPATCHER_CEXR
   fi
 
   echo "[OK] Local project dispatchers created in $PROJECT_BIN (Reserve Path: CEX_DIR/cexr-factory/$DEFAULT_VER/bin)"
-  echo "[OK] Registered binary apps in CEX_DIR and CXVM_DIR (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)"
+  echo "[OK] Registered binary apps in CEX_DIR and CXVM_DIR (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cxvm)"
+  echo "[OK] Target build cxvm: $CXVM_DIR/cxvm/\$version/bin (alias: CXMV_DIR/cxvm/\$version/bin)"
 fi
 
 # ------------------------------------------------------------------------------
@@ -440,8 +457,9 @@ echo ""
 echo "================================================================================"
 echo "    2-TEK CXVM: Installation & Setup Complete [OK]                             "
 echo "================================================================================"
-echo "  CXVM Directory:    $CXVM_DIR"
+echo "  CXVM Directory:    $CXVM_DIR (alias: $CXMV_DIR)"
 echo "  cxvm Binary:       $CXVM_DIR/bin/cxvm [READY]"
+echo "  Target Build cxvm: $CXVM_DIR/cxvm/\$version/bin (alias: CXMV_DIR/cxvm/\$version/bin)"
 echo "  Active Runtime:    CexR v${DEFAULT_VER} (Default)"
 echo "  Secondary Runtime: CexR v${SECONDARY_VER} (LTS)"
 echo "  Shell Config:      Added to profile files (~/.zshrc, ~/.bashrc)"

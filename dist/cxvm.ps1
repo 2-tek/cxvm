@@ -26,6 +26,7 @@ function Run-App {
     if (-not $curVer -or $curVer -eq "none") { $curVer = "8.0.0" }
     
     $cexDir = if ($env:CEX_DIR) { $env:CEX_DIR } elseif ($env:CEX_HOME) { $env:CEX_HOME } else { (Join-Path $HOME ".cex") }
+    $cxmvHome = if ($env:CXMV_DIR) { $env:CXMV_DIR } else { $cxvmHome }
     $candidates = @(
         (Join-Path $cexDir "$AppName\$curVer\bin\$AppName.cmd"),
         (Join-Path $cexDir "$AppName\$curVer\bin\$AppName"),
@@ -35,6 +36,10 @@ function Run-App {
         (Join-Path $cxvmHome "$AppName\$curVer\bin\$AppName.cmd"),
         (Join-Path $cxvmHome "$AppName\$curVer\bin\$AppName"),
         (Join-Path $cxvmHome "$AppName\$curVer\bin"),
+        (Join-Path $cxvmHome "cxvm\$curVer\bin"),
+        (Join-Path $cxmvHome "cxvm\$curVer\bin"),
+        (Join-Path $cxvmHome "cxvm\$curVer\bin\cxvm.cmd"),
+        (Join-Path $cxmvHome "cxvm\$curVer\bin\cxvm.cmd"),
         (Join-Path $PWD "bin\$AppName.cmd"),
         (Join-Path $PWD "bin\$AppName"),
         (Join-Path $PWD "bin\$curVer\$AppName-$AppCmd.cmd"),
