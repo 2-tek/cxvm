@@ -1165,6 +1165,26 @@ _cxvm_hook_cexr() {
 
   local app_name="cexr-${version_type}"
   echo "==> [cxvm $hook_cmd] Hook -> cexp --app $app_name $hook_cmd $target_index"
+  if [ "$hook_cmd" = "build" ] || [ "$hook_cmd" = "compile" ]; then
+    local pkg_name="cxvm"
+    local pkg_ver="2.0.0"
+    if [ -f "cex-pack.json" ]; then
+      local n
+      n="$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+      if [ -n "$n" ]; then
+        pkg_name="${n##*/}"
+      fi
+      local v
+      v="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+      if [ -n "$v" ]; then
+        pkg_ver="$v"
+      fi
+    fi
+    local cxvm_dir="${CXVM_DIR:-${CXMV_DIR:-$HOME/.cxvm}}"
+    local target_dir="$cxvm_dir/${pkg_name}-${version_type}/${pkg_ver}/binary"
+    mkdir -p "$(dirname "$target_dir")" 2>/dev/null || true
+    echo "[OK] [cxvm build] Integrated target build directory: CXVM_DIR/\$name-\$type/\$version/binary (CXVM_DIR/${pkg_name}-${version_type}/${pkg_ver}/binary)"
+  fi
   _cxvm_run_app "$app_name" "$hook_cmd" "$target_index" "$@"
   return $?
 }
@@ -1219,6 +1239,12 @@ _cxvm_run_app() {
   local candidates=()
   # 1. Registered binary app in CEX_DIR and CXVM_DIR (reserve paths and bin)
   candidates+=(
+    "$cxvm_dir/cxvm-bean/$ver_clean/binary"
+    "$cxmv_dir/cxvm-bean/$ver_clean/binary"
+    "$cxvm_dir/$target_bin/$ver_clean/binary"
+    "$cxvm_dir/$app_name/$ver_clean/binary"
+    "$cxmv_dir/$target_bin/$ver_clean/binary"
+    "$cxmv_dir/$app_name/$ver_clean/binary"
     "$cex_dir/$target_bin/$ver_clean/bin"
     "$cex_dir/$app_name/$ver_clean/bin"
     "$cxvm_dir/$target_bin/$ver_clean/bin"
@@ -1298,7 +1324,7 @@ _cxvm_run_app() {
       local base_cand
       base_cand="$(basename "$cand")"
       if [ "$is_cexr_edition" -eq 1 ]; then
-        if [ "$base_cand" = "$target_bin" ] || [ "$base_cand" = "bin" ]; then
+        if [ "$base_cand" = "$target_bin" ] || [ "$base_cand" = "bin" ] || [ "$base_cand" = "binary" ]; then
           echo "==> [cxvm] Dispatching to $target_bin via --app ($app_cmd)..."
           if "$cand" "$@"; then
             return 0
@@ -1326,7 +1352,7 @@ _cxvm_run_app() {
           [ $ret -eq 126 ] && continue
           return $ret
         fi
-      elif [ "$base_cand" = "$target_bin" ] || [ "$base_cand" = "$app_name" ] || [ "$base_cand" = "bin" ]; then
+      elif [ "$base_cand" = "$target_bin" ] || [ "$base_cand" = "$app_name" ] || [ "$base_cand" = "bin" ] || [ "$base_cand" = "binary" ]; then
         if [ -n "$app_cmd" ]; then
           echo "==> [cxvm] Dispatching to $app_name via --app ($app_cmd)..."
           if "$cand" "$app_cmd" "$@"; then
@@ -2503,6 +2529,19 @@ LIGHT_WRAP_EOF
       ;;
 
     setup)
+      local cexr_cmd="${CXVM_DIR:-$HOME/.cxvm}/bin/cexr"
+      if ! command -v "$cexr_cmd" >/dev/null 2>&1; then
+        cexr_cmd="cexr"
+      fi
+
+      if [ -f "setup.cex" ]; then
+        exec "$cexr_cmd" setup.cex "$@"
+      elif [ -f "dist/setup.cex" ]; then
+        exec "$cexr_cmd" dist/setup.cex "$@"
+      elif [ -f "$CXVM_DIR/bin/setup.cex" ]; then
+        exec "$cexr_cmd" "$CXVM_DIR/bin/setup.cex" "$@"
+      fi
+
       local setup_script=""
       if [ -f "scripts/setup.sh" ]; then
         setup_script="scripts/setup.sh"

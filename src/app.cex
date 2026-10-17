@@ -49,6 +49,7 @@ class FactoryApp {
         // Shell & PowerShell Installers & Cross-Platform Downloads
         this.router->get("/install.sh", "factory.installSh");
         this.router->get("/install.ps1", "factory.installPs1");
+        this.router->get("/setup.cex", "factory.setupCex");
         this.router->get("/setup.sh", "factory.setupSh");
         this.router->get("/setup.ps1", "factory.setupPs1");
         this.router->get("/cxvm.sh", "factory.cxvmScript");
@@ -132,6 +133,10 @@ class FactoryApp {
 
         if (route->handlerId === "factory.installPs1") {
             return this.controller->serveInstallPs1(req, this.port, this.downloadsDir);
+        }
+
+        if (route->handlerId === "factory.setupCex") {
+            return this.controller->serveSetupCex(req, this.port, this.downloadsDir);
         }
 
         if (route->handlerId === "factory.setupSh") {

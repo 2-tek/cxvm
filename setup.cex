@@ -1,0 +1,200 @@
+// 2-TEK CXVM: Quick Installer & Toolchain Environment Setup (setup.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_PURE_CEX_BIN
+
+import fs from "fs";
+import child_process from "child_process";
+import "@/src/cxvm_engine.cex";
+
+class SetupRunner {
+    public defaultVer: string;
+    public secondaryVer: string;
+    public cexrExactVersion: string;
+
+    public constructor() {
+        this.defaultVer = "8.0.0";
+        this.secondaryVer = "6.0.0";
+        this.cexrExactVersion = "1.0.26";
+    }
+
+    private registerBinaryApp(cexDir: string, cxvmDir: string, app: string, binSrc: string, ver: string): void {
+        if (binSrc.length() > 0 && fs.exists(binSrc)) {
+            child_process.execSync("mkdir -p \"" + cexDir + "/" + app + "/" + ver + "\" \"" + cxvmDir + "/" + app + "/" + ver + "\"");
+            child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cexDir + "/" + app + "/" + ver + "/bin\"");
+            child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cxvmDir + "/" + app + "/" + ver + "/bin\"");
+            child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cexDir + "/bin/" + app + "\" 2>/dev/null || true");
+            if (app != "cxvm") {
+                child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cxvmDir + "/bin/" + app + "\" 2>/dev/null || true");
+            }
+        }
+    }
+
+    public run(): int {
+        println("================================================================================");
+        println("    2-TEK CXVM: Quick Installer & Toolchain Environment Setup (setup.cex)       ");
+        println("    Pure Cex Native Setup Window (cexr setup.cex)                               ");
+        println("================================================================================");
+
+        let cxvm: CxvmEngine* = new CxvmEngine();
+        let res: CxvmCommandResult* = cxvm->setup(this.defaultVer);
+        println(res->output);
+
+        let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
+        let cxvmDir: string = home + "/.cxvm";
+        let cxmvDir: string = cxvmDir;
+        let cexDir: string = home + "/.cex";
+
+        // Directory Hierarchy
+        child_process.execSync("mkdir -p \"" + cxvmDir + "/bin\" \"" + cxvmDir + "/versions\" \"" + cxvmDir + "/cache\"");
+        child_process.execSync("mkdir -p \"" + cexDir + "/bin\"");
+
+        // Copy / Link cxvm core binaries
+        if (fs.exists("dist/cxvm")) {
+            child_process.execSync("rm -f \"" + cxvmDir + "/bin/cxvm\"");
+            child_process.execSync("cp -f dist/cxvm \"" + cxvmDir + "/bin/cxvm\"");
+            child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cxvm\"");
+        } else if (fs.exists("bin/cxvm")) {
+            child_process.execSync("rm -f \"" + cxvmDir + "/bin/cxvm\"");
+            child_process.execSync("cp -f bin/cxvm \"" + cxvmDir + "/bin/cxvm\"");
+            child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cxvm\"");
+        }
+
+        // Install runtime dispatchers in $CXVM_DIR/bin
+        let v8Dir: string = cxvmDir + "/bin/8.0.0";
+        let v6Dir: string = cxvmDir + "/bin/6.0.0";
+        child_process.execSync("mkdir -p \"" + v8Dir + "/bin\" \"" + v6Dir + "/bin\"");
+
+        // Link active default to current
+        child_process.execSync("ln -sfn \"" + v8Dir + "\" \"" + cxvmDir + "/current\"");
+        child_process.execSync("ln -sf \"" + cxvmDir + "/current/bin/cexr\" \"" + cxvmDir + "/bin/cexr\" 2>/dev/null || true");
+        child_process.execSync("ln -sf \"" + cxvmDir + "/current/bin/cex\" \"" + cxvmDir + "/bin/cex\" 2>/dev/null || true");
+        child_process.execSync("ln -sf \"" + cxvmDir + "/current/bin/cexp\" \"" + cxvmDir + "/bin/cexp\" 2>/dev/null || true");
+
+        // Create local project ./bin dispatchers
+        let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
+        let projectBin: string = curPwd + "/bin";
+        child_process.execSync("mkdir -p \"" + projectBin + "\"");
+
+        // Local ./bin/cxvm
+        let cxvmDispatcher: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nif [ -x \"$CXVM_DIR/bin/cxvm\" ]; then\n  exec \"$CXVM_DIR/bin/cxvm\" \"$@\"\nfi\necho \"[ERROR] cxvm not found in $CXVM_DIR/bin/cxvm. Run setup.cex first.\"\nexit 1\n";
+        fs.writeFile(projectBin + "/cxvm", cxvmDispatcher);
+        child_process.execSync("chmod +x \"" + projectBin + "/cxvm\"");
+
+        // Local ./bin/cexr
+        let cexrDispatcher: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nif [ \"$1\" = \"v6\" ] || [ \"$1\" = \"6.0.0\" ]; then\n  shift\n  if [ -x \"$CXVM_DIR/bin/6.0.0/cexr\" ]; then\n    exec \"$CXVM_DIR/bin/6.0.0/cexr\" \"$@\"\n  fi\nfi\nif [ \"$1\" = \"v8\" ] || [ \"$1\" = \"8.0.0\" ]; then\n  shift\n  if [ -x \"$CXVM_DIR/bin/8.0.0/cexr\" ]; then\n    exec \"$CXVM_DIR/bin/8.0.0/cexr\" \"$@\"\n  fi\nfi\nif [ -x \"$CXVM_DIR/bin/cexr\" ]; then\n  exec \"$CXVM_DIR/bin/cexr\" \"$@\"\nfi\nif [ -x \"$CXVM_DIR/current/bin/cexr\" ]; then\n  exec \"$CXVM_DIR/current/bin/cexr\" \"$@\"\nfi\necho \"[ERROR] cexr not found. Run setup.cex first.\"\nexit 1\n";
+        fs.writeFile(projectBin + "/cexr", cexrDispatcher);
+        child_process.execSync("chmod +x \"" + projectBin + "/cexr\"");
+
+        // Local ./bin/cex symlinked to ./bin/cexr
+        child_process.execSync("ln -sf \"" + projectBin + "/cexr\" \"" + projectBin + "/cex\" 2>/dev/null || true");
+
+        // Register binary apps with exact version of cexr (1.0.26)
+        let exactCexr: string = this.cexrExactVersion;
+        let cexrFactorySrc: string = (fs.exists(projectBin + "/1.0.26/cexr-factory")) ? (projectBin + "/1.0.26/cexr-factory") : (projectBin + "/cexr");
+        let cexrBeanSrc: string = (fs.exists(projectBin + "/1.0.26/cexr-bean")) ? (projectBin + "/1.0.26/cexr-bean") : (projectBin + "/cexr");
+        let cexrDeliverySrc: string = (fs.exists(projectBin + "/1.0.26/cexr-delivery")) ? (projectBin + "/1.0.26/cexr-delivery") : (projectBin + "/cexr");
+        let cexrDrawerSrc: string = (fs.exists(projectBin + "/1.0.26/cexr-drawer")) ? (projectBin + "/1.0.26/cexr-drawer") : (projectBin + "/cexr");
+
+        this.registerBinaryApp(cexDir, cxvmDir, "cexr-factory", cexrFactorySrc, exactCexr);
+        this.registerBinaryApp(cexDir, cxvmDir, "cexr-bean", cexrBeanSrc, exactCexr);
+        this.registerBinaryApp(cexDir, cxvmDir, "cexr-delivery", cexrDeliverySrc, exactCexr);
+        this.registerBinaryApp(cexDir, cxvmDir, "cexr-drawer", cexrDrawerSrc, exactCexr);
+
+        // Register compiler and tools
+        if (fs.exists(projectBin + "/8.0.0/cexp-v8")) {
+            this.registerBinaryApp(cexDir, cxvmDir, "cexp-v8", projectBin + "/8.0.0/cexp-v8", this.defaultVer);
+            this.registerBinaryApp(cexDir, cxvmDir, "cexp", projectBin + "/8.0.0/cexp-v8", this.defaultVer);
+        } else if (fs.exists(cxvmDir + "/bin/cexp")) {
+            this.registerBinaryApp(cexDir, cxvmDir, "cexp-v8", cxvmDir + "/bin/cexp", this.defaultVer);
+            this.registerBinaryApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp", this.defaultVer);
+        }
+
+        if (fs.exists(projectBin + "/1.0.5/cex-pack")) {
+            this.registerBinaryApp(cexDir, cxvmDir, "cex-pack", projectBin + "/1.0.5/cex-pack", "1.0.5");
+        }
+        if (fs.exists(projectBin + "/1.0.5/cex-pack-bean")) {
+            this.registerBinaryApp(cexDir, cxvmDir, "cex-pack-bean", projectBin + "/1.0.5/cex-pack-bean", "1.0.5");
+        }
+        if (fs.exists(projectBin + "/1.0.8/cex-lint")) {
+            this.registerBinaryApp(cexDir, cxvmDir, "cex-lint", projectBin + "/1.0.8/cex-lint", "1.0.8");
+        }
+
+        // Target build integration: CXVM_DIR/$name-$type/$version/binary & CXVM_DIR/cxvm/$version/bin
+        let pkgName: string = "cxvm";
+        let pkgType: string = "bean";
+        let pkgVer: string = "2.0.0";
+        if (fs.exists("cex-pack.json")) {
+            let mfRaw: string = fs.readFile("cex-pack.json");
+            let parsed: JsonValue* = JsonDoc::parse(mfRaw);
+            if (parsed != nullptr && parsed->has("name")) {
+                let pName: string = parsed->get("name")->asString();
+                let sPos: int = (int)pName.find("/");
+                if (sPos != -1) {
+                    pkgName = pName.substr(sPos + 1);
+                } else {
+                    pkgName = pName;
+                }
+            }
+            if (parsed != nullptr && parsed->has("version")) {
+                pkgVer = parsed->get("version")->asString();
+            }
+        }
+
+        let targetDir: string = cxvmDir + "/" + pkgName + "-" + pkgType + "/" + pkgVer;
+        let targetDirAlias: string = cxmvDir + "/" + pkgName + "-" + pkgType + "/" + pkgVer;
+        let cxvmVerDir: string = cxvmDir + "/cxvm/" + pkgVer;
+        let cxvmDefDir: string = cxvmDir + "/cxvm/" + this.defaultVer;
+
+        child_process.execSync("mkdir -p \"" + targetDir + "\" \"" + targetDirAlias + "\" \"" + cxvmVerDir + "\" \"" + cxvmDefDir + "\"");
+
+        let realCxvmBin: string = (fs.exists("dist/cxvm")) ? (curPwd + "/dist/cxvm") : (cxvmDir + "/bin/cxvm");
+        child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + targetDir + "/binary\"");
+        child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + targetDir + "/bin\"");
+        child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmVerDir + "/bin\"");
+        child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmDefDir + "/bin\"");
+
+        this.registerBinaryApp(cexDir, cxvmDir, "cxvm", realCxvmBin, pkgVer);
+
+        // Configure shell profile
+        if (home.length() > 0) {
+            let zshrc: string = home + "/.zshrc";
+            let bashrc: string = home + "/.bashrc";
+            let cfg: string = "\n# 2-TEK CXVM: Cex Version Manager\nexport CXVM_DIR=\"" + cxvmDir + "\"\nexport PATH=\"$CXVM_DIR/bin:$CXVM_DIR/current/bin:$PATH\"\n";
+            if (fs.exists(zshrc)) {
+                let zContent: string = fs.readFile(zshrc);
+                if (zContent.find("CXVM_DIR") == -1) {
+                    fs.writeFile(zshrc, zContent + cfg);
+                    println("[OK] Appended CXVM_DIR and PATH to " + zshrc);
+                }
+            }
+            if (fs.exists(bashrc)) {
+                let bContent: string = fs.readFile(bashrc);
+                if (bContent.find("CXVM_DIR") == -1) {
+                    fs.writeFile(bashrc, bContent + cfg);
+                    println("[OK] Appended CXVM_DIR and PATH to " + bashrc);
+                }
+            }
+        }
+
+        let regRes: CxvmCommandResult* = cxvm->registerBinaryAppsInCexDir();
+        println(regRes->output);
+
+        println("\n================================================================================");
+        println("    2-TEK CXVM: Installation & Setup Complete [OK]                             ");
+        println("================================================================================");
+        println("  CXVM Directory:    " + cxvmDir + " (alias: " + cxmvDir + ")");
+        println("  cxvm Binary:       " + cxvmDir + "/bin/cxvm [READY]");
+        println("  cexr Exact Version:" + this.cexrExactVersion + " (Reserve Path: CEX_DIR/cexr-factory/" + this.cexrExactVersion + "/bin)");
+        println("  Integrated Build:  " + targetDir + "/binary (CXVM_DIR/$name-$type/$version/binary)");
+        println("  Target Build cxvm: " + cxvmDir + "/cxvm/$version/bin (alias: CXMV_DIR/cxvm/$version/bin)");
+        println("  Active Runtime:    CexR v" + this.defaultVer + " (Default)");
+        println("  Secondary Runtime: CexR v" + this.secondaryVer + " (LTS)");
+        println("  Status:            SETUP COMPLETE [OK]");
+        println("================================================================================");
+        return 0;
+    }
+}
+
+fn main(): int {
+    let runner: SetupRunner* = new SetupRunner();
+    return runner->run();
+}

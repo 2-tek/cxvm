@@ -46,11 +46,11 @@ trigger: always_on
 | **Direct App Dispatch** | `cexp --app $appName <cmd> [args...]` | Dispatch directly to registered binary app in `CEX_DIR` |
 | **Run CXVM App / Server** | `cexr src/index.cex` \| `CEX_DIR/cexr-$type/$version/bin src/index.cex` | Execute Lighting MVC server on port 3080 with CexR v8 |
 | **Run CXVM CLI** | `./bin/cxvm <command>` \| `cxvm <command>` | Run CXVM version manager CLI |
-| **Cross-Platform Setup Window** | `./bin/cxvm setup` \| `./scripts/setup.sh` \| `.\scripts\setup.ps1` | Launch interactive terminal setup window for PATH & env |
+| **Cross-Platform Setup Window** | `cexr setup.cex` \| `./bin/cxvm setup` \| `setup.sh` | Launch interactive native Cex setup window for PATH, env, and runtimes |
 | **Web Setup Window** | `curl http://localhost:3080/setup` \| browser at `:3080/setup` | Open full visual Lighting MVC desktop window UI |
 | **Run Test Suites** | `cexr tests/cxvm.test.cex` & `cexr tests/factory.test.cex` | Execute full regression test suites |
 | **Generate Distributions** | `bash scripts/generate_distributions.sh` | Build and package 36 platform bundles into `downloads/` & `dist/` |
-| **Compile Native Binary / Target Build** | `$CEX_DIR/cexr-bean/$version/bin build src/index.cex -o CXMV_DIR/cxvm/$version/bin` | Compile Cex code directly via `cexp-v$shortVersion` targeting `CXMV_DIR/cxvm/$version/bin` |
+| **Compile Native Binary / Target Build** | `cxvm build [target_index]` \| `$CEX_DIR/cexr-bean/$version/bin build src/index.cex -o CXMV_DIR/cxvm/$version/bin` | Compile Cex code targeting `CXVM_DIR/$name-$type/$version/binary` (and `CXMV_DIR/cxvm/$version/bin`) |
 | **Environment Doctor** | `$CEX_DIR/cexr-factory/$version/bin doctor` \| `./bin/cxvm doctor` | Inspect environment, paths, active runtime, and toolchains |
 | **Switch Active Runtime** | `cxvm use <version>` \| `./bin/cxvm use <version>` | Update active runtime symlink and session PATH |
 | **Install Version** | `cxvm install <version>` | Download and install pre-built runtime package |
@@ -65,4 +65,6 @@ trigger: always_on
 4. **Zero External C++ Dependencies in v2**: No C++ build invocations (`g++`, `clang++`, `make`, `cmake`) for runtime app execution.
 5. **Dual Dispatcher Support**: `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` must run out-of-the-box on POSIX and Windows (`.cmd`, `.ps1`).
 6. **Distribution Retention**: `dist/` contains all cross-platform pre-built archives and must never be stripped or ignored.
-6. **Rule (No Symbols)**: All scripts, outputs, and documentation must be pure ASCII without emojis or non-standard Unicode symbols.
+7. **Integrated Build Target Invariant**: When running `build` or `compile`, output directory integrates to `CXVM_DIR/$name-$type/$version/binary` (and `CXMV_DIR/cxvm/$version/bin`).
+8. **Pure Cex Setup Invariant**: `setup.cex` replaces legacy `setup.sh` as the native pure Cex installer executed via `cexr setup.cex`.
+9. **Rule (No Symbols)**: All scripts, outputs, and documentation must be pure ASCII without emojis or non-standard Unicode symbols.

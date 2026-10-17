@@ -68,23 +68,25 @@ powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 
 ## 3. Cross-Platform Setup Window & Reserve Build Target (`CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)
 
-### Terminal Setup Window (Cross-Platform CLI):
-Run the setup window to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), and project dispatchers in reserve path format (`CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`, e.g. `CEX_DIR/cexr-factory/$version/bin` and `CEX_DIR/cexr-bean/$version/bin`):
+### Pure Cex Native Setup (`setup.cex`):
+Run the setup window using the native Cex runner `cexr setup.cex` to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), registered apps in `CEX_DIR`, integrated target build directory (`CXVM_DIR/$name-$type/$version/binary`), and project dispatchers:
 
 ```bash
-# Linux / macOS (POSIX)
-curl -fsSL https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/setup.sh | bash
-# Or run locally:
-bash scripts/setup.sh
+# Native Pure Cex Setup Runner (Zero Python, Pure Cex):
+cexr setup.cex
+
 # Or via cxvm CLI:
 cxvm setup
+
+# Linux / macOS (POSIX wrapper):
+bash setup.sh
+# Or via curl:
+curl -fsSL https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/setup.sh | bash
 ```
 
 ```powershell
 # Windows PowerShell
-irm https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/setup.ps1 | iex
-# Or run locally:
-powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
+powershell -ExecutionPolicy Bypass -File dist/cxvm.ps1 setup
 # Or via CMD batch launcher:
 .\downloads\setup.cmd
 ```
@@ -94,16 +96,20 @@ When running the Factory application (`cexr-$type src/index.cex` on port 3080):
 - Open **`http://localhost:3080/setup`** in your browser to view the interactive Setup Window.
 - Monitor environment variables, PATH persistence, default version status, and live `cxvm doctor` diagnostics.
 
-### Running cxvm with Reserve Target Dispatchers:
-The project toolchain dispatchers resolve via reserve path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin` using **v8.0.0** by default, with instant support for **v6.0.0**:
+### Running cxvm with Reserve Target Dispatchers & Integrated Build:
+The project toolchain dispatchers resolve via reserve path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin` using the **exact version of CexR (`1.0.26`)** for `cexr-$type` (`CEX_DIR/cexr-factory/1.0.26/bin`, `CEX_DIR/cexr-bean/1.0.26/bin`) and **v8.0.0** for `cexp-v8` (`CEX_DIR/cexp-v8/8.0.0/bin`):
 
 ```bash
-# Run using default v8 runtime:
-$CEX_DIR/cexr-factory/$version/bin src/index.cex
-$CEX_DIR/cexr-bean/$version/bin build src/index.cex -o CXMV_DIR/cxvm/$version/bin
+# Run using default v8 runtime (cexr-factory, exact version 1.0.26):
+$CEX_DIR/cexr-factory/1.0.26/bin src/index.cex
+
+# Build compiles to integrated target build directory: CXVM_DIR/$name-$type/$version/binary
+# Target build of cxvm output: CXMV_DIR/cxvm/$version/bin
+cxvm build src/index.cex
+$CEX_DIR/cexr-bean/1.0.26/bin build src/index.cex -o CXMV_DIR/cxvm/$version/bin
 
 # Run using v6 runtime:
-$CEX_DIR/cexr-factory/$version/bin v6 run src/index.cex
+$CEX_DIR/cexr-factory/1.0.26/bin v6 run src/index.cex
 
 # Switch active version across sessions:
 cxvm use 8.0.0
@@ -116,7 +122,7 @@ cxvm use 6.0.0
 
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
-| `cxvm setup` | - | Displays cross-platform setup window, configures PATH & env, and links `CEX_DIR/cexr-factory/$version/bin` & `CEX_DIR/cexr-bean/$version/bin` (v8 & v6) |
+| `cxvm setup` | - | Displays cross-platform setup window, configures PATH & env, and links `CEX_DIR/cexr-factory/1.0.26/bin` & `CEX_DIR/cexr-bean/1.0.26/bin` (v8 & v6) |
 | `cxvm init [name\|.]` | `npm init` | Initializes default Cex project (`my-project`, custom name, or `.` for current folder) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
 | `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr-$type` runner |
 | `cxvm download 8.0.0 [plat]` | - | Downloads cross-platform bundle into cache for offline `cexr-$type` setup |

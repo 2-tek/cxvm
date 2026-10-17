@@ -13,12 +13,14 @@ trigger: always_on
 >    cexp --app $appName $action <target_index>
 >    ```
 >    where `$appName` is the registered application binary name (e.g. `cexr-factory` for `dev`, `cexr-bean` for `build`/`start`, or explicitly passed edition) and `$action` is the short command action (`dev`, `build`, `start`).
-> 2. **Register Binary App in `CEX_DIR` & Target Build in `CXMV_DIR`**:
+> 2. **Register Binary App in `CEX_DIR`, Target Build in `CXMV_DIR`, & Integrated Build in `CXVM_DIR`**:
 >    All toolchain binaries (`cexp-v8`, `cexp`, `cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm`, `cvm`, `thunder`, `lighting`) MUST be registered in `CEX_DIR`:
 >    - Reserve path: `CEX_DIR/$appName/$version/bin`
 >    - Direct companion binary: `CEX_DIR/bin/$appName`
 >    - CXVM Target Build: `CXMV_DIR/cxvm/$version/bin` (alias `CXVM_DIR/cxvm/$version/bin`)
-> 3. **Replace Python Scripts with `.cex` via `cexr-$type` Runtime**:
+>    - Integrated Build Target: `CXVM_DIR/$name-$type/$version/binary` (e.g. `CXVM_DIR/cxvm-bean/2.0.0/binary`)
+> 3. **Replace setup.sh with setup.cex & Zero Python via `cexr-$type` Runtime**:
+>    Setup is implemented in pure Cex (`setup.cex`) and executed natively via `cexr setup.cex`.
 >    All scripts that previously used Python (`python`, `python3`, `#!/usr/bin/env python3`, `python3 -c`) MUST be replaced with native `.cex` scripts executed using the `cexr-$type` runtime (`cexr <script.cex>`).
 
 ---

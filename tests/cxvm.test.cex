@@ -216,9 +216,17 @@ fn main(): int {
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexp-v8") != -1, "register output contains cexp-v8");
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-factory") != -1, "register output contains cexr-factory");
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-bean") != -1, "register output contains cexr-bean");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-factory/1.0.26/bin") != -1, "register output uses exact version 1.0.26 for cexr-factory");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-bean/1.0.26/bin") != -1, "register output uses exact version 1.0.26 for cexr-bean");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-delivery/1.0.26/bin") != -1, "register output uses exact version 1.0.26 for cexr-delivery");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-drawer/1.0.26/bin") != -1, "register output uses exact version 1.0.26 for cexr-drawer");
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/bin") != -1, "register output contains CEX_DIR/bin");
     Assert::isTrue(regCexDirRes->output.find("CXMV_DIR/cxvm") != -1, "register output contains target build CXMV_DIR/cxvm");
+    Assert::isTrue(regCexDirRes->output.find("CXVM_DIR/$name-$type/$version/binary") != -1, "register output contains integrated build target");
     Assert::isTrue(setupCmdRes->output.find("CXMV_DIR/cxvm") != -1, "setup output contains target build CXMV_DIR/cxvm");
+    Assert::isTrue(setupCmdRes->output.find("CXVM_DIR/$name-$type/$version/binary") != -1, "setup output contains integrated build target");
+    Assert::isTrue(fs.exists("setup.cex"), "setup.cex exists on root");
+    Assert::isTrue(fs.exists("dist/setup.cex"), "dist/setup.cex exists in dist/");
     let appCxvmRes: int = cxvm->appExecute("cxvm", "build", "src/index.cex");
     Assert::equalsInt(0, appCxvmRes, "cxvm --app cxvm build returns 0 OK");
     suite->addResult("test_cxvm_version_manager", true, "", 1);
@@ -248,6 +256,10 @@ fn main(): int {
     let resSetup: HttpResponse* = app->simulateRequest("GET", "/setup", "", "text/html");
     Assert::equalsInt(200, resSetup->statusCode, "GET /setup returns 200 OK");
     Assert::isTrue(resSetup->body.find("CXVM Cross-Platform System Setup Window") != -1, "Setup window view contains title");
+
+    let resSetupCex: HttpResponse* = app->simulateRequest("GET", "/setup.cex", "", "text/plain");
+    Assert::equalsInt(200, resSetupCex->statusCode, "GET /setup.cex returns 200 OK");
+    Assert::isTrue(resSetupCex->body.find("SetupRunner") != -1, "setup.cex contains SetupRunner");
 
     let resSh: HttpResponse* = app->simulateRequest("GET", "/install.sh", "", "text/x-shellscript");
     Assert::equalsInt(200, resSh->statusCode, "GET /install.sh returns 200 OK");

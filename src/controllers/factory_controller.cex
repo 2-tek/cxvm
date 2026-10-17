@@ -202,6 +202,23 @@ class FactoryController extends BaseController {
         return HttpResponse::ok(content, cType);
     }
 
+    public serveSetupCex(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
+        let filePath: string = downloadsDir + "/setup.cex";
+        if (fs.exists(filePath)) {
+            let content: string = fs.readFile(filePath);
+            return HttpResponse::ok(content, "text/plain");
+        }
+        if (fs.exists("dist/setup.cex")) {
+            let content: string = fs.readFile("dist/setup.cex");
+            return HttpResponse::ok(content, "text/plain");
+        }
+        if (fs.exists("setup.cex")) {
+            let content: string = fs.readFile("setup.cex");
+            return HttpResponse::ok(content, "text/plain");
+        }
+        return HttpResponse::notFound("setup.cex not found");
+    }
+
     public serveSetupSh(req: HttpRequest*, port: int, downloadsDir: string): HttpResponse* {
         let filePath: string = downloadsDir + "/setup.sh";
         if (fs.exists(filePath)) {
@@ -210,6 +227,14 @@ class FactoryController extends BaseController {
         }
         if (fs.exists("scripts/setup.sh")) {
             let content: string = fs.readFile("scripts/setup.sh");
+            return HttpResponse::ok(content, "text/x-shellscript");
+        }
+        if (fs.exists("dist/setup.sh")) {
+            let content: string = fs.readFile("dist/setup.sh");
+            return HttpResponse::ok(content, "text/x-shellscript");
+        }
+        if (fs.exists("setup.sh")) {
+            let content: string = fs.readFile("setup.sh");
             return HttpResponse::ok(content, "text/x-shellscript");
         }
         return HttpResponse::notFound("setup.sh not found");

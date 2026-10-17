@@ -50,13 +50,13 @@ The `cxvm` repository defines the official distribution hub and version manageme
      - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr-$type` runtime, `cexp-v$shortVersion` compiler, and Pure Cex toolchain status.
 
 4. **Cross-Platform Setup Window**:
-   - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), and project `./bin/` integration.
+   - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`setup.cex` executed via `cexr setup.cex`, `cxvm setup`, `setup.sh`, `dist/cxvm.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), integrated build target (`CXVM_DIR/$name-$type/$version/binary`), and project `./bin/` integration.
    - **Web Setup Window (Lighting MVC)**: Full-featured desktop application window UI on route `/setup` with macOS/Windows titlebar controls (`[RED] [YELLOW] [GREEN]`), tabbed OS quick installers, environment status cards, runtime selector, and live `cxvm doctor` console.
 
 5. **Project Toolchain Dispatchers & Registered Binary Apps in `CEX_DIR` (Reserve Path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)**:
-   - `CEX_DIR/cexr-factory/$version/bin`: Smart runtime dispatcher defaulting to **CexR v8.0.0** with instant version switching to **v6.0.0** (`$CEX_DIR/cexr-factory/$version/bin v6 ...`).
-   - `CEX_DIR/cexr-bean/$version/bin`: Toolchain runner with support for `run`, `build`, `doctor`, `setup`, and version switches.
-   - `CEX_DIR/cexp-v8/$version/bin` & `CEX_DIR/bin/cexp`: Direct native machine compiler and app dispatcher.
+   - `CEX_DIR/cexr-factory/1.0.26/bin`: Smart runtime dispatcher strictly using the **exact version of CexR (`1.0.26`)** with instant version switching to **v6.0.0** (`$CEX_DIR/cexr-factory/1.0.26/bin v6 ...`).
+   - `CEX_DIR/cexr-bean/1.0.26/bin`: Toolchain runner with support for `run`, `build`, `doctor`, `setup`, and version switches.
+   - `CEX_DIR/cexp-v8/8.0.0/bin` & `CEX_DIR/bin/cexp`: Direct native machine compiler and app dispatcher.
    - **Hook Standard**: Short commands (`cxvm dev`, `cxvm build`, `cxvm start`) hook into `cexp --app $appName action` (e.g. `cexp --app cexr-factory dev src/index.cex` or `cexp --app cexr-bean build src/index.cex`).
    - **Registered Binary Apps**: All ecosystem apps (`cexp-v8`, `cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm`, `cvm`, `thunder`, `lighting`) registered in `CEX_DIR/$appName/$version/bin` and companion `CEX_DIR/bin/$appName`.
    - Cross-platform Windows companions: `cexr.cmd`, `cex.cmd`, `cxvm.cmd`, `cexr.ps1`, `cex.ps1`, `cxvm.ps1`.
@@ -78,6 +78,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
 | Server Port | `3080` | Factory MVC Default Port |
 | Primary Store | `dist/` & `downloads/` | **Keep `dist/` with downloads of cxvm cross platforms** |
 | Target Build | `CXMV_DIR/cxvm/$version/bin` | Official cxvm target build output (alias `CXVM_DIR/cxvm/$version/bin`) |
+| Integrated Target Build | `CXVM_DIR/$name-$type/$version/binary` | Official integrated target build directory (e.g. `CXVM_DIR/cxvm-bean/2.0.0/binary`) |
 
 ---
 
@@ -92,6 +93,8 @@ cxvm/
 +-- bin/                          # Project toolchain dispatchers (cexr, cex, cxvm, .cmd, .ps1)
 +-- dist/                         # Cross-platform distribution bundles (Rule 69: NOT ignored)
 +-- downloads/                    # Cross-platform distribution download store
++-- setup.cex                     # Pure Cex native setup runner (cexr setup.cex)
++-- setup.sh                      # POSIX companion setup runner
 +-- scripts/                      # Build pipeline & setup automation scripts
 |   +-- generate_distributions.sh # Multi-platform package builder & dist sync
 |   +-- setup.sh                  # POSIX cross-platform setup window script

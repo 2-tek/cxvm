@@ -28,6 +28,10 @@ function Run-App {
     $cexDir = if ($env:CEX_DIR) { $env:CEX_DIR } elseif ($env:CEX_HOME) { $env:CEX_HOME } else { (Join-Path $HOME ".cex") }
     $cxmvHome = if ($env:CXMV_DIR) { $env:CXMV_DIR } else { $cxvmHome }
     $candidates = @(
+        (Join-Path $cxvmHome "cxvm-bean\$curVer\binary"),
+        (Join-Path $cxmvHome "cxvm-bean\$curVer\binary"),
+        (Join-Path $cxvmHome "$AppName\$curVer\binary"),
+        (Join-Path $cxmvHome "$AppName\$curVer\binary"),
         (Join-Path $cexDir "$AppName\$curVer\bin\$AppName.cmd"),
         (Join-Path $cexDir "$AppName\$curVer\bin\$AppName"),
         (Join-Path $cexDir "$AppName\$curVer\bin"),
@@ -120,6 +124,19 @@ function Invoke-HookCexr {
 
     $appName = if ($versionType.StartsWith("cexr-")) { $versionType } else { "cexr-$versionType" }
     Write-Host "==> [cxvm $HookCmd] Hook -> cexp --app $appName $HookCmd $targetIndex" -ForegroundColor Cyan
+    if ($HookCmd -in "build","compile") {
+        $pkgName = "cxvm"
+        $pkgVer = "2.0.0"
+        if (Test-Path "cex-pack.json") {
+            try {
+                $mf = Get-Content "cex-pack.json" -Raw | ConvertFrom-Json
+                if ($mf.name) { $pkgName = Split-Path -Leaf $mf.name }
+                if ($mf.version) { $pkgVer = $mf.version }
+            } catch {}
+        }
+        $targetDir = Join-Path $cxvmHome "$pkgName-$versionType\$pkgVer\binary"
+        Write-Host "[OK] [cxvm build] Integrated target build directory: CXVM_DIR/`$name-`$type/`$version/binary (CXVM_DIR/$pkgName-$versionType/$pkgVer/binary)" -ForegroundColor Green
+    }
     return (Run-App -AppName $appName -AppCmd $HookCmd -AppArgs (@($targetIndex) + $extra))
 }
 
@@ -949,6 +966,12 @@ echo CexR Windows Runner ready.
         }
     }
     "setup" {
+        $setupCex = Join-Path $PSScriptRoot "setup.cex"
+        if (-not (Test-Path $setupCex)) { $setupCex = Join-Path (Get-Location) "setup.cex" }
+        if ((Test-Path $setupCex) -and (Get-Command "cexr" -ErrorAction SilentlyContinue)) {
+            & cexr $setupCex
+            return
+        }
         $setupScript = Join-Path $cxvmHome "bin\setup.ps1"
         if (-not (Test-Path $setupScript)) {
             $setupScript = Join-Path $PSScriptRoot "setup.ps1"
