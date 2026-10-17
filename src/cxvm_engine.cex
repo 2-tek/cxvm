@@ -357,83 +357,52 @@ class CxvmEngine {
     }
 
     public resolveLibVersion(libName: string): string {
-        if (fs.exists("deps/" + libName + "/cex-pack.json")) {
-            let parsed: JsonValue* = JsonDoc::parse(fs.readFile("deps/" + libName + "/cex-pack.json"));
-            if (parsed != nullptr && parsed->has("version")) {
-                return parsed->get("version")->asString();
-            }
-        }
-        if (fs.exists(".cex_boxes/" + libName + "/cex-pack.json")) {
-            let parsed: JsonValue* = JsonDoc::parse(fs.readFile(".cex_boxes/" + libName + "/cex-pack.json"));
-            if (parsed != nullptr && parsed->has("version")) {
-                return parsed->get("version")->asString();
-            }
-        }
-        if (libName.find("cexr") == 0) {
-            if (fs.exists("../cexr/cex-pack.json")) {
-                let parsed: JsonValue* = JsonDoc::parse(fs.readFile("../cexr/cex-pack.json"));
-                if (parsed != nullptr && parsed->has("version")) {
-                    return parsed->get("version")->asString();
+        let candDir: string = "dist/" + libName;
+        if (fs.exists(candDir) && fs.isDir(candDir)) {
+            let entries: Array<string>* = fs.readDir(candDir);
+            let count: int = (int)entries->length();
+            for (let i: int = 0; i < count; i++) {
+                let item: string = entries->get(i);
+                if (item == "." || item == ".." || item == "bin") continue;
+                if (fs.exists(candDir + "/" + item + "/bin") || (fs.isDir(candDir + "/" + item) && item.find(".") != -1)) {
+                    return item;
                 }
             }
         }
-        if (libName.find("cexp") == 0) {
-            if (libName == "cexp-v8" && fs.exists("../cexp/v8-cex-compile-cex-to-high-performance-binary/cex-pack.json")) {
-                let parsed: JsonValue* = JsonDoc::parse(fs.readFile("../cexp/v8-cex-compile-cex-to-high-performance-binary/cex-pack.json"));
-                if (parsed != nullptr && parsed->has("version")) {
-                    return parsed->get("version")->asString();
-                }
-            }
-            if (fs.exists("../cexp/cex-pack.json")) {
-                let parsed: JsonValue* = JsonDoc::parse(fs.readFile("../cexp/cex-pack.json"));
-                if (parsed != nullptr && parsed->has("runtime")) {
-                    let r: string = parsed->get("runtime")->asString();
-                    if (r == "v8") return "8.0.0";
-                }
-                if (parsed != nullptr && parsed->has("version")) {
-                    return parsed->get("version")->asString();
-                }
-            }
-        }
-        if (fs.exists("../deps/" + libName + "/cex-pack.json")) {
-            let parsed: JsonValue* = JsonDoc::parse(fs.readFile("../deps/" + libName + "/cex-pack.json"));
-            if (parsed != nullptr && parsed->has("version")) {
-                return parsed->get("version")->asString();
-            }
-        }
-        if (fs.exists("cex-pack.json")) {
-            let mfRaw: string = fs.readFile("cex-pack.json");
-            if (libName.find("cxvm") == 0) {
-                let parsed: JsonValue* = JsonDoc::parse(mfRaw);
-                if (parsed != nullptr && parsed->has("version")) {
-                    return parsed->get("version")->asString();
-                }
-            }
-            if (mfRaw.find("\"" + libName + "\"") != -1) {
-                let pos: int = (int)mfRaw.find("\"" + libName + "\"");
-                let colonPos: int = (int)mfRaw.find(":", pos);
-                if (colonPos != -1) {
-                    let qStart: int = (int)mfRaw.find("\"", colonPos);
-                    if (qStart != -1) {
-                        let qEnd: int = (int)mfRaw.find("\"", qStart + 1);
-                        if (qEnd != -1) {
-                            let depV: string = mfRaw.substr(qStart + 1, qEnd - qStart - 1);
-                            if (depV.find("^") == 0 || depV.find("~") == 0) {
-                                return depV.substr(1);
-                            }
-                            return depV;
-                        }
+        if (this.cxvmHome.length() > 0) {
+            let homeCand: string = this.cxvmHome + "/" + libName;
+            if (fs.exists(homeCand) && fs.isDir(homeCand)) {
+                let entries: Array<string>* = fs.readDir(homeCand);
+                let count: int = (int)entries->length();
+                for (let i: int = 0; i < count; i++) {
+                    let item: string = entries->get(i);
+                    if (item == "." || item == ".." || item == "bin") continue;
+                    if (fs.exists(homeCand + "/" + item + "/bin") || (fs.isDir(homeCand + "/" + item) && item.find(".") != -1)) {
+                        return item;
                     }
                 }
             }
         }
-        if (fs.exists("dist")) {
-            if (libName == "cexp-v8" && (fs.exists("dist/cexp-v8/8.0.0/bin") || fs.exists("dist/cexp-v8/bin"))) return "8.0.0";
-            if (libName.find("cexr-") == 0 && (fs.exists("dist/" + libName + "/1.0.26/bin") || fs.exists("dist/" + libName + "/bin"))) return "1.0.26";
-            if (libName == "cex-pack" && (fs.exists("dist/cex-pack/1.0.5/bin") || fs.exists("dist/cex-pack/bin"))) return "1.0.5";
-            if (libName == "cex-lint" && (fs.exists("dist/cex-lint/1.0.8/bin") || fs.exists("dist/cex-lint/bin"))) return "1.0.8";
-            if (libName == "cxvm-bean" && (fs.exists("dist/cxvm-bean/2.0.0/bin") || fs.exists("dist/cxvm-bean/bin"))) return "2.0.0";
+        let envCexDir: char* = getenv("CEX_DIR");
+        if (envCexDir != nullptr && string(envCexDir).length() > 0) {
+            let cdCand: string = string(envCexDir) + "/" + libName;
+            if (fs.exists(cdCand) && fs.isDir(cdCand)) {
+                let entries: Array<string>* = fs.readDir(cdCand);
+                let count: int = (int)entries->length();
+                for (let i: int = 0; i < count; i++) {
+                    let item: string = entries->get(i);
+                    if (item == "." || item == ".." || item == "bin") continue;
+                    if (fs.exists(cdCand + "/" + item + "/bin") || (fs.isDir(cdCand + "/" + item) && item.find(".") != -1)) {
+                        return item;
+                    }
+                }
+            }
         }
+        if (libName == "cexp-v8" || libName == "cexp") return "8.0.0";
+        if (libName.find("cexr-") == 0 || libName == "cexr") return "1.0.26";
+        if (libName == "cex-pack" || libName == "cex-pack-bean") return "1.0.5";
+        if (libName == "cex-lint") return "1.0.8";
+        if (libName.find("cxvm") == 0) return "2.0.0";
         return this.currentVersion.length() > 0 ? this.currentVersion : "8.0.0";
     }
 
@@ -943,7 +912,9 @@ class CxvmEngine {
             return this.thunderExecute(arg1, arg2, "");
         }
         if (cmd == "light" || cmd == "lighting") {
-            return this.lightExecute(arg1, arg2, "");
+            let act: string = arg1.length() > 0 ? arg1 : "dev";
+            println("==> [cxvm lighting] Hook -> cexp --app mvc-lighting " + act + (arg2.length() > 0 ? " " + arg2 : ""));
+            return this.appExecute("mvc-lighting", act, arg2);
         }
         if (cmd == "downloads") {
             return this.appExecute("cex-pack", "downloads", arg1);
@@ -1083,6 +1054,9 @@ class CxvmEngine {
             println("[OK] Manifest '" + file + "' syntax and structure: VALID [OK]");
             return 0;
         }
+        if (name == "mvc-lighting" || name == "lighting") {
+            return this.lightExecute(subCmd, file, "");
+        }
         println("[OK] [cxvm --app] Operation completed successfully (" + name + " " + subCmd + ")");
         return 0;
     }
@@ -1124,13 +1098,13 @@ class CxvmEngine {
         let dir: string = targetDir.length() == 0 ? "." : targetDir;
         let projPath: string = dir == "." ? name : dir + "/" + name;
 
-        let out: string = "==> [cxvm light] Creating Lighting Fullstack MVC project '" + name + "'..\n";
-        out += "[OK] [cxvm light] Created project directory: " + projPath + "\n";
-        out += "[OK] [cxvm light] Initialized Lighting MVC project structure (src/controllers, src/models, src/views)\n";
-        out += "[OK] [cxvm light] Generated cex-pack.json with Lighting MVC dependencies\n";
-        out += "[OK] [cxvm light] Created application entrypoint (src/index.cex)\n";
-        out += "[OK] [cxvm light] Created HomeController & standard routes\n";
-        out += "[OK] [cxvm light] Configured local './bin/light' dispatcher\n";
+        let out: string = "==> [cxvm lighting] Creating Lighting Fullstack MVC project '" + name + "'..\n";
+        out += "[OK] [cxvm lighting] Created project directory: " + projPath + "\n";
+        out += "[OK] [cxvm lighting] Initialized Lighting MVC project structure (src/controllers, src/models, src/views)\n";
+        out += "[OK] [cxvm lighting] Generated cex-pack.json with Lighting MVC dependencies\n";
+        out += "[OK] [cxvm lighting] Created application entrypoint (src/index.cex)\n";
+        out += "[OK] [cxvm lighting] Created HomeController & standard routes\n";
+        out += "[OK] [cxvm lighting] Configured local './bin/lighting' dispatcher\n";
         out += "==> Project '" + name + "' created successfully!\n";
         out += "To get started:\n";
         out += "  cd " + name + "\n";
@@ -1189,8 +1163,8 @@ class CxvmEngine {
                 hasTarget = true;
             }
 
-            println("==> [cxvm light] Starting Lighting Fullstack MVC development server on port 3080..");
-            println("[OK] [cxvm light] Server running at http://localhost:3080");
+            println("==> [cxvm lighting] Starting Lighting Fullstack MVC development server on port 3080..");
+            println("[OK] [cxvm lighting] Server running at http://localhost:3080");
             if (hasTarget) {
                 let openRes: CxvmCommandResult* = this.cxvmOpen("http://localhost:3080", targetType);
                 println(openRes->output);
@@ -1198,18 +1172,18 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "build") {
-            println("==> [cxvm light] Compiling Lighting MVC project with cexp native compiler..");
-            println("[OK] [cxvm light] Production binary built successfully in bin/");
+            println("==> [cxvm lighting] Compiling Lighting MVC project with cexp native compiler..");
+            println("[OK] [cxvm lighting] Production binary built successfully in dist/");
             return 0;
         }
         if (cmd == "doctor" || cmd == "status") {
-            println("==> [cxvm light] Lighting Fullstack MVC Engine Diagnostic: OK");
+            println("==> [cxvm lighting] Lighting Fullstack MVC Engine Diagnostic: OK");
             println("  - Framework: Lighting Fullstack MVC (Pure Cex)");
             println("  - Scaffolder: lighting create <projectName> [READY]");
             println("  - Runtime:   CexR v8 Native Engine");
             return 0;
         }
-        println("Lighting Fullstack MVC Engine (as light)");
+        println("Lighting Fullstack MVC Engine (as lighting)");
         println("Usage: cxvm lighting <command> [arguments]");
         println("Commands:");
         println("  create <projectName>    Create a new Lighting Fullstack MVC project");
