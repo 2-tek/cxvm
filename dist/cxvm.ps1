@@ -28,16 +28,33 @@ function Run-App {
     $cexDir = if ($env:CEX_DIR) { $env:CEX_DIR } elseif ($env:CEX_HOME) { $env:CEX_HOME } else { (Join-Path $HOME ".cex") }
     $cxmvHome = if ($env:CXMV_DIR) { $env:CXMV_DIR } else { $cxvmHome }
     $candidates = @(
-        (Join-Path $PWD "deps\$AppName\$curVer\bin"),
-        (Join-Path $PWD "deps\$AppName\$curVer\binary"),
         (Join-Path $PWD "deps\$AppName\$curVer\bin\$AppName.cmd"),
         (Join-Path $PWD "deps\$AppName\$curVer\bin\$AppName"),
-        (Join-Path $PWD "dist\cxvm-bean\$curVer\bin"),
-        (Join-Path $PWD "dist\$AppName\$curVer\bin"),
-        (Join-Path $cxvmHome "cxvm-bean\$curVer\binary"),
-        (Join-Path $cxmvHome "cxvm-bean\$curVer\binary"),
-        (Join-Path $cxvmHome "$AppName\$curVer\binary"),
-        (Join-Path $cxmvHome "$AppName\$curVer\binary"),
+        (Join-Path $PWD "deps\$AppName\$curVer\bin"),
+        (Join-Path $PWD "dist\$AppName\$curVer\bin\$AppName.cmd"),
+        (Join-Path $PWD "dist\$AppName\$curVer\bin\$AppName"),
+        (Join-Path $PWD "dist\$AppName\$curVer\bin")
+    )
+    if (Test-Path (Join-Path $PWD "dist\$AppName")) {
+        Get-ChildItem -Path (Join-Path $PWD "dist\$AppName") -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            $candidates += (Join-Path $_.FullName "bin\$AppName.cmd")
+            $candidates += (Join-Path $_.FullName "bin\$AppName")
+            $candidates += (Join-Path $_.FullName "bin")
+        }
+    }
+    if ($AppName -eq "cxvm" -or $AppName -eq "cxvm-bean") {
+        $candidates += (Join-Path $PWD "dist\cxvm-bean\$curVer\bin\cxvm.cmd")
+        $candidates += (Join-Path $PWD "dist\cxvm-bean\$curVer\bin\cxvm")
+        $candidates += (Join-Path $PWD "dist\cxvm-bean\$curVer\bin")
+        if (Test-Path (Join-Path $PWD "dist\cxvm-bean")) {
+            Get-ChildItem -Path (Join-Path $PWD "dist\cxvm-bean") -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+                $candidates += (Join-Path $_.FullName "bin\cxvm.cmd")
+                $candidates += (Join-Path $_.FullName "bin\cxvm")
+                $candidates += (Join-Path $_.FullName "bin")
+            }
+        }
+    }
+    $candidates += @(
         (Join-Path $cexDir "$AppName\$curVer\bin\$AppName.cmd"),
         (Join-Path $cexDir "$AppName\$curVer\bin\$AppName"),
         (Join-Path $cexDir "$AppName\$curVer\bin"),
@@ -50,30 +67,6 @@ function Run-App {
         (Join-Path $cxmvHome "cxvm\$curVer\bin"),
         (Join-Path $cxvmHome "cxvm\$curVer\bin\cxvm.cmd"),
         (Join-Path $cxmvHome "cxvm\$curVer\bin\cxvm.cmd"),
-        (Join-Path $PWD "bin\$AppName.cmd"),
-        (Join-Path $PWD "bin\$AppName"),
-        (Join-Path $PWD "bin\$curVer\$AppName-$AppCmd.cmd"),
-        (Join-Path $PWD "bin\$curVer\$AppName-$AppCmd"),
-        (Join-Path $PWD "bin\$curVer\$AppName.cmd"),
-        (Join-Path $PWD "bin\$curVer\$AppName")
-    )
-    if (Test-Path (Join-Path $PWD "bin")) {
-        Get-ChildItem -Path (Join-Path $PWD "bin") -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-            $candidates += (Join-Path $_.FullName "$AppName-$AppCmd.cmd")
-            $candidates += (Join-Path $_.FullName "$AppName-$AppCmd")
-            $candidates += (Join-Path $_.FullName "$AppName.cmd")
-            $candidates += (Join-Path $_.FullName "$AppName")
-            $candidates += (Join-Path $_.FullName "$AppName-bean.cmd")
-            $candidates += (Join-Path $_.FullName "$AppName-bean")
-        }
-    }
-    $candidates += @(
-        (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName-$AppCmd.cmd"),
-        (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName-$AppCmd"),
-        (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName.cmd"),
-        (Join-Path $PSScriptRoot "..\bin\$curVer\$AppName"),
-        (Join-Path $PSScriptRoot "$curVer\$AppName.cmd"),
-        (Join-Path $PSScriptRoot "$curVer\$AppName"),
         (Join-Path $PSScriptRoot "$AppName.cmd"),
         (Join-Path $PSScriptRoot "$AppName"),
         (Join-Path $cxvmHome "versions\v$curVer\bin\$AppName.cmd"),
@@ -145,10 +138,7 @@ function Invoke-HookCexr {
         $distBin = Join-Path $distTargetDir "bin"
         if (Test-Path (Join-Path $PSScriptRoot "cxvm.cmd")) {
             Copy-Item (Join-Path $PSScriptRoot "cxvm.cmd") $distBin -Force -ErrorAction SilentlyContinue
-        }
-        $targetDir = Join-Path $cxvmHome "$pkgName-$versionType\$pkgVer\binary"
         Write-Host "[OK] [cxvm build] Target integrated binary built into: ./dist/`$name-`$type/`$version/bin (./dist/$pkgName-$versionType/$pkgVer/bin)" -ForegroundColor Green
-        Write-Host "[OK] [cxvm build] Integrated target build directory: CXVM_DIR/`$name-`$type/`$version/binary (CXVM_DIR/$pkgName-$versionType/$pkgVer/binary)" -ForegroundColor Green
     }
     return (Run-App -AppName $appName -AppCmd $HookCmd -AppArgs (@($targetIndex) + $extra))
 }

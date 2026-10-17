@@ -85,24 +85,23 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/cxvm.ps1"), "cxvm.ps1 exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cxvm.cmd"), "cxvm.cmd exists in downloads");
     Assert::isTrue(fs.exists(downDir + "/cex-pack"), "cex-pack binary exists in downloads");
-    Assert::isTrue(fs.exists("bin/1.0.5/cex-pack-bean"), "cex-pack-bean built with exact version & type in ./bin/1.0.5/cex-pack-bean");
-    Assert::isTrue(fs.exists("bin/1.0.5/cex-pack"), "cex-pack integrated inside ./bin/1.0.5/cex-pack");
-    Assert::isTrue(fs.exists("bin/1.0.8/cex-lint"), "cex-lint binary build integrated into ./bin/1.0.8/cex-lint");
-    Assert::isTrue(fs.exists("bin/8.0.0/cexp-v8"), "standalone cexp-v8 built with exact version & type in CEX_DIR/cexp-v8/$version/bin");
-    Assert::isTrue(fs.exists("bin/7.0.0/cexp-v7"), "standalone cexp-v7 built with exact version & type in ./bin/7.0.0/cexp-v7");
-    Assert::isTrue(fs.exists("bin/6.0.2/cexp-v6"), "standalone cexp-v6 built with exact version & type in ./bin/6.0.2/cexp-v6");
-    Assert::isTrue(fs.exists("bin/5.0.0/cexp-v5"), "standalone cexp-v5 built with exact version & type in ./bin/5.0.0/cexp-v5");
-    Assert::isTrue(fs.exists("bin/4.0.0/cexp-v4"), "standalone cexp-v4 built with exact version & type in ./bin/4.0.0/cexp-v4");
-    Assert::isTrue(fs.exists("bin/3.0.1/cexp-v3"), "standalone cexp-v3 built with exact version & type in ./bin/3.0.1/cexp-v3");
-    Assert::isTrue(fs.exists("bin/2.0.0/cexp-v2"), "standalone cexp-v2 built with exact version & type in ./bin/2.0.0/cexp-v2");
-    Assert::isTrue(fs.exists("bin/1.0.0/cexp-v1"), "standalone cexp-v1 built with exact version & type in ./bin/1.0.0/cexp-v1");
-    Assert::isTrue(fs.exists("bin/1.0.26/cexr-bean"), "cexr-bean built with exact version & type in ./bin/1.0.26/cexr-bean");
-    Assert::isTrue(fs.exists("bin/1.0.26/cexr-delivery"), "cexr-delivery built with exact version & type in ./bin/1.0.26/cexr-delivery");
-    Assert::isTrue(fs.exists("bin/1.0.26/cexr-drawer"), "cexr-drawer built with exact version & type in ./bin/1.0.26/cexr-drawer");
-    Assert::isTrue(fs.exists("bin/1.0.26/cexr-factory"), "cexr-factory built with exact version & type in ./bin/1.0.26/cexr-factory");
-    Assert::isFalse(fs.exists("bin/cexp"), "no hardcoded flat ./bin/cexp");
-    Assert::isFalse(fs.exists("bin/cexr-bean"), "no hardcoded flat CEX_DIR/cexr-$type/$version/bin-bean");
-    Assert::isFalse(fs.exists("bin/bean"), "no hardcoded non-version ./bin/bean directory");
+    Assert::isTrue(fs.exists("dist/cex-pack-bean/1.0.5/bin"), "cex-pack-bean built with exact version & type in ./dist/cex-pack-bean/1.0.5/bin");
+    Assert::isTrue(fs.exists("dist/cex-pack/1.0.5/bin"), "cex-pack integrated inside ./dist/cex-pack/1.0.5/bin");
+    Assert::isTrue(fs.exists("dist/cex-lint/1.0.8/bin"), "cex-lint binary build integrated into ./dist/cex-lint/1.0.8/bin");
+    Assert::isTrue(fs.exists("dist/cexp-v8/8.0.0/bin"), "standalone cexp-v8 built with exact version & type in ./dist/cexp-v8/8.0.0/bin");
+    Assert::isTrue(fs.exists("dist/cexp-v7/7.0.0/bin"), "standalone cexp-v7 built with exact version & type in ./dist/cexp-v7/7.0.0/bin");
+    Assert::isTrue(fs.exists("dist/cexp-v6/6.0.2/bin"), "standalone cexp-v6 built with exact version & type in ./dist/cexp-v6/6.0.2/bin");
+    Assert::isTrue(fs.exists("dist/cexp-v5/5.0.0/bin"), "standalone cexp-v5 built with exact version & type in ./dist/cexp-v5/5.0.0/bin");
+    Assert::isTrue(fs.exists("dist/cexp-v4/4.0.0/bin"), "standalone cexp-v4 built with exact version & type in ./dist/cexp-v4/4.0.0/bin");
+    Assert::isTrue(fs.exists("dist/cexp-v3/3.0.1/bin"), "standalone cexp-v3 built with exact version & type in ./dist/cexp-v3/3.0.1/bin");
+    Assert::isTrue(fs.exists("dist/cexp-v2/2.0.0/bin"), "standalone cexp-v2 built with exact version & type in ./dist/cexp-v2/2.0.0/bin");
+    Assert::isTrue(fs.exists("dist/cexp-v1/1.0.0/bin"), "standalone cexp-v1 built with exact version & type in ./dist/cexp-v1/1.0.0/bin");
+    Assert::isTrue(fs.exists("dist/cexr-bean/1.0.26/bin"), "cexr-bean built with exact version & type in ./dist/cexr-bean/1.0.26/bin");
+    Assert::isTrue(fs.exists("dist/cexr-delivery/1.0.26/bin"), "cexr-delivery built with exact version & type in ./dist/cexr-delivery/1.0.26/bin");
+    Assert::isTrue(fs.exists("dist/cexr-drawer/1.0.26/bin"), "cexr-drawer built with exact version & type in ./dist/cexr-drawer/1.0.26/bin");
+    Assert::isTrue(fs.exists("dist/cexr-factory/1.0.26/bin"), "cexr-factory built with exact version & type in ./dist/cexr-factory/1.0.26/bin");
+    Assert::isFalse(fs.exists("dist/cxvm-bean/2.0.0/binary"), "binary deleted from ./dist/cxvm-bean/2.0.0/binary");
+    Assert::isFalse(fs.exists("bin"), "obsolete ./bin directory removed in favor of ./dist");
     let mfRaw: string = fs.readFile("cex-pack.json");
     Assert::isTrue(mfRaw.find("\"lint\": \"cxvm --app cex-lint fix .\"") != -1, "cex-pack.json scripts.lint is configured as cxvm --app cex-lint fix .");
     Assert::isTrue(fs.exists(downDir + "/manifest.json"), "manifest.json exists in downloads");
@@ -179,7 +178,7 @@ fn main(): int {
     Assert::isTrue(setupCmdRes->output.find("cexr-delivery") != -1, "Setup output displays cexr-delivery via cexr -v");
     Assert::isTrue(setupCmdRes->output.find("cexr-drawer") != -1, "Setup output displays cexr-drawer via cexr -v");
     Assert::isTrue(setupCmdRes->output.find("CEX_DIR/cexp-v8/$version/bin") != -1, "Setup output displays CEX_DIR/cexp-v8/$version/bin");
-    Assert::isTrue(setupCmdRes->output.find("./bin/1.0.8/cex-lint") != -1, "Setup output displays ./bin/1.0.8/cex-lint");
+    Assert::isTrue(setupCmdRes->output.find("./dist/cex-lint/1.0.8/bin") != -1, "Setup output displays ./dist/cex-lint/1.0.8/bin");
 
     let uninstRes: CxvmCommandResult* = cxvm->uninstall("2.0.0");
     Assert::isTrue(uninstRes->success, "cxvm uninstall 2.0.0 succeeds");
@@ -223,13 +222,12 @@ fn main(): int {
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/bin") != -1, "register output contains CEX_DIR/bin");
     Assert::isTrue(regCexDirRes->output.find("CXMV_DIR/cxvm") != -1, "register output contains target build CXMV_DIR/cxvm");
     Assert::isTrue(regCexDirRes->output.find("./dist/$name-$type/$version/bin") != -1, "register output contains ./dist/$name-$type/$version/bin");
-    Assert::isTrue(regCexDirRes->output.find("CXVM_DIR/$name-$type/$version/binary") != -1, "register output contains integrated build target");
     Assert::isTrue(setupCmdRes->output.find("CXMV_DIR/cxvm") != -1, "setup output contains target build CXMV_DIR/cxvm");
     Assert::isTrue(setupCmdRes->output.find("./dist/$name-$type/$version/bin") != -1, "setup output contains ./dist/$name-$type/$version/bin");
-    Assert::isTrue(setupCmdRes->output.find("CXVM_DIR/$name-$type/$version/binary") != -1, "setup output contains integrated build target");
     Assert::isTrue(fs.exists("setup.cex"), "setup.cex exists on root");
     Assert::isTrue(fs.exists("dist/setup.cex"), "dist/setup.cex exists in dist/");
     Assert::isTrue(fs.exists("dist/cxvm-bean/2.0.0/bin"), "dist/cxvm-bean/2.0.0/bin built and exists on disk");
+    Assert::isFalse(fs.exists("dist/cxvm-bean/2.0.0/binary"), "dist/cxvm-bean/2.0.0/binary deleted");
     let appCxvmRes: int = cxvm->appExecute("cxvm", "build", "src/index.cex");
     Assert::equalsInt(0, appCxvmRes, "cxvm --app cxvm build returns 0 OK");
     let depsRes: CxvmCommandResult* = cxvm->setupDeps();
@@ -652,8 +650,8 @@ fn main(): int {
     Assert::isTrue(vlSetupRes->output.find("cgroup2 (/sys/fs/cgroup)") != -1, "Output confirms cgroup2 mount");
     Assert::isTrue(vlSetupRes->output.find("cex-v8.0.0-linux-x86_64.tar.gz") != -1, "Output confirms linux-x86_64 v8.0.0 bundle extraction");
     Assert::isTrue(vlSetupRes->output.find("CEX_DIR/cexp-v8/$version/bin") != -1, "Output confirms CEX_DIR/cexp-v8/$version/bin deployment inside virtual-linux");
-    Assert::isTrue(vlSetupRes->output.find("./bin/1.0.26/cexr-factory") != -1, "Output confirms ./bin/1.0.26/cexr-factory deployment inside virtual-linux");
-    Assert::isTrue(vlSetupRes->output.find("./bin/1.0.26/cexr-bean") != -1, "Output confirms ./bin/1.0.26/cexr-bean deployment inside virtual-linux");
+    Assert::isTrue(vlSetupRes->output.find("./dist/cexr-factory/1.0.26/bin") != -1, "Output confirms ./dist/cexr-factory/1.0.26/bin deployment inside virtual-linux");
+    Assert::isTrue(vlSetupRes->output.find("./dist/cexr-bean/1.0.26/bin") != -1, "Output confirms ./dist/cexr-bean/1.0.26/bin deployment inside virtual-linux");
     Assert::isTrue(vlSetupRes->output.find("VIRTUAL-LINUX SETUP COMPLETE [OK]") != -1, "Output confirms VIRTUAL-LINUX SETUP COMPLETE [OK]");
 
     // 2. CLI routing for thunder setup & setup virtual-linux

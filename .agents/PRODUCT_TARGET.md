@@ -42,7 +42,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
    - Standalone multi-platform management CLI (`cxvm` for POSIX bash, `cxvm.ps1` for Windows PowerShell, and `cxvm.cmd` for Windows Command Prompt).
    - Manages runtime installations into `~/.cxvm/bin/v<version>`, creates symlinks to `~/.cxvm/current`, and manages the active `cexr-$type` binary runner.
    - Core commands:
-     - `cxvm setup`: Cross-platform interactive setup window configuring environment, PATH, and `./bin/` dispatchers.
+     - `cxvm setup`: Cross-platform interactive setup window configuring environment, PATH, and `./dist/` dispatchers.
      - `cxvm install <ver>`: Installs target version package into `~/.cxvm/bin/`.
      - `cxvm download <ver> [plat|all]`: Downloads bundles into cache for offline setup.
      - `cxvm use <ver>`: Switches active runtime and updates PATH in the current session.
@@ -50,7 +50,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
      - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr-$type` runtime, `cexp-v$shortVersion` compiler, and Pure Cex toolchain status.
 
 4. **Cross-Platform Setup Window**:
-   - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`setup.cex` executed via `cexr setup.cex`, `cxvm setup`, `setup.sh`, `dist/cxvm.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), integrated build target (`./dist/$name-$type/$version/bin` and `CXVM_DIR/$name-$type/$version/binary`), and project `./bin/` integration.
+   - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`setup.cex` executed via `cexr setup.cex`, `cxvm setup`, `setup.sh`, `dist/cxvm.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), integrated build target (`./dist/$name-$type/$version/bin`), and project `./dist/` integration.
    - **Web Setup Window (Lighting MVC)**: Full-featured desktop application window UI on route `/setup` with macOS/Windows titlebar controls (`[RED] [YELLOW] [GREEN]`), tabbed OS quick installers, environment status cards, runtime selector, and live `cxvm doctor` console.
 
 5. **Project Toolchain Dispatchers & Registered Binary Apps in `CEX_DIR` (Reserve Path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)**:
@@ -78,7 +78,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
 | Server Port | `3080` | Factory MVC Default Port |
 | Primary Store | `dist/` & `downloads/` | **Keep `dist/` with downloads of cxvm cross platforms** |
 | Target Build | `CXMV_DIR/cxvm/$version/bin` | Official cxvm target build output (alias `CXVM_DIR/cxvm/$version/bin`) |
-| Integrated Target Build | `./dist/$name-$type/$version/bin` | Official target integrated binary built (e.g. `./dist/cxvm-bean/2.0.0/bin`, alias `CXVM_DIR/$name-$type/$version/binary`) |
+| Integrated Target Build | `./dist/$name-$type/$version/bin` | Official target integrated binary built (e.g. `./dist/cxvm-bean/2.0.0/bin`) |
 | Dependencies Build Target | `deps/$name-$type/$version/bin` | Official target dependencies build with version caching (skip rebuild if present) |
 
 ---
@@ -91,12 +91,10 @@ cxvm/
 |   +-- PRODUCT_TARGET.md         # Canonical target specification
 |   +-- rules/                    # Enforced coding & architectural rules
 |   +-- standards/                # Architectural & setup standards
-+-- bin/                          # Project toolchain dispatchers (cexr, cex, cxvm, .cmd, .ps1)
 +-- deps/                         # Versioned project dependencies (deps/$name-$type/$version/bin)
-+-- dist/                         # Cross-platform distribution bundles (Rule 69: NOT ignored)
++-- dist/                         # Cross-platform distribution bundles & versioned binaries (./dist/$name-$type/$version/bin)
 +-- downloads/                    # Cross-platform distribution download store
 +-- setup.cex                     # Pure Cex native setup runner (cexr setup.cex)
-+-- setup.sh                      # POSIX companion setup runner
 +-- scripts/                      # Build pipeline & setup automation scripts
 |   +-- generate_distributions.sh # Multi-platform package builder & dist sync
 |   +-- setup.sh                  # POSIX cross-platform setup window script

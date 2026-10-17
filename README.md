@@ -69,7 +69,7 @@ powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 ## 3. Cross-Platform Setup Window & Reserve Build Target (`CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)
 
 ### Pure Cex Native Setup (`setup.cex`):
-Run the setup window using the native Cex runner `cexr setup.cex` to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), registered apps in `CEX_DIR`, target integrated binary built (`./dist/$name-$type/$version/bin`), target directory (`CXVM_DIR/$name-$type/$version/binary`), and project dispatchers:
+Run the setup window using the native Cex runner `cexr setup.cex` to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), registered apps in `CEX_DIR`, target integrated binary built (`./dist/$name-$type/$version/bin`), and project dispatchers:
 
 ```bash
 # Native Pure Cex Setup Runner (Zero Python, Pure Cex):
@@ -97,7 +97,7 @@ powershell -ExecutionPolicy Bypass -File dist/cxvm.ps1 setup
 ### Dependency Auto-Build & Caching (`deps/$name-$type/$version`):
 When running `cxvm setup` or `cex setup`:
 - Scans and resolves dependencies dynamically and exactly from `cex-pack.json` files (`cexp-v8`, `cexr-bean`, `cexr-factory`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm-bean`, etc.) with zero hardcoding.
-- Builds and links binaries into `deps/$name-$type/$version/bin` and `deps/$name-$type/$version/binary`.
+- Builds and links binaries into `deps/$name-$type/$version/bin`.
 - If an existing version already exists in `deps/$name-$type/$version`, rebuilding is automatically skipped (`[CACHE]`), avoiding duplicate compile time.
 
 ### Web Setup Window (Lighting MVC):
@@ -113,7 +113,7 @@ The project toolchain dispatchers resolve via reserve path `CEX_DIR|CEX_HOME.../
 $CEX_DIR/cexr-factory/1.0.26/bin src/index.cex
 
 # Build compiles to target integrated binary: ./dist/$name-$type/$version/bin
-# Target directory: CXVM_DIR/$name-$type/$version/binary, target build of cxvm output: CXMV_DIR/cxvm/$version/bin
+# Target build of cxvm output: CXMV_DIR/cxvm/$version/bin
 cxvm build src/index.cex
 $CEX_DIR/cexr-bean/1.0.26/bin build src/index.cex -o CXMV_DIR/cxvm/$version/bin
 
@@ -320,8 +320,8 @@ cxvm --app lighting create my-awesome-app
 ### Running & Building Lighting Applications:
 ```bash
 cd my-awesome-app
-cxvm --app lighting dev    # Or ./bin/lighting dev (starts server on port 3080)
-cxvm --app lighting build  # Or ./bin/lighting build (compiles native binary via cexp)
+cxvm --app lighting dev    # Or ./dist/lighting dev (starts server on port 3080)
+cxvm --app lighting build  # Or ./dist/lighting build (compiles native binary via cexp)
 cxvm --app lighting doctor # Runs diagnostic health check
 ```
 
