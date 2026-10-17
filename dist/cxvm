@@ -1214,7 +1214,7 @@ _cxvm_hook_cexr() {
 
 # -----------------------------------------------------------------------------
 # Integrated App Runner (--app <name> <command> [args...])
-# Prioritizes {rootPath}/dist/$name-$type/bin with cex-pack integrated inside {rootPath}/dist/cex-pack/bin
+# Prioritizes {rootPath}/dist/$name-$type/$version/bin with cex-pack integrated inside {rootPath}/dist/cex-pack/$version/bin
 # -----------------------------------------------------------------------------
 _cxvm_run_app() {
   local app_name="$1"
@@ -1241,7 +1241,7 @@ _cxvm_run_app() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   local pwd_dir="$(pwd)"
 
-  # Candidate binaries for $app_name prioritized strictly by {rootPath}/dist/$name-$type/bin
+  # Candidate binaries for $app_name prioritized strictly by {rootPath}/dist/$name-$type/$version/bin
   local target_bin="${app_name}"
   local is_cexr_edition=0
   if [ "$app_name" = "cexr" ] && [ -n "$app_cmd" ]; then
@@ -1260,16 +1260,24 @@ _cxvm_run_app() {
   local cxvm_dir="${CXVM_DIR:-${CXMV_DIR:-$HOME/.cxvm}}"
   local cxmv_dir="${CXMV_DIR:-$cxvm_dir}"
   local candidates=()
-  # 1. Prioritized {rootPath}/dist/$name-$type/bin and registered apps
+  # 1. Prioritized {rootPath}/dist/$name-$type/$version/bin and registered apps
   candidates+=(
+    "$pwd_dir/dist/$target_bin/$ver_clean/bin"
+    "$pwd_dir/dist/$app_name/$ver_clean/bin"
     "$pwd_dir/dist/$target_bin/bin"
     "$pwd_dir/dist/$app_name/bin"
     "$pwd_dir/dist/$target_bin"
     "$pwd_dir/dist/$app_name"
+    "$script_dir/../dist/$target_bin/$ver_clean/bin"
+    "$script_dir/../dist/$app_name/$ver_clean/bin"
     "$script_dir/../dist/$target_bin/bin"
     "$script_dir/../dist/$app_name/bin"
     "$script_dir/../dist/$target_bin"
     "$script_dir/../dist/$app_name"
+    "$CXVM_DIR/dist/$target_bin/$ver_clean/bin"
+    "$CXVM_DIR/dist/$app_name/$ver_clean/bin"
+    "$HOME/.cex/dist/$target_bin/$ver_clean/bin"
+    "$HOME/.cex/dist/$app_name/$ver_clean/bin"
     "$pwd_dir/dist/cxvm-bean/$ver_clean/bin"
     "$pwd_dir/dist/$target_bin/$ver_clean/bin"
     "$pwd_dir/dist/$app_name/$ver_clean/bin"

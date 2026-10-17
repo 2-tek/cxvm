@@ -512,7 +512,7 @@ class CxvmEngine {
         outMsg += depsRes->output + "\n";
         outMsg += "  Status:              SETUP COMPLETE [OK]";
 
-        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, deps/$name-$type/$version, {rootPath}/dist/cex-lint/bin, and v8/v6 runtimes successfully configured.", outMsg);
+        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, deps/$name-$type/$version, {rootPath}/dist/cex-lint/1.0.8/bin, and v8/v6 runtimes successfully configured.", outMsg);
     }
 
     // =========================================================================
@@ -753,7 +753,7 @@ class CxvmEngine {
         outMsg += "  [Step 4] Initialize CXVM_DIR:   " + this.virtualLinuxRootfs + " (target platform: linux-x86_64)\n";
         outMsg += "  [Step 5] Extract Bundles:       cex-v8.0.0-linux-x86_64.tar.gz (Default) & cex-v6.0.0-linux-x86_64.tar.gz (LTS)\n";
         outMsg += "  [Step 6] Default Editions:      Runtime = cexr-factory (factory), Build = cexr-bean (bean)\n";
-        outMsg += "  [Step 7] Versioned Binaries:    CEX_DIR/cexp-v8/$version/bin, {rootPath}/dist/cexr-factory/bin, {rootPath}/dist/cexr-bean/bin, {rootPath}/dist/cex-pack-bean/bin\n";
+        outMsg += "  [Step 7] Versioned Binaries:    CEX_DIR/cexp-v8/$version/bin, {rootPath}/dist/cexr-factory/1.0.26/bin, {rootPath}/dist/cexr-bean/1.0.26/bin, {rootPath}/dist/cex-pack-bean/1.0.5/bin\n";
         outMsg += "  [Step 8] CexR Editions (cexr -v inside virtual-linux):\n";
         outMsg += this.cexrVersionOutput() + "\n";
         outMsg += "  [Step 9] Virtual-Linux Doctor:  HEALTHY [OK]\n";
@@ -1081,13 +1081,13 @@ class CxvmEngine {
         }
         if (name == "cex-lint") {
             let lintTarget: string = manifestFile.length() == 0 ? "." : manifestFile;
-            println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via registered binary app in {rootPath}/dist/cex-lint/bin");
+            println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via registered binary app in {rootPath}/dist/cex-lint/1.0.8/bin");
             return 0;
         }
         if (name == "cex-pack" && subCmd == "downloads") {
             println("[OK] [cex-pack] Dependencies downloaded into .cex_boxes/ (active runtime v" + this.currentVersion + ")");
-            println("[OK] [cex-pack] Registered binary app in {rootPath}/dist/cex-pack/bin");
-            println("[OK] [cex-pack] Integrated inside {rootPath}/dist/cex-pack/bin");
+            println("[OK] [cex-pack] Registered binary app in {rootPath}/dist/cex-pack/" + this.currentVersion + "/bin");
+            println("[OK] [cex-pack] Integrated inside {rootPath}/dist/cex-pack/" + this.currentVersion + "/bin");
             return 0;
         }
         if (name == "cex-pack" && (subCmd == "check" || subCmd == "lint")) {
