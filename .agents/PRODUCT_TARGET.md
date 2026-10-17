@@ -79,6 +79,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
 | Primary Store | `dist/` & `downloads/` | **Keep `dist/` with downloads of cxvm cross platforms** |
 | Target Build | `CXMV_DIR/cxvm/$version/bin` | Official cxvm target build output (alias `CXVM_DIR/cxvm/$version/bin`) |
 | Integrated Target Build | `./dist/$name-$type/$version/bin` | Official target integrated binary built (e.g. `./dist/cxvm-bean/2.0.0/bin`, alias `CXVM_DIR/$name-$type/$version/binary`) |
+| Dependencies Build Target | `deps/$name-$type/$version/bin` | Official target dependencies build with version caching (skip rebuild if present) |
 
 ---
 
@@ -91,6 +92,7 @@ cxvm/
 |   +-- rules/                    # Enforced coding & architectural rules
 |   +-- standards/                # Architectural & setup standards
 +-- bin/                          # Project toolchain dispatchers (cexr, cex, cxvm, .cmd, .ps1)
++-- deps/                         # Versioned project dependencies (deps/$name-$type/$version/bin)
 +-- dist/                         # Cross-platform distribution bundles (Rule 69: NOT ignored)
 +-- downloads/                    # Cross-platform distribution download store
 +-- setup.cex                     # Pure Cex native setup runner (cexr setup.cex)

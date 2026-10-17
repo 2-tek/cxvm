@@ -28,6 +28,10 @@ function Run-App {
     $cexDir = if ($env:CEX_DIR) { $env:CEX_DIR } elseif ($env:CEX_HOME) { $env:CEX_HOME } else { (Join-Path $HOME ".cex") }
     $cxmvHome = if ($env:CXMV_DIR) { $env:CXMV_DIR } else { $cxvmHome }
     $candidates = @(
+        (Join-Path $PWD "deps\$AppName\$curVer\bin"),
+        (Join-Path $PWD "deps\$AppName\$curVer\binary"),
+        (Join-Path $PWD "deps\$AppName\$curVer\bin\$AppName.cmd"),
+        (Join-Path $PWD "deps\$AppName\$curVer\bin\$AppName"),
         (Join-Path $PWD "dist\cxvm-bean\$curVer\bin"),
         (Join-Path $PWD "dist\$AppName\$curVer\bin"),
         (Join-Path $cxvmHome "cxvm-bean\$curVer\binary"),
@@ -531,6 +535,15 @@ function Run-Light {
         }
     }
 
+    if ($LightCmd -eq "test") {
+        $testTarget = if ($LightArgs.Count -gt 0) { $LightArgs[0] } elseif (Test-Path "tests\hub.test.cex") { "tests\hub.test.cex" } elseif (Test-Path "tests\cxvm.test.cex") { "tests\cxvm.test.cex" } else { "test" }
+        $cexpTestBin = if (Get-Command "cexp-v8" -ErrorAction SilentlyContinue) { "cexp-v8" } elseif (Test-Path (Join-Path $cxvmHome "bin\8.0.0\cexp-v8.cmd")) { Join-Path $cxvmHome "bin\8.0.0\cexp-v8.cmd" } elseif (Test-Path (Join-Path $cxvmHome "bin\cexp-v8.cmd")) { Join-Path $cxvmHome "bin\cexp-v8.cmd" } else { "cexp-v8" }
+        Write-Host "==> [cxvm lighting test] Running $testTarget via cexp-v8..." -ForegroundColor Cyan
+        $restArgs = if ($LightArgs.Count -gt 1) { $LightArgs[1..($LightArgs.Count - 1)] } else { @() }
+        & $cexpTestBin test $testTarget @restArgs
+        return
+    }
+
     if ($LightCmd -eq "create") {
         $projName = if ($LightArgs.Count -gt 0) { $LightArgs[0] } else { "my-lighting-app" }
         Write-Host "==> [cxvm light] Creating Lighting Fullstack MVC project '$projName'..." -ForegroundColor Cyan
@@ -753,6 +766,16 @@ switch ($Command) {
         if ($ExtraArgs) { $argsList += $ExtraArgs }
         Run-Cvm -CvmCmd $Command -CvmArgs $argsList
     }
+    "test" {
+        $testTarget = if ($Version) { $Version } else { "" }
+        $cexpTestBin = if (Get-Command "cexp-v8" -ErrorAction SilentlyContinue) { "cexp-v8" } elseif (Test-Path (Join-Path $cxvmHome "bin\8.0.0\cexp-v8.cmd")) { Join-Path $cxvmHome "bin\8.0.0\cexp-v8.cmd" } elseif (Test-Path (Join-Path $cxvmHome "bin\cexp-v8.cmd")) { Join-Path $cxvmHome "bin\cexp-v8.cmd" } else { "cexp-v8" }
+        Write-Host "==> [cxvm test] Executing test suite via cexp-v8 ($testTarget)..." -ForegroundColor Cyan
+        $allArgs = @()
+        if ($testTarget) { $allArgs += $testTarget }
+        if ($Platform) { $allArgs += $Platform }
+        if ($ExtraArgs) { $allArgs += $ExtraArgs }
+        & $cexpTestBin test @allArgs
+    }
     "downloads" {
         $mf = if ($Version) { $Version } else { "cex-pack.json" }
         $appArgs = @($mf) + $ExtraArgs
@@ -973,6 +996,17 @@ echo CexR Windows Runner ready.
             Remove-Item $targetDir -Force -Recurse
             Write-Host "==> [cxvm] Uninstalled Cex v$Version" -ForegroundColor Green
         }
+    }
+    "cex" {
+        if ($Version -eq "setup") {
+            $setupCex = Join-Path $PSScriptRoot "setup.cex"
+            if (-not (Test-Path $setupCex)) { $setupCex = Join-Path (Get-Location) "setup.cex" }
+            if ((Test-Path $setupCex) -and (Get-Command "cexr" -ErrorAction SilentlyContinue)) {
+                & cexr $setupCex
+                return
+            }
+        }
+        Run-App -AppName "cex" -AppCmd $Version -Arguments $ExtraArgs
     }
     "setup" {
         $setupCex = Join-Path $PSScriptRoot "setup.cex"

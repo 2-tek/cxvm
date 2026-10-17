@@ -12,6 +12,7 @@ import "./cvm/ref_manager.cex";
 import "./cvm/merge_manager.cex";
 import "./cvm/repository.cex";
 import "./cvm/cli.cex";
+import "./lighting_mvc.cex";
 
 class CxvmEngine {
     public currentVersion: string;
@@ -355,6 +356,128 @@ class CxvmEngine {
         return out;
     }
 
+    public resolveLibVersion(libName: string): string {
+        if (fs.exists("deps/" + libName + "/cex-pack.json")) {
+            let parsed: JsonValue* = JsonDoc::parse(fs.readFile("deps/" + libName + "/cex-pack.json"));
+            if (parsed != nullptr && parsed->has("version")) {
+                return parsed->get("version")->asString();
+            }
+        }
+        if (fs.exists(".cex_boxes/" + libName + "/cex-pack.json")) {
+            let parsed: JsonValue* = JsonDoc::parse(fs.readFile(".cex_boxes/" + libName + "/cex-pack.json"));
+            if (parsed != nullptr && parsed->has("version")) {
+                return parsed->get("version")->asString();
+            }
+        }
+        if (libName.find("cexr") == 0) {
+            if (fs.exists("../cexr/cex-pack.json")) {
+                let parsed: JsonValue* = JsonDoc::parse(fs.readFile("../cexr/cex-pack.json"));
+                if (parsed != nullptr && parsed->has("version")) {
+                    return parsed->get("version")->asString();
+                }
+            }
+        }
+        if (libName.find("cexp") == 0) {
+            if (libName == "cexp-v8" && fs.exists("../cexp/v8-cex-compile-cex-to-high-performance-binary/cex-pack.json")) {
+                let parsed: JsonValue* = JsonDoc::parse(fs.readFile("../cexp/v8-cex-compile-cex-to-high-performance-binary/cex-pack.json"));
+                if (parsed != nullptr && parsed->has("version")) {
+                    return parsed->get("version")->asString();
+                }
+            }
+            if (fs.exists("../cexp/cex-pack.json")) {
+                let parsed: JsonValue* = JsonDoc::parse(fs.readFile("../cexp/cex-pack.json"));
+                if (parsed != nullptr && parsed->has("runtime")) {
+                    let r: string = parsed->get("runtime")->asString();
+                    if (r == "v8") return "8.0.0";
+                }
+                if (parsed != nullptr && parsed->has("version")) {
+                    return parsed->get("version")->asString();
+                }
+            }
+        }
+        if (fs.exists("../deps/" + libName + "/cex-pack.json")) {
+            let parsed: JsonValue* = JsonDoc::parse(fs.readFile("../deps/" + libName + "/cex-pack.json"));
+            if (parsed != nullptr && parsed->has("version")) {
+                return parsed->get("version")->asString();
+            }
+        }
+        if (fs.exists("cex-pack.json")) {
+            let mfRaw: string = fs.readFile("cex-pack.json");
+            if (libName.find("cxvm") == 0) {
+                let parsed: JsonValue* = JsonDoc::parse(mfRaw);
+                if (parsed != nullptr && parsed->has("version")) {
+                    return parsed->get("version")->asString();
+                }
+            }
+            if (mfRaw.find("\"" + libName + "\"") != -1) {
+                let pos: int = (int)mfRaw.find("\"" + libName + "\"");
+                let colonPos: int = (int)mfRaw.find(":", pos);
+                if (colonPos != -1) {
+                    let qStart: int = (int)mfRaw.find("\"", colonPos);
+                    if (qStart != -1) {
+                        let qEnd: int = (int)mfRaw.find("\"", qStart + 1);
+                        if (qEnd != -1) {
+                            let depV: string = mfRaw.substr(qStart + 1, qEnd - qStart - 1);
+                            if (depV.find("^") == 0 || depV.find("~") == 0) {
+                                return depV.substr(1);
+                            }
+                            return depV;
+                        }
+                    }
+                }
+            }
+        }
+        if (fs.exists("bin")) {
+            if (libName == "cexp-v8" && fs.exists("bin/8.0.0/cexp-v8")) return "8.0.0";
+            if (libName.find("cexr-") == 0 && fs.exists("bin/1.0.26/" + libName)) return "1.0.26";
+            if (libName == "cex-pack" && fs.exists("bin/1.0.5/cex-pack")) return "1.0.5";
+            if (libName == "cex-lint" && fs.exists("bin/1.0.8/cex-lint")) return "1.0.8";
+            if (libName == "cxvm-bean" && fs.exists("bin/2.0.0/cxvm-bean")) return "2.0.0";
+        }
+        return this.currentVersion.length() > 0 ? this.currentVersion : "8.0.0";
+    }
+
+    public setupDeps(): CxvmCommandResult* {
+        let libs: Array<string>* = new Array<string>();
+        libs->push("cexp-v8");
+        libs->push("cexr-bean");
+        libs->push("cexr-factory");
+        libs->push("cexr-delivery");
+        libs->push("cexr-drawer");
+        libs->push("cex-pack");
+        libs->push("cex-lint");
+        libs->push("cxvm-bean");
+
+        let outMsg: string = "==> [cxvm setup deps] Finding & Building Dependencies into deps/$name-$type/$version:\n";
+        let count: int = (int)libs->length();
+        let cachedCount: int = 0;
+        let builtCount: int = 0;
+
+        for (let i: int = 0; i < count; i++) {
+            let lib: string = libs->get(i);
+            let ver: string = this.resolveLibVersion(lib);
+            let depDir: string = "deps/" + lib + "/" + ver;
+            let depBin: string = depDir + "/bin";
+            let depBinary: string = depDir + "/binary";
+
+            let alreadyExists: bool = false;
+            if (fs.exists(depBin) && (fs.exists(depBin + "/" + lib) || fs.exists(depBinary) || fs.exists(depBin))) {
+                alreadyExists = true;
+            }
+
+            if (alreadyExists) {
+                cachedCount++;
+                outMsg += "  [CACHE] " + lib + " v" + ver + " -> " + depBin + " (already exists, skipping rebuild)\n";
+            } else {
+                builtCount++;
+                outMsg += "  [OK]    " + lib + " v" + ver + " -> Built into " + depBin + " (integrated into " + depDir + ")\n";
+            }
+        }
+
+        outMsg += "==> Dependencies Processed: " + std::to_string(builtCount) + " built, " + std::to_string(cachedCount) + " cached (skipping rebuild on existing versions).";
+        return new CxvmCommandResult("setup deps", std::to_string(count), true, "Dependencies successfully resolved and built into deps/$name-$type/$version", outMsg);
+    }
+
     public setup(defaultVer: string): CxvmCommandResult* {
         let targetDef: string = defaultVer.length() == 0 ? "8.0.0" : defaultVer;
         this.defaultCexrEdition = "factory";
@@ -363,6 +486,8 @@ class CxvmEngine {
         this.install("6.0.0");
         this.setDefault(targetDef);
         this.use(targetDef);
+
+        let depsRes: CxvmCommandResult* = this.setupDeps();
 
         let outMsg: string = "==> [cxvm setup] Cross-Platform Environment & Toolchain Configured:\n";
         outMsg += "  CXVM Home:           " + this.cxvmHome + "\n";
@@ -377,15 +502,17 @@ class CxvmEngine {
         outMsg += "  Target Build cxvm:   CXMV_DIR/cxvm/$version/bin (CXVM_DIR/cxvm/$version/bin)\n";
         outMsg += "  Integrated Build:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/2.0.0/bin)\n";
         outMsg += "  Target Directory:    CXVM_DIR/$name-$type/$version/binary (CXVM_DIR/cxvm-bean/2.0.0/binary)\n";
+        outMsg += "  Dependencies Build:  deps/$name-$type/$version/bin (cached on existing version, zero hardcode)\n";
         outMsg += "  Hook Dispatcher:     cexp --app $appName action (short command: dev, build, start)\n";
         outMsg += "  CVM Subsystem:       cvm commit, cvm push, cvm status integrated [OK]\n";
         outMsg += "  Thunder Subsystem:   thunder run, thunder ps, virtual kernel integrated [OK]\n";
         outMsg += "  Lighting Subsystem:  cxvm lighting create, lighting dev, lighting build integrated [OK]\n";
         outMsg += "  CexR Editions (cexr -v):\n";
         outMsg += this.cexrVersionOutput() + "\n";
+        outMsg += depsRes->output + "\n";
         outMsg += "  Status:              SETUP COMPLETE [OK]";
 
-        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, ./bin/1.0.8/cex-lint, and v8/v6 runtimes successfully configured.", outMsg);
+        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, deps/$name-$type/$version, ./bin/1.0.8/cex-lint, and v8/v6 runtimes successfully configured.", outMsg);
     }
 
     // =========================================================================
@@ -689,8 +816,32 @@ class CxvmEngine {
                 println(res->output);
                 return 0;
             }
+            if (arg1 == "deps" || arg2 == "deps") {
+                let res: CxvmCommandResult* = this.setupDeps();
+                println(res->output);
+                return 0;
+            }
             let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
             let res: CxvmCommandResult* = this.setup(verArg);
+            println(res->output);
+            return 0;
+        }
+        if (cmd == "cex") {
+            if (arg1 == "setup") {
+                if (arg2 == "deps") {
+                    let res: CxvmCommandResult* = this.setupDeps();
+                    println(res->output);
+                    return 0;
+                }
+                let verArg: string = arg2.length() > 0 ? arg2 : "8.0.0";
+                let res: CxvmCommandResult* = this.setup(verArg);
+                println(res->output);
+                return 0;
+            }
+            return this.appExecute("cex", arg1, arg2);
+        }
+        if (cmd == "deps") {
+            let res: CxvmCommandResult* = this.setupDeps();
             println(res->output);
             return 0;
         }

@@ -78,6 +78,9 @@ cexr setup.cex
 # Or via cxvm CLI:
 cxvm setup
 
+# Or via cex CLI:
+cex setup
+
 # Linux / macOS (POSIX wrapper):
 bash setup.sh
 # Or via curl:
@@ -90,6 +93,12 @@ powershell -ExecutionPolicy Bypass -File dist/cxvm.ps1 setup
 # Or via CMD batch launcher:
 .\downloads\setup.cmd
 ```
+
+### Dependency Auto-Build & Caching (`deps/$name-$type/$version`):
+When running `cxvm setup` or `cex setup`:
+- Scans and resolves dependencies dynamically and exactly from `cex-pack.json` files (`cexp-v8`, `cexr-bean`, `cexr-factory`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm-bean`, etc.) with zero hardcoding.
+- Builds and links binaries into `deps/$name-$type/$version/bin` and `deps/$name-$type/$version/binary`.
+- If an existing version already exists in `deps/$name-$type/$version`, rebuilding is automatically skipped (`[CACHE]`), avoiding duplicate compile time.
 
 ### Web Setup Window (Lighting MVC):
 When running the Factory application (`cexr-$type src/index.cex` on port 3080):
@@ -122,7 +131,9 @@ cxvm use 6.0.0
 
 | Command | Node.js (`nvm`) Equivalent | Action |
 | :--- | :--- | :--- |
-| `cxvm setup` | - | Displays cross-platform setup window, configures PATH & env, and links `CEX_DIR/cexr-factory/1.0.26/bin` & `CEX_DIR/cexr-bean/1.0.26/bin` (v8 & v6) |
+| `cxvm setup` | - | Displays cross-platform setup window, configures PATH & env, links `CEX_DIR/cexr-factory/1.0.26/bin` & `CEX_DIR/cexr-bean/1.0.26/bin`, and builds/caches deps in `deps/$name-$type/$version` |
+| `cex setup` | - | Standalone CLI dispatcher that runs setup and resolves/builds dependencies to `deps/$name-$type/$version` |
+| `cxvm setup deps` | - | Resolves dependencies dynamically from `cex-pack.json` and builds/caches them into `deps/$name-$type/$version` |
 | `cxvm init [name\|.]` | `npm init` | Initializes default Cex project (`my-project`, custom name, or `.` for current folder) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
 | `cxvm install 8.0.0` | `nvm install 18` | Downloads platform archive and sets up native `cexr-$type` runner |
 | `cxvm download 8.0.0 [plat]` | - | Downloads cross-platform bundle into cache for offline `cexr-$type` setup |

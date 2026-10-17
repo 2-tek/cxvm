@@ -232,6 +232,29 @@ fn main(): int {
     Assert::isTrue(fs.exists("dist/cxvm-bean/2.0.0/bin"), "dist/cxvm-bean/2.0.0/bin built and exists on disk");
     let appCxvmRes: int = cxvm->appExecute("cxvm", "build", "src/index.cex");
     Assert::equalsInt(0, appCxvmRes, "cxvm --app cxvm build returns 0 OK");
+    let depsRes: CxvmCommandResult* = cxvm->setupDeps();
+    Assert::isTrue(depsRes->success, "cxvm setupDeps succeeds");
+    Assert::isTrue(depsRes->output.find("deps/$name-$type/$version") != -1, "setupDeps mentions target deps/$name-$type/$version");
+    Assert::isTrue(depsRes->output.find("cexp-v8") != -1, "setupDeps resolves cexp-v8");
+    Assert::isTrue(depsRes->output.find("cexr-bean") != -1, "setupDeps resolves cexr-bean");
+    Assert::isTrue(depsRes->output.find("cexr-factory") != -1, "setupDeps resolves cexr-factory");
+    Assert::isTrue(depsRes->output.find("cex-pack") != -1, "setupDeps resolves cex-pack");
+    Assert::isTrue(depsRes->output.find("cex-lint") != -1, "setupDeps resolves cex-lint");
+    Assert::isTrue(depsRes->output.find("cxvm-bean") != -1, "setupDeps resolves cxvm-bean");
+    Assert::equalsString("8.0.0", cxvm->resolveLibVersion("cexp-v8"), "resolveLibVersion dynamically resolves cexp-v8");
+    Assert::equalsString("1.0.26", cxvm->resolveLibVersion("cexr-bean"), "resolveLibVersion dynamically resolves cexr-bean");
+    Assert::equalsString("1.0.26", cxvm->resolveLibVersion("cexr-factory"), "resolveLibVersion dynamically resolves cexr-factory");
+    Assert::equalsString("1.0.5", cxvm->resolveLibVersion("cex-pack"), "resolveLibVersion dynamically resolves cex-pack");
+    Assert::equalsString("1.0.8", cxvm->resolveLibVersion("cex-lint"), "resolveLibVersion dynamically resolves cex-lint");
+    Assert::equalsString("2.0.0", cxvm->resolveLibVersion("cxvm-bean"), "resolveLibVersion dynamically resolves cxvm-bean");
+    let depsRes2: CxvmCommandResult* = cxvm->setupDeps();
+    Assert::isTrue(depsRes2->success, "second setupDeps execution succeeds");
+    Assert::isTrue(depsRes2->output.find("skipping rebuild") != -1, "setupDeps skips rebuild when existing version exists");
+    let execCexSetupRes: int = cxvm->cvmExecute("cex", "setup", "");
+    Assert::equalsInt(0, execCexSetupRes, "cxvm cvmExecute cex setup returns 0 OK");
+    let execSetupDepsRes: int = cxvm->cvmExecute("setup", "deps", "");
+    Assert::equalsInt(0, execSetupDepsRes, "cxvm cvmExecute setup deps returns 0 OK");
+    Assert::isTrue(setupCmdRes->output.find("Dependencies Build:") != -1, "setup output confirms dependencies built and cached");
     suite->addResult("test_cxvm_version_manager", true, "", 1);
 
     // -------------------------------------------------------------
