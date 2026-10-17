@@ -1214,7 +1214,7 @@ _cxvm_hook_cexr() {
 
 # -----------------------------------------------------------------------------
 # Integrated App Runner (--app <name> <command> [args...])
-# Prioritizes ./bin/$version/<app> with cex-pack integrated inside ./bin/$version/cex-pack
+# Prioritizes {rootPath}/dist/$name-$type/bin with cex-pack integrated inside {rootPath}/dist/cex-pack/bin
 # -----------------------------------------------------------------------------
 _cxvm_run_app() {
   local app_name="$1"
@@ -1241,7 +1241,7 @@ _cxvm_run_app() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   local pwd_dir="$(pwd)"
 
-  # Candidate binaries for $app_name prioritized strictly by /bin/$exactlyverions/$name-$type
+  # Candidate binaries for $app_name prioritized strictly by {rootPath}/dist/$name-$type/bin
   local target_bin="${app_name}"
   local is_cexr_edition=0
   if [ "$app_name" = "cexr" ] && [ -n "$app_cmd" ]; then
@@ -1260,14 +1260,16 @@ _cxvm_run_app() {
   local cxvm_dir="${CXVM_DIR:-${CXMV_DIR:-$HOME/.cxvm}}"
   local cxmv_dir="${CXMV_DIR:-$cxvm_dir}"
   local candidates=()
-  # 1. Registered binary app in CEX_DIR and CXVM_DIR (reserve paths and bin)
+  # 1. Prioritized {rootPath}/dist/$name-$type/bin and registered apps
   candidates+=(
-    "$pwd_dir/deps/$target_bin/$ver_clean/bin"
-    "$pwd_dir/deps/$app_name/$ver_clean/bin"
-    "$pwd_dir/deps/$target_bin/$ver_clean/binary"
-    "$pwd_dir/deps/$app_name/$ver_clean/binary"
-    "$script_dir/../deps/$target_bin/$ver_clean/bin"
-    "$script_dir/../deps/$app_name/$ver_clean/bin"
+    "$pwd_dir/dist/$target_bin/bin"
+    "$pwd_dir/dist/$app_name/bin"
+    "$pwd_dir/dist/$target_bin"
+    "$pwd_dir/dist/$app_name"
+    "$script_dir/../dist/$target_bin/bin"
+    "$script_dir/../dist/$app_name/bin"
+    "$script_dir/../dist/$target_bin"
+    "$script_dir/../dist/$app_name"
     "$pwd_dir/dist/cxvm-bean/$ver_clean/bin"
     "$pwd_dir/dist/$target_bin/$ver_clean/bin"
     "$pwd_dir/dist/$app_name/$ver_clean/bin"
