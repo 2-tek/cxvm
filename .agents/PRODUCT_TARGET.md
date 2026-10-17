@@ -50,7 +50,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
      - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr-$type` runtime, `cexp-v$shortVersion` compiler, and Pure Cex toolchain status.
 
 4. **Cross-Platform Setup Window**:
-   - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`setup.cex` executed via `cexr setup.cex`, `cxvm setup`, `setup.sh`, `dist/cxvm.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), integrated build target (`CXVM_DIR/$name-$type/$version/binary`), and project `./bin/` integration.
+   - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`setup.cex` executed via `cexr setup.cex`, `cxvm setup`, `setup.sh`, `dist/cxvm.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), integrated build target (`./dist/$name-$type/$version/bin` and `CXVM_DIR/$name-$type/$version/binary`), and project `./bin/` integration.
    - **Web Setup Window (Lighting MVC)**: Full-featured desktop application window UI on route `/setup` with macOS/Windows titlebar controls (`[RED] [YELLOW] [GREEN]`), tabbed OS quick installers, environment status cards, runtime selector, and live `cxvm doctor` console.
 
 5. **Project Toolchain Dispatchers & Registered Binary Apps in `CEX_DIR` (Reserve Path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)**:
@@ -78,7 +78,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
 | Server Port | `3080` | Factory MVC Default Port |
 | Primary Store | `dist/` & `downloads/` | **Keep `dist/` with downloads of cxvm cross platforms** |
 | Target Build | `CXMV_DIR/cxvm/$version/bin` | Official cxvm target build output (alias `CXVM_DIR/cxvm/$version/bin`) |
-| Integrated Target Build | `CXVM_DIR/$name-$type/$version/binary` | Official integrated target build directory (e.g. `CXVM_DIR/cxvm-bean/2.0.0/binary`) |
+| Integrated Target Build | `./dist/$name-$type/$version/bin` | Official target integrated binary built (e.g. `./dist/cxvm-bean/2.0.0/bin`, alias `CXVM_DIR/$name-$type/$version/binary`) |
 
 ---
 

@@ -69,7 +69,7 @@ powershell -ExecutionPolicy Bypass -File cxvm/downloads/install.ps1
 ## 3. Cross-Platform Setup Window & Reserve Build Target (`CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)
 
 ### Pure Cex Native Setup (`setup.cex`):
-Run the setup window using the native Cex runner `cexr setup.cex` to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), registered apps in `CEX_DIR`, integrated target build directory (`CXVM_DIR/$name-$type/$version/binary`), and project dispatchers:
+Run the setup window using the native Cex runner `cexr setup.cex` to configure environment variables (`CXVM_DIR`, `CEX_HOME`), shell PATH persistence, default runtime versions (`v8.0.0` default and `v6.0.0` LTS), registered apps in `CEX_DIR`, target integrated binary built (`./dist/$name-$type/$version/bin`), target directory (`CXVM_DIR/$name-$type/$version/binary`), and project dispatchers:
 
 ```bash
 # Native Pure Cex Setup Runner (Zero Python, Pure Cex):
@@ -103,8 +103,8 @@ The project toolchain dispatchers resolve via reserve path `CEX_DIR|CEX_HOME.../
 # Run using default v8 runtime (cexr-factory, exact version 1.0.26):
 $CEX_DIR/cexr-factory/1.0.26/bin src/index.cex
 
-# Build compiles to integrated target build directory: CXVM_DIR/$name-$type/$version/binary
-# Target build of cxvm output: CXMV_DIR/cxvm/$version/bin
+# Build compiles to target integrated binary: ./dist/$name-$type/$version/bin
+# Target directory: CXVM_DIR/$name-$type/$version/binary, target build of cxvm output: CXMV_DIR/cxvm/$version/bin
 cxvm build src/index.cex
 $CEX_DIR/cexr-bean/1.0.26/bin build src/index.cex -o CXMV_DIR/cxvm/$version/bin
 
