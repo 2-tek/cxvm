@@ -8,7 +8,7 @@ import "../models/platform_model.cex";
 import "../models/version_model.cex";
 import "../models/artifact_model.cex";
 import "../builder/dist_builder.cex";
-import "../cxvm/cxvm_engine.cex";
+import "../cxvm_engine.cex";
 import "../views/factory_views.cex";
 
 class FactoryController extends BaseController {

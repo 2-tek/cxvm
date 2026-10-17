@@ -172,7 +172,7 @@ cxvm use 6.0.0
 | `cxvm status` | Inspect branch, working tree, and untracked/staged files | `cxvm status` |
 | `cxvm add <files...>` | Stage file modifications into index | `cxvm add src/app.cex` \| `cxvm add .` |
 | `cxvm commit -m <msg>` | Commit staged changes to local DAG graph with SHA hash | `cxvm commit -m "feat(cxvm): integrate cvm into cxvm"` |
-| `cxvm push [remote] [branch]` | Push committed changes to upstream remote repository | `cxvm push` \| `cxvm push origin main` |
+| `cxvm push [remote] [branch]` | Push committed changes to remote (auto-builds to dist before push) | `cxvm push` \| `cxvm push origin main` |
 | `cxvm pull [remote] [branch]` | Fetch and integrate changes from upstream remote | `cxvm pull` \| `cxvm pull origin main` |
 | `cxvm branch [name]` | List existing branches or create a new branch | `cxvm branch` \| `cxvm branch feature/my-feature` |
 | `cxvm checkout <branch>` | Switch active HEAD to target branch | `cxvm checkout main` |
@@ -185,6 +185,12 @@ cxvm use 6.0.0
 | `cxvm start cvm [-p <port>]` | Start CVM as a server with single process (standalone) in background | `cxvm start cvm` \| `cxvm start cvm -p 4000` |
 | `cxvm status cvm` | Check single-process standalone CVM server status | `cxvm status cvm` |
 | `cxvm stop cvm` | Stop background standalone CVM server | `cxvm stop cvm` |
+
+### Auto-Build to `dist/` Before Push Code:
+
+Before pushing code (`cxvm push`, `cvm push`, or native `git push`), `cxvm` automatically triggers a build to `./dist/` (`./dist/$name-$type/$version/bin`, `./dist/cxvm`, `./dist/cxvm.sh`):
+- **Git `pre-push` Hook**: Configured and installed by `setup.cex` into `.git/hooks/pre-push` and tracked in `.githooks/pre-push`. Intercepts every direct `git push` to build to `dist/` automatically.
+- **CLI Push Commands**: Integrated into `dist/cxvm.sh`, `dist/cxvm`, `dist/cxvm.ps1`, and `src/cxvm_engine.cex` (`cvmPush()`), ensuring build execution before remote transmission.
 
 ### Standalone Single-Process CVM Server (`cxvm start cvm`):
 

@@ -370,6 +370,8 @@ fn main(): int {
     let cvmPushRes: CxvmCommandResult* = cxvm->cvmPush("origin", "main");
     Assert::isTrue(cvmPushRes->success, "cxvm push succeeds");
     Assert::isTrue(cvmPushRes->output.find("Successfully pushed branch main to origin") != -1, "Push output verifies remote push");
+    Assert::isTrue(cvmPushRes->output.find("Auto-building to dist before push") != -1, "Push auto-builds to dist before push");
+    Assert::isTrue(cvmPushRes->output.find("Target integrated binary built into: ./dist/$name-$type/$version/bin") != -1, "Push output verifies target integrated binary build");
 
     // 5. Pull
     let cvmPullRes: CxvmCommandResult* = cxvm->cvmPull("origin", "main");

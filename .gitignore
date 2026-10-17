@@ -50,8 +50,11 @@ bin/*
 **/.cex_boxes/
 cex_boxes
 cex_boxes/
-**/cex_boxes
 **/cex_boxes/
+
+# Dependencies build cache
+deps/
+deps/*
 
 # Native compiled artifacts
 *.o

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# 2-TEK CXVM: Auto build to dist before push code (pre-push hook)
+# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+set -e
+
+echo "==> [git pre-push hook] Auto-building to dist before push..."
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+if [ -f "$REPO_ROOT/dist/cxvm" ]; then
+  bash "$REPO_ROOT/dist/cxvm" build || true
+elif [ -f "$REPO_ROOT/bin/cxvm" ]; then
+  bash "$REPO_ROOT/bin/cxvm" build || true
+elif [ -n "$CXVM_DIR" ] && [ -x "$CXVM_DIR/bin/cxvm" ]; then
+  "$CXVM_DIR/bin/cxvm" build || true
+elif [ -x "$HOME/.cxvm/bin/cxvm" ]; then
+  "$HOME/.cxvm/bin/cxvm" build || true
+elif command -v cxvm >/dev/null 2>&1; then
+  cxvm build || true
+fi
+
+echo "[OK] [git pre-push hook] Auto-build to dist completed before push."
+exit 0

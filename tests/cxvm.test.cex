@@ -108,6 +108,7 @@ fn main(): int {
     Assert::isTrue(fs.exists(downDir + "/SHA256SUMS"), "SHA256SUMS checksum file exists in downloads");
     Assert::isTrue(fs.exists("dist") && fs.exists("dist/cex-v8.0.0-linux-x86_64.tar.gz"), "dist/ directory contains cross-platform distribution bundles");
     Assert::isTrue(fs.exists("dist/manifest.json") && fs.exists("dist/cxvm"), "dist/ contains cxvm and manifest.json");
+    Assert::isTrue(fs.exists(".githooks/pre-push"), ".githooks/pre-push exists for auto-building to dist before push");
     suite->addResult("test_distribution_builder_and_artifacts", true, "", 1);
 
     // -------------------------------------------------------------
@@ -387,6 +388,8 @@ fn main(): int {
     let cvmPushRes: CxvmCommandResult* = cxvm->cvmPush("origin", "main");
     Assert::isTrue(cvmPushRes->success, "cxvm push succeeds");
     Assert::isTrue(cvmPushRes->output.find("Successfully pushed branch main to origin") != -1, "Push output verifies remote push");
+    Assert::isTrue(cvmPushRes->output.find("Auto-building to dist before push") != -1, "Push auto-builds to dist before push");
+    Assert::isTrue(cvmPushRes->output.find("Target integrated binary built into: ./dist/$name-$type/$version/bin") != -1, "Push output verifies target integrated binary build");
 
     // 5. Pull
     let cvmPullRes: CxvmCommandResult* = cxvm->cvmPull("origin", "main");

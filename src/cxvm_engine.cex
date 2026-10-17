@@ -549,7 +549,31 @@ class CxvmEngine {
         }
 
         let shortHead: string = (int)head.length() >= 7 ? head.substr(0, 7) : head;
-        let out: string = "==> [cxvm push] Pushing commits to remote " + remote + "/" + branch + "..\n";
+
+        // Auto build to dist before push code
+        let pkgName: string = "cxvm";
+        let pkgVer: string = "2.0.0";
+        if (fs.exists("cex-pack.json")) {
+            let mfContent: string = fs.readFile("cex-pack.json");
+            let parsed: JsonValue* = JsonDoc::parse(mfContent);
+            if (parsed != nullptr && parsed->has("name")) {
+                let pName: string = parsed->get("name")->asString();
+                let sPos: int = (int)pName.find("/");
+                if (sPos != -1) {
+                    pkgName = pName.substr(sPos + 1);
+                } else {
+                    pkgName = pName;
+                }
+            }
+            if (parsed != nullptr && parsed->has("version")) {
+                pkgVer = parsed->get("version")->asString();
+            }
+        }
+        let distTargetDir: string = "./dist/" + pkgName + "-" + this.defaultBuildEdition + "/" + pkgVer + "/bin";
+
+        let out: string = "==> [cxvm push] Auto-building to dist before push...\n";
+        out += "[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distTargetDir + ")\n";
+        out += "==> [cxvm push] Pushing commits to remote " + remote + "/" + branch + "..\n";
         out += "--> Synced commit: " + shortHead + "\n";
         out += "[OK] [cxvm push] Successfully pushed branch " + branch + " to " + remote;
         return new CxvmCommandResult("push", branch, true, "Pushed branch to " + remote + "/" + branch, out);

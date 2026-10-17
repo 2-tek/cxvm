@@ -414,6 +414,10 @@ function Run-Cvm {
     )
 
     $cvmBin = if (Get-Command "cvm" -ErrorAction SilentlyContinue) { "cvm" } elseif (Test-Path (Join-Path $cxvmHome "bin\cvm.cmd")) { Join-Path $cxvmHome "bin\cvm.cmd" } else { "" }
+    if ($CvmCmd -eq "push") {
+        Write-Host "==> [cxvm] Auto-building to dist before push..." -ForegroundColor Cyan
+        Invoke-HookCexr -HookCmd "build"
+    }
     if ($cvmBin) {
         & $cvmBin $CvmCmd @CvmArgs
         return

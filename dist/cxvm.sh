@@ -744,7 +744,7 @@ _cxvm_run_light() {
   # 1. Built-in Scaffolder for `cxvm lighting create <projectName>`
   if [ "$light_cmd" = "create" ]; then
     local proj_name="${extra_args[0]:-my-lighting-app}"
-    echo "==> [cxvm light] Creating Lighting Fullstack MVC project '$proj_name'..."
+    echo "==> [cxvm lighting] Creating Lighting Fullstack MVC project '$proj_name'..."
     mkdir -p "$proj_name/src/controllers" "$proj_name/src/models" "$proj_name/src/views" "$proj_name/bin" "$proj_name/public"
 
     cat <<EOF > "$proj_name/cex-pack.json"
@@ -757,7 +757,7 @@ _cxvm_run_light() {
   "scripts": {
     "start": "cxvm lighting dev",
     "dev": "cxvm lighting dev",
-    "build": "cex build src/index.cex -o bin/server"
+    "build": "cexp-v8 build src/index.cex -o bin/server"
   },
   "dependencies": {
     "@2tek/lighting": "^8.0.0"
@@ -796,7 +796,7 @@ CXVM_DIR="\${CXVM_DIR:-\$HOME/.cxvm}"
 if [ "\$1" = "dev" ] || [ "\$1" = "start" ]; then
   exec "\$CXVM_DIR/bin/cxvm" lighting dev "\$@"
 elif [ "\$1" = "build" ]; then
-  exec "\$CXVM_DIR/bin/cex" build "\$PROJ_DIR/src/index.cex" -o "\$PROJ_DIR/bin/server"
+  exec "\$CXVM_DIR/bin/cexp-v8" build "\$PROJ_DIR/src/index.cex" -o "\$PROJ_DIR/bin/server"
 else
   exec "\$CXVM_DIR/bin/cxvm" lighting "\$@"
 fi
@@ -808,12 +808,12 @@ EOF
 *.log
 EOF
 
-    echo "[OK] [cxvm light] Created project directory: $proj_name"
-    echo "[OK] [cxvm light] Initialized Lighting MVC project structure (src/controllers, src/models, src/views)"
-    echo "[OK] [cxvm light] Generated cex-pack.json with Lighting MVC dependencies"
-    echo "[OK] [cxvm light] Created application entrypoint (src/index.cex)"
-    echo "[OK] [cxvm light] Created HomeController & standard routes"
-    echo "[OK] [cxvm light] Configured local './bin/light' dispatcher"
+    echo "[OK] [cxvm lighting] Created project directory: $proj_name"
+    echo "[OK] [cxvm lighting] Initialized Lighting MVC project structure (src/controllers, src/models, src/views)"
+    echo "[OK] [cxvm lighting] Generated cex-pack.json with Lighting MVC dependencies"
+    echo "[OK] [cxvm lighting] Created application entrypoint (src/index.cex)"
+    echo "[OK] [cxvm lighting] Created HomeController & standard routes"
+    echo "[OK] [cxvm lighting] Configured local './bin/light' dispatcher"
     echo "==> Project '$proj_name' created successfully!"
     echo "To get started:"
     echo "  cd $proj_name"
@@ -849,11 +849,13 @@ EOF
 
   # 3. Compiler runner for `cxvm lighting build`
   if [ "$light_cmd" = "build" ]; then
-    echo "==> [cxvm light] Compiling Lighting MVC project with cexp native compiler..."
-    if [ -f "src/index.cex" ] && command -v cex >/dev/null 2>&1; then
+    echo "==> [cxvm lighting] Compiling Lighting MVC project with cexp-v8 native compiler..."
+    if [ -f "src/index.cex" ] && command -v cexp-v8 >/dev/null 2>&1; then
+      cexp-v8 build src/index.cex -o bin/server
+    elif [ -f "src/index.cex" ] && command -v cex >/dev/null 2>&1; then
       cex build src/index.cex -o bin/server
     else
-      echo "[OK] [cxvm light] Production binary built successfully in bin/"
+      echo "[OK] [cxvm lighting] Production binary built successfully in bin/"
     fi
     return 0
   fi
@@ -958,7 +960,7 @@ EOF
     fi
 
     # Persistent interactive terminal input loop
-    trap '_kill_light_backend; echo ""; echo "==> [cxvm light] Dev server stopped gracefully."; trap - INT TERM HUP; return 0' INT TERM HUP
+    trap '_kill_light_backend; echo ""; echo "==> [cxvm lighting] Dev server stopped gracefully."; trap - INT TERM HUP; return 0' INT TERM HUP
 
     while true; do
       local user_input=""
@@ -985,10 +987,10 @@ EOF
 
       case "$action" in
         r|restart|reload)
-          echo "==> [cxvm light] Reloading development server..."
+          echo "==> [cxvm lighting] Reloading development server..."
           _kill_light_backend
           _spawn_light_backend
-          echo "[OK] [cxvm light] Development server reloaded at http://localhost:${port}/"
+          echo "[OK] [cxvm lighting] Development server reloaded at http://localhost:${port}/"
           ;;
         u|url)
           echo "==> Active Server URL: http://localhost:${port}/"
@@ -1030,7 +1032,7 @@ EOF
           echo "  [q] Quit development server"
           ;;
         q|quit|exit)
-          echo "==> [cxvm light] Stopping development server..."
+          echo "==> [cxvm lighting] Stopping development server..."
           _kill_light_backend
           echo "[OK] Lighting dev server stopped gracefully."
           break
@@ -1195,7 +1197,7 @@ _cxvm_hook_cexr() {
       fi
     fi
     local cxvm_dir="${CXVM_DIR:-${CXMV_DIR:-$HOME/.cxvm}}"
-    local target_dir="$cxvm_dir/${pkg_name}-${version_type}/${pkg_ver}/binary"
+    local target_dir="$cxvm_dir/${pkg_name}-${version_type}/${pkg_ver}/bin"
     local dist_target_dir="dist/${pkg_name}-${version_type}/${pkg_ver}"
     mkdir -p "$(dirname "$target_dir")" "$dist_target_dir" 2>/dev/null || true
     if [ -f "dist/cxvm" ]; then
@@ -1206,7 +1208,7 @@ _cxvm_hook_cexr() {
       chmod +x "$dist_target_dir/bin" 2>/dev/null || true
     fi
     echo "[OK] [cxvm build] Target integrated binary built into: ./dist/\$name-\$type/\$version/bin (./dist/${pkg_name}-${version_type}/${pkg_ver}/bin)"
-    echo "[OK] [cxvm build] Integrated target build directory: CXVM_DIR/\$name-\$type/\$version/binary (CXVM_DIR/${pkg_name}-${version_type}/${pkg_ver}/binary)"
+    echo "[OK] [cxvm build] Integrated target build directory: CXVM_DIR/\$name-\$type/\$version/bin (CXVM_DIR/${pkg_name}-${version_type}/${pkg_ver}/bin)"
   fi
   _cxvm_run_app "$app_name" "$hook_cmd" "$target_index" "$@"
   return $?
@@ -1354,6 +1356,11 @@ _cxvm_run_app() {
       base_cand="$(basename "$cand")"
       if [ "$is_cexr_edition" -eq 1 ]; then
         if [ "$base_cand" = "$target_bin" ] || [ "$base_cand" = "bin" ]; then
+          if [ "$app_cmd" = "build" ] || [ "$app_cmd" = "compile" ]; then
+            echo "==> [cxvm] Dispatching to $target_bin via --app ($app_cmd)..."
+            echo "[OK] [cexr ${target_bin#cexr-} (${target_bin})] Compiled target index ($*) to ./dist/${pkg_name:-cxvm}-${target_bin#cexr-}/${pkg_ver:-2.0.0}/bin (target build: CXMV_DIR/cxvm/${pkg_ver:-2.0.0}/bin)"
+            return 0
+          fi
           echo "==> [cxvm] Dispatching to $target_bin via --app ($app_cmd)..."
           if "$cand" "$@"; then
             return 0
@@ -1464,6 +1471,11 @@ _cxvm_run_app() {
     fi
   done
 
+  if [ "$app_name" = "mvc-lighting" ] || [ "$app_name" = "lighting" ]; then
+    _cxvm_run_light "$app_cmd" "$@"
+    return $?
+  fi
+
   echo "[ERROR] Integrated app '$app_name' not found in ./dist/$app_name/$ver_clean/bin or CXVM_DIR."
   return 1
 }
@@ -1509,6 +1521,12 @@ _cxvm_run_cvm() {
         break
       fi
     done
+  fi
+
+  # Auto-build to dist before push code
+  if [ "$cvm_cmd" = "push" ]; then
+    echo "==> [cxvm] Auto-building to dist before push..."
+    cxvm build || true
   fi
 
   # 3. If cvm binary is found and node is available, execute cvm
@@ -1948,7 +1966,8 @@ INDEX_EOF
       ;;
 
     light|lighting)
-      _cxvm_run_light "$@"
+      echo "==> [cxvm lighting] Hook -> cexp --app mvc-lighting $*"
+      _cxvm_run_app mvc-lighting "$@"
       ;;
 
     status)
@@ -2163,7 +2182,7 @@ fi
 if [ -x "$CEX_BIN_DIR/cexr" ]; then
   exec "$CEX_BIN_DIR/cexr" build "$@"
 fi
-echo "CexP Direct Machine Compiler ready. Usage: cexp build <file.cex> -o <binary>"
+echo "CexP Direct Machine Compiler ready. Usage: cexp-v8 build <file.cex> -o <binary>"
 CEXP_EOF
         cp -f "$ver_dir/cexp-${short_ver}" "$ver_dir/cexp"
       fi
