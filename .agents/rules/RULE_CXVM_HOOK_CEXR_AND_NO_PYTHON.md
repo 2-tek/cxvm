@@ -2,34 +2,39 @@
 trigger: always_on
 ---
 
-# Rule: CXVM Hook for dev, build, start (`cxvm --app cexr-$versionType`) & Replace Python Scripts with `.cex` via `cexr-$type` Runtime (RULE_CXVM_HOOK_CEXR_AND_NO_PYTHON)
+# Rule: Hook using App with `cexp --app $appName action` (Short Command) & Register Binary App in CEX_DIR (RULE_CXVM_HOOK_CEXR_AND_NO_PYTHON)
 
 <!-- Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_CEX_TOOLCHAIN, RULE_PURE_CEX_BIN -->
 
 > **MANDATORY DIRECTIVE**:
-> 1. **CXVM Hook on `dev`, `build`, and `start`**:
->    When using `cxvm dev`, `cxvm build`, or `cxvm start`, it operates as a **hook** that calls:
+> 1. **Hook using App with `cexp --app $appName action` (Short Command)**:
+>    When invoking short commands (`cxvm dev`, `cxvm build`, `cxvm start`, or direct `cexp dev`, `cexp build`, `cexp start`), it operates as a **hook** that calls:
 >    ```bash
->    cxvm --app cexr-$versionType <dev|build|start> <target_index>
+>    cexp --app $appName $action <target_index>
 >    ```
->    where `$versionType` is the CexR runtime edition/version type (for example `$versionType=bean`, `delivery`, `drawer`, `factory`, or `8.0.0`) and `<target_index>` is the target index file (e.g. `src/index.cex`).
-> 2. **Replace Python Scripts with `.cex` via `cexr-$type` Runtime**:
+>    where `$appName` is the registered application binary name (e.g. `cexr-factory` for `dev`, `cexr-bean` for `build`/`start`, or explicitly passed edition) and `$action` is the short command action (`dev`, `build`, `start`).
+> 2. **Register Binary App in `CEX_DIR`**:
+>    All toolchain binaries (`cexp-v8`, `cexp`, `cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm`, `cvm`, `thunder`, `lighting`) MUST be registered in `CEX_DIR`:
+>    - Reserve path: `CEX_DIR/$appName/$version/bin`
+>    - Direct companion binary: `CEX_DIR/bin/$appName`
+> 3. **Replace Python Scripts with `.cex` via `cexr-$type` Runtime**:
 >    All scripts that previously used Python (`python`, `python3`, `#!/usr/bin/env python3`, `python3 -c`) MUST be replaced with native `.cex` scripts executed using the `cexr-$type` runtime (`cexr <script.cex>`).
 
 ---
 
-## 1. Hook Specification (`cxvm dev`, `cxvm build`, `cxvm start`)
+## 1. Hook Specification (`cexp --app $appName action`)
 
-| CXVM Command | Hook Invocation | Example (`$versionType=bean`) |
-| :--- | :--- | :--- |
-| `cxvm dev [target_index]` | `cxvm --app cexr-$versionType dev <target_index>` | `cxvm --app cexr bean dev src/index.cex` |
-| `cxvm build [target_index] [out_bin]` | `cxvm --app cexr-$versionType build <target_index> [out_bin]` | `cxvm --app cexr bean build src/index.cex` |
-| `cxvm start [target_index]` | `cxvm --app cexr-$versionType start <target_index>` | `cxvm --app cexr bean start src/index.cex` |
+| CXVM Short Command | Hook Invocation | Default Target Index | Example |
+| :--- | :--- | :--- | :--- |
+| `cxvm dev [target_index]` | `cexp --app $appName dev <target_index>` | `src/index.cex` | `cexp --app cexr-factory dev src/index.cex` |
+| `cxvm build [target_index]` | `cexp --app $appName build <target_index>` | `src/index.cex` | `cexp --app cexr-bean build src/index.cex` |
+| `cxvm start [target_index]` | `cexp --app $appName start <target_index>` | `src/index.cex` | `cexp --app cexr-bean start src/index.cex` |
 
-- **Resolution of `$versionType`**:
-  1. Explicit `$versionType` argument if provided (`bean`, `delivery`, `drawer`, `factory`, `8.0.0`, `6.0.0`).
-  2. Project `cex-pack.json` `"runtime"` field if set to a valid edition (`bean`, `delivery`, `drawer`, `factory`).
-  3. Default edition: `bean` (`example=bean`).
+- **Resolution of `$appName`**:
+  1. Default for `dev`: `cexr-factory`.
+  2. Default for `build` and `start`: `cexr-bean`.
+  3. Explicit edition argument if provided (`bean` -> `cexr-bean`, `factory` -> `cexr-factory`, etc.).
+  4. Project `cex-pack.json` `"runtime"` field if configured.
 - **Resolution of `<target_index>`**:
   1. Explicit `.cex` file argument if provided.
   2. Project `cex-pack.json` `"main"` field (defaulting to `src/index.cex`).

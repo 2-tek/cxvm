@@ -162,6 +162,269 @@ _cxvm_start_thunder_server() {
 }
 
 # -----------------------------------------------------------------------------
+# Standalone Application Server Controller (cxvm start app, cxvm stop app, cxvm app)
+# -----------------------------------------------------------------------------
+_cxvm_app_server() {
+  local action="start"
+  local port=""
+  local foreground=0
+  local extra_args=()
+  local target="browser"
+  local auto_open=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      start|stop|status|restart|dev|help|--help|-h)
+        action="$1"
+        shift
+        ;;
+      -p|--port)
+        port="$2"
+        shift 2
+        ;;
+      --port=*)
+        port="${1#--port=}"
+        shift
+        ;;
+      -p=*)
+        port="${1#-p=}"
+        shift
+        ;;
+      -f|--foreground)
+        foreground=1
+        shift
+        ;;
+      -d|--daemon)
+        foreground=0
+        shift
+        ;;
+      --target)
+        target="$2"
+        shift 2
+        ;;
+      --target=*)
+        target="${1#--target=}"
+        shift
+        ;;
+      --open|-o)
+        auto_open=1
+        shift
+        ;;
+      *)
+        extra_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  local pid_file=".app_server.pid"
+  local port_file=".app_server.port"
+  local log_file=".app_server.log"
+
+  # If action is stop/status/restart and port was not explicitly specified, try reading from .app_server.port
+  if [ -z "$port" ] && [ -f "$port_file" ]; then
+    local saved_p
+    saved_p="$(cat "$port_file" 2>/dev/null || true)"
+    if [ -n "$saved_p" ]; then
+      port="$saved_p"
+    fi
+  fi
+
+  # Resolve port from .env or default
+  if [ -z "$port" ]; then
+    if [ -f ".env" ]; then
+      local env_p
+      env_p=$(grep -E '^(PORT|SERVER_PORT|APP_PORT)=' .env 2>/dev/null | cut -d= -f2 | tr -d '"'\'' ' | head -n 1 || true)
+      if [ -n "$env_p" ]; then
+        port="$env_p"
+      fi
+    fi
+  fi
+  if [ -z "$port" ]; then
+    port="3055"
+    if [ -f "hub.config.json" ]; then
+      port="3020"
+    fi
+  fi
+
+  case "$action" in
+    help|--help|-h)
+      echo "Cex Application Server Controller (cxvm app / cxvm start app)"
+      echo "Usage: cxvm app [start|stop|restart|status|dev] [options]"
+      echo ""
+      echo "Commands:"
+      echo "  start       Start application server in background daemon mode"
+      echo "  stop        Stop running application server"
+      echo "  restart     Restart application server"
+      echo "  status      Check application server status, PID, and URL"
+      echo "  dev         Start interactive development server with hot-reload"
+      echo ""
+      echo "Options:"
+      echo "  -p, --port <port>   Specify server port (default from .env or 3055)"
+      echo "  -f, --foreground    Run server in foreground instead of daemon"
+      echo "  -d, --daemon        Run server in background daemon mode (default)"
+      echo "  -o, --open          Open application in browser or native window on start"
+      echo "  --target <target>   Open target: 'browser' (cex-webkit) or 'view' (cex-view)"
+      return 0
+      ;;
+
+    stop)
+      echo "==> [cxvm app] Stopping application server on port ${port}..."
+      local stopped=0
+      if [ -f "$pid_file" ]; then
+        local pid
+        pid=$(cat "$pid_file" 2>/dev/null || true)
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+          kill -15 "$pid" 2>/dev/null || kill -9 "$pid" 2>/dev/null || true
+          stopped=1
+        fi
+        rm -f "$pid_file" "$port_file" 2>/dev/null || true
+      fi
+      if command -v lsof >/dev/null 2>&1; then
+        local port_pids
+        port_pids=$(lsof -ti :"$port" 2>/dev/null || true)
+        if [ -n "$port_pids" ]; then
+          kill -9 $port_pids 2>/dev/null || true
+          stopped=1
+        fi
+      fi
+      echo "[OK] [cxvm app] Application server stopped gracefully."
+      return 0
+      ;;
+
+    status)
+      local is_running=0
+      local current_pid=""
+      if [ -f "$pid_file" ]; then
+        current_pid=$(cat "$pid_file" 2>/dev/null || true)
+        if [ -n "$current_pid" ] && kill -0 "$current_pid" 2>/dev/null; then
+          is_running=1
+        fi
+      fi
+      if [ "$is_running" -eq 0 ] && command -v lsof >/dev/null 2>&1; then
+        local check_pid
+        check_pid=$(lsof -ti :"$port" 2>/dev/null | head -n 1 || true)
+        if [ -n "$check_pid" ]; then
+          is_running=1
+          current_pid="$check_pid"
+        fi
+      fi
+
+      echo "---------------------------------------------------------------"
+      echo "   Application Server Status (cxvm app)                        "
+      echo "---------------------------------------------------------------"
+      echo "  Project:       $(basename "$PWD")"
+      echo "  Port:          ${port}"
+      echo "  Local URL:     http://localhost:${port}/"
+      if [ "$is_running" -eq 1 ]; then
+        echo "  State:         RUNNING [OK]"
+        echo "  PID:           ${current_pid}"
+        echo "  Log File:      ${log_file}"
+      else
+        echo "  State:         STOPPED [OFFLINE]"
+      fi
+      echo "---------------------------------------------------------------"
+      return 0
+      ;;
+
+    restart)
+      _cxvm_app_server stop -p "$port"
+      sleep 0.5
+      _cxvm_app_server start -p "$port" "${extra_args[@]}"
+      return $?
+      ;;
+
+    dev)
+      _cxvm_run_light dev -p "$port" --target "$target" "${extra_args[@]}"
+      return $?
+      ;;
+
+    start)
+      # Check if already running
+      if [ -f "$pid_file" ]; then
+        local exist_pid
+        exist_pid=$(cat "$pid_file" 2>/dev/null || true)
+        if [ -n "$exist_pid" ] && kill -0 "$exist_pid" 2>/dev/null; then
+          echo "[OK] [cxvm app] Application server is already running (PID: $exist_pid, Port: $port)"
+          echo "  URL: http://localhost:${port}/"
+          return 0
+        fi
+      fi
+
+      echo "==> [cxvm app] Starting application server on port ${port}..."
+
+      # Resolve cexr runner
+      local cexr_cmd="cexr"
+      if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
+        cexr_cmd="$CXVM_DIR/current/bin/cexr"
+      elif [ -x "$CXVM_DIR/bin/cexr" ]; then
+        cexr_cmd="$CXVM_DIR/bin/cexr"
+      elif [ -x "$CXVM_DIR/current/cexr" ]; then
+        cexr_cmd="$CXVM_DIR/current/cexr"
+      elif [ -x "$(pwd)/bin/cexr" ]; then
+        cexr_cmd="$(pwd)/bin/cexr"
+      elif command -v cexr >/dev/null 2>&1; then
+        cexr_cmd="$(command -v cexr)"
+      fi
+
+      # Resolve binary or entrypoint runner
+      local run_cmd=()
+      if [ -x "$(pwd)/bin/start" ]; then
+        run_cmd=("$(pwd)/bin/start" "--port=$port")
+      elif [ -x "$(pwd)/dist/server" ]; then
+        run_cmd=("$(pwd)/dist/server")
+      elif [ -f "$(pwd)/src/server.cex" ]; then
+        run_cmd=("$cexr_cmd" "$(pwd)/src/server.cex")
+      elif [ -f "$(pwd)/src/index.cex" ]; then
+        run_cmd=("$cexr_cmd" "$(pwd)/src/index.cex")
+      elif [ -f "cex-pack.json" ]; then
+        local mf_main
+        mf_main="$(sed -n 's/.*"main"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+        if [ -n "$mf_main" ] && [ -f "$mf_main" ]; then
+          run_cmd=("$cexr_cmd" "$mf_main")
+        fi
+      fi
+
+      if [ ${#run_cmd[@]} -eq 0 ]; then
+        echo "[ERROR] No application entrypoint found (checked bin/start, dist/server, src/server.cex, src/index.cex, cex-pack.json main)."
+        return 1
+      fi
+
+      if [ "$foreground" -eq 1 ]; then
+        export PORT="$port"
+        exec "${run_cmd[@]}" "${extra_args[@]}"
+      else
+        export PORT="$port"
+        PORT="$port" nohup "${run_cmd[@]}" "${extra_args[@]}" > "$log_file" 2>&1 &
+        local new_pid=$!
+        echo "$new_pid" > "$pid_file"
+        echo "$port" > "$port_file"
+        sleep 0.5
+        if kill -0 "$new_pid" 2>/dev/null; then
+          echo "[OK] [cxvm app] Application server started in daemon mode (PID: $new_pid, Port: $port)"
+          echo "  Local URL: http://localhost:${port}/"
+          echo "  Log File:  $log_file"
+          if [ "$auto_open" -eq 1 ]; then
+            _cxvm_open "http://localhost:${port}/" --target "$target"
+          fi
+          return 0
+        else
+          echo "[ERROR] Application server failed to start. Inspect $log_file for errors."
+          cat "$log_file" 2>/dev/null | tail -n 15
+          rm -f "$pid_file" "$port_file" 2>/dev/null || true
+          return 1
+        fi
+      fi
+      ;;
+
+    *)
+      echo "Usage: cxvm app [start|stop|restart|status|dev] [options]"
+      return 1
+      ;;
+  esac
+}
+
+# -----------------------------------------------------------------------------
 # Integrated Thunder Container Engine Runner
 # -----------------------------------------------------------------------------
 _cxvm_run_thunder() {
@@ -616,6 +879,57 @@ EOF
     echo "==============================================================="
     echo "[OK] Dev server active. Press 'h' for help, 'q' to quit."
 
+    local dev_child_pid=""
+    local dev_pid_file=".app_server.pid"
+    local dev_port_file=".app_server.port"
+    local dev_log_file=".app_server.log"
+
+    _spawn_light_backend() {
+      local srv_cmd=()
+      if [ -x "$(pwd)/bin/start" ]; then
+        srv_cmd=("$(pwd)/bin/start" "--port=$port")
+      elif [ -x "$(pwd)/dist/server" ]; then
+        srv_cmd=("$(pwd)/dist/server")
+      elif [ -f "$(pwd)/src/server.cex" ]; then
+        srv_cmd=("$cexr_cmd" "$(pwd)/src/server.cex")
+      elif [ -f "$(pwd)/src/index.cex" ]; then
+        srv_cmd=("$cexr_cmd" "$(pwd)/src/index.cex")
+      elif [ -f "cex-pack.json" ]; then
+        local mf_main
+        mf_main="$(sed -n 's/.*"main"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
+        if [ -n "$mf_main" ] && [ -f "$mf_main" ]; then
+          srv_cmd=("$cexr_cmd" "$mf_main")
+        fi
+      fi
+
+      if [ ${#srv_cmd[@]} -gt 0 ]; then
+        export PORT="$port"
+        PORT="$port" nohup "${srv_cmd[@]}" "${extra_args[@]}" > "$dev_log_file" 2>&1 &
+        dev_child_pid=$!
+        echo "$dev_child_pid" > "$dev_pid_file"
+        echo "$port" > "$dev_port_file"
+        sleep 0.3
+        return 0
+      fi
+      return 1
+    }
+
+    _kill_light_backend() {
+      if [ -n "$dev_child_pid" ] && kill -0 "$dev_child_pid" 2>/dev/null; then
+        kill -15 "$dev_child_pid" 2>/dev/null || kill -9 "$dev_child_pid" 2>/dev/null || true
+      fi
+      if [ -f "$dev_pid_file" ]; then
+        local fpid
+        fpid="$(cat "$dev_pid_file" 2>/dev/null || true)"
+        if [ -n "$fpid" ] && kill -0 "$fpid" 2>/dev/null; then
+          kill -15 "$fpid" 2>/dev/null || kill -9 "$fpid" 2>/dev/null || true
+        fi
+        rm -f "$dev_pid_file" "$dev_port_file" 2>/dev/null || true
+      fi
+    }
+
+    _spawn_light_backend
+
     if [ "$auto_open" -eq 1 ]; then
       if [ -n "$os_target" ]; then
         _cxvm_open "http://localhost:${port}/" --os "$os_target"
@@ -624,13 +938,13 @@ EOF
       fi
     fi
 
-
     if [ "$test_mode" -eq 1 ]; then
+      _kill_light_backend
       return 0
     fi
 
     # Persistent interactive terminal input loop
-    trap 'echo ""; echo "==> [cxvm light] Dev server stopped gracefully."; trap - INT TERM HUP; return 0' INT TERM HUP
+    trap '_kill_light_backend; echo ""; echo "==> [cxvm light] Dev server stopped gracefully."; trap - INT TERM HUP; return 0' INT TERM HUP
 
     while true; do
       local user_input=""
@@ -658,11 +972,8 @@ EOF
       case "$action" in
         r|restart|reload)
           echo "==> [cxvm light] Reloading development server..."
-          if [ -f "$(pwd)/bin/light.cex" ]; then
-            "$cexr_cmd" "$(pwd)/bin/light.cex" build 2>/dev/null || true
-          elif [ -f "src/index.cex" ]; then
-            "$cexr_cmd" run src/index.cex 2>/dev/null || true
-          fi
+          _kill_light_backend
+          _spawn_light_backend
           echo "[OK] [cxvm light] Development server reloaded at http://localhost:${port}/"
           ;;
         u|url)
@@ -706,6 +1017,7 @@ EOF
           ;;
         q|quit|exit)
           echo "==> [cxvm light] Stopping development server..."
+          _kill_light_backend
           echo "[OK] Lighting dev server stopped gracefully."
           break
           ;;
@@ -851,8 +1163,9 @@ _cxvm_hook_cexr() {
     shift
   fi
 
-  echo "==> [cxvm $hook_cmd] Hook -> cxvm --app cexr $version_type $hook_cmd $target_index"
-  _cxvm_run_app "cexr" "$version_type" "$hook_cmd" "$target_index" "$@"
+  local app_name="cexr-${version_type}"
+  echo "==> [cxvm $hook_cmd] Hook -> cexp --app $app_name $hook_cmd $target_index"
+  _cxvm_run_app "$app_name" "$hook_cmd" "$target_index" "$@"
   return $?
 }
 
@@ -895,9 +1208,26 @@ _cxvm_run_app() {
         is_cexr_edition=1
         ;;
     esac
+  elif [[ "$app_name" =~ ^cexr-(factory|bean|delivery|drawer)$ ]]; then
+    target_bin="${app_name}"
+    is_cexr_edition=1
   fi
 
+  local cex_dir="${CEX_DIR:-${CEX_HOME:-$HOME/.cex}}"
   local candidates=()
+  # 1. Registered binary app in CEX_DIR and CXVM_DIR (reserve paths and bin)
+  candidates+=(
+    "$cex_dir/$target_bin/$ver_clean/bin"
+    "$cex_dir/$app_name/$ver_clean/bin"
+    "$CXVM_DIR/$target_bin/$ver_clean/bin"
+    "$CXVM_DIR/$app_name/$ver_clean/bin"
+    "$cex_dir/bin/$target_bin"
+    "$cex_dir/bin/$app_name"
+    "$cex_dir/$target_bin"
+    "$cex_dir/$app_name"
+    "$HOME/.cex/bin/$target_bin"
+    "$HOME/.cex/bin/$app_name"
+  )
   if [ "$is_cexr_edition" -eq 1 ]; then
     candidates+=(
       "$CXVM_DIR/bin/$ver_clean/$target_bin"
@@ -919,6 +1249,11 @@ _cxvm_run_app() {
     if [ -x "$pwd_dir/bin/$ver_clean/$target_bin" ]; then
       candidates+=("$pwd_dir/bin/$ver_clean/$target_bin")
     fi
+    for vcand in "$pwd_dir"/bin/*/"$target_bin"; do
+      if [ -x "$vcand" ] && [ ! -d "$vcand" ]; then
+        candidates+=("$vcand")
+      fi
+    done
   else
     candidates+=(
       "$CXVM_DIR/bin/$ver_clean/${app_name}-${app_cmd}"
@@ -943,6 +1278,11 @@ _cxvm_run_app() {
     if [ -x "$pwd_dir/bin/$ver_clean/$app_name" ]; then
       candidates+=("$pwd_dir/bin/$ver_clean/$app_name")
     fi
+    for vcand in "$pwd_dir"/bin/*/"${app_name}-${app_cmd}" "$pwd_dir"/bin/*/"$app_name"; do
+      if [ -x "$vcand" ] && [ ! -d "$vcand" ]; then
+        candidates+=("$vcand")
+      fi
+    done
   fi
 
   for cand in "${candidates[@]}"; do
@@ -950,7 +1290,7 @@ _cxvm_run_app() {
       local base_cand
       base_cand="$(basename "$cand")"
       if [ "$is_cexr_edition" -eq 1 ]; then
-        if [ "$base_cand" = "$target_bin" ]; then
+        if [ "$base_cand" = "$target_bin" ] || [ "$base_cand" = "bin" ]; then
           echo "==> [cxvm] Dispatching to $target_bin via --app ($app_cmd)..."
           if "$cand" "$@"; then
             return 0
@@ -977,6 +1317,26 @@ _cxvm_run_app() {
           local ret=$?
           [ $ret -eq 126 ] && continue
           return $ret
+        fi
+      elif [ "$base_cand" = "$target_bin" ] || [ "$base_cand" = "$app_name" ] || [ "$base_cand" = "bin" ]; then
+        if [ -n "$app_cmd" ]; then
+          echo "==> [cxvm] Dispatching to $app_name via --app ($app_cmd)..."
+          if "$cand" "$app_cmd" "$@"; then
+            return 0
+          else
+            local ret=$?
+            [ $ret -eq 126 ] && continue
+            return $ret
+          fi
+        else
+          echo "==> [cxvm] Dispatching to $app_name via --app..."
+          if "$cand" "$@"; then
+            return 0
+          else
+            local ret=$?
+            [ $ret -eq 126 ] && continue
+            return $ret
+          fi
         fi
       elif [ -n "$app_cmd" ]; then
         echo "==> [cxvm] Dispatching to $app_name via --app ($app_cmd)..."
@@ -1171,11 +1531,39 @@ cxvm() {
     local app_name="${BASH_REMATCH[1]}"
     _cxvm_run_app "$app_name" "$@"
     return $?
+  elif [ "$cmd" = "cexp" ]; then
+    if [ "$1" = "--app" ]; then
+      shift
+      local app_name="$1"
+      shift || true
+      _cxvm_run_app "$app_name" "$@"
+      return $?
+    elif [[ "$1" =~ ^--app=(.+) ]]; then
+      local app_name="${BASH_REMATCH[1]}"
+      shift
+      _cxvm_run_app "$app_name" "$@"
+      return $?
+    elif [ "$1" = "dev" ] || [ "$1" = "build" ] || [ "$1" = "start" ]; then
+      local short_act="$1"
+      shift
+      _cxvm_hook_cexr "$short_act" "$@"
+      return $?
+    fi
+    _cxvm_run_app "cexp" "$@"
+    return $?
   fi
 
   case "$cmd" in
     open)
       _cxvm_open "$@"
+      ;;
+
+    app)
+      _cxvm_app_server "$@"
+      ;;
+
+    dev|serve)
+      _cxvm_run_light dev "$@"
       ;;
 
     start)
@@ -1188,7 +1576,15 @@ cxvm() {
         shift || true
         _cxvm_start_thunder_server start "$@"
         return $?
+      elif [ "$sub" = "app" ] || [ "$sub" = "server" ]; then
+        shift || true
+        _cxvm_app_server start "$@"
+        return $?
       elif [ -z "$sub" ] || [ "${sub#-}" != "$sub" ]; then
+        if [ -f "cex-pack.json" ] || [ -x "bin/start" ] || [ -x "dist/server" ] || [ -f "src/server.cex" ] || [ -f "src/index.cex" ]; then
+          _cxvm_app_server start "$@"
+          return $?
+        fi
         _cxvm_start_cvm_server start "$@"
         _cxvm_start_thunder_server start "$@"
         return 0
@@ -1206,12 +1602,43 @@ cxvm() {
       elif [ "$sub" = "thunder" ] || [ "$sub" = "daemon" ]; then
         _cxvm_start_thunder_server stop
         return $?
-      elif [ -z "$sub" ]; then
+      elif [ "$sub" = "app" ] || [ "$sub" = "server" ]; then
+        shift || true
+        _cxvm_app_server stop "$@"
+        return $?
+      elif [ -z "$sub" ] || [ "${sub#-}" != "$sub" ]; then
+        if [ -f ".app_server.pid" ] || [ -f "cex-pack.json" ] || [ -x "bin/start" ] || [ -x "dist/server" ] || [ -f "src/server.cex" ]; then
+          _cxvm_app_server stop "$@"
+        fi
         _cxvm_start_cvm_server stop
         _cxvm_start_thunder_server stop
         return 0
       else
         _cxvm_run_cvm "$cmd" "$sub" "$@"
+        return $?
+      fi
+      ;;
+
+    restart)
+      local sub="$1"
+      if [ "$sub" = "cvm" ]; then
+        shift || true
+        _cxvm_start_cvm_server stop
+        sleep 0.5
+        _cxvm_start_cvm_server start "$@"
+        return $?
+      elif [ "$sub" = "thunder" ] || [ "$sub" = "daemon" ]; then
+        shift || true
+        _cxvm_start_thunder_server stop
+        sleep 0.5
+        _cxvm_start_thunder_server start "$@"
+        return $?
+      elif [ "$sub" = "app" ] || [ "$sub" = "server" ]; then
+        shift || true
+        _cxvm_app_server restart "$@"
+        return $?
+      else
+        _cxvm_app_server restart "$@"
         return $?
       fi
       ;;
@@ -1457,7 +1884,14 @@ INDEX_EOF
       elif [ "$1" = "thunder" ] || [ "$1" = "daemon" ]; then
         _cxvm_start_thunder_server status
         return $?
+      elif [ "$1" = "app" ] || [ "$1" = "server" ]; then
+        shift || true
+        _cxvm_app_server status "$@"
+        return $?
       else
+        if [ -f ".app_server.pid" ] || [ -f "cex-pack.json" ]; then
+          _cxvm_app_server status 2>/dev/null || true
+        fi
         _cxvm_run_cvm status "$@"
         return $?
       fi
@@ -2095,6 +2529,8 @@ LIGHT_WRAP_EOF
       echo "  [OK] Default CexR Runtime Edition: ./bin/1.0.26/cexr-factory (factory)"
       echo "  [OK] Default CexR Build Edition:   ./bin/1.0.26/cexr-bean (bean)"
       echo "  [OK] Integrated CexLint Binary:    ./bin/1.0.8/cex-lint"
+      echo "  [OK] Registered Apps:              CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)"
+      echo "  [OK] Hook Dispatcher:              cexp --app \$appName action (short command: dev, build, start)"
       if [ -x "CEX_DIR/cexr-$type/$version/bin" ]; then
         "CEX_DIR/cexr-$type/$version/bin" -v
       elif [ -x "$CXVM_DIR/current/cexr" ]; then
@@ -2181,6 +2617,14 @@ LIGHT_WRAP_EOF
       echo "  lighting dev             Start local development server on port 3080 (--target <browser|view>, --open)"
       echo "  lighting build           Compile project with cexp native compiler"
       echo "  lighting doctor          Run Lighting engine diagnostic"
+      echo ""
+      echo "Integrated Application Server Controller Commands:"
+      echo "  app [start|stop|restart|status|dev] Manage project application server daemon"
+      echo "  start [app|cvm|thunder] [-p <port>] Start application, CVM, or Thunder server"
+      echo "  stop [app|cvm|thunder]              Stop running application, CVM, or Thunder"
+      echo "  restart [app|cvm|thunder]           Restart running server"
+      echo "  status [app|cvm|thunder]            Check server and working tree status"
+      echo "  dev / serve                         Start Lighting development server with hot-reload"
       echo ""
       echo "Integrated CodeVersionManager (CVM) Commands:"
       echo "  start [cvm|thunder] [-p <port>] Start CVM or Thunder as a server with single process (standalone)"

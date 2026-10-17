@@ -53,9 +53,12 @@ The `cxvm` repository defines the official distribution hub and version manageme
    - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`cxvm setup`, `scripts/setup.sh`, `scripts/setup.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), and project `./bin/` integration.
    - **Web Setup Window (Lighting MVC)**: Full-featured desktop application window UI on route `/setup` with macOS/Windows titlebar controls (`[RED] [YELLOW] [GREEN]`), tabbed OS quick installers, environment status cards, runtime selector, and live `cxvm doctor` console.
 
-5. **Project Toolchain Dispatchers (Reserve Path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)**:
+5. **Project Toolchain Dispatchers & Registered Binary Apps in `CEX_DIR` (Reserve Path `CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin`)**:
    - `CEX_DIR/cexr-factory/$version/bin`: Smart runtime dispatcher defaulting to **CexR v8.0.0** with instant version switching to **v6.0.0** (`$CEX_DIR/cexr-factory/$version/bin v6 ...`).
    - `CEX_DIR/cexr-bean/$version/bin`: Toolchain runner with support for `run`, `build`, `doctor`, `setup`, and version switches.
+   - `CEX_DIR/cexp-v8/$version/bin` & `CEX_DIR/bin/cexp`: Direct native machine compiler and app dispatcher.
+   - **Hook Standard**: Short commands (`cxvm dev`, `cxvm build`, `cxvm start`) hook into `cexp --app $appName action` (e.g. `cexp --app cexr-factory dev src/index.cex` or `cexp --app cexr-bean build src/index.cex`).
+   - **Registered Binary Apps**: All ecosystem apps (`cexp-v8`, `cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm`, `cvm`, `thunder`, `lighting`) registered in `CEX_DIR/$appName/$version/bin` and companion `CEX_DIR/bin/$appName`.
    - Cross-platform Windows companions: `cexr.cmd`, `cex.cmd`, `cxvm.cmd`, `cexr.ps1`, `cex.ps1`, `cxvm.ps1`.
 
 6. **Lighting Fullstack MVC Server (Port 3080)**:

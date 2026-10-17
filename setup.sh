@@ -260,20 +260,37 @@ RUNNER_SCRIPT
     chmod +x "$target_ver_dir/bin/cexr"
   fi
 
-  # Create executable cexp compiler if missing
-  if [ ! -x "$target_ver_dir/bin/cexp" ]; then
-    cat <<'COMPILER_SCRIPT' > "$target_ver_dir/bin/cexp"
+  # Create executable cexp compiler & dispatcher
+  cat <<'COMPILER_SCRIPT' > "$target_ver_dir/bin/cexp"
 #!/usr/bin/env bash
-# CexP: Direct Native Machine Compiler
+# CexP: Direct Native Machine Compiler & App Dispatcher
 if [ "$1" = "--version" ] || [ "$1" = "-v" ] || [ "$1" = "version" ]; then
   echo "CexP v8.0.0 (Direct Native Machine Compiler; Pure Cex Toolchain)"
   exit 0
 fi
+if [ "$1" = "--app" ]; then
+  shift
+  APP_NAME="$1"
+  shift || true
+  ACTION="${1:-dev}"
+  shift || true
+  if command -v cxvm >/dev/null 2>&1; then
+    exec cxvm --app "$APP_NAME" "$ACTION" "$@"
+  elif [ -x "$CXVM_DIR/bin/cxvm" ]; then
+    exec "$CXVM_DIR/bin/cxvm" --app "$APP_NAME" "$ACTION" "$@"
+  fi
+fi
+if [ "$1" = "dev" ] || [ "$1" = "build" ] || [ "$1" = "start" ]; then
+  if command -v cxvm >/dev/null 2>&1; then
+    exec cxvm "$@"
+  elif [ -x "$CXVM_DIR/bin/cxvm" ]; then
+    exec "$CXVM_DIR/bin/cxvm" "$@"
+  fi
+fi
 echo "--> [CexP v8.0.0] Compiling: $@"
 exit 0
 COMPILER_SCRIPT
-    chmod +x "$target_ver_dir/bin/cexp"
-  fi
+  chmod +x "$target_ver_dir/bin/cexp"
 
   # Create cex alias
   ln -sf "$target_ver_dir/bin/cexr" "$target_ver_dir/bin/cex" 2>/dev/null || true
@@ -344,21 +361,76 @@ DISPATCHER_CEXR
 
   # CEX_DIR/cexr-bean/$version/bin companion dispatcher
   ln -sf "$PROJECT_BIN/cexr" "$PROJECT_BIN/cex" 2>/dev/null || true
-  # Reserve path: CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin
+  # Reserve path: CEX_DIR|CEX_HOME.../$name-$quickVersion/$version/bin & Register Binary Apps
   CEX_HOME_DIR="${CEX_HOME:-$HOME/.cex}"
-  mkdir -p "$CEX_HOME_DIR/cexr-factory/$DEFAULT_VER" "$CEX_HOME_DIR/cexr-bean/$DEFAULT_VER" "$CEX_HOME_DIR/cexp-v8/$DEFAULT_VER" 2>/dev/null || true
-  ln -sf "$PROJECT_BIN/cexr" "$CEX_HOME_DIR/cexr-factory/$DEFAULT_VER/bin" 2>/dev/null || true
-  ln -sf "$PROJECT_BIN/cexr" "$CEX_HOME_DIR/cexr-bean/$DEFAULT_VER/bin" 2>/dev/null || true
-  if [ -x "$CXVM_DIR/bin/cexp" ]; then
-    ln -sf "$CXVM_DIR/bin/cexp" "$CEX_HOME_DIR/cexp-v8/$DEFAULT_VER/bin" 2>/dev/null || true
+  CEX_DIR="${CEX_DIR:-$CEX_HOME_DIR}"
+  mkdir -p "$CEX_DIR/bin" "$CEX_HOME_DIR/bin" "$CXVM_DIR/bin" 2>/dev/null || true
+
+  register_binary_app() {
+    local app="$1"
+    local bin_src="$2"
+    local ver="${3:-$DEFAULT_VER}"
+
+    if [ -x "$bin_src" ]; then
+      mkdir -p "$CEX_DIR/$app/$ver" "$CEX_HOME_DIR/$app/$ver" "$CXVM_DIR/$app/$ver" 2>/dev/null || true
+      ln -sf "$bin_src" "$CEX_DIR/$app/$ver/bin" 2>/dev/null || true
+      ln -sf "$bin_src" "$CEX_HOME_DIR/$app/$ver/bin" 2>/dev/null || true
+      ln -sf "$bin_src" "$CXVM_DIR/$app/$ver/bin" 2>/dev/null || true
+      ln -sf "$bin_src" "$CEX_DIR/bin/$app" 2>/dev/null || true
+      ln -sf "$bin_src" "$CEX_HOME_DIR/bin/$app" 2>/dev/null || true
+      ln -sf "$bin_src" "$CXVM_DIR/bin/$app" 2>/dev/null || true
+    fi
+  }
+
+  register_binary_app "cexr-factory" "$PROJECT_BIN/cexr" "$DEFAULT_VER"
+  register_binary_app "cexr-bean" "$PROJECT_BIN/cexr" "$DEFAULT_VER"
+  if [ -x "$PROJECT_BIN/1.0.26/cexr-factory" ]; then
+    register_binary_app "cexr-factory" "$PROJECT_BIN/1.0.26/cexr-factory" "1.0.26"
   fi
-  mkdir -p "$CXVM_DIR/cexr-factory/$DEFAULT_VER" "$CXVM_DIR/cexr-bean/$DEFAULT_VER" "$CXVM_DIR/cexp-v8/$DEFAULT_VER" 2>/dev/null || true
-  ln -sf "$PROJECT_BIN/cexr" "$CXVM_DIR/cexr-factory/$DEFAULT_VER/bin" 2>/dev/null || true
-  ln -sf "$PROJECT_BIN/cexr" "$CXVM_DIR/cexr-bean/$DEFAULT_VER/bin" 2>/dev/null || true
-  if [ -x "$CXVM_DIR/bin/cexp" ]; then
-    ln -sf "$CXVM_DIR/bin/cexp" "$CXVM_DIR/cexp-v8/$DEFAULT_VER/bin" 2>/dev/null || true
+  if [ -x "$PROJECT_BIN/1.0.26/cexr-bean" ]; then
+    register_binary_app "cexr-bean" "$PROJECT_BIN/1.0.26/cexr-bean" "1.0.26"
   fi
+  if [ -x "$PROJECT_BIN/1.0.26/cexr-delivery" ]; then
+    register_binary_app "cexr-delivery" "$PROJECT_BIN/1.0.26/cexr-delivery" "1.0.26"
+  fi
+  if [ -x "$PROJECT_BIN/1.0.26/cexr-drawer" ]; then
+    register_binary_app "cexr-drawer" "$PROJECT_BIN/1.0.26/cexr-drawer" "1.0.26"
+  fi
+  if [ -x "$PROJECT_BIN/8.0.0/cexp-v8" ]; then
+    register_binary_app "cexp-v8" "$PROJECT_BIN/8.0.0/cexp-v8" "$DEFAULT_VER"
+    register_binary_app "cexp" "$PROJECT_BIN/8.0.0/cexp-v8" "$DEFAULT_VER"
+  elif [ -x "$CXVM_DIR/bin/cexp" ]; then
+    register_binary_app "cexp-v8" "$CXVM_DIR/bin/cexp" "$DEFAULT_VER"
+    register_binary_app "cexp" "$CXVM_DIR/bin/cexp" "$DEFAULT_VER"
+  fi
+  if [ -x "$PROJECT_BIN/1.0.5/cex-pack" ]; then
+    register_binary_app "cex-pack" "$PROJECT_BIN/1.0.5/cex-pack" "1.0.5"
+    register_binary_app "cex-pack" "$PROJECT_BIN/1.0.5/cex-pack" "$DEFAULT_VER"
+  fi
+  if [ -x "$PROJECT_BIN/1.0.5/cex-pack-bean" ]; then
+    register_binary_app "cex-pack-bean" "$PROJECT_BIN/1.0.5/cex-pack-bean" "1.0.5"
+  fi
+  if [ -x "$PROJECT_BIN/1.0.8/cex-lint" ]; then
+    register_binary_app "cex-lint" "$PROJECT_BIN/1.0.8/cex-lint" "1.0.8"
+    register_binary_app "cex-lint" "$PROJECT_BIN/1.0.8/cex-lint" "$DEFAULT_VER"
+  fi
+  if [ -x "$PROJECT_BIN/2.0.0/cxvm-bean" ]; then
+    register_binary_app "cxvm-bean" "$PROJECT_BIN/2.0.0/cxvm-bean" "2.0.0"
+  fi
+  if [ -x "$PROJECT_BIN/cxvm" ]; then
+    register_binary_app "cxvm" "$PROJECT_BIN/cxvm" "$DEFAULT_VER"
+  fi
+  if [ -x "$INVOCATION_DIR/dist/cvm-server" ]; then
+    register_binary_app "cvm" "$INVOCATION_DIR/dist/cvm-server" "$DEFAULT_VER"
+    register_binary_app "cvm-server" "$INVOCATION_DIR/dist/cvm-server" "$DEFAULT_VER"
+  fi
+  if [ -x "$INVOCATION_DIR/dist/thunder-server" ]; then
+    register_binary_app "thunder" "$INVOCATION_DIR/dist/thunder-server" "$DEFAULT_VER"
+    register_binary_app "thunder-server" "$INVOCATION_DIR/dist/thunder-server" "$DEFAULT_VER"
+  fi
+
   echo "[OK] Local project dispatchers created in $PROJECT_BIN (Reserve Path: CEX_DIR/cexr-factory/$DEFAULT_VER/bin)"
+  echo "[OK] Registered binary apps in CEX_DIR and CXVM_DIR (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)"
 fi
 
 # ------------------------------------------------------------------------------

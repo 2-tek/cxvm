@@ -10,14 +10,19 @@ trigger: always_on
 > In the `cxvm` repository and across all Cex projects, development, execution, and builds MUST use the Cex native toolchain (`cexr-$type`, `cexp-v$shortVersion`, `CEX_DIR/cexr-$type/$version/bin`, `CEX_DIR/cexr-bean/$version/bin`, or `./bin/cxvm`).
 >
 > **MANDATORY CXVM HOOK FOR `dev`, `build`, AND `start`**:
-> When invoking `cxvm dev`, `cxvm build`, or `cxvm start`, it operates as a **hook** that calls:
+> When invoking `cxvm dev`, `cxvm build`, or `cxvm start` (or direct `cexp dev`, `cexp build`, `cexp start`), it operates as a **hook** that calls:
 > ```bash
-> cxvm --app cexr-$versionType <dev|build|start> <target_index>
+> cexp --app $appName <dev|build|start> <target_index>
 > ```
-> where `$versionType` is the CexR runtime edition/version type (`example=bean`, or `delivery`, `drawer`, `factory`, `8.0.0`) and `<target_index>` is the target index entrypoint (e.g., `src/index.cex`):
-> - `cxvm dev [target_index]` -> hooks `cxvm --app cexr-$versionType dev <target_index>` (e.g., `cxvm --app cexr bean dev src/index.cex`)
-> - `cxvm build [target_index] [out_bin]` -> hooks `cxvm --app cexr-$versionType build <target_index> [out_bin]` (e.g., `cxvm --app cexr bean build src/index.cex`)
-> - `cxvm start [target_index]` -> hooks `cxvm --app cexr-$versionType start <target_index>` (e.g., `cxvm --app cexr bean start src/index.cex`)
+> where `$appName` is the registered application binary name (e.g. `cexr-factory` for `dev`, `cexr-bean` for `build`/`start`, or explicitly passed edition) and `<target_index>` is the target index entrypoint (e.g., `src/index.cex`):
+> - `cxvm dev [target_index]` -> hooks `cexp --app $appName dev <target_index>` (e.g., `cexp --app cexr-factory dev src/index.cex`)
+> - `cxvm build [target_index]` -> hooks `cexp --app $appName build <target_index>` (e.g., `cexp --app cexr-bean build src/index.cex`)
+> - `cxvm start [target_index]` -> hooks `cexp --app $appName start <target_index>` (e.g., `cexp --app cexr-bean start src/index.cex`)
+>
+> **REGISTER BINARY APPS IN CEX_DIR**:
+> All ecosystem binaries (`cexp-v8`, `cexp`, `cexr-factory`, `cexr-bean`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm`, `cvm`, `thunder`, `lighting`) MUST be registered in `CEX_DIR`:
+> - Reserve path: `CEX_DIR/$appName/$version/bin`
+> - Direct companion binary: `CEX_DIR/bin/$appName`
 >
 > **ZERO PYTHON SCRIPTS -- PURE `.cex` WITH `cexr-$type` RUNTIME**:
 > All scripts, manifest generators, package managers (`cex-pack`), standalone servers (`cvm-server`, `thunder-server`), and verification utilities MUST be written in `.cex` and executed using the `cexr-$type` runtime (`cexr <script.cex>` or `cxvm --app cexr-$versionType <script.cex>`). Any script using Python (`python`, `python3`, `#!/usr/bin/env python3`, `python3 -c`) is strictly prohibited and replaced by `.cex` with `cexr-$type` runtime.
@@ -34,10 +39,10 @@ trigger: always_on
 
 | Operation | Canonical Command | Description |
 | :--- | :--- | :--- |
-| **CXVM Dev (Hook)** | `cxvm dev [target_index]` -> `cxvm --app cexr-$versionType dev <target_index>` | Hook calling `cexr-$type` `$versionType` (e.g. `bean` / `factory`) in dev mode on target index |
-| **CXVM Build (Hook)** | `cxvm build [target_index]` -> `cxvm --app cexr-$versionType build <target_index>` | Hook calling `cexr-$type` `$versionType` (e.g. `bean`) to compile target index |
-| **CXVM Start (Hook)** | `cxvm start [target_index]` -> `cxvm --app cexr-$versionType start <target_index>` | Hook calling `cexr-$type` `$versionType` (e.g. `bean`) to start target index |
-| **Direct App Dispatch** | `cxvm --app cexr-$versionType <cmd> <target_index>` | Dispatch directly to `cexr-$type` `$versionType` (`bean`, `delivery`, `drawer`, `factory`) |
+| **CXVM Dev (Hook)** | `cxvm dev [target_index]` -> `cexp --app $appName dev <target_index>` | Hook calling registered `cexr-factory` in dev mode on target index |
+| **CXVM Build (Hook)** | `cxvm build [target_index]` -> `cexp --app $appName build <target_index>` | Hook calling registered `cexr-bean` to compile target index |
+| **CXVM Start (Hook)** | `cxvm start [target_index]` -> `cexp --app $appName start <target_index>` | Hook calling registered `cexr-bean` to start target index |
+| **Direct App Dispatch** | `cexp --app $appName <cmd> [args...]` | Dispatch directly to registered binary app in `CEX_DIR` |
 | **Run CXVM App / Server** | `cexr src/index.cex` \| `CEX_DIR/cexr-$type/$version/bin src/index.cex` | Execute Lighting MVC server on port 3080 with CexR v8 |
 | **Run CXVM CLI** | `./bin/cxvm <command>` \| `cxvm <command>` | Run CXVM version manager CLI |
 | **Cross-Platform Setup Window** | `./bin/cxvm setup` \| `./scripts/setup.sh` \| `.\scripts\setup.ps1` | Launch interactive terminal setup window for PATH & env |
@@ -53,9 +58,10 @@ trigger: always_on
 
 ## 2. Invariants
 
-1. **CXVM Hook Invariant (`dev`, `build`, `start`)**: `cxvm dev`, `cxvm build`, and `cxvm start` always hook into `cxvm --app cexr-$versionType <dev|build|start> <target_index>` (example: `$versionType = bean`, `<target_index> = src/index.cex`).
-2. **Zero Python Scripts**: Replace all Python (`python`, `python3`) scripts and one-liners with `.cex` files executed by the `cexr-$type` runtime (`cexr <file.cex>`).
-3. **Zero External C++ Dependencies in v2**: No C++ build invocations (`g++`, `clang++`, `make`, `cmake`) for runtime app execution.
-4. **Dual Dispatcher Support**: `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` must run out-of-the-box on POSIX and Windows (`.cmd`, `.ps1`).
-5. **Distribution Retention**: `dist/` contains all cross-platform pre-built archives and must never be stripped or ignored.
+1. **CXVM Hook Invariant (`dev`, `build`, `start`)**: `cxvm dev`, `cxvm build`, and `cxvm start` always hook into `cexp --app $appName <dev|build|start> <target_index>` (example: `$appName = cexr-factory` or `cexr-bean`, `<target_index> = src/index.cex`).
+2. **Binary App Registration Invariant**: All application binaries must be registered in `CEX_DIR` (`$CEX_DIR/$appName/$version/bin` and `$CEX_DIR/bin/$appName`).
+3. **Zero Python Scripts**: Replace all Python (`python`, `python3`) scripts and one-liners with `.cex` files executed by the `cexr-$type` runtime (`cexr <script.cex>`).
+4. **Zero External C++ Dependencies in v2**: No C++ build invocations (`g++`, `clang++`, `make`, `cmake`) for runtime app execution.
+5. **Dual Dispatcher Support**: `CEX_DIR/cexr-$type/$version/bin` and `CEX_DIR/cexr-bean/$version/bin` must run out-of-the-box on POSIX and Windows (`.cmd`, `.ps1`).
+6. **Distribution Retention**: `dist/` contains all cross-platform pre-built archives and must never be stripped or ignored.
 6. **Rule (No Symbols)**: All scripts, outputs, and documentation must be pure ASCII without emojis or non-standard Unicode symbols.

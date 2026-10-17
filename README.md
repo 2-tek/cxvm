@@ -128,6 +128,10 @@ cxvm use 6.0.0
 | `cxvm default 8.0.0` | Configures default Cex version for new shells |
 | `cxvm uninstall 2.0.0` | Removes an installed version |
 | `cxvm doctor` | - | Runs pre-flight diagnostics for native `cexr-$type`, `cexp-v$shortVersion`, `cvm`, `thunder`, `light`, and host environment (zero C++ dependency) |
+| `cxvm dev [target]` | `npm run dev` | Hook calling `cexp --app cexr-factory dev <target>` (short command) |
+| `cxvm build [target]` | `npm run build` | Hook calling `cexp --app cexr-bean build <target>` (short command) |
+| `cxvm start [target]` | `npm start` | Hook calling `cexp --app cexr-bean start <target>` (short command) |
+| `cexp --app <app> <action>` | - | Direct app dispatcher executing registered binary apps in `CEX_DIR` |
 | `cxvm --app lighting create <name>` | `nest new` | Hooks project creation logic in lighting to scaffold new Fullstack MVC project |
 | `cxvm --app lighting dev` | `npm run dev` | Starts local Lighting MVC development server on port 3080 |
 | `cxvm --app lighting dev --target view` | - | Starts Lighting MVC dev server and opens CexView native window |

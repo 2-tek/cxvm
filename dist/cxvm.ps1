@@ -25,7 +25,16 @@ function Run-App {
     $curVer = (Get-CurrentVersion).TrimStart("v")
     if (-not $curVer -or $curVer -eq "none") { $curVer = "8.0.0" }
     
+    $cexDir = if ($env:CEX_DIR) { $env:CEX_DIR } elseif ($env:CEX_HOME) { $env:CEX_HOME } else { (Join-Path $HOME ".cex") }
     $candidates = @(
+        (Join-Path $cexDir "$AppName\$curVer\bin\$AppName.cmd"),
+        (Join-Path $cexDir "$AppName\$curVer\bin\$AppName"),
+        (Join-Path $cexDir "$AppName\$curVer\bin"),
+        (Join-Path $cexDir "bin\$AppName.cmd"),
+        (Join-Path $cexDir "bin\$AppName"),
+        (Join-Path $cxvmHome "$AppName\$curVer\bin\$AppName.cmd"),
+        (Join-Path $cxvmHome "$AppName\$curVer\bin\$AppName"),
+        (Join-Path $cxvmHome "$AppName\$curVer\bin"),
         (Join-Path $PWD "bin\$AppName.cmd"),
         (Join-Path $PWD "bin\$AppName"),
         (Join-Path $PWD "bin\$curVer\$AppName-$AppCmd.cmd"),
@@ -84,7 +93,10 @@ function Invoke-HookCexr {
         [string[]]$HookArgs = @()
     )
 
-    $versionType = if ($env:CEXR_VERSION_TYPE) { $env:CEXR_VERSION_TYPE } else { "bean" }
+    $versionType = if ($env:CEXR_VERSION_TYPE) { $env:CEXR_VERSION_TYPE } else { "factory" }
+    if ($HookCmd -in "build","compile") {
+        $versionType = if ($env:CEXR_BUILD_VERSION_TYPE) { $env:CEXR_BUILD_VERSION_TYPE } else { "bean" }
+    }
     $targetIndex = "src/index.cex"
     $extra = @()
 
@@ -92,6 +104,8 @@ function Invoke-HookCexr {
         if (-not $a) { continue }
         if ($a -in "bean","delivery","drawer","factory") {
             $versionType = $a
+        } elseif ($a.StartsWith("cexr-")) {
+            $versionType = $a.Substring(5)
         } elseif (-not $a.StartsWith("-") -and $targetIndex -eq "src/index.cex") {
             $targetIndex = $a
         } else {
@@ -99,8 +113,9 @@ function Invoke-HookCexr {
         }
     }
 
-    Write-Host "==> [cxvm $HookCmd] Hook -> cxvm --app cexr-$versionType $HookCmd $targetIndex" -ForegroundColor Cyan
-    return (Run-App -AppName "cexr" -AppCmd $versionType -AppArgs (@($HookCmd, $targetIndex) + $extra))
+    $appName = if ($versionType.StartsWith("cexr-")) { $versionType } else { "cexr-$versionType" }
+    Write-Host "==> [cxvm $HookCmd] Hook -> cexp --app $appName $HookCmd $targetIndex" -ForegroundColor Cyan
+    return (Run-App -AppName $appName -AppCmd $HookCmd -AppArgs (@($targetIndex) + $extra))
 }
 
 if ($Command -eq "--app" -or $Command.StartsWith("--app=")) {
@@ -108,6 +123,22 @@ if ($Command -eq "--app" -or $Command.StartsWith("--app=")) {
     $targetCmd = if ($Command.StartsWith("--app=")) { $Version } else { $Platform }
     $appArgs = if ($Command.StartsWith("--app=")) { @($Platform) + $ExtraArgs } else { $ExtraArgs }
     Run-App -AppName $targetApp -AppCmd $targetCmd -AppArgs $appArgs
+    exit $LASTEXITCODE
+}
+
+if ($Command -eq "cexp") {
+    if ($Version -eq "--app" -or $Version.StartsWith("--app=")) {
+        $targetApp = if ($Version.StartsWith("--app=")) { $Version.Substring(6) } else { $Platform }
+        $targetCmd = if ($Version.StartsWith("--app=")) { $Platform } else { ($ExtraArgs | Select-Object -First 1) }
+        $appArgs = if ($Version.StartsWith("--app=")) { $ExtraArgs } else { ($ExtraArgs | Select-Object -Skip 1) }
+        Run-App -AppName $targetApp -AppCmd $targetCmd -AppArgs $appArgs
+        exit $LASTEXITCODE
+    }
+    if ($Version -in "dev","build","start") {
+        Invoke-HookCexr -HookCmd $Version -HookArgs (@($Platform) + $ExtraArgs)
+        exit $LASTEXITCODE
+    }
+    Run-App -AppName "cexp" -AppCmd $Version -AppArgs (@($Platform) + $ExtraArgs)
     exit $LASTEXITCODE
 }
 

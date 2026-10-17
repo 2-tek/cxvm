@@ -188,6 +188,18 @@ fn main(): int {
     Assert::equalsInt(0, hookBuildRes, "cxvm build hooks to cxvm --app cexr bean build src/index.cex");
     let hookStartRes: int = cxvm->cvmExecute("start", "bean", "src/index.cex");
     Assert::equalsInt(0, hookStartRes, "cxvm start hooks to cxvm --app cexr bean start src/index.cex");
+    let hookCexpDevRes: int = cxvm->hookCexpExecute("cexr-factory", "dev", "src/index.cex");
+    Assert::equalsInt(0, hookCexpDevRes, "hookCexpExecute cexp --app cexr-factory dev returns 0 OK");
+    let hookCexpBuildRes: int = cxvm->hookCexpExecute("cexr-bean", "build", "src/index.cex");
+    Assert::equalsInt(0, hookCexpBuildRes, "hookCexpExecute cexp --app cexr-bean build returns 0 OK");
+    let execCexpAppRes: int = cxvm->cvmExecute("cexp", "--app", "cexr-factory");
+    Assert::equalsInt(0, execCexpAppRes, "cxvm cexp --app cexr-factory returns 0 OK");
+    let regCexDirRes: CxvmCommandResult* = cxvm->registerBinaryAppsInCexDir();
+    Assert::isTrue(regCexDirRes->success, "registerBinaryAppsInCexDir succeeds");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexp-v8") != -1, "register output contains cexp-v8");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-factory") != -1, "register output contains cexr-factory");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-bean") != -1, "register output contains cexr-bean");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/bin") != -1, "register output contains CEX_DIR/bin");
     suite->addResult("test_cxvm_version_manager", true, "", 1);
 
     // -------------------------------------------------------------

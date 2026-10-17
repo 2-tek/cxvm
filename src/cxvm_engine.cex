@@ -373,6 +373,8 @@ class CxvmEngine {
         outMsg += "  Default CexR Build:  cexr-bean (bean edition - native build/compile)\n";
         outMsg += "  PATH Entry:          " + this.cxvmHome + "/bin:" + this.cxvmHome + "/current\n";
         outMsg += "  Dispatcher:          CEX_DIR/cexr-$type/$version/bin & $CEX_DIR/cexr-factory/$version/bin configured for default run cxvm\n";
+        outMsg += "  Registered Apps:     CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)\n";
+        outMsg += "  Hook Dispatcher:     cexp --app $appName action (short command: dev, build, start)\n";
         outMsg += "  CVM Subsystem:       cvm commit, cvm push, cvm status integrated [OK]\n";
         outMsg += "  Thunder Subsystem:   thunder run, thunder ps, virtual kernel integrated [OK]\n";
         outMsg += "  Lighting Subsystem:  cxvm lighting create, lighting dev, lighting build integrated [OK]\n";
@@ -707,10 +709,29 @@ class CxvmEngine {
                 if (arg2.length() > 0) {
                     targetIdx = arg2;
                 }
+            } else if (arg1.find("cexr-") == 0) {
+                vType = arg1.substr(5);
+                if (arg2.length() > 0) {
+                    targetIdx = arg2;
+                }
             } else if (arg1.length() > 0) {
                 targetIdx = arg1;
             }
             return this.hookCexrExecute(cmd, vType, targetIdx);
+        }
+        if (cmd == "cexp") {
+            if (arg1 == "--app") {
+                return this.appExecute(arg2, "", "");
+            }
+            if (arg1 == "dev" || arg1 == "build" || arg1 == "start") {
+                return this.hookCexrExecute(arg1, "", arg2);
+            }
+            return this.appExecute("cexp", arg1, arg2);
+        }
+        if (cmd == "register" && (arg1 == "cex-dir" || arg1 == "CEX_DIR" || arg1.length() == 0)) {
+            let res: CxvmCommandResult* = this.registerBinaryAppsInCexDir();
+            println(res->output);
+            return 0;
         }
         if (cmd == "stop" && (arg1 == "cvm" || arg1.length() == 0)) {
             let res: CxvmCommandResult* = this.stopCvm();
@@ -790,8 +811,28 @@ class CxvmEngine {
         let defEd: string = (action == "build") ? this.defaultBuildEdition : this.defaultCexrEdition;
         let vType: string = versionType.length() == 0 ? defEd : versionType;
         let idx: string = targetIndex.length() == 0 ? "src/index.cex" : targetIndex;
-        println("==> [cxvm " + action + "] Hook -> cxvm --app cexr " + vType + " " + action + " " + idx);
-        return this.appExecute("cexr", vType, action + " " + idx);
+        let appName: string = (vType.find("cexr-") == 0) ? vType : "cexr-" + vType;
+        println("==> [cxvm " + action + "] Hook -> cexp --app " + appName + " " + action + " " + idx);
+        return this.appExecute(appName, action, idx);
+    }
+
+    public hookCexpExecute(appName: string, action: string, targetIndex: string): int {
+        let act: string = action.length() == 0 ? "dev" : action;
+        let app: string = appName.length() == 0 ? "cexr-factory" : appName;
+        let idx: string = targetIndex.length() == 0 ? "src/index.cex" : targetIndex;
+        println("==> [cxvm " + act + "] Hook -> cexp --app " + app + " " + act + " " + idx);
+        return this.appExecute(app, act, idx);
+    }
+
+    public registerBinaryAppsInCexDir(): CxvmCommandResult* {
+        let msg: string = "[OK] Registered binary apps in CEX_DIR:\n";
+        msg += "  - cexp-v8:       CEX_DIR/cexp-v8/" + this.currentVersion + "/bin\n";
+        msg += "  - cexr-factory:  CEX_DIR/cexr-factory/" + this.currentVersion + "/bin\n";
+        msg += "  - cexr-bean:     CEX_DIR/cexr-bean/" + this.currentVersion + "/bin\n";
+        msg += "  - cex-pack:      CEX_DIR/cex-pack/" + this.currentVersion + "/bin\n";
+        msg += "  - cex-lint:      CEX_DIR/cex-lint/" + this.currentVersion + "/bin\n";
+        msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint)\n";
+        return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Binary apps registered in CEX_DIR", msg);
     }
 
     public appExecute(appName: string, appCmd: string, manifestFile: string): int {
@@ -799,19 +840,24 @@ class CxvmEngine {
         let subCmd: string = appCmd.length() == 0 ? "downloads" : appCmd;
         let file: string = manifestFile.length() == 0 ? "cex-pack.json" : manifestFile;
         println("==> [cxvm] Dispatching to " + name + " via --app (" + subCmd + ")..");
-        if (name == "cexr") {
-            let vType: string = subCmd.length() == 0 ? this.defaultCexrEdition : subCmd;
+        if (name == "cexr" || name.find("cexr-") == 0) {
+            let vType: string = (name.find("cexr-") == 0) ? name.substr(5) : (subCmd.length() == 0 ? this.defaultCexrEdition : subCmd);
             let targetSpec: string = manifestFile.length() == 0 ? "src/index.cex" : manifestFile;
-            println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Executed target index (" + targetSpec + ") via CexR v" + this.currentVersion + " runtime");
+            println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Executed target index (" + targetSpec + ") via CexR v" + this.currentVersion + " runtime (registered in CEX_DIR)");
+            return 0;
+        }
+        if (name == "cexp" || name.find("cexp-") == 0) {
+            println("[OK] [" + name + "] Executed '" + name + " " + subCmd + " " + file + "' via CexP compiler (registered in CEX_DIR)");
             return 0;
         }
         if (name == "cex-lint") {
             let lintTarget: string = manifestFile.length() == 0 ? "." : manifestFile;
-            println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via ./bin/1.0.8/cex-lint");
+            println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via registered binary app in CEX_DIR (./bin/1.0.8/cex-lint)");
             return 0;
         }
         if (name == "cex-pack" && subCmd == "downloads") {
             println("[OK] [cex-pack] Dependencies downloaded into .cex_boxes/ (active runtime v" + this.currentVersion + ")");
+            println("[OK] [cex-pack] Registered binary app in CEX_DIR (./bin/" + this.currentVersion + "/cex-pack)");
             println("[OK] [cex-pack] Integrated inside ./bin/" + this.currentVersion + "/cex-pack");
             return 0;
         }
