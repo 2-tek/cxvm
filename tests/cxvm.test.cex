@@ -788,6 +788,41 @@ fn main(): int {
 
     suite->addResult("test_linux_distro_cli_and_api", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 12: Toolchain Reinstallation Subsystem (Scan, Purge & Reinstall)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 12: Toolchain Reinstallation Subsystem (cxvm, cex, cli, and REST API)]");
+
+    // 1. Direct engine reinstall
+    let reRes: CxvmCommandResult* = cxvm->reinstall("8.0.0");
+    Assert::isTrue(reRes->success, "cxvm reinstall succeeds");
+    Assert::equalsString("8.0.0", cxvm->currentVersion, "Active runtime version is 8.0.0 after reinstall");
+    Assert::equalsString("8.0.0", cxvm->defaultVersion, "Default runtime version is 8.0.0 after reinstall");
+    Assert::isTrue(cxvm->installedVersions->length() >= 2, "Installed versions contains reinstalled runtimes");
+    Assert::isTrue(reRes->output.find("[cxvm reinstall] Initiating deep scan and complete reinstall") != -1, "Output confirms reinstall scan phase");
+    Assert::isTrue(reRes->output.find("[Purge] Removed runtime") != -1, "Output confirms purge phase");
+    Assert::isTrue(reRes->output.find("REINSTALL COMPLETE [OK]") != -1, "Output confirms REINSTALL COMPLETE [OK]");
+
+    // 2. CLI cvmExecute routing: cxvm reinstall
+    let execReinstall: int = cxvm->cvmExecute("reinstall", "8.0.0", "");
+    Assert::equalsInt(0, execReinstall, "cxvm reinstall returns exit code 0");
+
+    // 3. CLI cvmExecute routing: cxvm cex reinstall
+    let execCexReinstall: int = cxvm->cvmExecute("cex", "reinstall", "8.0.0");
+    Assert::equalsInt(0, execCexReinstall, "cxvm cex reinstall returns exit code 0");
+
+    // 4. CLI cvmExecute routing: cxvm cli reinstall
+    let execCliReinstall: int = cxvm->cvmExecute("cli", "reinstall", "8.0.0");
+    Assert::equalsInt(0, execCliReinstall, "cxvm cli reinstall returns exit code 0");
+
+    // 5. REST API: POST /api/v1/reinstall
+    let resPostReinstall: HttpResponse* = app->simulateRequest("POST", "/api/v1/reinstall", "{\"version\":\"8.0.0\"}", "application/json");
+    Assert::equalsInt(200, resPostReinstall->statusCode, "POST /api/v1/reinstall returns 200 OK");
+    Assert::isTrue(resPostReinstall->body.find("SUCCESS") != -1, "Reinstall API reports SUCCESS");
+    Assert::isTrue(resPostReinstall->body.find("reinstall") != -1, "Reinstall API reports command reinstall");
+
+    suite->addResult("test_reinstall_cli_and_api", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

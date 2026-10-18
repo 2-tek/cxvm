@@ -512,6 +512,118 @@ _cxvm_run_linux_distro() {
 }
 
 # -----------------------------------------------------------------------------
+# Deep Reinstallation Subsystem (cxvm reinstall [version])
+# Scan installed runtimes, compilers, caches of cxvm, cexp, cexr, delete them,
+# then reinstall last via cxvm.
+# -----------------------------------------------------------------------------
+_cxvm_run_reinstall() {
+  local target_ver="${1:-8.0.0}"
+  target_ver="${target_ver#v}"
+
+  echo "==============================================================="
+  echo "    CXVM Toolchain Reinstaller (Scan, Purge & Reinstall)       "
+  echo "==============================================================="
+  echo "==> [cxvm reinstall] Initiating deep scan and complete reinstall..."
+
+  # Phase 1: Scan
+  echo "==> [1/3] Scanning installed runtimes, compilers, tools and caches:"
+  local found_runtimes=()
+  local found_caches=()
+  local found_tools=()
+
+  # Scan versions in CXVM_DIR
+  if [ -d "$CXVM_DIR/bin" ]; then
+    for d in "$CXVM_DIR/bin"/[0-9]* "$CXVM_DIR/bin"/v[0-9]*; do
+      [ -d "$d" ] && found_runtimes+=("$d")
+    done
+  fi
+  if [ -d "$CXVM_DIR/versions" ]; then
+    for d in "$CXVM_DIR/versions"/*; do
+      [ -d "$d" ] && found_runtimes+=("$d")
+    done
+  fi
+  if [ -d "$HOME/.cex/versions" ]; then
+    for d in "$HOME/.cex/versions"/*; do
+      [ -d "$d" ] && found_runtimes+=("$d")
+    done
+  fi
+
+  # Scan caches
+  [ -d "$CXVM_DIR/cache" ] && found_caches+=("$CXVM_DIR/cache")
+  [ -d "$HOME/.cex/cache" ] && found_caches+=("$HOME/.cex/cache")
+  [ -d ".cex_cache" ] && found_caches+=("$(pwd)/.cex_cache")
+
+  # Scan tool links and editions
+  [ -e "$CXVM_DIR/current" ] && found_tools+=("$CXVM_DIR/current")
+  [ -f "$CXVM_DIR/bin/cexr" ] && found_tools+=("$CXVM_DIR/bin/cexr")
+  [ -f "$CXVM_DIR/bin/cexp" ] && found_tools+=("$CXVM_DIR/bin/cexp")
+  [ -f "$CXVM_DIR/bin/cex" ] && found_tools+=("$CXVM_DIR/bin/cex")
+  [ -f "$CXVM_DIR/default-cexr-edition" ] && found_tools+=("$CXVM_DIR/default-cexr-edition")
+  [ -f "$CXVM_DIR/default-cexr-build-edition" ] && found_tools+=("$CXVM_DIR/default-cexr-build-edition")
+
+  echo "  [Scan] Found ${#found_runtimes[@]} installed runtime versions:"
+  for r in "${found_runtimes[@]}"; do
+    echo "    - $r"
+  done
+  [ ${#found_runtimes[@]} -eq 0 ] && echo "    - (none)"
+
+  echo "  [Scan] Found ${#found_caches[@]} cache directories:"
+  for c in "${found_caches[@]}"; do
+    echo "    - $c"
+  done
+  [ ${#found_caches[@]} -eq 0 ] && echo "    - (none)"
+
+  echo "  [Scan] Found ${#found_tools[@]} active toolchain links & configurations:"
+  for t in "${found_tools[@]}"; do
+    echo "    - $t"
+  done
+  [ ${#found_tools[@]} -eq 0 ] && echo "    - (none)"
+
+  # Phase 2: Purge / Delete
+  echo "==> [2/3] Purging detected installations, caches, and active links..."
+  for r in "${found_runtimes[@]}"; do
+    rm -rf "$r" 2>/dev/null || true
+    echo "  [Purge] Removed runtime: $r"
+  done
+  rm -rf "$CXVM_DIR/versions" 2>/dev/null || true
+
+  for c in "${found_caches[@]}"; do
+    rm -rf "$c"/* 2>/dev/null || true
+    echo "  [Purge] Cleaned cache: $c"
+  done
+
+  rm -f "$CXVM_DIR/current" 2>/dev/null || true
+  rm -f "$CXVM_DIR/bin/cexr" "$CXVM_DIR/bin/cexp" "$CXVM_DIR/bin/cex" 2>/dev/null || true
+  rm -f "$CXVM_DIR/default-cexr-edition" "$CXVM_DIR/default-cexr-build-edition" "$CXVM_DIR/default" 2>/dev/null || true
+  rm -f "$CXVM_DIR/cvm_server.pid" "$CXVM_DIR/thunder_server.pid" 2>/dev/null || true
+  echo "  [Purge] Cleared active symlinks and runtime edition markers"
+
+  # Phase 3: Reinstall Last by CXVM
+  echo "==> [3/3] Reinstalling latest Cex runtime ($target_ver) and toolchains via cxvm..."
+  mkdir -p "$CXVM_DIR/bin" "$CXVM_DIR/cache"
+
+  local s_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
+  if [ -n "$s_dir" ] && [ -f "$s_dir/cxvm" ]; then
+    cp -f "$s_dir/cxvm" "$CXVM_DIR/bin/cxvm"
+    chmod +x "$CXVM_DIR/bin/cxvm"
+  elif [ -f "dist/cxvm" ]; then
+    cp -f "dist/cxvm" "$CXVM_DIR/bin/cxvm"
+    chmod +x "$CXVM_DIR/bin/cxvm"
+  fi
+
+  cxvm install "$target_ver"
+  if [ "$target_ver" != "6.0.0" ]; then
+    cxvm install "6.0.0" >/dev/null 2>&1 || true
+  fi
+  cxvm default "$target_ver"
+  cxvm use "$target_ver"
+
+  echo "==> Reinstall complete! Active runtime: v${target_ver} (Pure Cex Toolchain)"
+  echo "  Status: REINSTALL COMPLETE [OK]"
+  return 0
+}
+
+# -----------------------------------------------------------------------------
 # Integrated Thunder Container Engine Runner
 # -----------------------------------------------------------------------------
 _cxvm_run_thunder() {
@@ -2421,11 +2533,12 @@ CEXP_EOF
       done
 
       # Link or create $CXVM_DIR/bin/cvm
+      rm -f "$CXVM_DIR/bin/cvm" 2>/dev/null || true
       if [ -x "$HOME/.local/bin/cvm" ]; then
         ln -sf "$HOME/.local/bin/cvm" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
-      elif command -v cvm >/dev/null 2>&1; then
+      elif command -v cvm >/dev/null 2>&1 && [ "$(command -v cvm)" != "$CXVM_DIR/bin/cvm" ]; then
         ln -sf "$(command -v cvm)" "$CXVM_DIR/bin/cvm" 2>/dev/null || true
-      elif [ ! -f "$CXVM_DIR/bin/cvm" ]; then
+      else
         cat <<'CVM_WRAP_EOF' > "$CXVM_DIR/bin/cvm"
 #!/usr/bin/env bash
 # CVM Dispatcher
@@ -2699,7 +2812,26 @@ LIGHT_WRAP_EOF
       ;;
 
     cli)
+      if [ "$1" = "reinstall" ]; then
+        shift
+        _cxvm_run_reinstall "$@"
+        return $?
+      fi
       _cxvm_run_cex_cli "$@"
+      ;;
+
+    cex)
+      if [ "$1" = "reinstall" ]; then
+        shift
+        _cxvm_run_reinstall "$@"
+        return $?
+      fi
+      if [ "$1" = "setup" ]; then
+        shift
+        cxvm setup "$@"
+        return $?
+      fi
+      _cxvm_run_app "cex" "$@"
       ;;
 
     test)
@@ -2804,6 +2936,10 @@ LIGHT_WRAP_EOF
       rm -f "$CXVM_DIR/bin/cexr" "$CXVM_DIR/bin/cexp" "$CXVM_DIR/bin/cex" 2>/dev/null || true
       rm -f "$CXVM_DIR/default-cexr-edition" "$CXVM_DIR/default-cexr-build-edition" 2>/dev/null || true
       cxvm setup "$@"
+      ;;
+
+    reinstall)
+      _cxvm_run_reinstall "$@"
       ;;
 
     setup)
@@ -2949,6 +3085,7 @@ LIGHT_WRAP_EOF
       echo "  list-remote (ls-remote) List available remote versions from Factory"
       echo "  default <ver>         Set default Cex version across terminal sessions"
       echo "  uninstall <ver>       Remove an installed Cex version"
+      echo "  reinstall [ver]       Deep scan and delete all installed versions & caches, then reinstall"
       echo "  open [url]            Open URL by Browser (cex-webkit, default) or native window (cex-view)"
       echo "                        Options: --target (browser||view) or -t <browser|view>"
       echo "  doctor                Run pre-flight environment diagnostics"

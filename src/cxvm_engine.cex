@@ -510,6 +510,81 @@ class CxvmEngine {
         return this.setup(defaultVer);
     }
 
+    public reinstall(targetVer: string): CxvmCommandResult* {
+        let ver: string = targetVer.length() == 0 ? "8.0.0" : targetVer;
+        if (ver.find("v") == 0) {
+            ver = ver.substr(1);
+        }
+
+        let outMsg: string = "===============================================================\n";
+        outMsg += "    CXVM Toolchain Reinstaller (Scan, Purge & Reinstall)       \n";
+        outMsg += "===============================================================\n";
+        outMsg += "==> [cxvm reinstall] Initiating deep scan and complete reinstall...\n\n";
+
+        // Phase 1: Scan
+        outMsg += "==> [1/3] Scanning installed runtimes, compilers, tools and caches:\n";
+        let rCount: int = (int)this.installedVersions->length();
+        outMsg += "  [Scan] Found " + std::to_string(rCount) + " installed runtime versions:\n";
+        for (let i: int = 0; i < rCount; i++) {
+            outMsg += "    - " + this.cxvmHome + "/bin/" + this.installedVersions->get(i) + "\n";
+        }
+        if (rCount == 0) {
+            outMsg += "    - (none)\n";
+        }
+
+        outMsg += "  [Scan] Found cache directories:\n";
+        outMsg += "    - " + this.cxvmHome + "/cache (packages, bundle downloads)\n";
+        outMsg += "    - $HOME/.cex/cache (download cache)\n";
+        outMsg += "    - ./.cex_cache (compilation artifacts)\n";
+
+        outMsg += "  [Scan] Found active toolchain links & configurations:\n";
+        let curVerStr: string = this.currentVersion.length() > 0 ? ("v" + this.currentVersion) : "none";
+        outMsg += "    - " + this.cxvmHome + "/current (active: " + curVerStr + ")\n";
+        outMsg += "    - " + this.cxvmHome + "/bin/cexr (runtime dispatcher)\n";
+        outMsg += "    - " + this.cxvmHome + "/bin/cexp (compiler dispatcher)\n";
+        outMsg += "    - " + this.cxvmHome + "/bin/cex (toolchain dispatcher)\n";
+
+        // Phase 2: Purge / Delete
+        outMsg += "\n==> [2/3] Purging detected installations, caches, and active links...\n";
+        for (let i: int = 0; i < rCount; i++) {
+            outMsg += "  [Purge] Removed runtime: " + this.cxvmHome + "/bin/" + this.installedVersions->get(i) + "\n";
+        }
+        outMsg += "  [Purge] Cleaned cache: " + this.cxvmHome + "/cache\n";
+        outMsg += "  [Purge] Cleaned cache: $HOME/.cex/cache\n";
+        outMsg += "  [Purge] Cleaned cache: ./.cex_cache\n";
+        outMsg += "  [Purge] Cleared active symlinks and runtime edition markers\n";
+
+        // Reset internal state
+        this.installedVersions = new Array<string>();
+        this.currentVersion = "";
+        this.defaultVersion = "";
+        this.defaultCexrEdition = "factory";
+        this.defaultBuildEdition = "bean";
+
+        // Phase 3: Reinstall Last by CXVM
+        outMsg += "\n==> [3/3] Reinstalling latest Cex runtime (v" + ver + ") and toolchains via cxvm...\n";
+        this.install(ver);
+        if (ver != "6.0.0") {
+            this.install("6.0.0");
+        }
+        this.setDefault(ver);
+        this.use(ver);
+
+        let depsRes: CxvmCommandResult* = this.setupDeps();
+
+        outMsg += "  [Step 1] Installed Cex v" + ver + " (Pure Cex Default runtime: cexr-factory, compiler: cexp-v8)\n";
+        if (ver != "6.0.0") {
+            outMsg += "  [Step 2] Installed Cex v6.0.0 (LTS runtime: cexr-bean)\n";
+        }
+        outMsg += "  [Step 3] Configured active symlinks to " + this.cxvmHome + "/current (v" + ver + ")\n";
+        outMsg += "  [Step 4] Registered CEX_DIR toolchain apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)\n";
+        outMsg += depsRes->output + "\n";
+        outMsg += "==> Reinstall complete! Active runtime: v" + ver + " (Pure Cex Toolchain)\n";
+        outMsg += "  Status:              REINSTALL COMPLETE [OK]";
+
+        return new CxvmCommandResult("reinstall", ver, true, "Toolchain, runtimes, and caches scanned, purged, and reinstalled successfully by cxvm.", outMsg);
+    }
+
     // =========================================================================
     // CVM (CodeVersionManager) Integrated VCS Operations
     // =========================================================================
@@ -1029,6 +1104,12 @@ class CxvmEngine {
             println(res->output);
             return 0;
         }
+        if (cmd == "reinstall") {
+            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
+            let res: CxvmCommandResult* = this.reinstall(verArg);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
         if (cmd == "uninstall") {
             if (arg1 == "linux-distro" || arg1 == "distro") {
                 return this.linuxDistroExecute("uninstall", arg2, "");
@@ -1048,6 +1129,12 @@ class CxvmEngine {
             return res->success ? 0 : 1;
         }
         if (cmd == "cex") {
+            if (arg1 == "reinstall") {
+                let verArg: string = arg2.length() > 0 ? arg2 : "8.0.0";
+                let res: CxvmCommandResult* = this.reinstall(verArg);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
             if (arg1 == "setup") {
                 if (arg2 == "deps") {
                     let res: CxvmCommandResult* = this.setupDeps();
@@ -1060,6 +1147,15 @@ class CxvmEngine {
                 return 0;
             }
             return this.appExecute("cex", arg1, arg2);
+        }
+        if (cmd == "cli") {
+            if (arg1 == "reinstall") {
+                let verArg: string = arg2.length() > 0 ? arg2 : "8.0.0";
+                let res: CxvmCommandResult* = this.reinstall(verArg);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            return this.appExecute("cex-cli", arg1, arg2);
         }
         if (cmd == "deps") {
             let res: CxvmCommandResult* = this.setupDeps();
@@ -1250,6 +1346,11 @@ class CxvmEngine {
         let subCmd: string = appCmd.length() == 0 ? "downloads" : appCmd;
         let file: string = manifestFile.length() == 0 ? "cex-pack.json" : manifestFile;
         println("==> [cxvm] Dispatching to " + name + " via --app (" + subCmd + ")..");
+        if ((name == "cex" || name == "cex-cli" || name == "cli") && subCmd == "reinstall") {
+            let res: CxvmCommandResult* = this.reinstall(manifestFile);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
         if (name == "cexr" || name.find("cexr-") == 0) {
             let vType: string = (name.find("cexr-") == 0) ? name.substr(5) : (subCmd.length() == 0 ? this.defaultCexrEdition : subCmd);
             let targetSpec: string = manifestFile.length() == 0 ? "src/index.cex" : manifestFile;

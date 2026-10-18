@@ -504,6 +504,31 @@ fn main(): int {
 
     suite->addResult("test_linux_distro_cli_and_api", true, "", 1);
 
+    // -------------------------------------------------------------
+    // Test 9: Toolchain Reinstallation Subsystem
+    // -------------------------------------------------------------
+    println("\n[Test Suite 9: Toolchain Reinstallation Subsystem]");
+
+    let reinRes: CxvmCommandResult* = cxvm->reinstall("8.0.0");
+    Assert::isTrue(reinRes->success, "reinstall succeeds");
+    Assert::equalsString("8.0.0", cxvm->currentVersion, "reinstall sets currentVersion to 8.0.0");
+    Assert::isTrue(reinRes->output.find("REINSTALL COMPLETE [OK]") != -1, "reinstall output confirms completion");
+
+    let reinExec: int = cxvm->cvmExecute("reinstall", "8.0.0", "");
+    Assert::equalsInt(0, reinExec, "cxvm reinstall returns 0 OK");
+
+    let reinCexExec: int = cxvm->cvmExecute("cex", "reinstall", "8.0.0");
+    Assert::equalsInt(0, reinCexExec, "cxvm cex reinstall returns 0 OK");
+
+    let reinCliExec: int = cxvm->cvmExecute("cli", "reinstall", "8.0.0");
+    Assert::equalsInt(0, reinCliExec, "cxvm cli reinstall returns 0 OK");
+
+    let resPostRein: HttpResponse* = app->simulateRequest("POST", "/api/v1/reinstall", "{\"version\":\"8.0.0\"}", "application/json");
+    Assert::equalsInt(200, resPostRein->statusCode, "POST /api/v1/reinstall returns 200 OK");
+    Assert::isTrue(resPostRein->body.find("SUCCESS") != -1, "POST /api/v1/reinstall reports SUCCESS");
+
+    suite->addResult("test_reinstall_subsystem", true, "", 1);
+
     println("\n");
     TestReporter::printSummary(suite);
     return suite->failCount() > 0 ? 1 : 0;

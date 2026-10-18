@@ -1070,6 +1070,11 @@ echo CexR Windows Runner ready.
         }
     }
     "cex" {
+        if ($Version -eq "reinstall") {
+            $rVer = if ($Platform) { $Platform } else { "8.0.0" }
+            & $PSCommandPath -Command "reinstall" -Version $rVer
+            return
+        }
         if ($Version -eq "setup") {
             $setupCex = Join-Path $PSScriptRoot "setup.cex"
             if (-not (Test-Path $setupCex)) { $setupCex = Join-Path (Get-Location) "setup.cex" }
@@ -1079,6 +1084,84 @@ echo CexR Windows Runner ready.
             }
         }
         Run-App -AppName "cex" -AppCmd $Version -Arguments $ExtraArgs
+    }
+    "cli" {
+        if ($Version -eq "reinstall") {
+            $rVer = if ($Platform) { $Platform } else { "8.0.0" }
+            & $PSCommandPath -Command "reinstall" -Version $rVer
+            return
+        }
+        Run-App -AppName "cex-cli" -AppCmd $Version -Arguments $ExtraArgs
+    }
+    "reinstall" {
+        $rVer = if ($Version) { $Version } else { "8.0.0" }
+        $rVer = $rVer -replace '^v',''
+        Write-Host "===============================================================" -ForegroundColor Cyan
+        Write-Host "    CXVM Toolchain Reinstaller (Scan, Purge & Reinstall)       " -ForegroundColor Cyan
+        Write-Host "===============================================================" -ForegroundColor Cyan
+        Write-Host "==> [cxvm reinstall] Initiating deep scan and complete reinstall..."
+
+        Write-Host "==> [1/3] Scanning installed runtimes, compilers, tools and caches:"
+        $foundRuntimes = @()
+        $vDir = Join-Path $cxvmHome "versions"
+        if (Test-Path $vDir) {
+            Get-ChildItem $vDir | ForEach-Object { $foundRuntimes += $_.FullName }
+        }
+        $binDir = Join-Path $cxvmHome "bin"
+        if (Test-Path $binDir) {
+            Get-ChildItem $binDir -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+                if ($_.Name -match '^[v]?[0-9]') { $foundRuntimes += $_.FullName }
+            }
+        }
+        $cexVersions = Join-Path $HOME ".cex\versions"
+        if (Test-Path $cexVersions) {
+            Get-ChildItem $cexVersions -ErrorAction SilentlyContinue | ForEach-Object { $foundRuntimes += $_.FullName }
+        }
+
+        $foundCaches = @()
+        $cDir = Join-Path $cxvmHome "cache"
+        if (Test-Path $cDir) { $foundCaches += $cDir }
+        $cexCache = Join-Path $HOME ".cex\cache"
+        if (Test-Path $cexCache) { $foundCaches += $cexCache }
+        if (Test-Path ".cex_cache") { $foundCaches += (Join-Path (Get-Location) ".cex_cache") }
+
+        Write-Host "  [Scan] Found $($foundRuntimes.Count) installed runtime versions:"
+        foreach ($r in $foundRuntimes) { Write-Host "    - $r" }
+        if ($foundRuntimes.Count -eq 0) { Write-Host "    - (none)" }
+
+        Write-Host "  [Scan] Found $($foundCaches.Count) cache directories:"
+        foreach ($c in $foundCaches) { Write-Host "    - $c" }
+        if ($foundCaches.Count -eq 0) { Write-Host "    - (none)" }
+
+        Write-Host "==> [2/3] Purging detected installations, caches, and active links..."
+        foreach ($r in $foundRuntimes) {
+            Remove-Item $r -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "  [Purge] Removed runtime: $r"
+        }
+        if (Test-Path $vDir) { Remove-Item $vDir -Recurse -Force -ErrorAction SilentlyContinue }
+
+        foreach ($c in $foundCaches) {
+            Get-ChildItem $c -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "  [Purge] Cleaned cache: $c"
+        }
+
+        $currentLink = Join-Path $cxvmHome "current"
+        if (Test-Path $currentLink) { Remove-Item $currentLink -Force -Recurse -ErrorAction SilentlyContinue }
+        Remove-Item (Join-Path $cxvmHome "default-cexr-edition") -Force -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $cxvmHome "default-cexr-build-edition") -Force -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $cxvmHome "default") -Force -ErrorAction SilentlyContinue
+        Write-Host "  [Purge] Cleared active symlinks and runtime edition markers"
+
+        Write-Host "==> [3/3] Reinstalling latest Cex runtime ($rVer) and toolchains via cxvm..."
+        & $PSCommandPath -Command "install" -Version $rVer
+        if ($rVer -ne "6.0.0") {
+            & $PSCommandPath -Command "install" -Version "6.0.0"
+        }
+        & $PSCommandPath -Command "default" -Version $rVer
+        & $PSCommandPath -Command "use" -Version $rVer
+
+        Write-Host "==> Reinstall complete! Active runtime: v$rVer (Pure Cex Toolchain)" -ForegroundColor Green
+        Write-Host "  Status: REINSTALL COMPLETE [OK]" -ForegroundColor Green
     }
     "setup" {
         if ($Version -eq "linux-distro" -or $Version -eq "distro") {
@@ -1316,6 +1399,7 @@ echo CexR Windows Runner ready.
         Write-Host "  list-remote (ls-remote) List available remote versions from Factory"
         Write-Host "  default <ver>         Set default Cex version across terminal sessions"
         Write-Host "  uninstall <ver>       Remove an installed Cex version"
+        Write-Host "  reinstall [ver]       Scan all installed versions, caches of cxvm, cexp, cexr, delete them, and reinstall"
         Write-Host "  linux-distro install [name] [ver]   Install Linux distribution into cxvm (default: cex-linux)"
         Write-Host "  linux-distro uninstall [name]       Uninstall Linux distribution from cxvm"
         Write-Host "  linux-distro setup [name] [ver]     Set up and initialize Linux distribution environment"

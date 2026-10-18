@@ -89,6 +89,7 @@ class FactoryApp {
         this.router->post("/api/v1/light/create", "factory.apiLightCreate");
         this.router->post("/api/v1/open", "factory.apiOpen");
         this.router->get("/api/v1/target", "factory.apiTarget");
+        this.router->post("/api/v1/reinstall", "factory.apiReinstall");
     }
 
     public start(): void {
@@ -290,6 +291,10 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiTarget") {
             return this.controller->apiTarget(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiReinstall") {
+            return this.controller->apiReinstall(req, this.cxvm);
         }
 
         return HttpResponse::notFound("Handler not implemented: " + route->handlerId);

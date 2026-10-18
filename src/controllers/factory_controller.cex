@@ -714,4 +714,23 @@ class FactoryController extends BaseController {
         JsonDoc::setVal(doc, "engines", engines);
         return this.json(doc);
     }
+
+    public apiReinstall(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let ver: string = "8.0.0";
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("version")) {
+                ver = parsed->get("version")->asString();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->reinstall(ver);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "command", "reinstall");
+        JsonDoc::setStr(doc, "version", res->version);
+        JsonDoc::setStr(doc, "activeVersion", cxvm->currentVersion);
+        JsonDoc::setStr(doc, "message", res->message);
+        JsonDoc::setStr(doc, "output", res->output);
+        return this.json(doc);
+    }
 }

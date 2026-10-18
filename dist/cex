@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
+if [ "$1" = "reinstall" ]; then
+  shift
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [ -x "$SCRIPT_DIR/cxvm" ]; then
+    exec "$SCRIPT_DIR/cxvm" reinstall "$@"
+  elif [ -x "$CXVM_DIR/bin/cxvm" ]; then
+    exec "$CXVM_DIR/bin/cxvm" reinstall "$@"
+  elif command -v cxvm >/dev/null 2>&1; then
+    exec cxvm reinstall "$@"
+  fi
+fi
 if [ "$1" = "setup" ]; then
   shift
   CEXR_CMD="cexr"
