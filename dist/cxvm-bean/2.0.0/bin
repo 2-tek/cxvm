@@ -702,11 +702,11 @@ _cxvm_run_thunder() {
 }
 
 # -----------------------------------------------------------------------------
-# Integrated Target Opener (cxvm open [--target browser|view])
+# Integrated Target Opener (cxvm open [--target view])
 # -----------------------------------------------------------------------------
 _cxvm_open() {
   local url=""
-  local target="browser" # default is cex-webkit
+  local target="view" # default is cex-view only
   local os_target=""
 
   while [ $# -gt 0 ]; do
@@ -806,25 +806,9 @@ _cxvm_open() {
     return 0
   fi
 
-  if [ "$target" = "view" ]; then
-    echo "==> [cxvm open] Opening $url with native window (cex-view)..."
-    echo "[OK] [cex-view] Initialized CexView native window for: $url"
-    echo "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)"
-  elif [ "$target" = "browser" ]; then
-    echo "==> [cxvm open] Opening $url by Browser (cex-webkit)..."
-    echo "[OK] [cex-webkit] Initialized CexWebKit browser engine for: $url"
-    echo "[OK] [cex-webkit] WebKit document loaded and rendered in browser viewport"
-    if command -v xdg-open >/dev/null 2>&1; then
-      xdg-open "$url" >/dev/null 2>&1 || true
-    elif command -v open >/dev/null 2>&1; then
-      open "$url" >/dev/null 2>&1 || true
-    elif command -v cmd.exe >/dev/null 2>&1; then
-      cmd.exe /c start "$url" >/dev/null 2>&1 || true
-    fi
-  else
-    echo "[ERROR] Invalid --target: '$target'. Allowed targets: browser (cex-webkit), view (cex-view)"
-    return 1
-  fi
+  echo "==> [cxvm open] Opening $url with native window (cex-view)..."
+  echo "[OK] [cex-view] Initialized CexView native window for: $url"
+  echo "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)"
 }
 
 # -----------------------------------------------------------------------------
@@ -1028,7 +1012,7 @@ EOF
       test_target="tests/cxvm.test.cex"
     fi
     echo "==> [cxvm lighting test] Hook -> cxvm --app cext run $test_target"
-    _cxvm_run_app "cext" "run" "$test_target" "${extra_args[@]:1}"
+    cxvm --app cext run "$test_target" "${extra_args[@]:1}"
     return $?
   fi
 
@@ -2866,8 +2850,13 @@ LIGHT_WRAP_EOF
       ;;
 
     test|cext)
-      echo "==> [cxvm test] Hook -> cxvm --app cext $*"
-      _cxvm_run_app "cext" "$@"
+      if [ -n "$*" ]; then
+        echo "==> [cxvm test] Hook -> cxvm --app cext $*"
+      else
+        echo "==> [cxvm test] Hook -> cxvm --app cext"
+      fi
+      cxvm --app cext "$@"
+      return $?
       ;;
 
     watch)
@@ -3091,8 +3080,8 @@ LIGHT_WRAP_EOF
       echo "  default <ver>         Set default Cex version across terminal sessions"
       echo "  uninstall <ver>       Remove an installed Cex version"
       echo "  reinstall [ver]       Deep scan and delete all installed versions & caches, then reinstall"
-      echo "  open [url]            Open URL by Browser (cex-webkit, default) or native window (cex-view)"
-      echo "                        Options: --target (browser||view) or -t <browser|view>"
+      echo "  open [url]            Open URL with native window (cex-view only)"
+      echo "                        Options: --target view or -t view"
       echo "  doctor                Run pre-flight environment diagnostics"
       echo ""
       echo "Integrated Cex-CLI Build Runner & Task Automation Commands:"
@@ -3104,7 +3093,7 @@ LIGHT_WRAP_EOF
       echo ""
       echo "Integrated Lighting Fullstack MVC Engine Commands:"
       echo "  lighting create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
-      echo "  lighting dev             Start local development server on port 3080 (--target <browser|view>, --open)"
+      echo "  lighting dev             Start local development server on port 3080 (--target view, --open)"
       echo "  lighting build           Compile project with cexp native compiler"
       echo "  lighting doctor          Run Lighting engine diagnostic"
       echo ""

@@ -696,7 +696,7 @@ class FactoryController extends BaseController {
         JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
         JsonDoc::setStr(doc, "target", target);
         JsonDoc::setStr(doc, "url", url);
-        JsonDoc::setStr(doc, "engine", target == "view" ? "cex-view" : "cex-webkit");
+        JsonDoc::setStr(doc, "engine", "cex-view");
         JsonDoc::setStr(doc, "message", res->message);
         return this.json(doc);
     }
@@ -705,12 +705,10 @@ class FactoryController extends BaseController {
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "defaultTarget", cxvm->defaultTarget);
         let arr: JsonValue* = JsonDoc::arr();
-        JsonDoc::pushStr(arr, "browser");
         JsonDoc::pushStr(arr, "view");
         JsonDoc::setVal(doc, "supportedTargets", arr);
         let engines: JsonValue* = JsonDoc::obj();
-        JsonDoc::setStr(engines, "browser", "cex-webkit (default browser engine)");
-        JsonDoc::setStr(engines, "view", "cex-view (native desktop window engine)");
+        JsonDoc::setStr(engines, "view", "cex-view (native desktop window engine, cex-view only)");
         JsonDoc::setVal(doc, "engines", engines);
         return this.json(doc);
     }

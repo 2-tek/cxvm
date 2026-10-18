@@ -616,7 +616,7 @@ fn main(): int {
     // 1. Direct cxvmOpen calls
     let opBrowser: CxvmCommandResult* = cxvm->cxvmOpen("http://localhost:3080", "browser");
     Assert::isTrue(opBrowser->success, "cxvmOpen browser succeeds");
-    Assert::isTrue(opBrowser->output.find("[cex-webkit]") != -1, "Output confirms cex-webkit browser engine");
+    Assert::isTrue(opBrowser->output.find("[cex-view]") != -1, "Output confirms cex-view native window engine");
     Assert::isTrue(opBrowser->output.find("http://localhost:3080") != -1, "Output contains target URL");
 
     let opView: CxvmCommandResult* = cxvm->cxvmOpen("http://localhost:3080", "view");
@@ -646,18 +646,16 @@ fn main(): int {
 
     let resApiOpenB: HttpResponse* = app->simulateRequest("POST", "/api/v1/open", "{\"url\":\"http://localhost:3080\",\"target\":\"browser\"}", "application/json");
     Assert::equalsInt(200, resApiOpenB->statusCode, "POST /api/v1/open browser returns 200 OK");
-    Assert::isTrue(resApiOpenB->body.find("cex-webkit") != -1, "POST /api/v1/open reports cex-webkit engine");
+    Assert::isTrue(resApiOpenB->body.find("cex-view") != -1, "POST /api/v1/open reports cex-view engine");
 
     // 5. REST API /api/v1/target
     let resApiTarget: HttpResponse* = app->simulateRequest("GET", "/api/v1/target", "", "application/json");
     Assert::equalsInt(200, resApiTarget->statusCode, "GET /api/v1/target returns 200 OK");
     Assert::isTrue(resApiTarget->body.find("supportedTargets") != -1, "GET /api/v1/target reports supportedTargets");
-    Assert::isTrue(resApiTarget->body.find("cex-webkit") != -1, "GET /api/v1/target lists cex-webkit");
     Assert::isTrue(resApiTarget->body.find("cex-view") != -1, "GET /api/v1/target lists cex-view");
 
     // 6. Doctor capability check
     Assert::isTrue(docStr.find("Target Opener:") != -1, "Doctor reports Target Opener capability");
-    Assert::isTrue(docStr.find("cex-webkit") != -1, "Doctor reports cex-webkit default");
     Assert::isTrue(docStr.find("cex-view") != -1, "Doctor reports cex-view native window");
 
     suite->addResult("test_cli_alias_target_browser_and_view", true, "", 1);

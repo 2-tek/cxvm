@@ -53,7 +53,7 @@ class CxvmEngine {
     public constructor() {
         this.currentVersion = "";
         this.defaultVersion = "";
-        this.defaultTarget = "browser";
+        this.defaultTarget = "view";
         this.defaultCexrEdition = "factory";
         this.defaultBuildEdition = "bean";
         this.virtualLinuxReady = false;
@@ -370,7 +370,7 @@ class CxvmEngine {
         out += "  Thunder Daemon:    " + thunSrvStr + "\n";
         out += "  Lighting Engine:   INTEGRATED [Lighting Fullstack MVC, Pure Cex Engine, lighting CLI scaffolder]\n";
         out += "  Lighting Commands: light, lighting, lighting create <project>, lighting dev, lighting build [READY]\n";
-        out += "  Target Opener:     INTEGRATED [--target (browser||view) | Browser (cex-webkit, default) | Native Window (cex-view) READY]\n";
+        out += "  Target Opener:     INTEGRATED [Native Window (cex-view only) READY]\n";
         out += "  CXVM Init:         INTEGRATED [cxvm init <name> (default: my-project, cex-pack, .cex_boxes, .cvm, .cvmignore, README, SECURITY, LICENSE)]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + std::to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
@@ -1497,24 +1497,10 @@ class CxvmEngine {
 
     public cxvmOpen(targetUrl: string, targetType: string): CxvmCommandResult* {
         let url: string = targetUrl.length() == 0 ? "http://localhost:3080/" : targetUrl;
-        let t: string = targetType.length() == 0 ? this.defaultTarget : targetType;
-        if (t == "--target=browser" || t == "-t=browser" || t == "--target browser" || t == "-t browser") {
-            t = "browser";
-        } else if (t == "--target=view" || t == "-t=view" || t == "--target view" || t == "-t view") {
-            t = "view";
-        }
-
-        if (t == "view") {
-            let out: string = "==> [cxvm open] Opening " + url + " with native window (cex-view)..\n";
-            out += "[OK] [cex-view] Initialized CexView native window for: " + url + "\n";
-            out += "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)\n";
-            return new CxvmCommandResult("open", url, true, "Opened via native window (cex-view)", out);
-        } else {
-            let out: string = "==> [cxvm open] Opening " + url + " by Browser (cex-webkit)..\n";
-            out += "[OK] [cex-webkit] Initialized CexWebKit browser engine for: " + url + "\n";
-            out += "[OK] [cex-webkit] WebKit document loaded and rendered in browser viewport\n";
-            return new CxvmCommandResult("open", url, true, "Opened via Browser (cex-webkit)", out);
-        }
+        let out: string = "==> [cxvm open] Opening " + url + " with native window (cex-view)..\n";
+        out += "[OK] [cex-view] Initialized CexView native window for: " + url + "\n";
+        out += "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)\n";
+        return new CxvmCommandResult("open", url, true, "Opened via native window (cex-view)", out);
     }
 
     public lightExecute(cmd: string, arg1: string, arg2: string): int {
@@ -1525,13 +1511,13 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "dev" || cmd == "serve" || cmd == "start") {
-            let targetType: string = "browser";
+            let targetType: string = "view";
             let hasTarget: bool = false;
             if (arg1.find("--target=") == 0) {
                 targetType = arg1.substr(9);
                 hasTarget = true;
             } else if (arg1 == "--target" || arg1 == "-t") {
-                targetType = arg2.length() == 0 ? "browser" : arg2;
+                targetType = arg2.length() == 0 ? "view" : arg2;
                 hasTarget = true;
             } else if (arg2.find("--target=") == 0) {
                 targetType = arg2.substr(9);
@@ -1540,7 +1526,7 @@ class CxvmEngine {
                 targetType = "view";
                 hasTarget = true;
             } else if (arg1 == "browser" || arg2 == "browser") {
-                targetType = "browser";
+                targetType = "view";
                 hasTarget = true;
             }
 
@@ -1577,7 +1563,7 @@ class CxvmEngine {
         println("  test [file]             Run test suite via cxvm --app cext");
         println("  build                   Compile project with cexp native compiler");
         println("  doctor                  Run Lighting engine diagnostic");
-        println("  open [url] [--target <browser|view>] Open URL by Browser (cex-webkit, default) or native window (cex-view)");
+        println("  open [url]              Open URL with native window (cex-view only)");
         return 0;
     }
 }

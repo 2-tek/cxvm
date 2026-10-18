@@ -473,7 +473,7 @@ function Run-Cvm {
 function Invoke-CxvmOpen {
     param (
         [string]$Url = "",
-        [string]$Target = "browser",
+        [string]$Target = "view",
         [string[]]$OpenArgs = @()
     )
 
@@ -482,7 +482,7 @@ function Invoke-CxvmOpen {
     if ($Target) { $allArgs += $Target }
     if ($OpenArgs) { $allArgs += $OpenArgs }
 
-    $targetVal = "browser"
+    $targetVal = "view"
     $urlVal = ""
 
     for ($i = 0; $i -lt $allArgs.Count; $i++) {
@@ -497,7 +497,7 @@ function Invoke-CxvmOpen {
         } elseif ($a.StartsWith("-t=")) {
             $targetVal = $a.Substring(3)
         } elseif ($a -eq "browser" -or $a -eq "view") {
-            $targetVal = $a
+            $targetVal = "view"
         } elseif ($a.StartsWith("http://") -or $a.StartsWith("https://") -or $a.StartsWith("file://") -or (Test-Path $a -ErrorAction SilentlyContinue)) {
             $urlVal = $a
         } elseif (-not $urlVal -and -not $a.StartsWith("-")) {
@@ -509,21 +509,9 @@ function Invoke-CxvmOpen {
         $urlVal = "http://localhost:3080/"
     }
 
-    if ($targetVal -eq "view") {
-        Write-Host "==> [cxvm open] Opening $urlVal with native window (cex-view)..." -ForegroundColor Cyan
-        Write-Host "[OK] [cex-view] Initialized CexView native window for: $urlVal" -ForegroundColor Green
-        Write-Host "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)" -ForegroundColor Green
-    } elseif ($targetVal -eq "browser") {
-        Write-Host "==> [cxvm open] Opening $urlVal by Browser (cex-webkit)..." -ForegroundColor Cyan
-        Write-Host "[OK] [cex-webkit] Initialized CexWebKit browser engine for: $urlVal" -ForegroundColor Green
-        Write-Host "[OK] [cex-webkit] WebKit document loaded and rendered in browser viewport" -ForegroundColor Green
-        try {
-            Start-Process $urlVal -ErrorAction SilentlyContinue
-        } catch { }
-    } else {
-        Write-Host "[ERROR] Invalid --target: '$targetVal'. Allowed targets: browser (cex-webkit), view (cex-view)" -ForegroundColor Red
-        return
-    }
+    Write-Host "==> [cxvm open] Opening $urlVal with native window (cex-view)..." -ForegroundColor Cyan
+    Write-Host "[OK] [cex-view] Initialized CexView native window for: $urlVal" -ForegroundColor Green
+    Write-Host "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)" -ForegroundColor Green
 }
 
 function Run-Light {
@@ -555,7 +543,7 @@ function Run-Light {
         $testTarget = if ($LightArgs.Count -gt 0) { $LightArgs[0] } elseif (Test-Path "tests\hub.test.cex") { "tests\hub.test.cex" } elseif (Test-Path "tests\cxvm.test.cex") { "tests\cxvm.test.cex" } else { "test" }
         Write-Host "==> [cxvm lighting test] Hook -> cxvm --app cext run $testTarget" -ForegroundColor Cyan
         $restArgs = if ($LightArgs.Count -gt 1) { $LightArgs[1..($LightArgs.Count - 1)] } else { @() }
-        Run-App -AppName "cext" -AppCmd "run" -AppArgs (@($testTarget) + $restArgs)
+        & $PSCommandPath --app cext run $testTarget @restArgs
         return
     }
 
@@ -857,7 +845,7 @@ switch ($Command) {
         if ($Platform) { $allArgs += $Platform }
         if ($ExtraArgs) { $allArgs += $ExtraArgs }
         Write-Host "==> [cxvm test] Hook -> cxvm --app cext $act $($allArgs -join ' ')" -ForegroundColor Cyan
-        Run-App -AppName "cext" -AppCmd $act -AppArgs $allArgs
+        & $PSCommandPath --app cext $act @allArgs
     }
     "downloads" {
         $mf = if ($Version) { $Version } else { "cex-pack.json" }
@@ -1400,8 +1388,8 @@ echo CexR Windows Runner ready.
         Write-Host "  lighting create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
         Write-Host "  lighting dev             Start local development server (--target <browser|view>, --open)"
         Write-Host "  lighting build           Compile project with cexp native compiler"
-        Write-Host "  open [url]            Open URL by Browser (cex-webkit, default) or native window (cex-view)"
-        Write-Host "                        Options: --target (browser||view) or -t <browser|view>"
+        Write-Host "  open [url]            Open URL with native window (cex-view only)"
+        Write-Host "                        Options: --target view or -t view"
         Write-Host "  start cvm             Start CVM Web Studio server with single process (standalone)"
         Write-Host "  stop cvm              Stop standalone CVM server"
         Write-Host "  status cvm            Inspect status of standalone CVM server"
