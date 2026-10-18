@@ -22,12 +22,34 @@ function Run-App {
         [string[]]$AppArgs = @()
     )
 
+    if ($AppName -eq "cext" -or $AppName -eq "cex-test") {
+        if (-not $AppCmd -or $AppCmd -eq "test") {
+            $AppCmd = "run"
+        }
+    }
+
     $curVer = (Get-CurrentVersion).TrimStart("v")
     if (-not $curVer -or $curVer -eq "none") { $curVer = "8.0.0" }
     
     $cexDir = if ($env:CEX_DIR) { $env:CEX_DIR } elseif ($env:CEX_HOME) { $env:CEX_HOME } else { (Join-Path $HOME ".cex") }
     $cxmvHome = if ($env:CXMV_DIR) { $env:CXMV_DIR } else { $cxvmHome }
-    $candidates = @(
+    $candidates = @()
+    if ($AppName -eq "cext" -or $AppName -eq "cex-test") {
+        $candidates += @(
+            (Join-Path $PWD "dist\cext\1.0.14\bin\cext.cmd"),
+            (Join-Path $PWD "dist\cext\1.0.14\bin\cext"),
+            (Join-Path $PWD "dist\cext\1.0.14\bin"),
+            (Join-Path $PWD ".cex_boxes\cex-test\bin\cex-test.cmd"),
+            (Join-Path $PWD ".cex_boxes\cex-test\bin\cex-test"),
+            (Join-Path $cexDir "cext\1.0.14\bin"),
+            (Join-Path $cxvmHome "cext\1.0.14\bin"),
+            (Join-Path $cexDir "bin\cext.cmd"),
+            (Join-Path $cexDir "bin\cext"),
+            (Join-Path $cxvmHome "bin\cext.cmd"),
+            (Join-Path $cxvmHome "bin\cext")
+        )
+    }
+    $candidates += @(
         (Join-Path $PWD "deps\$AppName\$curVer\bin\$AppName.cmd"),
         (Join-Path $PWD "deps\$AppName\$curVer\bin\$AppName"),
         (Join-Path $PWD "deps\$AppName\$curVer\bin"),
@@ -531,10 +553,9 @@ function Run-Light {
 
     if ($LightCmd -eq "test") {
         $testTarget = if ($LightArgs.Count -gt 0) { $LightArgs[0] } elseif (Test-Path "tests\hub.test.cex") { "tests\hub.test.cex" } elseif (Test-Path "tests\cxvm.test.cex") { "tests\cxvm.test.cex" } else { "test" }
-        $cexpTestBin = if (Get-Command "cexp-v8" -ErrorAction SilentlyContinue) { "cexp-v8" } elseif (Test-Path (Join-Path $cxvmHome "bin\8.0.0\cexp-v8.cmd")) { Join-Path $cxvmHome "bin\8.0.0\cexp-v8.cmd" } elseif (Test-Path (Join-Path $cxvmHome "bin\cexp-v8.cmd")) { Join-Path $cxvmHome "bin\cexp-v8.cmd" } else { "cexp-v8" }
-        Write-Host "==> [cxvm lighting test] Running $testTarget via cexp-v8..." -ForegroundColor Cyan
+        Write-Host "==> [cxvm lighting test] Hook -> cxvm --app cext run $testTarget" -ForegroundColor Cyan
         $restArgs = if ($LightArgs.Count -gt 1) { $LightArgs[1..($LightArgs.Count - 1)] } else { @() }
-        & $cexpTestBin test $testTarget @restArgs
+        Run-App -AppName "cext" -AppCmd "run" -AppArgs (@($testTarget) + $restArgs)
         return
     }
 
@@ -830,15 +851,13 @@ switch ($Command) {
         if ($ExtraArgs) { $argsList += $ExtraArgs }
         Run-Cvm -CvmCmd $Command -CvmArgs $argsList
     }
-    "test" {
-        $testTarget = if ($Version) { $Version } else { "" }
-        $cexpTestBin = if (Get-Command "cexp-v8" -ErrorAction SilentlyContinue) { "cexp-v8" } elseif (Test-Path (Join-Path $cxvmHome "bin\8.0.0\cexp-v8.cmd")) { Join-Path $cxvmHome "bin\8.0.0\cexp-v8.cmd" } elseif (Test-Path (Join-Path $cxvmHome "bin\cexp-v8.cmd")) { Join-Path $cxvmHome "bin\cexp-v8.cmd" } else { "cexp-v8" }
-        Write-Host "==> [cxvm test] Executing test suite via cexp-v8 ($testTarget)..." -ForegroundColor Cyan
+    { $_ -in "test","cext" } {
+        $act = if ($Version) { $Version } else { "run" }
         $allArgs = @()
-        if ($testTarget) { $allArgs += $testTarget }
         if ($Platform) { $allArgs += $Platform }
         if ($ExtraArgs) { $allArgs += $ExtraArgs }
-        & $cexpTestBin test @allArgs
+        Write-Host "==> [cxvm test] Hook -> cxvm --app cext $act $($allArgs -join ' ')" -ForegroundColor Cyan
+        Run-App -AppName "cext" -AppCmd $act -AppArgs $allArgs
     }
     "downloads" {
         $mf = if ($Version) { $Version } else { "cex-pack.json" }

@@ -1021,28 +1021,14 @@ EOF
     return 0
   fi
 
-  # 2. Test runner for `cxvm lighting test [file]` (mandates cexp-v8 test)
+  # 2. Test runner for `cxvm lighting test [file]` (hooks to cxvm --app cext)
   if [ "$light_cmd" = "test" ]; then
     local test_target="${extra_args[0]:-tests/hub.test.cex}"
     if [ ! -f "$test_target" ] && [ -f "tests/cxvm.test.cex" ]; then
       test_target="tests/cxvm.test.cex"
     fi
-    local cexp_test_bin="cexp-v8"
-    if ! command -v cexp-v8 >/dev/null 2>&1; then
-      if [ -x "$CXVM_DIR/bin/8.0.0/cexp-v8" ]; then
-        cexp_test_bin="$CXVM_DIR/bin/8.0.0/cexp-v8"
-      elif [ -x "$CXVM_DIR/bin/cexp-v8" ]; then
-        cexp_test_bin="$CXVM_DIR/bin/cexp-v8"
-      elif [ -x "$CXVM_DIR/versions/v8.0.0/bin/cexp" ]; then
-        cexp_test_bin="$CXVM_DIR/versions/v8.0.0/bin/cexp"
-      elif [ -x "$HOME/.cex/bin/8.0.0/cexp" ]; then
-        cexp_test_bin="$HOME/.cex/bin/8.0.0/cexp"
-      elif command -v cexp >/dev/null 2>&1; then
-        cexp_test_bin="cexp"
-      fi
-    fi
-    echo "==> [cxvm lighting test] Running $test_target via cexp-v8..."
-    "$cexp_test_bin" test "$test_target" "${extra_args[@]:1}"
+    echo "==> [cxvm lighting test] Hook -> cxvm --app cext run $test_target"
+    _cxvm_run_app "cext" "run" "$test_target" "${extra_args[@]:1}"
     return $?
   fi
 
@@ -1445,6 +1431,11 @@ _cxvm_run_app() {
   # Candidate binaries for $app_name prioritized strictly by {rootPath}/dist/$name-$type/$version/bin
   local target_bin="${app_name}"
   local is_cexr_edition=0
+  if [ "$app_name" = "cext" ] || [ "$app_name" = "cex-test" ]; then
+    if [ -z "$app_cmd" ] || [ "$app_cmd" = "test" ]; then
+      app_cmd="run"
+    fi
+  fi
   if [ "$app_name" = "cexr" ] && [ -n "$app_cmd" ]; then
     case "$app_cmd" in
       factory|bean|delivery|drawer)
@@ -1461,6 +1452,20 @@ _cxvm_run_app() {
   local cxvm_dir="${CXVM_DIR:-${CXMV_DIR:-$HOME/.cxvm}}"
   local cxmv_dir="${CXMV_DIR:-$cxvm_dir}"
   local candidates=()
+  if [ "$app_name" = "cext" ] || [ "$app_name" = "cex-test" ]; then
+    candidates+=(
+      "$pwd_dir/dist/cext/1.0.14/bin"
+      "$pwd_dir/dist/cex-test/1.0.14/bin"
+      "$pwd_dir/.cex_boxes/cex-test/bin/cex-test"
+      "$script_dir/../dist/cext/1.0.14/bin"
+      "$script_dir/../.cex_boxes/cex-test/bin/cex-test"
+      "$cex_dir/cext/1.0.14/bin"
+      "$cxvm_dir/cext/1.0.14/bin"
+      "$cex_dir/bin/cext"
+      "$cxvm_dir/bin/cext"
+      "$HOME/.local/bin/cext"
+    )
+  fi
   # 1. Prioritized {rootPath}/dist/$name-$type/$version/bin and registered apps
   candidates+=(
     "$pwd_dir/dist/$target_bin/$ver_clean/bin"
@@ -1995,7 +2000,8 @@ cxvm() {
     "start": "cxvm start",
     "dev": "cxvm dev",
     "build": "cxvm build",
-    "lint": "cxvm --app cex-lint fix ."
+    "lint": "cxvm --app cex-lint fix .",
+    "test": "cxvm --app cext run tests/all.test.cex"
   },
   "dependencies": {
     "cex-test": "1.0.0",
@@ -2502,6 +2508,30 @@ CEXP_EOF
         chmod +x "$CXVM_DIR/bin/1.0.8/cex-lint" "$ver_dir/cex-lint" 2>/dev/null || true
       fi
 
+      # Setup cext in $CXVM_DIR/bin/1.0.14/cext and target version
+      local found_cext=""
+      for cext_cand in \
+        "$ver_dir/cext" \
+        "$s_dir/cext"/*/bin \
+        "$s_dir/../dist/cext"/*/bin \
+        "$s_dir/../../cxvm/dist/cext"/*/bin \
+        ./cxvm/dist/cext/*/bin \
+        ./dist/cext/*/bin \
+        ./.cex_boxes/cex-test/bin/cex-test \
+        "$CXVM_DIR/bin/cext" \
+        "downloads/cext"; do
+        if [ -x "$cext_cand" ] && [ ! -d "$cext_cand" ]; then
+          found_cext="$cext_cand"
+          break
+        fi
+      done
+      if [ -n "$found_cext" ]; then
+        mkdir -p "$CXVM_DIR/bin/1.0.14"
+        cp -f "$found_cext" "$CXVM_DIR/bin/1.0.14/cext" 2>/dev/null || true
+        cp -f "$found_cext" "$ver_dir/cext" 2>/dev/null || true
+        chmod +x "$CXVM_DIR/bin/1.0.14/cext" "$ver_dir/cext" 2>/dev/null || true
+      fi
+
       # Ensure permissions
       chmod +x "$ver_dir/"* 2>/dev/null || true
 
@@ -2520,6 +2550,7 @@ CEXP_EOF
       ln -sf "$ver_dir/cex" "$CXVM_DIR/bin/cex" 2>/dev/null || true
       [ -f "$ver_dir/cex-pack" ] && ln -sf "$ver_dir/cex-pack" "$CXVM_DIR/bin/cex-pack" 2>/dev/null || true
       [ -f "$ver_dir/cex-lint" ] && ln -sf "$ver_dir/cex-lint" "$CXVM_DIR/bin/cex-lint" 2>/dev/null || true
+      [ -f "$ver_dir/cext" ] && ln -sf "$ver_dir/cext" "$CXVM_DIR/bin/cext" 2>/dev/null || true
 
       # Setup standalone CVM server & CLI in $CXVM_DIR/bin
       local s_dir
@@ -2834,37 +2865,9 @@ LIGHT_WRAP_EOF
       _cxvm_run_app "cex" "$@"
       ;;
 
-    test)
-      local cexp_test_bin="cexp-v8"
-      if ! command -v cexp-v8 >/dev/null 2>&1; then
-        if [ -x "$CXVM_DIR/bin/8.0.0/cexp-v8" ]; then
-          cexp_test_bin="$CXVM_DIR/bin/8.0.0/cexp-v8"
-        elif [ -x "$CXVM_DIR/bin/cexp-v8" ]; then
-          cexp_test_bin="$CXVM_DIR/bin/cexp-v8"
-        elif [ -x "$CXVM_DIR/versions/v8.0.0/bin/cexp" ]; then
-          cexp_test_bin="$CXVM_DIR/versions/v8.0.0/bin/cexp"
-        elif [ -x "$HOME/.cex/bin/8.0.0/cexp" ]; then
-          cexp_test_bin="$HOME/.cex/bin/8.0.0/cexp"
-        elif command -v cexp >/dev/null 2>&1; then
-          cexp_test_bin="cexp"
-        fi
-      fi
-      if [ -n "$1" ]; then
-        echo "==> [cxvm test] Executing test suite via cexp-v8 ($1)..."
-        "$cexp_test_bin" test "$@"
-        return $?
-      fi
-      if [ -f "cex-pack.json" ]; then
-        local manifest_test
-        manifest_test="$(sed -n '/"scripts"/,/}/ s/.*"test"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' cex-pack.json | head -n 1)"
-        if [ -n "$manifest_test" ] && [ "$manifest_test" != "cxvm test" ] && [ "$manifest_test" != "cxvm lighting test" ] && [ "$manifest_test" != "cxvm light test" ]; then
-          echo "==> [cxvm test] Executing script from cex-pack.json: $manifest_test"
-          eval "$manifest_test" "$@"
-          return $?
-        fi
-      fi
-      echo "==> [cxvm test] Executing test suite via cexp-v8..."
-      "$cexp_test_bin" test "$@"
+    test|cext)
+      echo "==> [cxvm test] Hook -> cxvm --app cext $*"
+      _cxvm_run_app "cext" "$@"
       ;;
 
     watch)
@@ -3004,10 +3007,11 @@ LIGHT_WRAP_EOF
       echo "  [OK] Default CexR Runtime Edition: ./dist/cexr-factory/1.0.26/bin (factory)"
       echo "  [OK] Default CexR Build Edition:   ./dist/cexr-bean/1.0.26/bin (bean)"
       echo "  [OK] Integrated CexLint Binary:    ./dist/cex-lint/1.0.8/bin"
-      echo "  [OK] Registered Apps:              CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cxvm)"
+      echo "  [OK] Integrated CexTest Binary:    ./dist/cext/1.0.14/bin"
+      echo "  [OK] Registered Apps:              CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cext, cxvm)"
       echo "  [OK] Target Build cxvm:            CXMV_DIR/cxvm/\$version/bin (alias: CXVM_DIR/cxvm/\$version/bin)"
       echo "  [OK] Dependencies Build:          deps/\$name-\$type/\$version/bin (cached on existing version, zero hardcode)"
-      echo "  [OK] Hook Dispatcher:              cexp --app \$appName action (short command: dev, build, start)"
+      echo "  [OK] Hook Dispatcher:              cexp --app \$appName action (short command: dev, build, start, test -> cxvm --app cext)"
       if [ -x "CEX_DIR/cexr-$type/$version/bin" ]; then
         "CEX_DIR/cexr-$type/$version/bin" -v
       elif [ -x "$CXVM_DIR/current/cexr" ]; then
@@ -3015,7 +3019,7 @@ LIGHT_WRAP_EOF
       elif [ -x "$CXVM_DIR/current/bin/cexr" ]; then
         "$CXVM_DIR/current/bin/cexr" -v
       fi
-      echo "==> Setup complete! Active default: v8.0.0 (/dist/cexp-v8/8.0.0/bin, /dist/cexr-factory/1.0.26/bin, /dist/cexr-bean/1.0.26/bin, /dist/cex-lint/1.0.8/bin)"
+      echo "==> Setup complete! Active default: v8.0.0 (/dist/cexp-v8/8.0.0/bin, /dist/cexr-factory/1.0.26/bin, /dist/cexr-bean/1.0.26/bin, /dist/cex-lint/1.0.8/bin, /dist/cext/1.0.14/bin)"
       ;;
 
     doctor)
@@ -3036,6 +3040,7 @@ LIGHT_WRAP_EOF
       echo "  CexR Default Build:  ./dist/cexr-bean/1.0.26/bin (bean) [READY]"
       echo "  CexP Compiler:       $([ -x "$CXVM_DIR/current/cexp-v8" ] && echo "$CXVM_DIR/current/cexp-v8 [READY]" || ([ -x "$CXVM_DIR/current/cexp" ] && echo "$CXVM_DIR/current/cexp [READY]" || ([ -x "$(command -v cexp 2>/dev/null)" ] && echo "$(command -v cexp) [READY]" || echo "Pending setup (run: cxvm install 8.0.0)")))"
       echo "  CexLint Binary:      ./dist/cex-lint/1.0.8/bin [READY]"
+      echo "  CexTest Binary:      ./dist/cext/1.0.14/bin [READY]"
       echo "  CVM VCS Engine:      $([ -x "$CXVM_DIR/bin/cvm" ] && echo "$CXVM_DIR/bin/cvm [READY]" || ([ -x "$(command -v cvm 2>/dev/null)" ] && echo "$(command -v cvm) [READY]" || ([ -x "$(command -v git 2>/dev/null)" ] && echo "$(command -v git) (git fallback) [READY]" || echo "Not found")))"
       local cvm_srv_status="STOPPED (run: cxvm start cvm)"
       if [ -f "$CXVM_DIR/cvm_server.pid" ] && kill -0 "$(cat "$CXVM_DIR/cvm_server.pid" 2>/dev/null)" 2>/dev/null; then

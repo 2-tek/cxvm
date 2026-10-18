@@ -68,3 +68,4 @@ deps/*
 *.log
 packages/*
 downloads/
+.cvm/

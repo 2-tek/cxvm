@@ -217,6 +217,7 @@ class CxvmEngine {
         outMsg += "  [OK] [auto-install] cexr v" + version + " runtime engine installed\n";
         outMsg += "  [OK] [auto-install] cexp v" + version + " (" + shortVer + ") machine compiler installed\n";
         outMsg += "  [OK] [auto-install] cex-lint v1.0.8 integrated into ./dist/cex-lint/1.0.8/bin\n";
+        outMsg += "  [OK] [auto-install] cext v1.0.14 integrated into ./dist/cext/1.0.14/bin\n";
         outMsg += "  [OK] [auto-install] cvm CodeVersionManager engine installed\n";
         outMsg += "  [OK] [auto-install] thunder Container Engine & Virtual Microkernel installed\n";
         outMsg += "  [OK] [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed\n";
@@ -339,7 +340,8 @@ class CxvmEngine {
         out += "  [edition]         cexr-drawer  : CexR [drawer] standalone (version " + ver + ", cexp ^8) - target: jit support, but only cex-virtual-dom, cex-dom support, best for client\n";
         out += "  [compiler]        cexp         : Cex Engine (cexp) version " + ver + "\n";
         out += "  [pack-manager]    cex-pack     : cex-pack v1.0.5 (2-TEK Package & Dependency Manager for CexR v8)\n";
-        out += "  [linter]          cex-lint     : CexLint v1.0.8 (./dist/cex-lint/1.0.8/bin)";
+        out += "  [linter]          cex-lint     : CexLint v1.0.8 (./dist/cex-lint/1.0.8/bin)\n";
+        out += "  [test-runner]     cext         : CexTest v1.0.14 (./dist/cext/1.0.14/bin)";
         return out;
     }
 
@@ -356,6 +358,7 @@ class CxvmEngine {
         out += "  CexR Setup:        Cross-Platform Native Runtime Ready [OK]\n";
         out += "  CexP Compiler:     v8 (Direct Machine Code & ELF Emitter [READY])\n";
         out += "  CexLint Binary:    ./dist/cex-lint/1.0.8/bin [READY]\n";
+        out += "  CexTest Binary:    ./dist/cext/1.0.14/bin [READY]\n";
         out += "  Toolchain Model:   Pure Cex Native Engine (cexr + cexp; zero C++ dependency)\n";
         out += "  CVM VCS Engine:    INTEGRATED [Git object store, commit graph, DAG merges, .cvm patches]\n";
         out += "  CVM Commands:      init, commit, push, pull, status, add, branch, checkout, log, diff [READY]\n";
@@ -423,6 +426,7 @@ class CxvmEngine {
         if (libName.find("cexr-") == 0 || libName == "cexr") return "1.0.26";
         if (libName == "cex-pack" || libName == "cex-pack-bean") return "1.0.5";
         if (libName == "cex-lint") return "1.0.8";
+        if (libName == "cext" || libName == "cex-test") return "1.0.14";
         if (libName.find("cxvm") == 0) return "2.0.0";
         return this.currentVersion.length() > 0 ? this.currentVersion : "8.0.0";
     }
@@ -436,6 +440,7 @@ class CxvmEngine {
         libs->push("cexr-drawer");
         libs->push("cex-pack");
         libs->push("cex-lint");
+        libs->push("cext");
         libs->push("cxvm-bean");
 
         let outMsg: string = "==> [cxvm setup deps] Finding & Building Dependencies into deps/$name-$type/$version:\n";
@@ -482,16 +487,16 @@ class CxvmEngine {
         outMsg += "  CXVM Home:           " + this.cxvmHome + "\n";
         outMsg += "  Active Runtime:      v" + targetDef + "\n";
         outMsg += "  Installed Runtimes:  v8.0.0 (Pure Cex Default), v6.0.0 (LTS)\n";
-        outMsg += "  Versioned Binaries:  CEX_DIR/cexp-v8/$version/bin, ./dist/cexp-v6/6.0.2/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin, ./dist/cex-pack-bean/1.0.5/bin, ./dist/cex-lint/1.0.8/bin\n";
+        outMsg += "  Versioned Binaries:  CEX_DIR/cexp-v8/$version/bin, ./dist/cexp-v6/6.0.2/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin, ./dist/cex-pack-bean/1.0.5/bin, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin\n";
         outMsg += "  Default CexR Run:    cexr-factory (factory edition - runtime/dev/start)\n";
         outMsg += "  Default CexR Build:  cexr-bean (bean edition - native build/compile)\n";
         outMsg += "  PATH Entry:          " + this.cxvmHome + "/bin:" + this.cxvmHome + "/current\n";
         outMsg += "  Dispatcher:          CEX_DIR/cexr-$type/1.0.26/bin & $CEX_DIR/cexr-factory/1.0.26/bin configured for default run cxvm\n";
-        outMsg += "  Registered Apps:     CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)\n";
+        outMsg += "  Registered Apps:     CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cext)\n";
         outMsg += "  Target Build cxvm:   CXMV_DIR/cxvm/$version/bin (CXVM_DIR/cxvm/$version/bin)\n";
         outMsg += "  Integrated Build:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/2.0.0/bin)\n";
         outMsg += "  Dependencies Build:  deps/$name-$type/$version/bin (cached on existing version, zero hardcode)\n";
-        outMsg += "  Hook Dispatcher:     cexp --app $appName action (short command: dev, build, start)\n";
+        outMsg += "  Hook Dispatcher:     cexp --app $appName action (short command: dev, build, start, test -> cxvm --app cext)\n";
         outMsg += "  CVM Subsystem:       cvm commit, cvm push, cvm status integrated [OK]\n";
         outMsg += "  Thunder Subsystem:   thunder run, thunder ps, virtual kernel integrated [OK]\n";
         outMsg += "  Lighting Subsystem:  cxvm lighting create, lighting dev, lighting build integrated [OK]\n";
@@ -500,7 +505,7 @@ class CxvmEngine {
         outMsg += depsRes->output + "\n";
         outMsg += "  Status:              SETUP COMPLETE [OK]";
 
-        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, deps/$name-$type/$version, ./dist/cex-lint/1.0.8/bin, and v8/v6 runtimes successfully configured.", outMsg);
+        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, deps/$name-$type/$version, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin, and v8/v6 runtimes successfully configured.", outMsg);
     }
 
     public resetup(defaultVer: string): CxvmCommandResult* {
@@ -577,7 +582,7 @@ class CxvmEngine {
             outMsg += "  [Step 2] Installed Cex v6.0.0 (LTS runtime: cexr-bean)\n";
         }
         outMsg += "  [Step 3] Configured active symlinks to " + this.cxvmHome + "/current (v" + ver + ")\n";
-        outMsg += "  [Step 4] Registered CEX_DIR toolchain apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint)\n";
+        outMsg += "  [Step 4] Registered CEX_DIR toolchain apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cext)\n";
         outMsg += depsRes->output + "\n";
         outMsg += "==> Reinstall complete! Active runtime: v" + ver + " (Pure Cex Toolchain)\n";
         outMsg += "  Status:              REINSTALL COMPLETE [OK]";
@@ -1273,6 +1278,16 @@ class CxvmEngine {
             let targetPath: string = arg1.length() == 0 ? "." : arg1;
             return this.appExecute("cex-lint", "fix", targetPath);
         }
+        if (cmd == "test" || cmd == "cext") {
+            let act: string = arg1.length() == 0 ? "run" : arg1;
+            let testTarget: string = arg2;
+            if (act != "run" && act != "pipeline" && act != "coverage" && act != "version" && act != "help" && testTarget.length() == 0) {
+                testTarget = act;
+                act = "run";
+            }
+            println("==> [cxvm test] Hook -> cxvm --app cext " + act + (testTarget.length() > 0 ? " " + testTarget : ""));
+            return this.appExecute("cext", act, testTarget);
+        }
         if (cmd == "--app") {
             return this.appExecute(arg1, arg2, "");
         }
@@ -1334,10 +1349,11 @@ class CxvmEngine {
         msg += "  - cexr-drawer:   CEX_DIR/cexr-drawer/" + cexrExactVersion + "/bin\n";
         msg += "  - cex-pack:      CEX_DIR/cex-pack/1.0.5/bin\n";
         msg += "  - cex-lint:      CEX_DIR/cex-lint/1.0.8/bin\n";
+        msg += "  - cext:          CEX_DIR/cext/1.0.14/bin\n";
         msg += "  - cxvm:          CXVM_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - target build:  CXMV_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - integrated:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/" + this.currentVersion + "/bin)\n";
-        msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cxvm)\n";
+        msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cext, cxvm)\n";
         return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Binary apps registered in CEX_DIR", msg);
     }
 
@@ -1397,6 +1413,16 @@ class CxvmEngine {
         if (name == "cex-lint") {
             let lintTarget: string = manifestFile.length() == 0 ? "." : manifestFile;
             println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via registered binary app in ./dist/cex-lint/1.0.8/bin");
+            return 0;
+        }
+        if (name == "cext" || name == "cex-test") {
+            let testAct: string = appCmd.length() == 0 ? "run" : appCmd;
+            let testTarget: string = manifestFile.length() == 0 ? "tests/cxvm.test.cex" : manifestFile;
+            if (testAct != "run" && testAct != "pipeline" && testAct != "coverage" && testAct != "version" && testAct != "help" && manifestFile.length() == 0) {
+                testTarget = testAct;
+                testAct = "run";
+            }
+            println("[OK] [cext] Executed 'cext " + testAct + " " + testTarget + "' via registered binary app in ./dist/cext/1.0.14/bin");
             return 0;
         }
         if (name == "cex-pack" && subCmd == "downloads") {
@@ -1526,6 +1552,11 @@ class CxvmEngine {
             }
             return 0;
         }
+        if (cmd == "test") {
+            let testTarget: string = arg1.length() == 0 ? "tests/cxvm.test.cex" : arg1;
+            println("==> [cxvm lighting test] Hook -> cxvm --app cext run " + testTarget);
+            return this.appExecute("cext", "run", testTarget);
+        }
         if (cmd == "build") {
             println("==> [cxvm lighting] Compiling Lighting MVC project with cexp native compiler..");
             println("[OK] [cxvm lighting] Production binary built successfully in dist/");
@@ -1543,6 +1574,7 @@ class CxvmEngine {
         println("Commands:");
         println("  create <projectName>    Create a new Lighting Fullstack MVC project");
         println("  dev                     Start local development server");
+        println("  test [file]             Run test suite via cxvm --app cext");
         println("  build                   Compile project with cexp native compiler");
         println("  doctor                  Run Lighting engine diagnostic");
         println("  open [url] [--target <browser|view>] Open URL by Browser (cex-webkit, default) or native window (cex-view)");

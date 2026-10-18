@@ -15,6 +15,7 @@ class SetupRunner {
         if (libName.find("cexr-") == 0 || libName == "cexr") return "1.0.26";
         if (libName == "cex-pack" || libName == "cex-pack-bean") return "1.0.5";
         if (libName == "cex-lint") return "1.0.8";
+        if (libName == "cext" || libName == "cex-test") return "1.0.14";
         if (libName.find("cxvm") == 0) return "2.0.0";
         return defaultFallback;
     }
@@ -35,6 +36,7 @@ class SetupRunner {
         libs->push("cexr-drawer");
         libs->push("cex-pack");
         libs->push("cex-lint");
+        libs->push("cext");
         libs->push("cxvm-bean");
 
         let builtCount: int = 0;
@@ -202,6 +204,10 @@ class SetupRunner {
         let lintSrc: string = fs.exists(curPwd + "/dist/cex-lint/1.0.8/bin") ? (curPwd + "/dist/cex-lint/1.0.8/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") ? (curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") : "");
         if (lintSrc.length() > 0) {
             this.registerBinaryApp(cexDir, cxvmDir, "cex-lint", lintSrc, "1.0.8");
+        }
+        let cextSrc: string = fs.exists(curPwd + "/dist/cext/1.0.14/bin") ? (curPwd + "/dist/cext/1.0.14/bin") : (fs.exists(curPwd + "/cxvm/dist/cext/1.0.14/bin") ? (curPwd + "/cxvm/dist/cext/1.0.14/bin") : "");
+        if (cextSrc.length() > 0) {
+            this.registerBinaryApp(cexDir, cxvmDir, "cext", cextSrc, "1.0.14");
         }
 
         // Target build integration: CXVM_DIR/cxvm/$version/bin & ./dist/$name-$type/$version/bin
