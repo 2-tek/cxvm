@@ -47,6 +47,7 @@ The `cxvm` repository defines the official distribution hub and version manageme
      - `cxvm download <ver> [plat|all]`: Downloads bundles into cache for offline setup.
      - `cxvm use <ver>`: Switches active runtime and updates PATH in the current session.
       - `cxvm list` / `cxvm current` / `cxvm default <ver>`: Inspects and manages version selection.
+      - `cxvm reinstall [ver]`: Deep scans all installed versions, caches of `cxvm`, `cexp`, `cexr`, deletes them, and cleanly reinstalls latest by `cxvm` (also available via `cex reinstall`, `cex-cli reinstall`, `cxvm cli reinstall`, `cxvm cex reinstall`).
       - `cxvm linux-distro <install|uninstall|setup|status|list>`: Full lifecycle management of Linux guest/native distributions (`cex-linux`, `alpine`, `ubuntu`, `debian`, `arch`).
       - `cxvm install linux-distro` / `cxvm uninstall linux-distro` / `cxvm setup linux-distro`: Natural action forwarding.
       - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr-$type` runtime, `cexp-v$shortVersion` compiler, and Pure Cex toolchain status.
@@ -72,6 +73,13 @@ The `cxvm` repository defines the official distribution hub and version manageme
    - Manages rootfs unpack/purge in `~/.cxvm/distros/<name>` (or `/var/lib/cxvm/distros/<name>`).
    - Hooks into virtual microkernel, VFS overlays (`overlayfs`, `procfs`, `sysfs`, `cgroup2`, `tmpfs`), and Cex toolchain links (`/bin/cexsh`, `/bin/cexr`, `/bin/cexp-v8`, `/bin/cxvm`).
    - Full Lighting MVC REST API integration on `/api/v1/linux-distro/*`.
+
+8. **Deep Reinstallation Subsystem (`cxvm reinstall`, `cex reinstall`, `cex-cli reinstall`)**:
+   - Deep scans all installed versions and caches of `cxvm`, `cexp`, `cexr`, deletes them, and cleanly reinstalls latest by `cxvm`.
+   - Comprehensive scan of installed runtimes (`~/.cxvm/bin/*`, `~/.cxvm/versions/*`, `~/.cex/versions/*`), cache stores (`~/.cxvm/cache`, `~/.cex/cache`, `.cex_cache`), active toolchain links (`~/.cxvm/current`, `cexr`, `cexp`, `cex`), and edition configuration markers.
+   - Clean reinstallation of target runtime (default `v8.0.0` with `cexr-factory 1.0.26` runtime + `cexp-v8` compiler) and `v6.0.0` LTS (`cexr-bean 1.0.26`).
+   - Re-registers `CEX_DIR` binaries and resolves/caches dependencies in `deps/$name-$type/$version/bin`.
+   - Lighting MVC REST API integration on `POST /api/v1/reinstall`.
 
 ---
 

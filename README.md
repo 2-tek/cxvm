@@ -405,11 +405,49 @@ Commands can also be invoked with natural action prefixes:
 
 ---
 
-## 10. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
+## 10. Deep Reinstallation Subsystem (`cxvm reinstall`, `cex reinstall`, `cex-cli reinstall`)
+
+`cxvm` provides a deep reinstallation mechanism that scans all installed runtimes, compilers, and cache directories across the system, completely deletes stale files, and reinstalls the latest runtime and toolchains cleanly via `cxvm`:
+
+### CLI Commands:
+
+| Command | Action | Example |
+| :--- | :--- | :--- |
+| `cxvm reinstall [ver]` | Deep scan all installed versions and caches of `cxvm`, `cexp`, `cexr`, delete them, then reinstall latest | `cxvm reinstall` \| `cxvm reinstall 8.0.0` |
+| `cex reinstall [ver]` | Reinstall toolchain via `cex` CLI wrapper | `cex reinstall` |
+| `cex-cli reinstall [ver]` | Reinstall toolchain via `cex-cli` / `cxvm cli` runner | `cex-cli reinstall` \| `cxvm cli reinstall` |
+
+### Scanning & Purge Locations:
+1. **Installed Runtime Directories**:
+   - `~/.cxvm/bin/[0-9]*` and `~/.cxvm/bin/v[0-9]*`
+   - `~/.cxvm/versions/*`
+   - `~/.cex/versions/*`
+2. **Cache Directories**:
+   - `~/.cxvm/cache` (downloaded packages, release bundles)
+   - `~/.cex/cache`
+   - `.cex_cache` (local project build cache)
+3. **Active Toolchain Links & Markers**:
+   - `~/.cxvm/current`
+   - `~/.cxvm/bin/cexr`, `~/.cxvm/bin/cexp`, `~/.cxvm/bin/cex`
+   - `~/.cxvm/default-cexr-edition`, `~/.cxvm/default-cexr-build-edition`, `~/.cxvm/default`
+
+### Reinstallation Phase:
+1. Reinstalls latest Cex runtime (`v8.0.0` default with `cexr-factory 1.0.26` runtime and `cexp-v8` compiler).
+2. Reinstalls `v6.0.0` LTS runtime (`cexr-bean 1.0.26`).
+3. Reconfigures active symlinks in `~/.cxvm/current` and `$CXVM_DIR/bin`.
+4. Registers `CEX_DIR` binary applications (`cexp-v8`, `cexr-factory`, `cexr-bean`, `cex-pack`, `cex-lint`).
+5. Re-resolves and caches dependencies in `deps/$name-$type/$version/bin`.
+
+### Lighting MVC REST API:
+- `POST /api/v1/reinstall`: JSON payload `{"version": "8.0.0"}` (returns scan summary, purge records, and reinstall completion).
+
+---
+
+## 11. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
 
 The following distribution archives (36 bundles: 6 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
-## 11. Execution & Testing with cexr-$type
+## 12. Execution & Testing with cexr-$type
 
 ```bash
 # 1. Switch to cexr-$type Runtime via cxvm
@@ -431,7 +469,7 @@ cexr-$type tests/factory.test.cex
 
 ---
 
-## 12. Repository & Upstream Git Origin
+## 13. Repository & Upstream Git Origin
 
 - **GitHub Repository**: [`https://github.com/2-tek/cxvm`](https://github.com/2-tek/cxvm)
 - **Clone Repository**:

@@ -59,4 +59,4 @@ platform -0:*-1:1- artifact
 | POST   | /api/v1/linux-distro/setup     | linux_distro | setup and initialize Linux distribution     |
 | GET    | /api/v1/linux-distro/status    | linux_distro | inspect active Linux distribution status    |
 | GET    | /api/v1/linux-distro/list      | linux_distro | list supported and installed distributions  |
-
+| POST   | /api/v1/reinstall              | cxvm         | deep scan, purge, and clean reinstall       |
