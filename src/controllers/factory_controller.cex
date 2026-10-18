@@ -542,6 +542,106 @@ class FactoryController extends BaseController {
         return this.json(doc);
     }
 
+    public apiLinuxDistroInstall(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let name: string = "cex-linux";
+        let ver: string = "1.0.0";
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("name")) {
+                name = parsed->get("name")->asString();
+            }
+            if (parsed != nullptr && parsed->has("version")) {
+                ver = parsed->get("version")->asString();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->installLinuxDistro(name, ver);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "command", "install");
+        JsonDoc::setStr(doc, "distro", cxvm->linuxDistroName);
+        JsonDoc::setStr(doc, "version", cxvm->linuxDistroVersion);
+        JsonDoc::setStr(doc, "kernel", cxvm->linuxDistroKernel);
+        JsonDoc::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
+        JsonDoc::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
+        JsonDoc::setBool(doc, "distroReady", cxvm->linuxDistroReady);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiLinuxDistroUninstall(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let name: string = "cex-linux";
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("name")) {
+                name = parsed->get("name")->asString();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->uninstallLinuxDistro(name);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "command", "uninstall");
+        JsonDoc::setStr(doc, "distro", name);
+        JsonDoc::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
+        JsonDoc::setBool(doc, "distroReady", cxvm->linuxDistroReady);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiLinuxDistroSetup(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let name: string = "cex-linux";
+        let ver: string = "1.0.0";
+        if (req->body.length() > 0 && req->body.find("{") != -1) {
+            let parsed: JsonValue* = JsonDoc::parse(req->body);
+            if (parsed != nullptr && parsed->has("name")) {
+                name = parsed->get("name")->asString();
+            }
+            if (parsed != nullptr && parsed->has("version")) {
+                ver = parsed->get("version")->asString();
+            }
+        }
+        let res: CxvmCommandResult* = cxvm->setupLinuxDistro(name, ver);
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDoc::setStr(doc, "command", "setup");
+        JsonDoc::setStr(doc, "distro", cxvm->linuxDistroName);
+        JsonDoc::setStr(doc, "version", cxvm->linuxDistroVersion);
+        JsonDoc::setStr(doc, "kernel", cxvm->linuxDistroKernel);
+        JsonDoc::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
+        JsonDoc::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
+        JsonDoc::setBool(doc, "distroReady", cxvm->linuxDistroReady);
+        JsonDoc::setStr(doc, "message", res->message);
+        return this.json(doc);
+    }
+
+    public apiLinuxDistroStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        JsonDoc::setStr(doc, "distro", cxvm->linuxDistroName);
+        JsonDoc::setStr(doc, "version", cxvm->linuxDistroVersion);
+        JsonDoc::setStr(doc, "kernel", cxvm->linuxDistroKernel);
+        JsonDoc::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
+        JsonDoc::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
+        JsonDoc::setBool(doc, "distroReady", cxvm->linuxDistroReady);
+        JsonDoc::setNum(doc, "installedCount", (int)cxvm->installedDistros->length());
+        return this.json(doc);
+    }
+
+    public apiLinuxDistroList(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
+        let doc: JsonValue* = JsonDoc::obj();
+        JsonDoc::setStr(doc, "status", "SUCCESS");
+        let arr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)cxvm->supportedDistros->length(); i++) {
+            JsonDoc::pushStr(arr, cxvm->supportedDistros->get(i));
+        }
+        JsonDoc::setVal(doc, "supported", arr);
+        let instArr: JsonValue* = JsonDoc::arr();
+        for (let i: int = 0; i < (int)cxvm->installedDistros->length(); i++) {
+            JsonDoc::pushStr(instArr, cxvm->installedDistros->get(i));
+        }
+        JsonDoc::setVal(doc, "installed", instArr);
+        return this.json(doc);
+    }
+
     public apiLightStatus(req: HttpRequest*, cxvm: CxvmEngine*): HttpResponse* {
         let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "SUCCESS");

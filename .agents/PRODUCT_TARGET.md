@@ -46,8 +46,10 @@ The `cxvm` repository defines the official distribution hub and version manageme
      - `cxvm install <ver>`: Installs target version package into `~/.cxvm/bin/`.
      - `cxvm download <ver> [plat|all]`: Downloads bundles into cache for offline setup.
      - `cxvm use <ver>`: Switches active runtime and updates PATH in the current session.
-     - `cxvm list` / `cxvm current` / `cxvm default <ver>`: Inspects and manages version selection.
-     - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr-$type` runtime, `cexp-v$shortVersion` compiler, and Pure Cex toolchain status.
+      - `cxvm list` / `cxvm current` / `cxvm default <ver>`: Inspects and manages version selection.
+      - `cxvm linux-distro <install|uninstall|setup|status|list>`: Full lifecycle management of Linux guest/native distributions (`cex-linux`, `alpine`, `ubuntu`, `debian`, `arch`).
+      - `cxvm install linux-distro` / `cxvm uninstall linux-distro` / `cxvm setup linux-distro`: Natural action forwarding.
+      - `cxvm doctor`: System diagnostic doctor verifying host OS, architecture, `cexr-$type` runtime, `cexp-v$shortVersion` compiler, and Pure Cex toolchain status.
 
 4. **Cross-Platform Setup Window**:
    - **Terminal Setup Window (CLI)**: Visual ASCII framed application window (`setup.cex` executed via `cexr setup.cex`, `cxvm setup`, `setup.sh`, `dist/cxvm.ps1`, `downloads/setup.cmd`) providing automated directory initialization, shell profile configuration, default runtime installation (`v8.0.0` default and `v6.0.0` LTS), integrated build target (`./dist/$name-$type/$version/bin`), and project `./dist/` integration.
@@ -63,6 +65,13 @@ The `cxvm` repository defines the official distribution hub and version manageme
 
 6. **Lighting Fullstack MVC Server (Port 3080)**:
    - Embedded web portal providing downloads catalog, setup window, documentation guide, REST JSON endpoints (`/api/v1/status`, `/api/v1/versions`, `/api/v1/platforms`, `/api/v1/downloads`, `/api/v1/manifest`, `/api/v1/setup`), and artifact streaming.
+
+7. **Linux Distribution Subsystem (`cxvm linux-distro`)**:
+   - Provides lifecycle management for Linux distributions (`install`, `uninstall`, `setup`, `status`, `list`).
+   - Supported distributions: `cex-linux` (default), `alpine`, `ubuntu`, `debian`, `arch`.
+   - Manages rootfs unpack/purge in `~/.cxvm/distros/<name>` (or `/var/lib/cxvm/distros/<name>`).
+   - Hooks into virtual microkernel, VFS overlays (`overlayfs`, `procfs`, `sysfs`, `cgroup2`, `tmpfs`), and Cex toolchain links (`/bin/cexsh`, `/bin/cexr`, `/bin/cexp-v8`, `/bin/cxvm`).
+   - Full Lighting MVC REST API integration on `/api/v1/linux-distro/*`.
 
 ---
 

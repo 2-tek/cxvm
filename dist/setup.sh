@@ -28,5 +28,15 @@ if [ -n "$CEXR_BIN" ]; then
   fi
 fi
 
-echo "[ERROR] cexr runtime not found to run setup.cex. Please ensure Cex runtime is installed." >&2
+# Fallback: bootstrap cxvm setup directly
+if [ -f "$SCRIPT_DIR/cxvm" ]; then
+  exec bash "$SCRIPT_DIR/cxvm" setup "$@"
+elif [ -f "$SCRIPT_DIR/install.sh" ]; then
+  exec bash "$SCRIPT_DIR/install.sh"
+elif command -v cxvm >/dev/null 2>&1; then
+  exec cxvm setup "$@"
+fi
+
+echo "[ERROR] cexr runtime and cxvm not found. Please run install.sh first." >&2
 exit 1
+

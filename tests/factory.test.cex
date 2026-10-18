@@ -173,6 +173,26 @@ fn main(): int {
     Assert::equalsInt(2, (int)cxvm->installedVersions->length(), "cxvm has 2 versions remaining after setup & uninstall");
     Assert::equalsString("v8.0.0", cxvm->current(), "cxvm active version falls back to remaining version");
 
+    let uninstActiveRes: CxvmCommandResult* = cxvm->uninstall("8.0.0");
+    Assert::isTrue(uninstActiveRes->success, "cxvm uninstall 8.0.0 (active) succeeds");
+    Assert::equalsString("v6.0.0", cxvm->current(), "cxvm active version switches to remaining installed version v6.0.0");
+
+    let instRes: CxvmCommandResult* = cxvm->install("8.0.0");
+    Assert::isTrue(instRes->success, "cxvm install 8.0.0 succeeds");
+
+    let resetupRes: CxvmCommandResult* = cxvm->resetup("8.0.0");
+    Assert::isTrue(resetupRes->success, "cxvm resetup 8.0.0 succeeds");
+    Assert::equalsString("v8.0.0", cxvm->current(), "cxvm active version after resetup is v8.0.0");
+
+    let execResetupRes: int = cxvm->cvmExecute("resetup", "8.0.0", "");
+    Assert::equalsInt(0, execResetupRes, "cxvm cvmExecute resetup returns 0 OK");
+
+    let execUninstRes: int = cxvm->cvmExecute("uninstall", "6.0.0", "");
+    Assert::equalsInt(0, execUninstRes, "cxvm cvmExecute uninstall 6.0.0 returns 0 OK");
+
+    let execInstRes: int = cxvm->cvmExecute("install", "6.0.0", "");
+    Assert::equalsInt(0, execInstRes, "cxvm cvmExecute install 6.0.0 returns 0 OK");
+
     let appLintRes: int = cxvm->appExecute("cex-lint", "fix", ".");
     Assert::equalsInt(0, appLintRes, "cxvm --app cex-lint fix . returns 0 OK");
     let execLintRes: int = cxvm->cvmExecute("lint", ".", "");
@@ -437,6 +457,52 @@ fn main(): int {
     Assert::isTrue(resVlGet->body.find("\"virtualLinuxReady\":true") != -1, "GET /api/v1/thunder/virtual-linux reports virtualLinuxReady:true");
 
     suite->addResult("test_setup_cxvm_into_virtual_linux_in_thunder", true, "", 1);
+
+    // -------------------------------------------------------------
+    // Test 8: Linux Distribution Subsystem (install, uninstall, setup)
+    // -------------------------------------------------------------
+    println("\n[Test Suite 8: Linux Distribution Subsystem (install, uninstall, setup)]");
+
+    let ldSetupRes: CxvmCommandResult* = cxvm->setupLinuxDistro("cex-linux", "1.0.0");
+    Assert::isTrue(ldSetupRes->success, "setupLinuxDistro succeeds");
+    Assert::isTrue(cxvm->linuxDistroReady, "Linux distro environment is marked ready");
+    Assert::equalsString("cex-linux", cxvm->linuxDistroName, "Linux distro name is cex-linux");
+    Assert::equalsString("1.0.0", cxvm->linuxDistroVersion, "Linux distro version is 1.0.0");
+    Assert::equalsString("6.8.0-cex-rt", cxvm->linuxDistroKernel, "Linux distro kernel is 6.8.0-cex-rt");
+    Assert::equalsString("/var/lib/cxvm/distros/cex-linux", cxvm->linuxDistroRootfs, "Linux distro rootfs is /var/lib/cxvm/distros/cex-linux");
+    Assert::isTrue(ldSetupRes->output.find("LINUX-DISTRO SETUP COMPLETE [OK]") != -1, "Output confirms LINUX-DISTRO SETUP COMPLETE [OK]");
+
+    let ldInstRes: CxvmCommandResult* = cxvm->installLinuxDistro("alpine", "3.19.0");
+    Assert::isTrue(ldInstRes->success, "installLinuxDistro succeeds");
+    Assert::equalsString("alpine", cxvm->linuxDistroName, "Active distro name is alpine");
+    Assert::isTrue(ldInstRes->output.find("LINUX-DISTRO INSTALL COMPLETE [OK]") != -1, "Output confirms LINUX-DISTRO INSTALL COMPLETE [OK]");
+
+    let execLdSetup: int = cxvm->cvmExecute("linux-distro", "setup", "cex-linux");
+    Assert::equalsInt(0, execLdSetup, "cxvm linux-distro setup cex-linux returns exit code 0");
+
+    let execLdInstall: int = cxvm->cvmExecute("linux-distro", "install", "debian");
+    Assert::equalsInt(0, execLdInstall, "cxvm linux-distro install debian returns exit code 0");
+
+    let execLdUninstall: int = cxvm->cvmExecute("linux-distro", "uninstall", "debian");
+    Assert::equalsInt(0, execLdUninstall, "cxvm linux-distro uninstall debian returns exit code 0");
+
+    let resLdPostSetup: HttpResponse* = app->simulateRequest("POST", "/api/v1/linux-distro/setup", "{\"name\":\"cex-linux\",\"version\":\"1.0.0\"}", "application/json");
+    Assert::equalsInt(200, resLdPostSetup->statusCode, "POST /api/v1/linux-distro/setup returns 200 OK");
+    Assert::isTrue(resLdPostSetup->body.find("cex-linux") != -1, "POST /api/v1/linux-distro/setup reports cex-linux");
+
+    let resLdPostInst: HttpResponse* = app->simulateRequest("POST", "/api/v1/linux-distro/install", "{\"name\":\"ubuntu\",\"version\":\"24.04\"}", "application/json");
+    Assert::equalsInt(200, resLdPostInst->statusCode, "POST /api/v1/linux-distro/install returns 200 OK");
+    Assert::isTrue(resLdPostInst->body.find("ubuntu") != -1, "POST /api/v1/linux-distro/install reports ubuntu");
+
+    let resLdGetStat: HttpResponse* = app->simulateRequest("GET", "/api/v1/linux-distro/status", "", "application/json");
+    Assert::equalsInt(200, resLdGetStat->statusCode, "GET /api/v1/linux-distro/status returns 200 OK");
+    Assert::isTrue(resLdGetStat->body.find("ubuntu") != -1, "GET /api/v1/linux-distro/status reports active ubuntu");
+
+    let resLdPostUninst: HttpResponse* = app->simulateRequest("POST", "/api/v1/linux-distro/uninstall", "{\"name\":\"ubuntu\"}", "application/json");
+    Assert::equalsInt(200, resLdPostUninst->statusCode, "POST /api/v1/linux-distro/uninstall returns 200 OK");
+    Assert::isTrue(resLdPostUninst->body.find("SUCCESS") != -1, "POST /api/v1/linux-distro/uninstall reports SUCCESS");
+
+    suite->addResult("test_linux_distro_cli_and_api", true, "", 1);
 
     println("\n");
     TestReporter::printSummary(suite);

@@ -80,6 +80,11 @@ class FactoryApp {
         this.router->get("/api/v1/thunder/images", "factory.apiThunderImages");
         this.router->post("/api/v1/thunder/virtual-linux/setup", "factory.apiThunderVirtualLinuxSetup");
         this.router->get("/api/v1/thunder/virtual-linux", "factory.apiThunderVirtualLinuxStatus");
+        this.router->post("/api/v1/linux-distro/install", "factory.apiLinuxDistroInstall");
+        this.router->post("/api/v1/linux-distro/uninstall", "factory.apiLinuxDistroUninstall");
+        this.router->post("/api/v1/linux-distro/setup", "factory.apiLinuxDistroSetup");
+        this.router->get("/api/v1/linux-distro/status", "factory.apiLinuxDistroStatus");
+        this.router->get("/api/v1/linux-distro/list", "factory.apiLinuxDistroList");
         this.router->get("/api/v1/light/status", "factory.apiLightStatus");
         this.router->post("/api/v1/light/create", "factory.apiLightCreate");
         this.router->post("/api/v1/open", "factory.apiOpen");
@@ -249,6 +254,26 @@ class FactoryApp {
 
         if (route->handlerId === "factory.apiThunderVirtualLinuxStatus") {
             return this.controller->apiThunderVirtualLinuxStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiLinuxDistroInstall") {
+            return this.controller->apiLinuxDistroInstall(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiLinuxDistroUninstall") {
+            return this.controller->apiLinuxDistroUninstall(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiLinuxDistroSetup") {
+            return this.controller->apiLinuxDistroSetup(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiLinuxDistroStatus") {
+            return this.controller->apiLinuxDistroStatus(req, this.cxvm);
+        }
+
+        if (route->handlerId === "factory.apiLinuxDistroList") {
+            return this.controller->apiLinuxDistroList(req, this.cxvm);
         }
 
         if (route->handlerId === "factory.apiLightStatus") {

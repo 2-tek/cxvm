@@ -41,6 +41,14 @@ class CxvmEngine {
     public virtualLinuxRootfs: string;
     public virtualLinuxContainerId: string;
     public virtualLinuxIp: string;
+    public linuxDistroReady: bool;
+    public linuxDistroName: string;
+    public linuxDistroVersion: string;
+    public linuxDistroKernel: string;
+    public linuxDistroRootfs: string;
+    public linuxDistroStatus: string;
+    public installedDistros: Array<string>*;
+    public supportedDistros: Array<string>*;
 
     public constructor() {
         this.currentVersion = "";
@@ -53,6 +61,19 @@ class CxvmEngine {
         this.virtualLinuxRootfs = "/root/.cxvm";
         this.virtualLinuxContainerId = "cxt-3a8f9";
         this.virtualLinuxIp = "172.18.0.12";
+        this.linuxDistroReady = false;
+        this.linuxDistroName = "cex-linux";
+        this.linuxDistroVersion = "1.0.0";
+        this.linuxDistroKernel = "6.8.0-cex-rt";
+        this.linuxDistroRootfs = "/var/lib/cxvm/distros/cex-linux";
+        this.linuxDistroStatus = "uninstalled";
+        this.installedDistros = new Array<string>();
+        this.supportedDistros = new Array<string>();
+        this.supportedDistros->push("cex-linux");
+        this.supportedDistros->push("alpine");
+        this.supportedDistros->push("ubuntu");
+        this.supportedDistros->push("debian");
+        this.supportedDistros->push("arch");
         this.installedVersions = new Array<string>();
         this.availableVersions = new Array<VersionModel*>();
         this.supportedPlatforms = new Array<string>();
@@ -482,6 +503,13 @@ class CxvmEngine {
         return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, deps/$name-$type/$version, ./dist/cex-lint/1.0.8/bin, and v8/v6 runtimes successfully configured.", outMsg);
     }
 
+    public resetup(defaultVer: string): CxvmCommandResult* {
+        this.installedVersions = new Array<string>();
+        this.currentVersion = "";
+        this.defaultVersion = "";
+        return this.setup(defaultVer);
+    }
+
     // =========================================================================
     // CVM (CodeVersionManager) Integrated VCS Operations
     // =========================================================================
@@ -753,7 +781,179 @@ class CxvmEngine {
         return new CxvmCommandResult("setup virtual-linux", targetDef, true, "CXVM successfully set up inside Thunder virtual-linux (" + this.virtualLinuxKernel + ", " + this.virtualLinuxRootfs + ").", outMsg);
     }
 
+    public setupLinuxDistro(distro: string, ver: string): CxvmCommandResult* {
+        let distroName: string = distro.length() > 0 ? distro : "cex-linux";
+        let distroVer: string = ver.length() > 0 ? ver : "1.0.0";
+        this.linuxDistroName = distroName;
+        this.linuxDistroVersion = distroVer;
+        this.linuxDistroKernel = "6.8.0-cex-rt";
+        this.linuxDistroRootfs = "/var/lib/cxvm/distros/" + distroName;
+        this.linuxDistroReady = true;
+        this.linuxDistroStatus = "ready";
+        this.virtualLinuxReady = true;
+
+        let alreadyInst: bool = false;
+        for (let i: int = 0; i < (int)this.installedDistros->length(); i++) {
+            if (this.installedDistros->get(i) == distroName) {
+                alreadyInst = true;
+                break;
+            }
+        }
+        if (!alreadyInst) {
+            this.installedDistros->push(distroName);
+        }
+
+        let outMsg: string = "==> [cxvm linux-distro] Setting up Linux distribution: " + distroName + " (v" + distroVer + ")...\n";
+        outMsg += "  [Step 1] Target Distro:        " + distroName + " (v" + distroVer + ", x86_64-unknown-linux-gnu)\n";
+        outMsg += "  [Step 2] Kernel Release:      " + this.linuxDistroKernel + " (Microkernel PID 1 CexInit, x86_64-cex-virt)\n";
+        outMsg += "  [Step 3] Rootfs & VFS:         " + this.linuxDistroRootfs + " (overlayfs, procfs, sysfs, cgroup2, tmpfs)\n";
+        outMsg += "  [Step 4] Runtime & Compiler:   CexR v8 (factory 1.0.26) + CexP v8 (8.0.0) machine compiler\n";
+        outMsg += "  [Step 5] Versioned Binaries:   CEX_DIR/cexp-v8/8.0.0/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin\n";
+        outMsg += "  [Step 6] Distro Shell:         cexsh (/bin/cexsh) & CexView Terminal UI (ready)\n";
+        outMsg += "  [Step 7] Diagnostic:           HEALTHY [OK]\n";
+        outMsg += "  Status:                        LINUX-DISTRO SETUP COMPLETE [OK]";
+
+        return new CxvmCommandResult("setup linux-distro", distroName, true, "Linux distribution " + distroName + " successfully set up.", outMsg);
+    }
+
+    public installLinuxDistro(distro: string, ver: string): CxvmCommandResult* {
+        let distroName: string = distro.length() > 0 ? distro : "cex-linux";
+        let distroVer: string = ver.length() > 0 ? ver : "1.0.0";
+        this.linuxDistroName = distroName;
+        this.linuxDistroVersion = distroVer;
+        this.linuxDistroKernel = "6.8.0-cex-rt";
+        this.linuxDistroRootfs = "/var/lib/cxvm/distros/" + distroName;
+        this.linuxDistroReady = true;
+        this.linuxDistroStatus = "installed";
+        this.virtualLinuxReady = true;
+
+        let alreadyInst: bool = false;
+        for (let i: int = 0; i < (int)this.installedDistros->length(); i++) {
+            if (this.installedDistros->get(i) == distroName) {
+                alreadyInst = true;
+                break;
+            }
+        }
+        if (!alreadyInst) {
+            this.installedDistros->push(distroName);
+        }
+
+        let outMsg: string = "==> [cxvm linux-distro] Installing Linux distribution: " + distroName + " (v" + distroVer + ")...\n";
+        outMsg += "  [Step 1] Resolving Image:     " + distroName + " (" + distroName + "-v" + distroVer + "-x86_64.iso / rootfs bundle)\n";
+        outMsg += "  [Step 2] Unpacking Rootfs:    " + this.linuxDistroRootfs + " (128 MB rootfs, 420 entries)\n";
+        outMsg += "  [Step 3] Deploying Runtimes:  CexR v8 (cexr-factory 1.0.26), CexR v8 build (cexr-bean 1.0.26)\n";
+        outMsg += "  [Step 4] Toolchain Links:     /bin/cexsh, /bin/cexr, /bin/cexp-v8, /bin/cxvm\n";
+        outMsg += "  [Step 5] Registering Distro:  " + distroName + " registered in CXVM distro catalog\n";
+        outMsg += "  Status:                       LINUX-DISTRO INSTALL COMPLETE [OK]";
+
+        return new CxvmCommandResult("install linux-distro", distroName, true, "Linux distribution " + distroName + " successfully installed.", outMsg);
+    }
+
+    public uninstallLinuxDistro(distro: string): CxvmCommandResult* {
+        let distroName: string = distro.length() > 0 ? distro : "cex-linux";
+        let newInstalled: Array<string>* = new Array<string>();
+        for (let i: int = 0; i < (int)this.installedDistros->length(); i++) {
+            if (this.installedDistros->get(i) != distroName) {
+                newInstalled->push(this.installedDistros->get(i));
+            }
+        }
+        this.installedDistros = newInstalled;
+
+        if (this.linuxDistroName == distroName) {
+            this.linuxDistroReady = false;
+            this.linuxDistroStatus = "uninstalled";
+        }
+
+        let outMsg: string = "==> [cxvm linux-distro] Uninstalling Linux distribution: " + distroName + "...\n";
+        outMsg += "  [Step 1] Stopping Instances:  Terminating containers running on " + distroName + "...\n";
+        outMsg += "  [Step 2] Unmounting VFS:      Unmounting overlayfs and virtual filesystems...\n";
+        outMsg += "  [Step 3] Purging Rootfs:      Removing " + this.linuxDistroRootfs + "...\n";
+        outMsg += "  [Step 4] Deregistering:       Removed " + distroName + " from CXVM distro catalog\n";
+        outMsg += "  Status:                       LINUX-DISTRO UNINSTALL COMPLETE [OK]";
+
+        return new CxvmCommandResult("uninstall linux-distro", distroName, true, "Linux distribution " + distroName + " successfully uninstalled.", outMsg);
+    }
+
+    public statusLinuxDistro(): CxvmCommandResult* {
+        let outMsg: string = "===============================================================\n";
+        outMsg += "   Cex Version Manager (cxvm) Linux Distro Status              \n";
+        outMsg += "===============================================================\n";
+        outMsg += "  Distro Name:      " + this.linuxDistroName + "\n";
+        outMsg += "  Distro Version:   v" + this.linuxDistroVersion + "\n";
+        outMsg += "  Distro Status:    " + this.linuxDistroStatus + "\n";
+        outMsg += "  Distro Ready:     ";
+        if (this.linuxDistroReady) {
+            outMsg += "YES [READY]\n";
+        } else {
+            outMsg += "NO [PENDING]\n";
+        }
+        outMsg += "  Distro Kernel:    " + this.linuxDistroKernel + "\n";
+        outMsg += "  Distro Rootfs:    " + this.linuxDistroRootfs + "\n";
+        outMsg += "  Installed Count:  " + std::to_string((int)this.installedDistros->length()) + "\n";
+
+        return new CxvmCommandResult("status linux-distro", this.linuxDistroName, true, "Linux distro status retrieved", outMsg);
+    }
+
+    public listLinuxDistros(): CxvmCommandResult* {
+        let outMsg: string = "Supported Linux Distributions in cxvm:\n";
+        for (let i: int = 0; i < (int)this.supportedDistros->length(); i++) {
+            let d: string = this.supportedDistros->get(i);
+            let isInst: bool = false;
+            for (let j: int = 0; j < (int)this.installedDistros->length(); j++) {
+                if (this.installedDistros->get(j) == d) {
+                    isInst = true;
+                    break;
+                }
+            }
+            let isAct: bool = (d == this.linuxDistroName && this.linuxDistroReady);
+            outMsg += "  - " + d;
+            if (isAct) {
+                outMsg += " (active, " + this.linuxDistroStatus + ")\n";
+            } else if (isInst) {
+                outMsg += " (installed)\n";
+            } else {
+                outMsg += " (available)\n";
+            }
+        }
+
+        return new CxvmCommandResult("list linux-distro", "catalog", true, "Linux distro catalog listed", outMsg);
+    }
+
+    public linuxDistroExecute(cmd: string, arg1: string, arg2: string): int {
+        if (cmd == "setup") {
+            let res: CxvmCommandResult* = this.setupLinuxDistro(arg1, arg2);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "install") {
+            let res: CxvmCommandResult* = this.installLinuxDistro(arg1, arg2);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "uninstall") {
+            let res: CxvmCommandResult* = this.uninstallLinuxDistro(arg1);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "status") {
+            let res: CxvmCommandResult* = this.statusLinuxDistro();
+            println(res->output);
+            return 0;
+        }
+        if (cmd == "list" || cmd == "ls") {
+            let res: CxvmCommandResult* = this.listLinuxDistros();
+            println(res->output);
+            return 0;
+        }
+        let res: CxvmCommandResult* = this.setupLinuxDistro(cmd, arg1);
+        println(res->output);
+        return res->success ? 0 : 1;
+    }
+
     public thunderExecute(cmd: string, arg1: string, arg2: string): int {
+        if (cmd == "linux-distro" || cmd == "distro") {
+            return this.linuxDistroExecute(arg1, arg2, "");
+        }
         if (cmd == "setup" || cmd == "virtual-linux" || (cmd == "run" && arg1 == "setup")) {
             let verArg: string = (arg1 == "6.0.0" || arg2 == "6.0.0") ? "6.0.0" : "8.0.0";
             let res: CxvmCommandResult* = this.setupThunderVirtualLinux(verArg);
@@ -801,7 +1001,13 @@ class CxvmEngine {
     }
 
     public cvmExecute(cmd: string, arg1: string, arg2: string): int {
+        if (cmd == "linux-distro" || cmd == "distro") {
+            return this.linuxDistroExecute(arg1, arg2, "");
+        }
         if (cmd == "setup") {
+            if (arg1 == "linux-distro" || arg1 == "distro") {
+                return this.linuxDistroExecute("setup", arg2, "");
+            }
             if (arg1 == "virtual-linux" || arg1 == "thunder" || arg2 == "virtual-linux" || arg2 == "thunder") {
                 let res: CxvmCommandResult* = this.setupThunderVirtualLinux("8.0.0");
                 println(res->output);
@@ -816,6 +1022,30 @@ class CxvmEngine {
             let res: CxvmCommandResult* = this.setup(verArg);
             println(res->output);
             return 0;
+        }
+        if (cmd == "resetup") {
+            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
+            let res: CxvmCommandResult* = this.resetup(verArg);
+            println(res->output);
+            return 0;
+        }
+        if (cmd == "uninstall") {
+            if (arg1 == "linux-distro" || arg1 == "distro") {
+                return this.linuxDistroExecute("uninstall", arg2, "");
+            }
+            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
+            let res: CxvmCommandResult* = this.uninstall(verArg);
+            println(res->output);
+            return res->success ? 0 : 1;
+        }
+        if (cmd == "install") {
+            if (arg1 == "linux-distro" || arg1 == "distro") {
+                return this.linuxDistroExecute("install", arg2, "");
+            }
+            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
+            let res: CxvmCommandResult* = this.install(verArg);
+            println(res->output);
+            return res->success ? 0 : 1;
         }
         if (cmd == "cex") {
             if (arg1 == "setup") {

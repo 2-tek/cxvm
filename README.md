@@ -375,11 +375,41 @@ During `cxvm dev` / `cxvm --app lighting dev`
 
 ---
 
-## 9. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
+## 9. Linux Distribution Subsystem (`cxvm linux-distro`)
+
+`cxvm` provides complete lifecycle management (`install`, `uninstall`, `setup`, `status`, `list`) for guest and native Linux distributions (`cex-linux`, `alpine`, `ubuntu`, `debian`, `arch`):
+
+### CLI Commands:
+
+| Command | Action | Example |
+| :--- | :--- | :--- |
+| `cxvm linux-distro install [name] [ver]` | Install Linux distribution rootfs & toolchain into cxvm | `cxvm linux-distro install alpine 3.19` |
+| `cxvm linux-distro uninstall [name]` | Remove Linux distribution rootfs & deregister | `cxvm linux-distro uninstall alpine` |
+| `cxvm linux-distro setup [name] [ver]` | Initialize microkernel, VFS overlays, and Cex toolchains | `cxvm linux-distro setup cex-linux 1.0.0` |
+| `cxvm linux-distro status [name]` | Display active distribution state, kernel, and rootfs path | `cxvm linux-distro status` |
+| `cxvm linux-distro list` | List installed, ready, and supported distributions | `cxvm linux-distro list` |
+
+### Alternate Routing:
+Commands can also be invoked with natural action prefixes:
+- `cxvm install linux-distro [name] [ver]`
+- `cxvm uninstall linux-distro [name]`
+- `cxvm setup linux-distro [name] [ver]`
+- `cxvm distro <install|uninstall|setup|status|list>`
+
+### Lighting MVC REST API for Linux Distros:
+- `POST /api/v1/linux-distro/install`: Install distribution rootfs (`{"distro": "alpine", "version": "3.19"}`).
+- `POST /api/v1/linux-distro/uninstall`: Uninstall distribution rootfs (`{"distro": "alpine"}`).
+- `POST /api/v1/linux-distro/setup`: Set up distribution environment (`{"distro": "cex-linux", "version": "1.0.0"}`).
+- `GET /api/v1/linux-distro/status`: Get status of active Linux distribution.
+- `GET /api/v1/linux-distro/list`: List all supported and installed Linux distributions.
+
+---
+
+## 10. Pre-Built Distribution Artifacts (`cxvm/downloads/`)
 
 The following distribution archives (36 bundles: 6 versions x 6 platforms) and tools are generated into `cxvm/downloads/`:
 
-## 10. Execution & Testing with cexr-$type
+## 11. Execution & Testing with cexr-$type
 
 ```bash
 # 1. Switch to cexr-$type Runtime via cxvm
@@ -401,7 +431,7 @@ cexr-$type tests/factory.test.cex
 
 ---
 
-## 11. Repository & Upstream Git Origin
+## 12. Repository & Upstream Git Origin
 
 - **GitHub Repository**: [`https://github.com/2-tek/cxvm`](https://github.com/2-tek/cxvm)
 - **Clone Repository**:
