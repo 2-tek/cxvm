@@ -193,7 +193,7 @@ class SetupRunner {
             this.registerBinaryApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp", this.defaultVer);
         }
 
-        let packSrc: string = fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : "");
+        let packSrc: string = fs.exists(curPwd + "/../deps/cex-pack/bin/cex-pack") ? (curPwd + "/../deps/cex-pack/bin/cex-pack") : (fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : ""));
         if (packSrc.length() > 0) {
             this.registerBinaryApp(cexDir, cxvmDir, "cex-pack", packSrc, "1.0.5");
         }
@@ -201,13 +201,38 @@ class SetupRunner {
         if (packBeanSrc.length() > 0) {
             this.registerBinaryApp(cexDir, cxvmDir, "cex-pack-bean", packBeanSrc, "1.0.5");
         }
-        let lintSrc: string = fs.exists(curPwd + "/dist/cex-lint/1.0.8/bin") ? (curPwd + "/dist/cex-lint/1.0.8/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") ? (curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") : "");
+        let lintSrc: string = fs.exists(curPwd + "/../deps/cex-lint/bin/cex-lint") ? (curPwd + "/../deps/cex-lint/bin/cex-lint") : (fs.exists(curPwd + "/dist/cex-lint/1.0.8/bin") ? (curPwd + "/dist/cex-lint/1.0.8/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") ? (curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") : ""));
         if (lintSrc.length() > 0) {
             this.registerBinaryApp(cexDir, cxvmDir, "cex-lint", lintSrc, "1.0.8");
         }
         let cextSrc: string = fs.exists(curPwd + "/dist/cext/1.0.14/bin") ? (curPwd + "/dist/cext/1.0.14/bin") : (fs.exists(curPwd + "/cxvm/dist/cext/1.0.14/bin") ? (curPwd + "/cxvm/dist/cext/1.0.14/bin") : "");
         if (cextSrc.length() > 0) {
             this.registerBinaryApp(cexDir, cxvmDir, "cext", cextSrc, "1.0.14");
+        }
+
+        // Register Integrated Cognitive AI Models: javis, vision, ultron
+        let docsDir: string = "";
+        let candidatesDocs: Array<string>* = new Array<string>();
+        candidatesDocs->push(curPwd + "/../documents");
+        candidatesDocs->push(curPwd + "/documents");
+        candidatesDocs->push(curPwd + "/../../documents");
+        for (let dIdx: int = 0; dIdx < (int)candidatesDocs->length(); dIdx++) {
+            let dPath: string = candidatesDocs->get(dIdx);
+            if (fs.exists(dPath + "/bin/javis")) {
+                docsDir = dPath;
+                break;
+            }
+        }
+        if (docsDir.length() > 0) {
+            let javisSrc: string = docsDir + "/bin/javis";
+            let ultronSrc: string = docsDir + "/bin/ultron";
+            let visionSrc: string = docsDir + "/bin/vision";
+            let cexm2VisionSrc: string = docsDir + "/bin/cexm-2-vision";
+
+            this.registerBinaryApp(cexDir, cxvmDir, "javis", javisSrc, "1.0.0");
+            this.registerBinaryApp(cexDir, cxvmDir, "ultron", ultronSrc, "1.0.0");
+            this.registerBinaryApp(cexDir, cxvmDir, "vision", visionSrc, "2.0.0");
+            this.registerBinaryApp(cexDir, cxvmDir, "cexm-2-vision", cexm2VisionSrc, "2.0.0");
         }
 
         // Target build integration: CXVM_DIR/cxvm/$version/bin & ./dist/$name-$type/$version/bin
@@ -300,6 +325,7 @@ class SetupRunner {
         println("  Git Pre-Push Hook: .git/hooks/pre-push (auto-build to dist before push) [OK]");
         println("  Active Runtime:    CexR v" + this.defaultVer + " (Default)");
         println("  Secondary Runtime: CexR v" + this.secondaryVer + " (LTS)");
+        println("  AI Models in PATH: javis, vision, ultron integrated into $CXVM_DIR/bin & $CEX_DIR/bin [OK]");
         println("  Status:            SETUP COMPLETE [OK]");
         println("================================================================================");
         return 0;

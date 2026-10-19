@@ -1288,6 +1288,9 @@ class CxvmEngine {
             println("==> [cxvm test] Hook -> cxvm --app cext " + act + (testTarget.length() > 0 ? " " + testTarget : ""));
             return this.appExecute("cext", act, testTarget);
         }
+        if (cmd == "javis" || cmd == "vision" || cmd == "ultron") {
+            return this.appExecute(cmd, arg1, arg2);
+        }
         if (cmd == "--app") {
             return this.appExecute(arg1, arg2, "");
         }
@@ -1350,10 +1353,13 @@ class CxvmEngine {
         msg += "  - cex-pack:      CEX_DIR/cex-pack/1.0.5/bin\n";
         msg += "  - cex-lint:      CEX_DIR/cex-lint/1.0.8/bin\n";
         msg += "  - cext:          CEX_DIR/cext/1.0.14/bin\n";
+        msg += "  - javis:         CEX_DIR/bin/javis (AI Cognitive Mind & Benchmark)\n";
+        msg += "  - vision:        CEX_DIR/bin/vision (AI Conversational & Math Perception)\n";
+        msg += "  - ultron:        CEX_DIR/bin/ultron (AI Affective & Emotion Computing)\n";
         msg += "  - cxvm:          CXVM_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - target build:  CXMV_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - integrated:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/" + this.currentVersion + "/bin)\n";
-        msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cext, cxvm)\n";
+        msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cext, cxvm, javis, vision, ultron)\n";
         return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Binary apps registered in CEX_DIR", msg);
     }
 
@@ -1362,6 +1368,20 @@ class CxvmEngine {
         let subCmd: string = appCmd.length() == 0 ? "downloads" : appCmd;
         let file: string = manifestFile.length() == 0 ? "cex-pack.json" : manifestFile;
         println("==> [cxvm] Dispatching to " + name + " via --app (" + subCmd + ")..");
+        if (name == "javis" || name == "vision" || name == "ultron" || name == "cexm-2-vision") {
+            let cmdStr: string = name;
+            if (subCmd != "downloads" && subCmd.length() > 0) cmdStr += " \"" + subCmd + "\"";
+            if (manifestFile.length() > 0 && manifestFile != "cex-pack.json") cmdStr += " \"" + manifestFile + "\"";
+            println("[OK] [" + name + "] Executing integrated AI model: " + cmdStr);
+            try {
+                let out: string = child_process.execSync(cmdStr);
+                print(out);
+                if (out.length() > 0 && out[out.length() - 1] != '\n') println();
+                return 0;
+            } catch (...) {
+                return 1;
+            }
+        }
         if ((name == "cex" || name == "cex-cli" || name == "cli") && subCmd == "reinstall") {
             let res: CxvmCommandResult* = this.reinstall(manifestFile);
             println(res->output);

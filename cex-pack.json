@@ -21,7 +21,7 @@
         "cexp": "^8",
         "cexr-bean": "^1",
         "cexr-factory": "^1",
-        "cexp-v8": "^1"
+        "cexp-v8": "^8"
     },
     "scripts": {
         "install": "cex-pack downloads",

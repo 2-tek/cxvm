@@ -2849,6 +2849,30 @@ LIGHT_WRAP_EOF
       _cxvm_run_app "cex" "$@"
       ;;
 
+    javis)
+      if [ -x "$CXVM_DIR/bin/javis" ]; then
+        exec "$CXVM_DIR/bin/javis" "$@"
+      elif command -v javis >/dev/null 2>&1; then
+        exec javis "$@"
+      fi
+      ;;
+
+    vision)
+      if [ -x "$CXVM_DIR/bin/vision" ]; then
+        exec "$CXVM_DIR/bin/vision" "$@"
+      elif command -v vision >/dev/null 2>&1; then
+        exec vision "$@"
+      fi
+      ;;
+
+    ultron)
+      if [ -x "$CXVM_DIR/bin/ultron" ]; then
+        exec "$CXVM_DIR/bin/ultron" "$@"
+      elif command -v ultron >/dev/null 2>&1; then
+        exec ultron "$@"
+      fi
+      ;;
+
     test|cext)
       if [ -n "$*" ]; then
         echo "==> [cxvm test] Hook -> cxvm --app cext $*"
