@@ -48,7 +48,8 @@ class SetupRunner {
             let depDir: string = curPwd + "/deps/" + lib + "/" + ver;
             let depBin: string = depDir + "/bin";
 
-            if (fs.exists(depBin) && (fs.exists(depBin + "/" + lib) || fs.exists(depBin))) {
+            let isCxvmBean: bool = (lib == "cxvm-bean");
+            if (!isCxvmBean && fs.exists(depBin) && (fs.exists(depBin + "/" + lib) || fs.exists(depBin))) {
                 cachedCount++;
                 println("  [CACHE] deps/" + lib + "/" + ver + " already exists (cached, skipping rebuild)");
             } else {
@@ -73,6 +74,10 @@ class SetupRunner {
                 if (binSrc.length() > 0 && fs.exists(binSrc)) {
                     child_process.execSync("cp -f \"" + binSrc + "\" \"" + depBin + "/" + lib + "\"");
                     child_process.execSync("chmod +x \"" + depBin + "/" + lib + "\" 2>/dev/null || true");
+                    if (isCxvmBean) {
+                        child_process.execSync("cp -f \"" + binSrc + "\" \"" + depBin + "/cxvm\" 2>/dev/null || true");
+                        child_process.execSync("chmod +x \"" + depBin + "/cxvm\" 2>/dev/null || true");
+                    }
                 } else {
                     let wrapper: string = "#!/usr/bin/env bash\nexec \"" + curPwd + "/dist/" + lib + "/" + ver + "/bin\" \"$@\"\n";
                     fs.writeFile(depBin + "/" + lib, wrapper);
@@ -123,15 +128,53 @@ class SetupRunner {
         child_process.execSync("mkdir -p \"" + cxvmDir + "/bin\" \"" + cxvmDir + "/versions\" \"" + cxvmDir + "/cache\"");
         child_process.execSync("mkdir -p \"" + cexDir + "/bin\"");
 
+        // Rebuild and install latest native machine binary from source (src/index.cex)
+        let srcIndex: string = "";
+        if (fs.exists(curPwd + "/src/index.cex")) {
+            srcIndex = curPwd + "/src/index.cex";
+        } else if (fs.exists(curPwd + "/cxvm/src/index.cex")) {
+            srcIndex = curPwd + "/cxvm/src/index.cex";
+        } else if (fs.exists("src/index.cex")) {
+            srcIndex = "src/index.cex";
+        } else if (fs.exists("cxvm/src/index.cex")) {
+            srcIndex = "cxvm/src/index.cex";
+        }
+
+        let cexpBin: string = "";
+        if (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
+            cexpBin = curPwd + "/dist/cexp-v8/8.0.0/bin";
+        } else if (fs.exists(curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin")) {
+            cexpBin = curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin";
+        } else if (fs.exists(cxvmDir + "/bin/cexp")) {
+            cexpBin = cxvmDir + "/bin/cexp";
+        } else if (fs.exists(cexDir + "/bin/cexp")) {
+            cexpBin = cexDir + "/bin/cexp";
+        } else if (fs.exists(cexDir + "/bin/8.0.0/cexp")) {
+            cexpBin = cexDir + "/bin/8.0.0/cexp";
+        } else {
+            cexpBin = "cexp";
+        }
+
+        let nativeDistBin: string = curPwd + "/dist/cxvm";
+        if (srcIndex.length() > 0 && fs.exists(srcIndex)) {
+            println("\n==> [setup.cex] Rebuilding latest native cxvm binary from source: " + srcIndex);
+            child_process.execSync("mkdir -p \"" + curPwd + "/dist\"");
+            try {
+                child_process.execSync("CEX_LINT=0 \"" + cexpBin + "\" compile \"" + srcIndex + "\" -o \"" + nativeDistBin + "\" 2>/dev/null || true");
+                child_process.execSync("chmod +x \"" + nativeDistBin + "\" 2>/dev/null || true");
+                println("  [OK] Recompiled native machine binary via Cex v8: " + nativeDistBin);
+            } catch (...) {
+                println("  [WARN] Native compilation fallback: using existing binary if present");
+            }
+        }
+
         // Copy / Link cxvm core binaries
-        if (fs.exists("dist/cxvm")) {
-            child_process.execSync("rm -f \"" + cxvmDir + "/bin/cxvm\"");
-            child_process.execSync("cp -f dist/cxvm \"" + cxvmDir + "/bin/cxvm\"");
-            child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cxvm\"");
-        } else if (fs.exists("cxvm/dist/cxvm")) {
-            child_process.execSync("rm -f \"" + cxvmDir + "/bin/cxvm\"");
-            child_process.execSync("cp -f cxvm/dist/cxvm \"" + cxvmDir + "/bin/cxvm\"");
-            child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cxvm\"");
+        let realCxvmBin: string = fs.exists(nativeDistBin) ? nativeDistBin : (fs.exists("dist/cxvm") ? (curPwd + "/dist/cxvm") : (fs.exists(cxvmDir + "/bin/cxvm") ? (cxvmDir + "/bin/cxvm") : ""));
+        if (realCxvmBin.length() > 0 && fs.exists(realCxvmBin)) {
+            child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + cxvmDir + "/bin/cxvm\"");
+            child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + cexDir + "/bin/cxvm\"");
+            child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cxvm\" \"" + cexDir + "/bin/cxvm\"");
+            println("  [OK] Installed latest cxvm binary to " + cxvmDir + "/bin/cxvm and " + cexDir + "/bin/cxvm");
         }
 
         // Copy setup.cex into $cxvmDir/bin and $cexDir/bin for global 'cxvm setup' dispatch
@@ -159,11 +202,11 @@ class SetupRunner {
         let projectDist: string = curPwd + "/dist";
         child_process.execSync("mkdir -p \"" + projectDist + "\"");
 
-        // Local ./dist/cxvm
-        let cxvmDispatcher: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nif [ -x \"$CXVM_DIR/bin/cxvm\" ]; then\n  exec \"$CXVM_DIR/bin/cxvm\" \"$@\"\nfi\necho \"[ERROR] cxvm not found in $CXVM_DIR/bin/cxvm. Run setup.cex first.\"\nexit 1\n";
-        if (!fs.exists(projectDist + "/cxvm")) {
-            fs.writeFile(projectDist + "/cxvm", cxvmDispatcher);
-            child_process.execSync("chmod +x \"" + projectDist + "/cxvm\"");
+        // Local ./dist/cxvm.sh shell dispatcher backup
+        if (!fs.exists(projectDist + "/cxvm.sh")) {
+            let cxvmDispatcher: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nif [ -x \"$CXVM_DIR/bin/cxvm\" ]; then\n  exec \"$CXVM_DIR/bin/cxvm\" \"$@\"\nfi\necho \"[ERROR] cxvm not found in $CXVM_DIR/bin/cxvm. Run setup.cex first.\"\nexit 1\n";
+            fs.writeFile(projectDist + "/cxvm.sh", cxvmDispatcher);
+            child_process.execSync("chmod +x \"" + projectDist + "/cxvm.sh\"");
         }
 
         // Local ./dist/cexr
@@ -277,7 +320,9 @@ class SetupRunner {
         let distTargetDir: string = curPwd + "/dist/" + pkgName + "-" + pkgType + "/" + pkgVer;
         child_process.execSync("mkdir -p \"" + targetDir + "\" \"" + targetDirAlias + "\" \"" + cxvmVerDir + "\" \"" + cxvmDefDir + "\" \"" + distTargetDir + "\"");
 
-        let realCxvmBin: string = (fs.exists("dist/cxvm")) ? (curPwd + "/dist/cxvm") : (cxvmDir + "/bin/cxvm");
+        if (fs.exists(curPwd + "/dist/cxvm")) {
+            realCxvmBin = curPwd + "/dist/cxvm";
+        }
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + targetDir + "/bin\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + distTargetDir + "/bin\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmVerDir + "/bin\"");

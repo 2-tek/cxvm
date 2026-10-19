@@ -1,5 +1,6 @@
 // 2-TEK Factory: Package Entrypoint & Live Demonstration (C-ext)
-// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp)
+// CXVM Engine Edition: 2.0.0 (Native CLI Dispatcher & Factory)
 
 import "./types.cex";
 import "./models/platform_model.cex";
@@ -9,7 +10,27 @@ import "./builder/dist_builder.cex";
 import "./cxvm_engine.cex";
 import "./app.cex";
 
-fn main(): int {
+fn main(argc: int, argv: char**): int {
+    if (argc > 1) {
+        let cmd: string = std::string(argv[1]);
+        if (cmd == "-v" || cmd == "--version" || cmd == "version") {
+            println("CXVM v2.0.0 (Pure Cex Native Engine: cexr + cexp; powered by Lighting MVC)");
+            let cxvm: CxvmEngine* = new CxvmEngine();
+            println(cxvm->cexrVersionOutput());
+            return 0;
+        }
+        if (cmd == "-h" || cmd == "--help" || cmd == "help") {
+            println("2-TEK CXVM: Cex Version Manager (Cross-platform runtime & VCS manager for Cex)");
+            println("Usage: cxvm <command> [arguments] [options]");
+            println("Commands: setup, resetup, reinstall, install, use, current, list, doctor, init, dev, build, start, lint, test, cexp, lighting, thunder, cvm, javis, vision, ultron");
+            return 0;
+        }
+        let arg1: string = (argc > 2) ? std::string(argv[2]) : "";
+        let arg2: string = (argc > 3) ? std::string(argv[3]) : "";
+        let cxvm: CxvmEngine* = new CxvmEngine();
+        return cxvm->cvmExecute(cmd, arg1, arg2);
+    }
+
     println("===============================================================================");
     println("    2-TEK Cex Factory: Cross-Platform Runtime & Version Manager Engine        ");
     println("                   [Powered by Lighting Fullstack MVC]                         ");
