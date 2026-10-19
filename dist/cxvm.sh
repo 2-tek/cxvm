@@ -2976,14 +2976,24 @@ LIGHT_WRAP_EOF
         fi
       fi
 
-      if [ -n "$cexr_cmd" ] && (command -v "$cexr_cmd" >/dev/null 2>&1 || [ -x "$cexr_cmd" ]); then
-        if [ -f "setup.cex" ]; then
-          exec "$cexr_cmd" setup.cex "$@"
-        elif [ -f "dist/setup.cex" ]; then
-          exec "$cexr_cmd" dist/setup.cex "$@"
-        elif [ -f "$CXVM_DIR/bin/setup.cex" ]; then
-          exec "$cexr_cmd" "$CXVM_DIR/bin/setup.cex" "$@"
-        fi
+      local setup_pkg_dir=""
+      if [ -f "setup.cex" ]; then
+        setup_pkg_dir="$(pwd)"
+      elif [ -f "dist/setup.cex" ]; then
+        setup_pkg_dir="$(pwd)"
+      elif [ -f "cxvm/setup.cex" ]; then
+        setup_pkg_dir="$(pwd)/cxvm"
+      elif [ -f "../cxvm/setup.cex" ]; then
+        setup_pkg_dir="$(cd ../cxvm && pwd)"
+      elif [ -f "$HOME/Projects/cex/cxvm/setup.cex" ]; then
+        setup_pkg_dir="$HOME/Projects/cex/cxvm"
+      elif [ -f "$CXVM_DIR/bin/setup.cex" ]; then
+        setup_pkg_dir="$CXVM_DIR/bin"
+      fi
+
+      if [ -n "$setup_pkg_dir" ] && [ -n "$cexr_cmd" ]; then
+        (cd "$setup_pkg_dir" && CEX_LINT=0 "$cexr_cmd" setup.cex "$@")
+        return $?
       fi
 
       local setup_script=""

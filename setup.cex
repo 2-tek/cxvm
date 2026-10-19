@@ -114,6 +114,7 @@ class SetupRunner {
         println(res->output);
 
         let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
+        let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
         let cxvmDir: string = home + "/.cxvm";
         let cxmvDir: string = cxvmDir;
         let cexDir: string = home + "/.cex";
@@ -133,6 +134,14 @@ class SetupRunner {
             child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cxvm\"");
         }
 
+        // Copy setup.cex into $cxvmDir/bin and $cexDir/bin for global 'cxvm setup' dispatch
+        let setupSrc: string = fs.exists("setup.cex") ? "setup.cex" : (fs.exists("cxvm/setup.cex") ? "cxvm/setup.cex" : (fs.exists(curPwd + "/setup.cex") ? (curPwd + "/setup.cex") : ""));
+        if (setupSrc.length() > 0) {
+            child_process.execSync("cp -f \"" + setupSrc + "\" \"" + cxvmDir + "/bin/setup.cex\"");
+            child_process.execSync("cp -f \"" + setupSrc + "\" \"" + cexDir + "/bin/setup.cex\"");
+            child_process.execSync("chmod +x \"" + cxvmDir + "/bin/setup.cex\" \"" + cexDir + "/bin/setup.cex\" 2>/dev/null || true");
+        }
+
         // Install runtime dispatchers in $CXVM_DIR/bin
         let v8Dir: string = cxvmDir + "/bin/8.0.0";
         let v6Dir: string = cxvmDir + "/bin/6.0.0";
@@ -147,7 +156,6 @@ class SetupRunner {
         child_process.execSync("ln -sf \"" + cxvmDir + "/current/bin/cexp\" \"" + cxvmDir + "/bin/cexp\" 2>/dev/null || true");
 
         // Create local project ./dist dispatchers
-        let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
         let projectDist: string = curPwd + "/dist";
         child_process.execSync("mkdir -p \"" + projectDist + "\"");
 
@@ -213,9 +221,13 @@ class SetupRunner {
         // Register Integrated Cognitive AI Models: javis, vision, ultron
         let docsDir: string = "";
         let candidatesDocs: Array<string>* = new Array<string>();
+        candidatesDocs->push(curPwd);
         candidatesDocs->push(curPwd + "/../documents");
         candidatesDocs->push(curPwd + "/documents");
         candidatesDocs->push(curPwd + "/../../documents");
+        candidatesDocs->push(home + "/Projects/cex/documents");
+        candidatesDocs->push(home + "/.cex/documents");
+        candidatesDocs->push(cxvmDir + "/documents");
         for (let dIdx: int = 0; dIdx < (int)candidatesDocs->length(); dIdx++) {
             let dPath: string = candidatesDocs->get(dIdx);
             if (fs.exists(dPath + "/bin/javis")) {
