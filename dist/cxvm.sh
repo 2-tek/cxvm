@@ -2959,6 +2959,25 @@ LIGHT_WRAP_EOF
       ;;
 
     setup)
+      if [ "$1" = "javis" ] || [ "$1" = "java" ]; then
+        shift
+        if [ -x "$CXVM_DIR/bin/javis" ]; then
+          exec "$CXVM_DIR/bin/javis" setup "$@"
+        fi
+        local d_root="${DOCUMENTS_ROOT:-}"
+        if [ -z "$d_root" ]; then
+          for c_dir in "$(pwd)/../documents" "$(pwd)/documents" "$(pwd)/../../documents" "$HOME/.cex/documents" "$CXVM_DIR/documents"; do
+            if [ -x "$c_dir/bin/javis" ]; then
+              d_root="$c_dir"
+              break
+            fi
+          done
+        fi
+        if [ -n "$d_root" ] && [ -x "$d_root/bin/javis" ]; then
+          exec "$d_root/bin/javis" setup "$@"
+        fi
+      fi
+
       if [ "$1" = "linux-distro" ] || [ "$1" = "distro" ]; then
         shift
         _cxvm_run_linux_distro setup "$@"
@@ -2985,8 +3004,6 @@ LIGHT_WRAP_EOF
         setup_pkg_dir="$(pwd)/cxvm"
       elif [ -f "../cxvm/setup.cex" ]; then
         setup_pkg_dir="$(cd ../cxvm && pwd)"
-      elif [ -f "$HOME/Projects/cex/cxvm/setup.cex" ]; then
-        setup_pkg_dir="$HOME/Projects/cex/cxvm"
       elif [ -f "$CXVM_DIR/bin/setup.cex" ]; then
         setup_pkg_dir="$CXVM_DIR/bin"
       fi
@@ -3031,7 +3048,8 @@ LIGHT_WRAP_EOF
       echo "  [OK] Default CexR Build Edition:   ./dist/cexr-bean/1.0.26/bin (bean)"
       echo "  [OK] Integrated CexLint Binary:    ./dist/cex-lint/1.0.8/bin"
       echo "  [OK] Integrated CexTest Binary:    ./dist/cext/1.0.14/bin"
-      echo "  [OK] Registered Apps:              CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cext, cxvm)"
+      echo "  [OK] Registered Apps:              CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cext, javis, vision, ultron, cxvm)"
+      echo "  [OK] AI Models in PATH:            javis (alias: java), vision, ultron integrated into \$CXVM_DIR/bin & \$CEX_DIR/bin"
       echo "  [OK] Target Build cxvm:            CXMV_DIR/cxvm/\$version/bin (alias: CXVM_DIR/cxvm/\$version/bin)"
       echo "  [OK] Dependencies Build:          deps/\$name-\$type/\$version/bin (cached on existing version, zero hardcode)"
       echo "  [OK] Hook Dispatcher:              cexp --app \$appName action (short command: dev, build, start, test -> cxvm --app cext)"

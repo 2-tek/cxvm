@@ -48,6 +48,10 @@ bin/*
 .cex_boxes/
 **/.cex_boxes
 **/.cex_boxes/
+.cexboxes
+.cexboxes/
+**/.cexboxes
+**/.cexboxes/
 cex_boxes
 cex_boxes/
 **/cex_boxes/

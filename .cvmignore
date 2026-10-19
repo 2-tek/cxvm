@@ -1,0 +1,6 @@
+# CVM ignore for cxvm
+.cex_cache/
+.cex_boxes/
+.cexboxes/
+*.log
+.DS_Store

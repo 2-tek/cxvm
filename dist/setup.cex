@@ -16,8 +16,16 @@ class SetupRunner {
         if (libName == "cex-pack" || libName == "cex-pack-bean") return "1.0.5";
         if (libName == "cex-lint") return "1.0.8";
         if (libName == "cext" || libName == "cex-test") return "1.0.14";
+        if (libName == "javis" || libName == "java") return "1.0.0";
+        if (libName == "vision") return "2.0.0";
+        if (libName == "ultron") return "1.0.0";
         if (libName.find("cxvm") == 0) return "2.0.0";
         return defaultFallback;
+    }
+
+    public setupJavis(subArg: string): int {
+        let cxvm: CxvmEngine* = new CxvmEngine();
+        return cxvm->setupJavis(subArg);
     }
 
     public constructor() {
@@ -38,6 +46,7 @@ class SetupRunner {
         libs->push("cex-lint");
         libs->push("cext");
         libs->push("cxvm-bean");
+        libs->push("javis");
 
         let builtCount: int = 0;
         let cachedCount: int = 0;
@@ -324,7 +333,7 @@ class SetupRunner {
             realCxvmBin = curPwd + "/dist/cxvm";
         }
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + targetDir + "/bin\"");
-        child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + distTargetDir + "/bin\"");
+        child_process.execSync("ln -sf \"../../cxvm\" \"" + distTargetDir + "/bin\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmVerDir + "/bin\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmDefDir + "/bin\"");
 
@@ -390,7 +399,14 @@ class SetupRunner {
     }
 }
 
-fn main(): int {
+fn main(argc: int, argv: char**): int {
     let runner: SetupRunner* = new SetupRunner();
+    if (argc > 1) {
+        let arg1: string = std::string(argv[1]);
+        if (arg1 == "javis" || arg1 == "java") {
+            let subArg: string = argc > 2 ? std::string(argv[2]) : "";
+            return runner->setupJavis(subArg);
+        }
+    }
     return runner->run();
 }

@@ -14,7 +14,7 @@ fn main(argc: int, argv: char**): int {
     if (argc > 1) {
         let cmd: string = std::string(argv[1]);
         if (cmd == "-v" || cmd == "--version" || cmd == "version") {
-            println("CXVM v2.0.0 (Pure Cex Native Engine: cexr + cexp; powered by Lighting MVC)");
+            println("CXVM v2.0.1 (Pure Cex Native Engine: cexr + cexp; powered by Lighting MVC)");
             let cxvm: CxvmEngine* = new CxvmEngine();
             println(cxvm->cexrVersionOutput());
             return 0;
