@@ -7,8 +7,12 @@ echo "==> [git pre-push hook] Auto-building to dist before push..."
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
-if [ -f "$REPO_ROOT/dist/cxvm" ]; then
+if [ -x "$REPO_ROOT/dist/cxvm" ]; then
+  "$REPO_ROOT/dist/cxvm" build || true
+elif [ -f "$REPO_ROOT/dist/cxvm" ]; then
   bash "$REPO_ROOT/dist/cxvm" build || true
+elif [ -x "$REPO_ROOT/bin/cxvm" ]; then
+  "$REPO_ROOT/bin/cxvm" build || true
 elif [ -f "$REPO_ROOT/bin/cxvm" ]; then
   bash "$REPO_ROOT/bin/cxvm" build || true
 elif [ -n "$CXVM_DIR" ] && [ -x "$CXVM_DIR/bin/cxvm" ]; then
