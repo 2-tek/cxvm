@@ -2849,7 +2849,7 @@ LIGHT_WRAP_EOF
       _cxvm_run_app "cex" "$@"
       ;;
 
-    javis)
+    javis|java)
       if [ -x "$CXVM_DIR/bin/javis" ]; then
         exec "$CXVM_DIR/bin/javis" "$@"
       elif command -v javis >/dev/null 2>&1; then

@@ -230,6 +230,7 @@ class SetupRunner {
             let cexm2VisionSrc: string = docsDir + "/bin/cexm-2-vision";
 
             this.registerBinaryApp(cexDir, cxvmDir, "javis", javisSrc, "1.0.0");
+            this.registerBinaryApp(cexDir, cxvmDir, "java", javisSrc, "1.0.0");
             this.registerBinaryApp(cexDir, cxvmDir, "ultron", ultronSrc, "1.0.0");
             this.registerBinaryApp(cexDir, cxvmDir, "vision", visionSrc, "2.0.0");
             this.registerBinaryApp(cexDir, cxvmDir, "cexm-2-vision", cexm2VisionSrc, "2.0.0");
@@ -325,7 +326,7 @@ class SetupRunner {
         println("  Git Pre-Push Hook: .git/hooks/pre-push (auto-build to dist before push) [OK]");
         println("  Active Runtime:    CexR v" + this.defaultVer + " (Default)");
         println("  Secondary Runtime: CexR v" + this.secondaryVer + " (LTS)");
-        println("  AI Models in PATH: javis, vision, ultron integrated into $CXVM_DIR/bin & $CEX_DIR/bin [OK]");
+        println("  AI Models in PATH: javis (alias: java), vision, ultron integrated into $CXVM_DIR/bin & $CEX_DIR/bin [OK]");
         println("  Status:            SETUP COMPLETE [OK]");
         println("================================================================================");
         return 0;
