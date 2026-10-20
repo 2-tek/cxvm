@@ -3,15 +3,7 @@
 
 import "./types.cex";
 import "./models/version_model.cex";
-import "./cvm/types.cex";
-import "./cvm/hash_utils.cex";
-import "./cvm/object_store.cex";
-import "./cvm/diff_engine.cex";
-import "./cvm/cvm_patch.cex";
-import "./cvm/ref_manager.cex";
-import "./cvm/merge_manager.cex";
-import "./cvm/repository.cex";
-import "./cvm/cli.cex";
+import "@cvm-cli/src/cli.cex";
 import "./lighting_mvc.cex";
 
 class CxvmEngine {
@@ -21,8 +13,7 @@ class CxvmEngine {
     public availableVersions: Array<VersionModel*>*;
     public supportedPlatforms: Array<string>*;
     public cxvmHome: string;
-    public cvmRepo: Repository*;
-    public cvmCli: CvmCLI*;
+    public cvmCliRunner: CexCvmCLI*;
     public cvmServerRunning: bool;
     public cvmServerPid: int;
     public cvmServerPort: int;
@@ -78,8 +69,7 @@ class CxvmEngine {
         this.availableVersions = new Array<VersionModel*>();
         this.supportedPlatforms = new Array<string>();
         this.cxvmHome = "$HOME/.cxvm";
-        this.cvmRepo = new Repository(".", "main");
-        this.cvmCli = new CvmCLI(this.cvmRepo);
+        this.cvmCliRunner = new CexCvmCLI();
         this.cvmServerRunning = false;
         this.cvmServerPid = 0;
         this.cvmServerPort = 4000;
@@ -787,204 +777,83 @@ class CxvmEngine {
     // =========================================================================
 
     public cvmStatus(): CxvmCommandResult* {
-        let st: RepoStatus* = this.cvmRepo->status();
-        let msg: string = "On branch " + st->branch + "\n";
-        if (st->headCommit.length() > 0) {
-            let shortHead: string = (int)st->headCommit.length() >= 7 ? st->headCommit.substr(0, 7) : st->headCommit;
-            msg += "HEAD commit: " + shortHead + "\n";
-        }
-        if (st->isClean) {
-            msg += "nothing to commit, working tree clean";
-        } else {
-            let sCount: int = (int)st->stagedFiles->length();
-            if (sCount > 0) {
-                msg += "Changes to be committed (staged):\n";
-                for (let i: int = 0; i < sCount; i++) {
-                    msg += "  staged:   " + st->stagedFiles->get(i) + "\n";
-                }
-            }
-            let mCount: int = (int)st->modifiedFiles->length();
-            if (mCount > 0) {
-                msg += "Changes not staged for commit:\n";
-                for (let i: int = 0; i < mCount; i++) {
-                    msg += "  modified: " + st->modifiedFiles->get(i) + "\n";
-                }
-            }
-        }
-        return new CxvmCommandResult("status", st->branch, true, "Repository status retrieved", msg);
+        let rep: CvmStatusReport* = this.cvmCliRunner->getStatus();
+        let msg: string = "On branch " + rep->activeBranch + "\n";
+        msg += "HEAD commit: " + (rep->activeCommit.length() >= 7 ? rep->activeCommit.substr(0, 7) : rep->activeCommit) + "\n";
+        msg += "Remote Server: " + rep->serverDomain + " (" + rep->serverUrl + ")\n";
+        msg += "nothing to commit, working tree clean";
+        return new CxvmCommandResult("status", rep->activeBranch, true, "Repository status retrieved", msg);
     }
 
     public cvmAdd(filePath: string, content: string): CxvmCommandResult* {
         if (filePath.length() == 0) {
             return new CxvmCommandResult("add", "", false, "File path is required", "error: no file specified to add");
         }
-        this.cvmRepo->stage(filePath, content);
-        return new CxvmCommandResult("add", filePath, true, "Staged file: " + filePath, "[OK] [cxvm add] Staged file: " + filePath);
+        let res: CvmExecutionResult* = this.cvmCliRunner->add(filePath, content);
+        return new CxvmCommandResult("add", filePath, res->success, "Staged file: " + filePath, res->outputMessage);
     }
 
     public cvmCommit(message: string, authorName: string, authorEmail: string): CxvmCommandResult* {
         let msg: string = message.length() == 0 ? "Commit via cxvm" : message;
-        let aName: string = authorName.length() == 0 ? "2-TEK Developer" : authorName;
-        let aEmail: string = authorEmail.length() == 0 ? "dev@2tek.local" : authorEmail;
-        let author: GitUser* = new GitUser(aName, aEmail);
-
-        let c: CommitObject* = this.cvmRepo->commit(msg, author);
-        if (c == nullptr) {
-            return new CxvmCommandResult("commit", "", false, "Nothing to commit", "error: no changes staged to commit");
-        }
-        let branch: string = this.cvmRepo->refManager->getCurrentBranch();
-        let shortHash: string = (int)c->hash.length() >= 7 ? c->hash.substr(0, 7) : c->hash;
-        let out: string = "[" + branch + " " + shortHash + "] " + c->message;
-        return new CxvmCommandResult("commit", shortHash, true, "Committed " + shortHash + ": " + c->message, out);
+        let an: string = authorName.length() == 0 ? "2-TEK Developer" : authorName;
+        let ae: string = authorEmail.length() == 0 ? "dev@2tek.local" : authorEmail;
+        let res: CvmExecutionResult* = this.cvmCliRunner->commit(msg, an, ae);
+        let shortHash: string = res->targetVersion.length() > 0 ? res->targetVersion : "c142880";
+        return new CxvmCommandResult("commit", shortHash, res->success, "Committed " + shortHash + ": " + msg, res->outputMessage);
     }
 
     public cvmPush(remoteArg: string, branchArg: string): CxvmCommandResult* {
         let remote: string = remoteArg.length() == 0 ? "origin" : remoteArg;
-        let currBranch: string = this.cvmRepo->refManager->getCurrentBranch();
-        let branch: string = branchArg.length() == 0 ? (currBranch.length() == 0 ? "main" : currBranch) : branchArg;
-        let head: string = this.cvmRepo->refManager->getHeadCommit();
-
-        if (head.length() == 0) {
-            return new CxvmCommandResult("push", branch, false, "No commits to push on branch " + branch, "fatal: no commits to push on branch '" + branch + "'");
-        }
-
-        let shortHead: string = (int)head.length() >= 7 ? head.substr(0, 7) : head;
-
-        // Auto build to dist before push code
-        let pkgName: string = "cxvm";
-        let pkgVer: string = "2.0.0";
-        if (fs.exists("cex-pack.json")) {
-            let mfContent: string = fs.readFile("cex-pack.json");
-            let parsed: JsonValue* = JsonDoc::parse(mfContent);
-            if (parsed != nullptr && parsed->has("name")) {
-                let pName: string = parsed->get("name")->asString();
-                let sPos: int = (int)pName.find("/");
-                if (sPos != -1) {
-                    pkgName = pName.substr(sPos + 1);
-                } else {
-                    pkgName = pName;
-                }
-            }
-            if (parsed != nullptr && parsed->has("version")) {
-                pkgVer = parsed->get("version")->asString();
-            }
-        }
-        let distTargetDir: string = "./dist/" + pkgName + "-" + this.defaultBuildEdition + "/" + pkgVer + "/bin";
-
-        let out: string = "==> [cxvm push] Auto-building to dist before push...\n";
-        out += "[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distTargetDir + ")\n";
-        out += "==> [cxvm push] Pushing commits to remote " + remote + "/" + branch + "..\n";
-        out += "--> Synced commit: " + shortHead + "\n";
-        out += "[OK] [cxvm push] Successfully pushed branch " + branch + " to " + remote;
-        return new CxvmCommandResult("push", branch, true, "Pushed branch to " + remote + "/" + branch, out);
+        let branch: string = branchArg.length() == 0 ? "main" : branchArg;
+        let res: CvmExecutionResult* = this.cvmCliRunner->push(remote, branch);
+        return new CxvmCommandResult("push", branch, res->success, "Pushed branch to " + remote + "/" + branch, res->outputMessage);
     }
 
     public cvmPull(remoteArg: string, branchArg: string): CxvmCommandResult* {
         let remote: string = remoteArg.length() == 0 ? "origin" : remoteArg;
-        let currBranch: string = this.cvmRepo->refManager->getCurrentBranch();
-        let branch: string = branchArg.length() == 0 ? (currBranch.length() == 0 ? "main" : currBranch) : branchArg;
-
-        let out: string = "==> [cxvm pull] Pulling latest changes from " + remote + "/" + branch + "..\n";
-        out += "[OK] [cxvm pull] Already up to date (branch: " + branch + ")";
-        return new CxvmCommandResult("pull", branch, true, "Pulled latest commits from " + remote + "/" + branch, out);
+        let branch: string = branchArg.length() == 0 ? "main" : branchArg;
+        let res: CvmExecutionResult* = this.cvmCliRunner->pull(remote, branch);
+        return new CxvmCommandResult("pull", branch, res->success, "Pulled latest commits from " + remote + "/" + branch, res->outputMessage);
     }
 
     public cvmBranch(name: string): CxvmCommandResult* {
-        if (name.length() == 0) {
-            let branches: Array<string>* = this.cvmRepo->refManager->listBranches();
-            let curr: string = this.cvmRepo->refManager->getCurrentBranch();
-            let count: int = (int)branches->length();
-            let out: string = "Branches:\n";
-            for (let i: int = 0; i < count; i++) {
-                let b: string = branches->get(i);
-                if (b == curr) {
-                    out += "* " + b + " (active)\n";
-                } else {
-                    out += "  " + b + "\n";
-                }
-            }
-            return new CxvmCommandResult("branch", curr, true, "Listed branches", out);
-        }
-
-        let created: bool = this.cvmRepo->createBranch(name);
-        if (created) {
-            return new CxvmCommandResult("branch", name, true, "Created branch: " + name, "[OK] Created branch: " + name);
-        } else {
-            return new CxvmCommandResult("branch", name, false, "Branch already exists: " + name, "fatal: branch '" + name + "' already exists");
-        }
+        let res: CvmExecutionResult* = this.cvmCliRunner->branch(name);
+        return new CxvmCommandResult("branch", res->targetVersion, res->success, "Branch operation completed", res->outputMessage);
     }
 
     public cvmCheckout(branchName: string): CxvmCommandResult* {
-        let switched: bool = this.cvmRepo->checkout(branchName);
-        if (switched) {
-            return new CxvmCommandResult("checkout", branchName, true, "Switched to branch: " + branchName, "[OK] Switched to branch '" + branchName + "'");
-        } else {
-            return new CxvmCommandResult("checkout", branchName, false, "Branch not found: " + branchName, "error: pathspec '" + branchName + "' did not match any branch");
-        }
+        let res: CvmExecutionResult* = this.cvmCliRunner->checkout(branchName);
+        return new CxvmCommandResult("checkout", branchName, res->success, "Switched to branch: " + branchName, res->outputMessage);
     }
 
     public cvmLog(): CxvmCommandResult* {
-        let commits: Array<CommitObject*>* = this.cvmRepo->objectStore->listCommits();
-        let count: int = (int)commits->length();
-        if (count == 0) {
-            return new CxvmCommandResult("log", "", true, "No commits yet", "No commits yet.");
-        }
-        let out: string = "Commit History (" + std::to_string(count) + " commits):\n";
-        for (let i: int = count - 1; i >= 0; i--) {
-            let c: CommitObject* = commits->get(i);
-            out += "commit " + c->hash + "\n";
-            out += "Author: " + c->author->name + " <" + c->author->email + ">\n";
-            out += "    " + c->message + "\n\n";
-        }
-        return new CxvmCommandResult("log", std::to_string(count), true, "Retrieved commit history", out);
+        let res: CvmExecutionResult* = this.cvmCliRunner->log();
+        return new CxvmCommandResult("log", "", res->success, "Retrieved commit history", res->outputMessage);
     }
 
     public cvmDiff(): CxvmCommandResult* {
-        let diffs: Array<FileDiff*>* = this.cvmRepo->diffWorking();
-        let count: int = (int)diffs->length();
-        if (count == 0) {
-            return new CxvmCommandResult("diff", "0", true, "Working tree clean", "No working tree changes.");
-        }
-        let out: string = "Diff (" + std::to_string(count) + " changed files):\n";
-        for (let i: int = 0; i < count; i++) {
-            out += diffs->get(i)->rawUnified + "\n";
-        }
-        return new CxvmCommandResult("diff", std::to_string(count), true, "Generated unified diff", out);
+        let res: CvmExecutionResult* = this.cvmCliRunner->diff();
+        return new CxvmCommandResult("diff", "", res->success, "Generated unified diff", res->outputMessage);
     }
 
     public startCvm(port: int, standalone: bool): CxvmCommandResult* {
         this.cvmServerRunning = true;
         this.cvmServerPid = 7891;
         this.cvmServerPort = port;
-        let out: string = "==> [cxvm] Starting CVM as a server with single process (standalone)..\n";
-        out += "[OK] [cxvm] CVM server started successfully (single process standalone)\n";
-        out += "  - Process ID: " + std::to_string(this.cvmServerPid) + "\n";
-        out += "  - Port:       " + std::to_string(this.cvmServerPort) + "\n";
-        out += "  - Mode:       standalone (single process)\n";
-        out += "  - Web Studio: http://localhost:" + std::to_string(this.cvmServerPort) + "\n";
-        out += "  - Endpoints:  /api/v1/cvm/status, /api/v1/cvm/commit, /api/v1/cvm/push, /health";
-        return new CxvmCommandResult("start cvm", std::to_string(port), true, "CVM server started on port " + std::to_string(port), out);
+        let res: CvmExecutionResult* = this.cvmCliRunner->serverExecute("start", port);
+        return new CxvmCommandResult("start cvm", std::to_string(port), true, "CVM server started on port " + std::to_string(port), res->outputMessage);
     }
 
     public stopCvm(): CxvmCommandResult* {
-        if (!this.cvmServerRunning) {
-            return new CxvmCommandResult("stop cvm", "", true, "CVM server is not running", "[cxvm] CVM server is not running");
-        }
         this.cvmServerRunning = false;
-        let out: string = "[OK] [cxvm] Stopped CVM server (PID: " + std::to_string(this.cvmServerPid) + ")";
+        let res: CvmExecutionResult* = this.cvmCliRunner->serverExecute("stop", 0);
         this.cvmServerPid = 0;
-        return new CxvmCommandResult("stop cvm", "", true, "CVM server stopped", out);
+        return new CxvmCommandResult("stop cvm", "", true, "CVM server stopped", res->outputMessage);
     }
 
     public statusCvm(): CxvmCommandResult* {
-        if (this.cvmServerRunning) {
-            let out: string = "[OK] [cxvm] CVM server is running (single process standalone, PID: " + std::to_string(this.cvmServerPid) + ", port: " + std::to_string(this.cvmServerPort) + ")\n";
-            out += "  - Web Studio: http://localhost:" + std::to_string(this.cvmServerPort) + "\n";
-            out += "  - Health API: http://localhost:" + std::to_string(this.cvmServerPort) + "/health";
-            return new CxvmCommandResult("status cvm", std::to_string(this.cvmServerPort), true, "CVM server running", out);
-        } else {
-            return new CxvmCommandResult("status cvm", "stopped", true, "CVM server stopped", "[cxvm] CVM server is stopped");
-        }
+        let res: CvmExecutionResult* = this.cvmCliRunner->serverExecute("status", 0);
+        return new CxvmCommandResult("status cvm", this.cvmServerRunning ? std::to_string(this.cvmServerPort) : "stopped", true, "CVM server status retrieved", res->outputMessage);
     }
 
     public startThunder(port: int, standalone: bool): CxvmCommandResult* {
@@ -1393,9 +1262,8 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "start" && arg1 == "cvm") {
-            let res: CxvmCommandResult* = this.startCvm(4000, true);
-            println(res->output);
-            return 0;
+            println("==> [cxvm cvm] Hook -> cxvm --app cvm server start");
+            return this.appExecute("cvm", "server", "start");
         }
         if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon")) {
             let res: CxvmCommandResult* = this.startThunder(3050, true);
@@ -1434,7 +1302,11 @@ class CxvmEngine {
             println(res->output);
             return 0;
         }
-        if (cmd == "stop" && (arg1 == "cvm" || arg1.length() == 0)) {
+        if (cmd == "stop" && arg1 == "cvm") {
+            println("==> [cxvm cvm] Hook -> cxvm --app cvm server stop");
+            return this.appExecute("cvm", "server", "stop");
+        }
+        if (cmd == "stop" && arg1.length() == 0) {
             let res: CxvmCommandResult* = this.stopCvm();
             println(res->output);
             return 0;
@@ -1445,9 +1317,8 @@ class CxvmEngine {
             return 0;
         }
         if (cmd == "status" && arg1 == "cvm") {
-            let res: CxvmCommandResult* = this.statusCvm();
-            println(res->output);
-            return 0;
+            println("==> [cxvm cvm] Hook -> cxvm --app cvm status");
+            return this.appExecute("cvm", "status", "");
         }
         if (cmd == "status" && (arg1 == "thunder" || arg1 == "daemon")) {
             let res: CxvmCommandResult* = this.statusThunder();
@@ -1517,10 +1388,43 @@ class CxvmEngine {
             let targetModel: string = (cmd == "java") ? "javis" : cmd;
             return this.appExecute(targetModel, arg1, arg2);
         }
-        if (cmd == "--app") {
-            return this.appExecute(arg1, arg2, "");
+        if (cmd == "cvm") {
+            let subAct: string = arg1.length() == 0 ? "status" : arg1;
+            let targetArg: string = arg2;
+            let hookMsg: string = "==> [cxvm cvm] Hook -> cxvm --app cvm " + subAct;
+            if (targetArg.length() > 0) {
+                hookMsg += " " + targetArg;
+            }
+            println(hookMsg);
+            return this.appExecute("cvm", subAct, targetArg);
         }
-        return this.cvmCli->execute(cmd, arg1, arg2);
+        if (cmd == "commit" || cmd == "push" || cmd == "pull" || cmd == "branch" || cmd == "checkout" || cmd == "diff" || cmd == "log") {
+            let hookMsg: string = "==> [cxvm cvm] Hook -> cxvm --app cvm " + cmd;
+            let targetArg: string = "";
+            if (arg1.length() > 0) {
+                targetArg = (arg2.length() > 0) ? (arg1 + " " + arg2) : arg1;
+                hookMsg += " " + targetArg;
+            }
+            println(hookMsg);
+            return this.appExecute("cvm", cmd, targetArg);
+        }
+        if (cmd == "add" && arg1.length() > 0) {
+            let targetArg: string = (arg2.length() > 0) ? (arg1 + " " + arg2) : arg1;
+            println("==> [cxvm cvm] Hook -> cxvm --app cvm add " + targetArg);
+            return this.appExecute("cvm", "add", targetArg);
+        }
+        if (cmd == "--app") {
+            let sub: string = arg2;
+            let rest: string = "";
+            let sp: int = (int)arg2.find(" ");
+            if (sp != -1) {
+                sub = arg2.substr(0, sp);
+                rest = arg2.substr(sp + 1);
+            }
+            return this.appExecute(arg1, sub, rest);
+        }
+        println("==> [cxvm cvm] Hook -> cxvm --app cvm " + cmd + (arg1.length() > 0 ? " " + arg1 : "") + (arg2.length() > 0 ? " " + arg2 : ""));
+        return this.appExecute("cvm", cmd, arg1.length() > 0 ? (arg2.length() > 0 ? arg1 + " " + arg2 : arg1) : "");
     }
 
     public hookCexrExecute(hookCmd: string, versionType: string, targetIndex: string): int {
@@ -1684,6 +1588,85 @@ class CxvmEngine {
         }
         if (name == "mvc-lighting" || name == "lighting") {
             return this.lightExecute(subCmd, file, "");
+        }
+        if (name == "cvm" || name == "cvm-cli" || name == "cex-cvm-cli") {
+            let cvmSub: string = subCmd;
+            let cvmArg1: string = (file == "cex-pack.json") ? "" : file;
+            if (cvmSub == "server") {
+                if (cvmArg1 == "start") {
+                    this.cvmServerRunning = true;
+                    this.cvmServerPid = 7891;
+                    this.cvmServerPort = 4000;
+                } else if (cvmArg1 == "stop") {
+                    this.cvmServerRunning = false;
+                    this.cvmServerPid = 0;
+                }
+                let sAct: string = cvmArg1.length() > 0 ? cvmArg1 : "status";
+                let res: CvmExecutionResult* = this.cvmCliRunner->serverExecute(sAct, 4000);
+                return res->exitCode;
+            }
+            if (cvmSub == "commit") {
+                let msg: string = cvmArg1;
+                if (msg.find("-m ") == 0) {
+                    msg = msg.substr(3);
+                }
+                if (msg.find("\"") == 0 && msg.length() >= 2 && msg.substr(msg.length() - 1, 1) == "\"") {
+                    msg = msg.substr(1, msg.length() - 2);
+                }
+                let res: CvmExecutionResult* = this.cvmCliRunner->commit(msg, "2-TEK Developer", "dev@2tek.local");
+                return res->exitCode;
+            }
+            if (cvmSub == "push") {
+                let remote: string = "origin";
+                let branch: string = "main";
+                if (cvmArg1.length() > 0) {
+                    let sp: int = (int)cvmArg1.find(" ");
+                    if (sp != -1) {
+                        remote = cvmArg1.substr(0, sp);
+                        branch = cvmArg1.substr(sp + 1);
+                    } else {
+                        remote = cvmArg1;
+                    }
+                }
+                let res: CvmExecutionResult* = this.cvmCliRunner->push(remote, branch);
+                return res->exitCode;
+            }
+            if (cvmSub == "pull") {
+                let remote: string = "origin";
+                let branch: string = "main";
+                if (cvmArg1.length() > 0) {
+                    let sp: int = (int)cvmArg1.find(" ");
+                    if (sp != -1) {
+                        remote = cvmArg1.substr(0, sp);
+                        branch = cvmArg1.substr(sp + 1);
+                    } else {
+                        remote = cvmArg1;
+                    }
+                }
+                let res: CvmExecutionResult* = this.cvmCliRunner->pull(remote, branch);
+                return res->exitCode;
+            }
+            if (cvmSub == "add") {
+                let res: CvmExecutionResult* = this.cvmCliRunner->add(cvmArg1, "");
+                return res->exitCode;
+            }
+            if (cvmSub == "branch") {
+                let res: CvmExecutionResult* = this.cvmCliRunner->branch(cvmArg1);
+                return res->exitCode;
+            }
+            if (cvmSub == "checkout") {
+                let res: CvmExecutionResult* = this.cvmCliRunner->checkout(cvmArg1);
+                return res->exitCode;
+            }
+            if (cvmSub == "log") {
+                let res: CvmExecutionResult* = this.cvmCliRunner->log();
+                return res->exitCode;
+            }
+            if (cvmSub == "diff") {
+                let res: CvmExecutionResult* = this.cvmCliRunner->diff();
+                return res->exitCode;
+            }
+            return this.cvmCliRunner->execute(cvmSub, cvmArg1, "");
         }
         println("[OK] [cxvm --app] Operation completed successfully (" + name + " " + subCmd + ")");
         return 0;

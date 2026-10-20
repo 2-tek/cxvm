@@ -174,7 +174,7 @@ cxvm use 6.0.0
 
 ## 5. Integrated CodeVersionManager (CVM) Commands (like `git` & `cvm`)
 
-`cxvm` features an integrated **CodeVersionManager (CVM)** engine built natively in pure C-ext (`src/cvm/`). All VCS operations can be executed directly via `cxvm`:
+`cxvm` delegates all **CodeVersionManager (CVM)** operations to `cvm-cli` (`cex-cvm-cli`) via hook calls (`cxvm --app cvm ...args`). Integrated with remote root server `cvm.2-tek.com` (`https://cvm.2-tek.com/api/v1`) with offline commit caching:
 
 | Command                       | Action                                                               | Example                                                |
 | :---------------------------- | :------------------------------------------------------------------- | :----------------------------------------------------- |

@@ -26,7 +26,11 @@ fn main(argc: int, argv: char**): int {
             return 0;
         }
         let arg1: string = (argc > 2) ? std::string(argv[2]) : "";
-        let arg2: string = (argc > 3) ? std::string(argv[3]) : "";
+        let arg2: string = "";
+        for (let i: int = 3; i < argc; i++) {
+            if (arg2.length() > 0) arg2 += " ";
+            arg2 += std::string(argv[i]);
+        }
         let cxvm: CxvmEngine* = new CxvmEngine();
         return cxvm->cvmExecute(cmd, arg1, arg2);
     }
