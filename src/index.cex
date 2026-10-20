@@ -1,6 +1,6 @@
 // 2-TEK Factory: Package Entrypoint & Live Demonstration (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp)
-// CXVM Engine Edition: 2.1.35 (Rewritten with cex-cli, cex-s, and cex-std)
+// CXVM Engine Edition: 2.1.37 (Updated with cexp-v8-stable, cex-cli, cex-s, and cex-std)
 
 import "./types.cex";
 import "./models/platform_model.cex";

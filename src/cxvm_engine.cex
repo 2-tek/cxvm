@@ -420,7 +420,7 @@ class CxvmEngine {
                 }
             }
         }
-        if (libName == "cexp-v8" || libName == "cexp") return "8.0.0";
+        if (libName == "cexp-v8" || libName == "cexp" || libName == "cexp-v8-stable" || libName == "v8-stable") return "8.0.0";
         if (libName.find("cexr-") == 0 || libName == "cexr") return "1.0.26";
         if (libName == "cex-pack" || libName == "cex-pack-bean") return "1.0.5";
         if (libName == "cex-lint") return "1.0.8";
@@ -441,6 +441,7 @@ class CxvmEngine {
 
         let libs: Array<string>* = new Array<string>();
         libs->push("cexp-v8");
+        libs->push("cexp-v8-stable");
         libs->push("cexr-bean");
         libs->push("cexr-factory");
         libs->push("cexr-delivery");
@@ -607,10 +608,16 @@ class CxvmEngine {
         }
 
         let cexpBin: string = "";
-        if (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
+        if (fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin")) {
+            cexpBin = curPwd + "/dist/cexp-v8-stable/8.0.0/bin";
+        } else if (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
             cexpBin = curPwd + "/dist/cexp-v8/8.0.0/bin";
+        } else if (fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
+            cexpBin = cxvmDir + "/bin/cexp-v8-stable";
         } else if (fs.exists(cxvmDir + "/bin/cexp")) {
             cexpBin = cxvmDir + "/bin/cexp";
+        } else if (fs.exists(cexDir + "/bin/cexp-v8-stable")) {
+            cexpBin = cexDir + "/bin/cexp-v8-stable";
         } else if (fs.exists(cexDir + "/bin/cexp")) {
             cexpBin = cexDir + "/bin/cexp";
         } else if (fs.exists(cexDir + "/bin/8.0.0/cexp")) {
@@ -626,8 +633,12 @@ class CxvmEngine {
 
         if (srcPath.length() > 0) {
             let cexpBin: string = "cexp";
-            if (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
+            if (fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin")) {
+                cexpBin = curPwd + "/dist/cexp-v8-stable/8.0.0/bin";
+            } else if (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
                 cexpBin = curPwd + "/dist/cexp-v8/8.0.0/bin";
+            } else if (fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
+                cexpBin = cxvmDir + "/bin/cexp-v8-stable";
             } else if (fs.exists(cxvmDir + "/bin/cexp")) {
                 cexpBin = cxvmDir + "/bin/cexp";
             }
@@ -690,7 +701,7 @@ class CxvmEngine {
         outMsg += "  Default CexR Build:  cexr-bean (bean edition - native build/compile)\n";
         outMsg += "  PATH Entry:          " + this.cxvmHome + "/bin:" + this.cxvmHome + "/current\n";
         outMsg += "  Dispatcher:          CEX_DIR/cexr-$type/1.0.26/bin & $CEX_DIR/cexr-factory/1.0.26/bin configured for default run cxvm\n";
-        outMsg += "  Registered Apps:     CEX_DIR registered binary apps (cexp-v8, cexr-factory, cexr-bean, cex-pack, cex-lint, cext, javis, vision, ultron)\n";
+        outMsg += "  Registered Apps:     CEX_DIR registered binary apps (cexp-v8, cexp-v8-stable, cexr-factory, cexr-bean, cex-pack, cex-lint, cext, javis, vision, ultron)\n";
         outMsg += "  AI Models in PATH:   javis (alias: java), vision, ultron integrated into $CXVM_DIR/bin & $CEX_DIR/bin [OK]\n";
         outMsg += "  Target Build cxvm:   CXMV_DIR/cxvm/$version/bin (CXVM_DIR/cxvm/$version/bin)\n";
         outMsg += "  Integrated Build:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/2.0.0/bin)\n";
@@ -1592,7 +1603,7 @@ class CxvmEngine {
         if (name == "cex" || name == "cex-cli" || name == "cli") return 2;
         if (name == "cexr" || name.find("cexr-") == 0) return 3;
         if (name == "cxvm") return 4;
-        if (name == "cexp" || name.find("cexp-") == 0) return 5;
+        if (name == "cexp" || name.find("cexp-") == 0 || name == "v8-stable") return 5;
         if (name == "cex-lint") return 6;
         if (name == "cext" || name == "cex-test") return 7;
         if (name == "cex-pack") return 8;

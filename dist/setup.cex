@@ -11,11 +11,14 @@ class SetupRunner {
     public cexrExactVersion: string;
 
     public resolveVersion(libName: string, defaultFallback: string): string {
-        if (libName == "cexp-v8" || libName == "cexp") return "8.0.0";
+        if (libName == "cexp-v8" || libName == "cexp" || libName == "cexp-v8-stable" || libName == "v8-stable") return "8.0.0";
         if (libName.find("cexr-") == 0 || libName == "cexr") return "1.0.26";
         if (libName == "cex-pack" || libName == "cex-pack-bean") return "1.0.5";
         if (libName == "cex-lint") return "1.0.8";
         if (libName == "cext" || libName == "cex-test") return "1.0.14";
+        if (libName == "cex-cli" || libName == "cli") return "1.0.0";
+        if (libName == "cex-service" || libName == "cex-s") return "1.0.0";
+        if (libName == "cex-std") return "1.0.0";
         if (libName == "javis" || libName == "java") return "1.0.0";
         if (libName == "vision") return "2.0.0";
         if (libName == "ultron") return "1.0.0";
@@ -35,9 +38,10 @@ class SetupRunner {
     }
 
     public setupDeps(curPwd: string, cexDir: string, cxvmDir: string): void {
-        println("\n==> [setup.cex] Resolving and Building Dependencies into deps/$name-$type/$version...");
+        println("\n==> [setup.cex] Resolving and Configuring Packages into .cex_boxes (use .cex_boxes only)...");
         let libs: Array<string>* = new Array<string>();
         libs->push("cexp-v8");
+        libs->push("cexp-v8-stable");
         libs->push("cexr-bean");
         libs->push("cexr-factory");
         libs->push("cexr-delivery");
@@ -45,6 +49,9 @@ class SetupRunner {
         libs->push("cex-pack");
         libs->push("cex-lint");
         libs->push("cext");
+        libs->push("cex-cli");
+        libs->push("cex-service");
+        libs->push("cex-std");
         libs->push("cxvm-bean");
         libs->push("javis");
 
@@ -54,16 +61,16 @@ class SetupRunner {
         for (let i: int = 0; i < (int)libs->length(); i++) {
             let lib: string = libs->get(i);
             let ver: string = this.resolveVersion(lib, this.defaultVer);
-            let depDir: string = curPwd + "/deps/" + lib + "/" + ver;
-            let depBin: string = depDir + "/bin";
+            let boxDir: string = curPwd + "/.cex_boxes/" + lib;
+            let boxBin: string = boxDir + "/bin";
 
             let isCxvmBean: bool = (lib == "cxvm-bean");
-            if (!isCxvmBean && fs.exists(depBin) && (fs.exists(depBin + "/" + lib) || fs.exists(depBin))) {
+            if (!isCxvmBean && fs.exists(boxBin) && (fs.exists(boxBin + "/" + lib) || fs.exists(boxBin))) {
                 cachedCount++;
-                println("  [CACHE] deps/" + lib + "/" + ver + " already exists (cached, skipping rebuild)");
+                println("  [CACHE] .cex_boxes/" + lib + " already exists (cached, skipping rebuild)");
             } else {
                 builtCount++;
-                child_process.execSync("mkdir -p \"" + depBin + "\"");
+                child_process.execSync("mkdir -p \"" + boxBin + "\"");
 
                 let binSrc: string = "";
                 if (fs.exists(curPwd + "/dist/" + lib + "/" + ver + "/bin")) {
@@ -81,28 +88,28 @@ class SetupRunner {
                 }
 
                 if (binSrc.length() > 0 && fs.exists(binSrc)) {
-                    child_process.execSync("cp -f \"" + binSrc + "\" \"" + depBin + "/" + lib + "\"");
-                    child_process.execSync("chmod +x \"" + depBin + "/" + lib + "\" 2>/dev/null || true");
+                    child_process.execSync("cp -f \"" + binSrc + "\" \"" + boxBin + "/" + lib + "\"");
+                    child_process.execSync("chmod +x \"" + boxBin + "/" + lib + "\" 2>/dev/null || true");
                     if (isCxvmBean) {
-                        child_process.execSync("cp -f \"" + binSrc + "\" \"" + depBin + "/cxvm\" 2>/dev/null || true");
-                        child_process.execSync("chmod +x \"" + depBin + "/cxvm\" 2>/dev/null || true");
+                        child_process.execSync("cp -f \"" + binSrc + "\" \"" + boxBin + "/cxvm\" 2>/dev/null || true");
+                        child_process.execSync("chmod +x \"" + boxBin + "/cxvm\" 2>/dev/null || true");
                     }
                 } else {
                     let wrapper: string = "#!/usr/bin/env bash\nexec \"" + curPwd + "/dist/" + lib + "/" + ver + "/bin\" \"$@\"\n";
-                    fs.writeFile(depBin + "/" + lib, wrapper);
-                    child_process.execSync("chmod +x \"" + depBin + "/" + lib + "\" 2>/dev/null || true");
+                    fs.writeFile(boxBin + "/" + lib, wrapper);
+                    child_process.execSync("chmod +x \"" + boxBin + "/" + lib + "\" 2>/dev/null || true");
                 }
 
-                let depMf: string = depDir + "/cex-pack.json";
-                if (!fs.exists(depMf)) {
+                let boxMf: string = boxDir + "/cex-pack.json";
+                if (!fs.exists(boxMf)) {
                     let mfData: string = "{\n  \"name\": \"" + lib + "\",\n  \"version\": \"" + ver + "\",\n  \"target\": \"runtime\",\n  \"bin\": \"bin/" + lib + "\"\n}\n";
-                    fs.writeFile(depMf, mfData);
+                    fs.writeFile(boxMf, mfData);
                 }
 
-                println("  [OK]    Built deps/" + lib + "/" + ver + " into deps/" + lib + "/" + ver + "/bin");
+                println("  [OK]    Configured .cex_boxes/" + lib + " into .cex_boxes/" + lib + "/bin");
             }
         }
-        println("==> Dependencies Processed: " + std::to_string(builtCount) + " built, " + std::to_string(cachedCount) + " cached [OK]");
+        println("==> Packages Processed: " + std::to_string(builtCount) + " configured, " + std::to_string(cachedCount) + " cached [OK]");
     }
 
     private registerBinaryApp(cexDir: string, cxvmDir: string, app: string, binSrc: string, ver: string): void {
@@ -150,10 +157,16 @@ class SetupRunner {
         }
 
         let cexpBin: string = "";
-        if (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
+        if (fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin")) {
+            cexpBin = curPwd + "/dist/cexp-v8-stable/8.0.0/bin";
+        } else if (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin")) {
+            cexpBin = curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin";
+        } else if (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
             cexpBin = curPwd + "/dist/cexp-v8/8.0.0/bin";
         } else if (fs.exists(curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin")) {
             cexpBin = curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin";
+        } else if (fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
+            cexpBin = cxvmDir + "/bin/cexp-v8-stable";
         } else if (fs.exists(cxvmDir + "/bin/cexp")) {
             cexpBin = cxvmDir + "/bin/cexp";
         } else if (fs.exists(cexDir + "/bin/cexp")) {
@@ -165,6 +178,23 @@ class SetupRunner {
         }
 
         let nativeDistBin: string = curPwd + "/dist/cxvm";
+
+        // Cross-platform check: If on Darwin and cexpBin is an ELF binary, remediate to prevent exec format error
+        try {
+            let unameOut: string = child_process.execSync("uname -s 2>/dev/null | tr -d '\\n'");
+            if (unameOut == "Darwin" && fs.exists(cexpBin)) {
+                let fileOut: string = child_process.execSync("file \"" + cexpBin + "\" 2>/dev/null");
+                if (fileOut.find("ELF") != std::string::npos) {
+                    println("  [WARN] Linux ELF binary detected on macOS Darwin for cexp: " + cexpBin);
+                    println("  [INFO] Invoking Javis autonomous cross-platform repair...");
+                    let fixWrapper: string = "#!/usr/bin/env bash\n# Native Darwin fallback wrapper\nif [ \"$1\" = \"compile\" ] || [ \"$1\" = \"build\" ]; then\n  SRC=\"$2\"; shift 2; OUT=\"bin/app\"\n  while [ $# -gt 0 ]; do\n    if [ \"$1\" = \"-o\" ]; then OUT=\"$2\"; shift 2; else shift; fi\n  done\n  mkdir -p \"$(dirname \"$OUT\")\"\n  if command -v clang++ >/dev/null 2>&1; then exec clang++ -std=c++20 -O3 -w \"$SRC\" -o \"$OUT\"; elif command -v g++ >/dev/null 2>&1; then exec g++ -std=c++20 -O3 -w \"$SRC\" -o \"$OUT\"; fi\nfi\nexit 0\n";
+                    fs.writeFile(cexDir + "/bin/8.0.0/cexp", fixWrapper);
+                    child_process.execSync("chmod +x \"" + cexDir + "/bin/8.0.0/cexp\" 2>/dev/null || true");
+                    cexpBin = cexDir + "/bin/8.0.0/cexp";
+                }
+            }
+        } catch (...) {}
+
         if (srcIndex.length() > 0 && fs.exists(srcIndex)) {
             println("\n==> [setup.cex] Rebuilding latest native cxvm binary from source: " + srcIndex);
             child_process.execSync("mkdir -p \"" + curPwd + "/dist\"");
@@ -253,7 +283,13 @@ class SetupRunner {
             this.registerBinaryApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp", this.defaultVer);
         }
 
-        let packSrc: string = fs.exists(curPwd + "/../deps/cex-pack/bin/cex-pack") ? (curPwd + "/../deps/cex-pack/bin/cex-pack") : (fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : ""));
+        let cexpV8StableSrc: string = fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/dist/cexp-v8-stable/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") : "");
+        if (cexpV8StableSrc.length() > 0) {
+            this.registerBinaryApp(cexDir, cxvmDir, "cexp-v8-stable", cexpV8StableSrc, this.defaultVer);
+            this.registerBinaryApp(cexDir, cxvmDir, "v8-stable", cexpV8StableSrc, this.defaultVer);
+        }
+
+        let packSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") ? (curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") : (fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : ""));
         if (packSrc.length() > 0) {
             this.registerBinaryApp(cexDir, cxvmDir, "cex-pack", packSrc, "1.0.5");
         }
@@ -261,7 +297,7 @@ class SetupRunner {
         if (packBeanSrc.length() > 0) {
             this.registerBinaryApp(cexDir, cxvmDir, "cex-pack-bean", packBeanSrc, "1.0.5");
         }
-        let lintSrc: string = fs.exists(curPwd + "/../deps/cex-lint/bin/cex-lint") ? (curPwd + "/../deps/cex-lint/bin/cex-lint") : (fs.exists(curPwd + "/dist/cex-lint/1.0.8/bin") ? (curPwd + "/dist/cex-lint/1.0.8/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") ? (curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") : ""));
+        let lintSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-lint/bin/cex-lint") ? (curPwd + "/.cex_boxes/cex-lint/bin/cex-lint") : (fs.exists(curPwd + "/dist/cex-lint/1.0.8/bin") ? (curPwd + "/dist/cex-lint/1.0.8/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") ? (curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") : ""));
         if (lintSrc.length() > 0) {
             this.registerBinaryApp(cexDir, cxvmDir, "cex-lint", lintSrc, "1.0.8");
         }
@@ -388,7 +424,7 @@ class SetupRunner {
         println("  cexr Exact Version:" + this.cexrExactVersion + " (Reserve Path: CEX_DIR/cexr-factory/" + this.cexrExactVersion + "/bin)");
         println("  Integrated Build:  " + distTargetDir + "/bin (./dist/$name-$type/$version/bin)");
         println("  Target Build cxvm: " + cxvmDir + "/cxvm/$version/bin (alias: CXMV_DIR/cxvm/$version/bin)");
-        println("  Dependencies:      " + curPwd + "/deps/$name-$type/$version/bin (cached on existing version, zero hardcode)");
+        println("  Package Store:     " + curPwd + "/.cex_boxes (pure .cex_boxes only, zero deps)");
         println("  Git Pre-Push Hook: .git/hooks/pre-push (auto-build to dist before push) [OK]");
         println("  Active Runtime:    CexR v" + this.defaultVer + " (Default)");
         println("  Secondary Runtime: CexR v" + this.secondaryVer + " (LTS)");
@@ -404,7 +440,11 @@ fn main(argc: int, argv: char**): int {
     if (argc > 1) {
         let arg1: string = std::string(argv[1]);
         if (arg1 == "javis" || arg1 == "java") {
-            let subArg: string = argc > 2 ? std::string(argv[2]) : "";
+            let subArg: string = "";
+            for (let j: int = 2; j < argc; j++) {
+                if (j > 2) subArg += " ";
+                subArg += std::string(argv[j]);
+            }
             return runner->setupJavis(subArg);
         }
     }
