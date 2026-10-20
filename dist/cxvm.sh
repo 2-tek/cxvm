@@ -773,7 +773,15 @@ _cxvm_open() {
     case "$os_target" in
       macos|darwin|mac|osx)
         echo "[OK] [cxvm open] Initialized macOS Cocoa WKWebView native window for: $url"
-        open "$url" >/dev/null 2>&1 || true
+        if command -v cex-view >/dev/null 2>&1; then
+          cex-view --os macos --url "$url" --title "Lighting MVC Dev" >/dev/null 2>&1 &
+        elif [ -x "$CXVM_DIR/bin/cex-view" ]; then
+          "$CXVM_DIR/bin/cex-view" --os macos --url "$url" --title "Lighting MVC Dev" >/dev/null 2>&1 &
+        elif [ -x "/tmp/cex_view_window_macos" ]; then
+          /tmp/cex_view_window_macos "$url" "Lighting MVC Dev" >/dev/null 2>&1 &
+        elif command -v open >/dev/null 2>&1; then
+          open "$url" >/dev/null 2>&1 || true
+        fi
         ;;
       windows|window|win|pcbe)
         echo "[OK] [cxvm open] Initialized Windows Win32 WebView2 native window for: $url"
@@ -809,6 +817,15 @@ _cxvm_open() {
   echo "==> [cxvm open] Opening $url with native window (cex-view)..."
   echo "[OK] [cex-view] Initialized CexView native window for: $url"
   echo "[OK] [cex-view] Native window viewport opened (Title: CXVM View, Dimensions: 1024x768)"
+  if command -v cex-view >/dev/null 2>&1; then
+    cex-view --url "$url" --title "Lighting MVC Dev (cex-view)" >/dev/null 2>&1 &
+  elif [ -x "$CXVM_DIR/bin/cex-view" ]; then
+    "$CXVM_DIR/bin/cex-view" --url "$url" --title "Lighting MVC Dev (cex-view)" >/dev/null 2>&1 &
+  elif [ -x "/tmp/cex_view_window_macos" ]; then
+    /tmp/cex_view_window_macos "$url" "Lighting MVC Dev (cex-view)" >/dev/null 2>&1 &
+  elif command -v open >/dev/null 2>&1; then
+    open "$url" >/dev/null 2>&1 || true
+  fi
 }
 
 # -----------------------------------------------------------------------------
@@ -824,6 +841,9 @@ _cxvm_run_light() {
   local target="browser"
   local os_target=""
   local auto_open=0
+  if [ "$light_cmd" = "dev" ] || [ "$light_cmd" = "serve" ]; then
+    auto_open=1
+  fi
   local extra_args=()
 
   while [ $# -gt 0 ]; do
@@ -881,6 +901,10 @@ _cxvm_run_light() {
         target="${1#-t=}"
         shift
         ;;
+      --no-open)
+        auto_open=0
+        shift
+        ;;
       --open|-o)
         auto_open=1
         shift
@@ -891,6 +915,24 @@ _cxvm_run_light() {
         ;;
     esac
   done
+
+  if [ "$auto_open" -eq 1 ] && [ -z "$os_target" ]; then
+    case "$(uname -s)" in
+      Darwin*)
+        os_target="macos"
+        ;;
+      Linux*)
+        if [ -f /etc/os-release ] && grep -qi "ubuntu" /etc/os-release; then
+          os_target="ubuntu"
+        else
+          os_target="linux"
+        fi
+        ;;
+      MINGW*|MSYS*|CYGWIN*)
+        os_target="windows"
+        ;;
+    esac
+  fi
 
   # Default port overrides based on project context
   if [ "$port" = "3080" ] && [ -f "hub.config.json" ]; then
