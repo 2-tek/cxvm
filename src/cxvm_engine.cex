@@ -425,6 +425,9 @@ class CxvmEngine {
     }
 
     public setupDeps(): CxvmCommandResult* {
+        let boxesDir: string = ".cex_boxes";
+        child_process.execSync("mkdir -p \"" + boxesDir + "\"");
+
         let libs: Array<string>* = new Array<string>();
         libs->push("cexp-v8");
         libs->push("cexr-bean");
@@ -437,7 +440,7 @@ class CxvmEngine {
         libs->push("cxvm-bean");
         libs->push("javis");
 
-        let outMsg: string = "==> [cxvm setup deps] Finding & Building Dependencies into deps/$name-$type/$version:\n";
+        let outMsg: string = "==> [cxvm setup boxes] Finding & Resolving Packages into .cex_boxes (use .cex_boxes only):\n";
         let count: int = (int)libs->length();
         let cachedCount: int = 0;
         let builtCount: int = 0;
@@ -445,25 +448,25 @@ class CxvmEngine {
         for (let i: int = 0; i < count; i++) {
             let lib: string = libs->get(i);
             let ver: string = this.resolveLibVersion(lib);
-            let depDir: string = "deps/" + lib + "/" + ver;
-            let depBin: string = depDir + "/bin";
+            let boxDir: string = boxesDir + "/" + lib;
 
             let alreadyExists: bool = false;
-            if (fs.exists(depBin) && (fs.exists(depBin + "/" + lib) || fs.exists(depBin))) {
+            if (fs.exists(boxDir)) {
                 alreadyExists = true;
             }
 
             if (alreadyExists) {
                 cachedCount++;
-                outMsg += "  [CACHE] " + lib + " v" + ver + " -> " + depBin + " (already exists, skipping rebuild)\n";
+                outMsg += "  [CACHE] " + lib + " v" + ver + " -> .cex_boxes/" + lib + " (already exists, skipping rebuild)\n";
             } else {
                 builtCount++;
-                outMsg += "  [OK]    " + lib + " v" + ver + " -> Built into " + depBin + " (integrated into " + depDir + ")\n";
+                child_process.execSync("mkdir -p \"" + boxDir + "/bin\"");
+                outMsg += "  [OK]    " + lib + " v" + ver + " -> Configured into .cex_boxes/" + lib + "\n";
             }
         }
 
-        outMsg += "==> Dependencies Processed: " + std::to_string(builtCount) + " built, " + std::to_string(cachedCount) + " cached (skipping rebuild on existing versions).";
-        return new CxvmCommandResult("setup deps", std::to_string(count), true, "Dependencies successfully resolved and built into deps/$name-$type/$version", outMsg);
+        outMsg += "==> Packages Processed: " + std::to_string(builtCount) + " configured, " + std::to_string(cachedCount) + " cached (use .cex_boxes only, zero deps).";
+        return new CxvmCommandResult("setup boxes", std::to_string(count), true, "Packages successfully configured into .cex_boxes (use .cex_boxes only)", outMsg);
     }
 
     public resolveDocumentsDir(): string {
@@ -638,12 +641,12 @@ class CxvmEngine {
             child_process.execSync("ln -sf \"" + outDistBin + "\" \"" + cxvmVerDir + "/bin\"");
             child_process.execSync("ln -sf \"" + outDistBin + "\" \"" + cxvmDefDir + "/bin\"");
 
-            let depDir: string = curPwd + "/deps/cxvm-bean/2.0.0/bin";
-            if (fs.exists(curPwd + "/deps/cxvm-bean/2.0.0")) {
-                child_process.execSync("mkdir -p \"" + depDir + "\"");
-                child_process.execSync("cp -f \"" + outDistBin + "\" \"" + depDir + "/cxvm-bean\" 2>/dev/null || true");
-                child_process.execSync("cp -f \"" + outDistBin + "\" \"" + depDir + "/cxvm\" 2>/dev/null || true");
-                child_process.execSync("chmod +x \"" + depDir + "/cxvm-bean\" \"" + depDir + "/cxvm\" 2>/dev/null || true");
+            let boxDir: string = curPwd + "/.cex_boxes/cxvm-bean/bin";
+            if (fs.exists(curPwd + "/.cex_boxes/cxvm-bean")) {
+                child_process.execSync("mkdir -p \"" + boxDir + "\"");
+                child_process.execSync("cp -f \"" + outDistBin + "\" \"" + boxDir + "/cxvm-bean\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + outDistBin + "\" \"" + boxDir + "/cxvm\" 2>/dev/null || true");
+                child_process.execSync("chmod +x \"" + boxDir + "/cxvm-bean\" \"" + boxDir + "/cxvm\" 2>/dev/null || true");
             }
             return true;
         }
@@ -677,7 +680,7 @@ class CxvmEngine {
         outMsg += "  AI Models in PATH:   javis (alias: java), vision, ultron integrated into $CXVM_DIR/bin & $CEX_DIR/bin [OK]\n";
         outMsg += "  Target Build cxvm:   CXMV_DIR/cxvm/$version/bin (CXVM_DIR/cxvm/$version/bin)\n";
         outMsg += "  Integrated Build:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/2.0.0/bin)\n";
-        outMsg += "  Dependencies Build:  deps/$name-$type/$version/bin (cached on existing version, zero hardcode)\n";
+        outMsg += "  Package Store:       .cex_boxes/ (pure .cex_boxes only, zero deps)\n";
         outMsg += "  Hook Dispatcher:     cexp --app $appName action (short command: dev, build, start, test -> cxvm --app cext)\n";
         outMsg += "  CVM Subsystem:       cvm commit, cvm push, cvm status integrated [OK]\n";
         outMsg += "  Thunder Subsystem:   thunder run, thunder ps, virtual kernel integrated [OK]\n";
@@ -687,7 +690,7 @@ class CxvmEngine {
         outMsg += depsRes->output + "\n";
         outMsg += "  Status:              SETUP COMPLETE [OK]";
 
-        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, deps/$name-$type/$version, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin, and v8/v6 runtimes successfully configured.", outMsg);
+        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, .cex_boxes, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin, and v8/v6 runtimes successfully configured.", outMsg);
     }
 
     public resetup(defaultVer: string): CxvmCommandResult* {
@@ -1158,7 +1161,7 @@ class CxvmEngine {
                 println(res->output);
                 return 0;
             }
-            if (arg1 == "deps" || arg2 == "deps") {
+            if (arg1 == "deps" || arg2 == "deps" || arg1 == "boxes" || arg2 == "boxes") {
                 let res: CxvmCommandResult* = this.setupDeps();
                 println(res->output);
                 return 0;
@@ -1235,7 +1238,7 @@ class CxvmEngine {
                 if (arg2 == "javis" || arg2 == "java") {
                     return this.setupJavis("");
                 }
-                if (arg2 == "deps") {
+                if (arg2 == "deps" || arg2 == "boxes") {
                     let res: CxvmCommandResult* = this.setupDeps();
                     println(res->output);
                     return 0;
@@ -1256,7 +1259,7 @@ class CxvmEngine {
             }
             return this.appExecute("cex-cli", arg1, arg2);
         }
-        if (cmd == "deps") {
+        if (cmd == "deps" || cmd == "boxes") {
             let res: CxvmCommandResult* = this.setupDeps();
             println(res->output);
             return 0;

@@ -237,7 +237,9 @@ fn main(): int {
     Assert::equalsInt(0, appCxvmRes, "cxvm --app cxvm build returns 0 OK");
     let depsRes: CxvmCommandResult* = cxvm->setupDeps();
     Assert::isTrue(depsRes->success, "cxvm setupDeps succeeds");
-    Assert::isTrue(depsRes->output.find("deps/$name-$type/$version") != -1, "setupDeps mentions target deps/$name-$type/$version");
+    Assert::isTrue(depsRes->output.find(".cex_boxes") != -1, "setupDeps mentions target .cex_boxes");
+    Assert::isFalse(fs.exists("deps"), "deps directory is not created or used");
+    Assert::isTrue(fs.exists(".cex_boxes"), ".cex_boxes directory exists");
     Assert::isTrue(depsRes->output.find("cexp-v8") != -1, "setupDeps resolves cexp-v8");
     Assert::isTrue(depsRes->output.find("cexr-bean") != -1, "setupDeps resolves cexr-bean");
     Assert::isTrue(depsRes->output.find("cexr-factory") != -1, "setupDeps resolves cexr-factory");
@@ -264,13 +266,16 @@ fn main(): int {
     Assert::equalsInt(0, execCexSetupRes, "cxvm cvmExecute cex setup returns 0 OK");
     let execSetupDepsRes: int = cxvm->cvmExecute("setup", "deps", "");
     Assert::equalsInt(0, execSetupDepsRes, "cxvm cvmExecute setup deps returns 0 OK");
+    let execSetupBoxesRes: int = cxvm->cvmExecute("setup", "boxes", "");
+    Assert::equalsInt(0, execSetupBoxesRes, "cxvm cvmExecute setup boxes returns 0 OK");
     let execSetupJavisRes: int = cxvm->cvmExecute("setup", "javis", "");
     Assert::equalsInt(0, execSetupJavisRes, "cxvm cvmExecute setup javis returns 0 OK");
     let execSetupJavaRes: int = cxvm->cvmExecute("setup", "java", "");
     Assert::equalsInt(0, execSetupJavaRes, "cxvm cvmExecute setup java returns 0 OK");
     let execCexSetupJavisRes: int = cxvm->cvmExecute("cex", "setup", "javis");
     Assert::equalsInt(0, execCexSetupJavisRes, "cxvm cvmExecute cex setup javis returns 0 OK");
-    Assert::isTrue(setupCmdRes->output.find("Dependencies Build:") != -1, "setup output confirms dependencies built and cached");
+    Assert::isTrue(setupCmdRes->output.find("Package Store:") != -1, "setup output confirms package store configured");
+    Assert::isFalse(fs.exists("deps"), "deps directory is never used");
     suite->addResult("test_cxvm_version_manager", true, "", 1);
 
     // -------------------------------------------------------------

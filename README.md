@@ -96,13 +96,13 @@ powershell -ExecutionPolicy Bypass -File dist/cxvm.ps1 setup
 .\downloads\setup.cmd
 ```
 
-### Dependency Auto-Build & Caching (`deps/$name-$type/$version`):
+### Package Resolution & Caching (`.cex_boxes/$name`):
 
-When running `cxvm setup` or `cex setup`:
+When running `cxvm setup`, `cex setup`, or `cxvm setup boxes`:
 
 - Scans and resolves dependencies dynamically and exactly from `cex-pack.json` files (`cexp-v8`, `cexr-bean`, `cexr-factory`, `cexr-delivery`, `cexr-drawer`, `cex-pack`, `cex-lint`, `cxvm-bean`, etc.) with zero hardcoding.
-- Builds and links binaries into `deps/$name-$type/$version/bin`.
-- If an existing version already exists in `deps/$name-$type/$version`, rebuilding is automatically skipped (`[CACHE]`), avoiding duplicate compile time.
+- Configures and caches packages directly into `.cex_boxes/$name/bin` (pure `.cex_boxes` only, zero `deps`).
+- If an existing version already exists in `.cex_boxes/$name`, rebuilding is automatically skipped (`[CACHE]`), avoiding duplicate compile time.
 
 ### Web Setup Window (Lighting MVC):
 
@@ -138,9 +138,9 @@ cxvm use 6.0.0
 
 | Command                                      | Node.js (`nvm`) Equivalent                    | Action                                                                                                                                                                                                                                             |
 | :------------------------------------------- | :-------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cxvm setup`                                 | -                                             | Displays cross-platform setup window, configures PATH & env, links `CEX_DIR/cexr-factory/1.0.26/bin` & `CEX_DIR/cexr-bean/1.0.26/bin`, and builds/caches deps in `deps/$name-$type/$version`                                                       |
-| `cex setup`                                  | -                                             | Standalone CLI dispatcher that runs setup and resolves/builds dependencies to `deps/$name-$type/$version`                                                                                                                                          |
-| `cxvm setup deps`                            | -                                             | Resolves dependencies dynamically from `cex-pack.json` and builds/caches them into `deps/$name-$type/$version`                                                                                                                                     |
+| `cxvm setup`                                 | -                                             | Displays cross-platform setup window, configures PATH & env, links `CEX_DIR/cexr-factory/1.0.26/bin` & `CEX_DIR/cexr-bean/1.0.26/bin`, and caches packages in `.cex_boxes/` (pure `.cex_boxes` only)                                                       |
+| `cex setup`                                  | -                                             | Standalone CLI dispatcher that runs setup and resolves/configures packages to `.cex_boxes/`                                                                                                                                          |
+| `cxvm setup boxes` (or `setup deps`)         | -                                             | Resolves dependencies dynamically from `cex-pack.json` and configures/caches them into `.cex_boxes/` (use `.cex_boxes` only)                                                                                                      |
 | `cxvm init [name\|.]`                        | `npm init`                                    | Initializes default Cex project (`my-project`, custom name, or `.` for current folder) using `cex-pack` (`cex-pack.json`), auto-pulled `.cex_boxes`, `.cvm`, `.cvmignore`, `README.md`, `SECURITY.md`, `LICENSE`, and entrypoint (`src/index.cex`) |
 | `cxvm install 8.0.0`                         | `nvm install 18`                              | Downloads platform archive and sets up native `cexr-$type` runner                                                                                                                                                                                  |
 | `cxvm download 8.0.0 [plat]`                 | -                                             | Downloads cross-platform bundle into cache for offline `cexr-$type` setup                                                                                                                                                                          |
@@ -466,7 +466,7 @@ Commands can also be invoked with natural action prefixes:
 2. Reinstalls `v6.0.0` LTS runtime (`cexr-bean 1.0.26`).
 3. Reconfigures active symlinks in `~/.cxvm/current` and `$CXVM_DIR/bin`.
 4. Registers `CEX_DIR` binary applications (`cexp-v8`, `cexr-factory`, `cexr-bean`, `cex-pack`, `cex-lint`, `cext`).
-5. Re-resolves and caches dependencies in `deps/$name-$type/$version/bin`.
+5. Re-resolves and caches packages in `.cex_boxes/$name/bin` (pure `.cex_boxes` only).
 
 ### Lighting MVC REST API:
 
