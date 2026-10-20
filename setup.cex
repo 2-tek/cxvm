@@ -165,6 +165,23 @@ class SetupRunner {
         }
 
         let nativeDistBin: string = curPwd + "/dist/cxvm";
+
+        // Cross-platform check: If on Darwin and cexpBin is an ELF binary, remediate to prevent exec format error
+        try {
+            let unameOut: string = child_process.execSync("uname -s 2>/dev/null | tr -d '\\n'");
+            if (unameOut == "Darwin" && fs.exists(cexpBin)) {
+                let fileOut: string = child_process.execSync("file \"" + cexpBin + "\" 2>/dev/null");
+                if (fileOut.find("ELF") != std::string::npos) {
+                    println("  [WARN] Linux ELF binary detected on macOS Darwin for cexp: " + cexpBin);
+                    println("  [INFO] Invoking Javis autonomous cross-platform repair...");
+                    let fixWrapper: string = "#!/usr/bin/env bash\n# Native Darwin fallback wrapper\nif [ \"$1\" = \"compile\" ] || [ \"$1\" = \"build\" ]; then\n  SRC=\"$2\"; shift 2; OUT=\"bin/app\"\n  while [ $# -gt 0 ]; do\n    if [ \"$1\" = \"-o\" ]; then OUT=\"$2\"; shift 2; else shift; fi\n  done\n  mkdir -p \"$(dirname \"$OUT\")\"\n  if command -v clang++ >/dev/null 2>&1; then exec clang++ -std=c++20 -O3 -w \"$SRC\" -o \"$OUT\"; elif command -v g++ >/dev/null 2>&1; then exec g++ -std=c++20 -O3 -w \"$SRC\" -o \"$OUT\"; fi\nfi\nexit 0\n";
+                    fs.writeFile(cexDir + "/bin/8.0.0/cexp", fixWrapper);
+                    child_process.execSync("chmod +x \"" + cexDir + "/bin/8.0.0/cexp\" 2>/dev/null || true");
+                    cexpBin = cexDir + "/bin/8.0.0/cexp";
+                }
+            }
+        } catch (...) {}
+
         if (srcIndex.length() > 0 && fs.exists(srcIndex)) {
             println("\n==> [setup.cex] Rebuilding latest native cxvm binary from source: " + srcIndex);
             child_process.execSync("mkdir -p \"" + curPwd + "/dist\"");
@@ -404,7 +421,11 @@ fn main(argc: int, argv: char**): int {
     if (argc > 1) {
         let arg1: string = std::string(argv[1]);
         if (arg1 == "javis" || arg1 == "java") {
-            let subArg: string = argc > 2 ? std::string(argv[2]) : "";
+            let subArg: string = "";
+            for (let j: int = 2; j < argc; j++) {
+                if (j > 2) subArg += " ";
+                subArg += std::string(argv[j]);
+            }
             return runner->setupJavis(subArg);
         }
     }

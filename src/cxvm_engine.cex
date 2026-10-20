@@ -556,9 +556,14 @@ class CxvmEngine {
 
         let docsDir: string = this.resolveDocumentsDir();
         if (docsDir.length() > 0 && fs.exists(docsDir + "/bin/javis")) {
-            let cmd: string = "\"" + docsDir + "/bin/javis\" setup";
-            if (subArg.length() > 0 && subArg != "setup" && subArg != "javis" && subArg != "java") {
+            let cmd: string = "\"" + docsDir + "/bin/javis\"";
+            if (subArg.length() > 0 && (subArg.find("fix") == 0 || subArg.find("bug") != std::string::npos || subArg.find("error") != std::string::npos)) {
                 cmd += " \"" + subArg + "\"";
+            } else {
+                cmd += " setup";
+                if (subArg.length() > 0 && subArg != "setup" && subArg != "javis" && subArg != "java") {
+                    cmd += " \"" + subArg + "\"";
+                }
             }
             try {
                 let out: string = child_process.execSync(cmd);
