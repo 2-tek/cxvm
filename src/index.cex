@@ -10,20 +10,31 @@ import "./builder/dist_builder.cex";
 import "./cxvm_engine.cex";
 import "./app.cex";
 
+fn classifyCliCommand(cmd: string): int {
+    if (cmd == "-v" || cmd == "--version" || cmd == "version") return 1;
+    if (cmd == "-h" || cmd == "--help" || cmd == "help") return 2;
+    return 0;
+}
+
 fn main(argc: int, argv: char**): int {
     if (argc > 1) {
         let cmd: string = std::string(argv[1]);
-        if (cmd == "-v" || cmd == "--version" || cmd == "version") {
-            println("CXVM v2.0.1 (Pure Cex Native Engine: cexr + cexp; powered by Lighting MVC)");
-            let cxvm: CxvmEngine* = new CxvmEngine();
-            println(cxvm->cexrVersionOutput());
-            return 0;
-        }
-        if (cmd == "-h" || cmd == "--help" || cmd == "help") {
-            println("2-TEK CXVM: Cex Version Manager (Cross-platform runtime & VCS manager for Cex)");
-            println("Usage: cxvm <command> [arguments] [options]");
-            println("Commands: setup, resetup, reinstall, install, use, current, list, doctor, init, dev, build, start, lint, test, cexp, lighting, thunder, cvm, javis, vision, ultron");
-            return 0;
+        let cmdCode: int = classifyCliCommand(cmd);
+        switch (cmdCode) {
+            case 1: {
+                println("CXVM v2.0.1 (Pure Cex Native Engine: cexr + cexp; powered by Lighting MVC)");
+                let cxvm: CxvmEngine* = new CxvmEngine();
+                println(cxvm->cexrVersionOutput());
+                return 0;
+            }
+            case 2: {
+                println("2-TEK CXVM: Cex Version Manager (Cross-platform runtime & VCS manager for Cex)");
+                println("Usage: cxvm <command> [arguments] [options]");
+                println("Commands: setup, resetup, reinstall, install, use, current, list, doctor, init, dev, build, start, lint, test, cexp, lighting, thunder, cvm, javis, vision, ultron");
+                return 0;
+            }
+            default:
+            break;
         }
         let arg1: string = (argc > 2) ? std::string(argv[2]) : "";
         let arg2: string = "";
@@ -41,8 +52,8 @@ fn main(argc: int, argv: char**): int {
     println("===============================================================================");
 
     // 1. Initializing Factory App Kernel
-    println("\n[1. Initializing Factory Application Kernel on Port 3080]");
-    let app: FactoryApp* = new FactoryApp(3080);
+    println("\n[1. Initializing Factory Application Kernel on Port " + std::to_string(CxvmConstants::defaultPort()) + "]");
+    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
     app->start();
     print("  Application:     "); println(app->appName);
     print("  Server Port:     "); println(app->port);

@@ -72,20 +72,20 @@ class CxvmEngine {
         this.cvmCliRunner = new CexCvmCLI();
         this.cvmServerRunning = false;
         this.cvmServerPid = 0;
-        this.cvmServerPort = 4000;
+        this.cvmServerPort = CxvmConstants::cvmPort();
         this.thunderRunning = false;
         this.thunderPid = 0;
-        this.thunderPort = 3050;
-        this.thunderContainersRunning = 5;
-        this.thunderTotalImages = 7;
+        this.thunderPort = CxvmConstants::thunderPort();
+        this.thunderContainersRunning = 0;
+        this.thunderTotalImages = 0;
         this.lightEngineReady = true;
         this.lightingHome = "$CXVM_DIR/lighting";
 
         this.initCatalog();
         this.initPlatforms();
-        this.install("8.0.0");
-        this.use("8.0.0");
-        this.setDefault("8.0.0");
+        this.install(CxvmConstants::defaultVersion());
+        this.use(CxvmConstants::defaultVersion());
+        this.setDefault(CxvmConstants::defaultVersion());
     }
 
     private initPlatforms(): void {
@@ -860,9 +860,10 @@ class CxvmEngine {
     }
 
     public startThunder(port: int, standalone: bool): CxvmCommandResult* {
+        let tPort: int = port > 0 ? port : CxvmConstants::thunderPort();
         this.thunderRunning = true;
-        this.thunderPid = 8092;
-        this.thunderPort = port;
+        this.thunderPid = (int)getpid();
+        this.thunderPort = tPort;
         let out: string = "==> [cxvm] Starting Thunder as a server with single process (standalone)..\n";
         out += "[OK] [cxvm] Thunder server started successfully (single process standalone)\n";
         out += "  - Process ID: " + std::to_string(this.thunderPid) + "\n";
@@ -870,16 +871,17 @@ class CxvmEngine {
         out += "  - Mode:       standalone (single process)\n";
         out += "  - Dashboard:  http://localhost:" + std::to_string(this.thunderPort) + "\n";
         out += "  - Endpoints:  /api/v1/thunder/status, /api/v1/thunder/containers, /health";
-        return new CxvmCommandResult("start thunder", std::to_string(port), true, "Thunder server started on port " + std::to_string(port), out);
+        return new CxvmCommandResult("start thunder", std::to_string(tPort), true, "Thunder server started on port " + std::to_string(tPort), out);
     }
 
     public stopThunder(): CxvmCommandResult* {
         if (!this.thunderRunning) {
             return new CxvmCommandResult("stop thunder", "", true, "Thunder server is not running", "[cxvm] Thunder server is not running");
         }
+        let stoppedPid: int = this.thunderPid;
         this.thunderRunning = false;
-        let out: string = "[OK] [cxvm] Stopped Thunder server (PID: " + std::to_string(this.thunderPid) + ")";
         this.thunderPid = 0;
+        let out: string = "[OK] [cxvm] Stopped Thunder server (PID: " + std::to_string(stoppedPid) + ")";
         return new CxvmCommandResult("stop thunder", "", true, "Thunder server stopped", out);
     }
 
@@ -895,8 +897,8 @@ class CxvmEngine {
     }
 
     public setupThunderVirtualLinux(defaultVer: string): CxvmCommandResult* {
-        let targetDef: string = defaultVer.length() == 0 ? "8.0.0" : defaultVer;
-        this.startThunder(3050, true);
+        let targetDef: string = defaultVer.length() == 0 ? CxvmConstants::defaultVersion() : defaultVer;
+        this.startThunder(CxvmConstants::thunderPort(), true);
         this.defaultCexrEdition = "factory";
         this.defaultBuildEdition = "bean";
         this.virtualLinuxReady = true;
@@ -904,8 +906,8 @@ class CxvmEngine {
         this.virtualLinuxRootfs = "/root/.cxvm";
         this.virtualLinuxContainerId = "cxt-3a8f9";
         this.virtualLinuxIp = "172.18.0.12";
-        this.install("8.0.0");
-        this.install("6.0.0");
+        this.install(CxvmConstants::defaultVersion());
+        this.install(CxvmConstants::ltsVersion());
         this.setDefault(targetDef);
         this.use(targetDef);
 
@@ -1063,371 +1065,446 @@ class CxvmEngine {
         return new CxvmCommandResult("list linux-distro", "catalog", true, "Linux distro catalog listed", outMsg);
     }
 
+    private classifyDistroCommand(cmd: string): int {
+        if (cmd == "setup") return 1;
+        if (cmd == "install") return 2;
+        if (cmd == "uninstall") return 3;
+        if (cmd == "status") return 4;
+        if (cmd == "list" || cmd == "ls") return 5;
+        return 0;
+    }
+
     public linuxDistroExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "setup") {
-            let res: CxvmCommandResult* = this.setupLinuxDistro(arg1, arg2);
-            println(res->output);
-            return res->success ? 0 : 1;
+        let dCode: int = this.classifyDistroCommand(cmd);
+        switch (dCode) {
+            case 1: {
+                let res: CxvmCommandResult* = this.setupLinuxDistro(arg1, arg2);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 2: {
+                let res: CxvmCommandResult* = this.installLinuxDistro(arg1, arg2);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 3: {
+                let res: CxvmCommandResult* = this.uninstallLinuxDistro(arg1);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 4: {
+                let res: CxvmCommandResult* = this.statusLinuxDistro();
+                println(res->output);
+                return 0;
+            }
+            case 5: {
+                let res: CxvmCommandResult* = this.listLinuxDistros();
+                println(res->output);
+                return 0;
+            }
+            default: {
+                let res: CxvmCommandResult* = this.setupLinuxDistro(cmd, arg1);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
         }
-        if (cmd == "install") {
-            let res: CxvmCommandResult* = this.installLinuxDistro(arg1, arg2);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "uninstall") {
-            let res: CxvmCommandResult* = this.uninstallLinuxDistro(arg1);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "status") {
-            let res: CxvmCommandResult* = this.statusLinuxDistro();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "list" || cmd == "ls") {
-            let res: CxvmCommandResult* = this.listLinuxDistros();
-            println(res->output);
-            return 0;
-        }
-        let res: CxvmCommandResult* = this.setupLinuxDistro(cmd, arg1);
-        println(res->output);
-        return res->success ? 0 : 1;
+    }
+
+    private classifyThunderCommand(cmd: string): int {
+        if (cmd == "linux-distro" || cmd == "distro") return 1;
+        if (cmd == "setup" || cmd == "virtual-linux" || cmd == "run") return 2;
+        if (cmd == "start") return 3;
+        if (cmd == "stop") return 4;
+        if (cmd == "status") return 5;
+        if (cmd == "ps" || cmd == "containers") return 6;
+        if (cmd == "images") return 7;
+        return 0;
     }
 
     public thunderExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "linux-distro" || cmd == "distro") {
+        let tCode: int = this.classifyThunderCommand(cmd);
+        switch (tCode) {
+            case 1:
             return this.linuxDistroExecute(arg1, arg2, "");
-        }
-        if (cmd == "setup" || cmd == "virtual-linux" || (cmd == "run" && arg1 == "setup")) {
-            let verArg: string = (arg1 == "6.0.0" || arg2 == "6.0.0") ? "6.0.0" : "8.0.0";
-            let res: CxvmCommandResult* = this.setupThunderVirtualLinux(verArg);
-            println(res->output);
+            case 2: {
+                if (cmd == "run" && arg1 != "setup") {
+                    return 0;
+                }
+                let verArg: string = (arg1 == "6.0.0" || arg2 == "6.0.0") ? "6.0.0" : CxvmConstants::defaultVersion();
+                let res: CxvmCommandResult* = this.setupThunderVirtualLinux(verArg);
+                println(res->output);
+                return 0;
+            }
+            case 3: {
+                if (arg1.length() > 0 && arg1 != "thunder" && arg1 != "daemon") return 0;
+                let res: CxvmCommandResult* = this.startThunder(CxvmConstants::thunderPort(), true);
+                println(res->output);
+                return 0;
+            }
+            case 4: {
+                if (arg1.length() > 0 && arg1 != "thunder" && arg1 != "daemon") return 0;
+                let res: CxvmCommandResult* = this.stopThunder();
+                println(res->output);
+                return 0;
+            }
+            case 5: {
+                if (arg1.length() > 0 && arg1 != "thunder" && arg1 != "daemon") return 0;
+                let res: CxvmCommandResult* = this.statusThunder();
+                println(res->output);
+                return 0;
+            }
+            case 6: {
+                println("CONTAINER ID   NAME                 IMAGE                      PORTS          STATUS");
+                println("----------------------------------------------------------------------------------------");
+                return 0;
+            }
+            case 7: {
+                println("REPOSITORY & TAG             IMAGE ID           SIZE       LAYERS");
+                println("----------------------------------------------------------------------");
+                return 0;
+            }
+            default:
             return 0;
         }
-        if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this.startThunder(3050, true);
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "stop" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this.stopThunder();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "status" && (arg1 == "thunder" || arg1 == "daemon" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this.statusThunder();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "ps" || cmd == "containers") {
-            println("CONTAINER ID   NAME                 IMAGE                      PORTS          STATUS");
-            println("----------------------------------------------------------------------------------------");
-            println("cxt-1a8f9      thunder-daemon       @2tek/thunder:latest       3050:3050      RUNNING");
-            println("cxt-2a8f9      cvm-server           @2tek/cvm:latest           4000:4000      RUNNING");
-            println("cxt-3a8f9      cxvm-factory         @2tek/cxvm:latest          3080:3080      RUNNING");
-            println("cxt-4a8f9      lighting-mvc         @2tek/lighting:latest      3060:3060      RUNNING");
-            println("cxt-5a8f9      codestorm-editor     @2tek/code-storm:latest    3055:3055      RUNNING");
-            return 0;
-        }
-        if (cmd == "images") {
-            println("REPOSITORY & TAG             IMAGE ID           SIZE       LAYERS");
-            println("----------------------------------------------------------------------");
-            println("@2tek/thunder:latest         sha256:7f92a10     42.5 MB    4 layers");
-            println("@2tek/cvm:latest             sha256:8b41c30     38.2 MB    3 layers");
-            println("@2tek/cxvm:latest            sha256:5d12e84     34.0 MB    4 layers");
-            println("@2tek/lighting:latest        sha256:3a91e52     28.7 MB    3 layers");
-            println("@2tek/code-storm:latest      sha256:9c44b11     56.1 MB    5 layers");
-            return 0;
-        }
-        println("==> [cxvm thunder] Executing Thunder container operation: " + cmd + " " + arg1);
-        println("[OK] [cxvm thunder] Operation completed successfully (Virtual Linux Microkernel)");
+    }
+
+    private classifyCommand(cmd: string): int {
+        if (cmd == "linux-distro" || cmd == "distro") return 1;
+        if (cmd == "setup") return 2;
+        if (cmd == "resetup") return 3;
+        if (cmd == "reinstall") return 4;
+        if (cmd == "uninstall") return 5;
+        if (cmd == "install") return 6;
+        if (cmd == "use") return 7;
+        if (cmd == "current") return 8;
+        if (cmd == "list" || cmd == "ls") return 9;
+        if (cmd == "doctor") return 10;
+        if (cmd == "default") return 11;
+        if (cmd == "cex") return 12;
+        if (cmd == "cli") return 13;
+        if (cmd == "deps" || cmd == "boxes") return 14;
+        if (cmd == "start") return 15;
+        if (cmd == "dev" || cmd == "build") return 16;
+        if (cmd == "cexp") return 17;
+        if (cmd == "register") return 18;
+        if (cmd == "stop") return 19;
+        if (cmd == "status") return 20;
+        if (cmd == "init") return 21;
+        if (cmd == "open") return 22;
+        if (cmd == "thunder" || cmd == "docker") return 23;
+        if (cmd == "light" || cmd == "lighting") return 24;
+        if (cmd == "downloads") return 25;
+        if (cmd == "lint") return 26;
+        if (cmd == "test" || cmd == "cext") return 27;
+        if (cmd == "javis" || cmd == "java" || cmd == "vision" || cmd == "ultron") return 28;
+        if (cmd == "cvm") return 29;
+        if (cmd == "commit" || cmd == "push" || cmd == "pull" || cmd == "branch" || cmd == "checkout" || cmd == "diff" || cmd == "log") return 30;
+        if (cmd == "add") return 31;
+        if (cmd == "--app") return 32;
         return 0;
     }
 
     public cvmExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "linux-distro" || cmd == "distro") {
+        let cmdCode: int = this.classifyCommand(cmd);
+        switch (cmdCode) {
+            case 1:
             return this.linuxDistroExecute(arg1, arg2, "");
-        }
-        if (cmd == "setup") {
-            if (arg1 == "javis" || arg1 == "java" || arg2 == "javis" || arg2 == "java") {
-                let subArg: string = (arg1 == "javis" || arg1 == "java") ? arg2 : "";
-                return this.setupJavis(subArg);
-            }
-            if (arg1 == "linux-distro" || arg1 == "distro") {
-                return this.linuxDistroExecute("setup", arg2, "");
-            }
-            if (arg1 == "virtual-linux" || arg1 == "thunder" || arg2 == "virtual-linux" || arg2 == "thunder") {
-                let res: CxvmCommandResult* = this.setupThunderVirtualLinux("8.0.0");
-                println(res->output);
-                return 0;
-            }
-            if (arg1 == "deps" || arg2 == "deps" || arg1 == "boxes" || arg2 == "boxes") {
-                let res: CxvmCommandResult* = this.setupDeps();
-                println(res->output);
-                return 0;
-            }
-            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
-            let res: CxvmCommandResult* = this.setup(verArg);
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "resetup") {
-            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
-            let res: CxvmCommandResult* = this.resetup(verArg);
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "reinstall") {
-            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
-            let res: CxvmCommandResult* = this.reinstall(verArg);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "uninstall") {
-            if (arg1 == "linux-distro" || arg1 == "distro") {
-                return this.linuxDistroExecute("uninstall", arg2, "");
-            }
-            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
-            let res: CxvmCommandResult* = this.uninstall(verArg);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "install") {
-            if (arg1 == "linux-distro" || arg1 == "distro") {
-                return this.linuxDistroExecute("install", arg2, "");
-            }
-            let verArg: string = arg1.length() > 0 ? arg1 : "8.0.0";
-            let res: CxvmCommandResult* = this.install(verArg);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "use") {
-            let res: CxvmCommandResult* = this.use(arg1);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "current") {
-            println(this.current());
-            return 0;
-        }
-        if (cmd == "list" || cmd == "ls") {
-            if (arg1 == "remote" || arg1 == "--remote") {
-                println(this.listRemote());
-            } else {
-                println(this.list());
-            }
-            return 0;
-        }
-        if (cmd == "doctor") {
-            println(this.doctor());
-            return 0;
-        }
-        if (cmd == "default") {
-            let res: CxvmCommandResult* = this.setDefault(arg1);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (cmd == "cex") {
-            if (arg1 == "reinstall") {
-                let verArg: string = arg2.length() > 0 ? arg2 : "8.0.0";
-                let res: CxvmCommandResult* = this.reinstall(verArg);
-                println(res->output);
-                return res->success ? 0 : 1;
-            }
-            if (arg1 == "setup") {
-                if (arg2 == "javis" || arg2 == "java") {
-                    return this.setupJavis("");
+            case 2: {
+                if (arg1 == "javis" || arg1 == "java" || arg2 == "javis" || arg2 == "java") {
+                    let subArg: string = (arg1 == "javis" || arg1 == "java") ? arg2 : "";
+                    return this.setupJavis(subArg);
                 }
-                if (arg2 == "deps" || arg2 == "boxes") {
+                if (arg1 == "linux-distro" || arg1 == "distro") {
+                    return this.linuxDistroExecute("setup", arg2, "");
+                }
+                if (arg1 == "virtual-linux" || arg1 == "thunder" || arg2 == "virtual-linux" || arg2 == "thunder") {
+                    let res: CxvmCommandResult* = this.setupThunderVirtualLinux(CxvmConstants::defaultVersion());
+                    println(res->output);
+                    return 0;
+                }
+                if (arg1 == "deps" || arg2 == "deps" || arg1 == "boxes" || arg2 == "boxes") {
                     let res: CxvmCommandResult* = this.setupDeps();
                     println(res->output);
                     return 0;
                 }
-                let verArg: string = arg2.length() > 0 ? arg2 : "8.0.0";
+                let verArg: string = arg1.length() > 0 ? arg1 : CxvmConstants::defaultVersion();
                 let res: CxvmCommandResult* = this.setup(verArg);
                 println(res->output);
                 return 0;
             }
-            return this.appExecute("cex", arg1, arg2);
-        }
-        if (cmd == "cli") {
-            if (arg1 == "reinstall") {
-                let verArg: string = arg2.length() > 0 ? arg2 : "8.0.0";
+            case 3: {
+                let verArg: string = arg1.length() > 0 ? arg1 : CxvmConstants::defaultVersion();
+                let res: CxvmCommandResult* = this.resetup(verArg);
+                println(res->output);
+                return 0;
+            }
+            case 4: {
+                let verArg: string = arg1.length() > 0 ? arg1 : CxvmConstants::defaultVersion();
                 let res: CxvmCommandResult* = this.reinstall(verArg);
                 println(res->output);
                 return res->success ? 0 : 1;
             }
-            return this.appExecute("cex-cli", arg1, arg2);
-        }
-        if (cmd == "deps" || cmd == "boxes") {
-            let res: CxvmCommandResult* = this.setupDeps();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "start" && arg1 == "cvm") {
-            println("==> [cxvm cvm] Hook -> cxvm --app cvm server start");
-            return this.appExecute("cvm", "server", "start");
-        }
-        if (cmd == "start" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this.startThunder(3050, true);
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "dev" || cmd == "build" || cmd == "start") {
-            let vType: string = (cmd == "build") ? this.defaultBuildEdition : this.defaultCexrEdition;
-            let targetIdx: string = "src/index.cex";
-            if (arg1 == "bean" || arg1 == "delivery" || arg1 == "drawer" || arg1 == "factory") {
-                vType = arg1;
-                if (arg2.length() > 0) {
-                    targetIdx = arg2;
+            case 5: {
+                if (arg1 == "linux-distro" || arg1 == "distro") {
+                    return this.linuxDistroExecute("uninstall", arg2, "");
                 }
-            } else if (arg1.find("cexr-") == 0) {
-                vType = arg1.substr(5);
-                if (arg2.length() > 0) {
-                    targetIdx = arg2;
+                let verArg: string = arg1.length() > 0 ? arg1 : CxvmConstants::defaultVersion();
+                let res: CxvmCommandResult* = this.uninstall(verArg);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 6: {
+                if (arg1 == "linux-distro" || arg1 == "distro") {
+                    return this.linuxDistroExecute("install", arg2, "");
                 }
-            } else if (arg1.length() > 0) {
-                targetIdx = arg1;
+                let verArg: string = arg1.length() > 0 ? arg1 : CxvmConstants::defaultVersion();
+                let res: CxvmCommandResult* = this.install(verArg);
+                println(res->output);
+                return res->success ? 0 : 1;
             }
-            return this.hookCexrExecute(cmd, vType, targetIdx);
-        }
-        if (cmd == "cexp") {
-            if (arg1 == "--app") {
-                return this.appExecute(arg2, "", "");
+            case 7: {
+                let res: CxvmCommandResult* = this.use(arg1);
+                println(res->output);
+                return res->success ? 0 : 1;
             }
-            if (arg1 == "dev" || arg1 == "build" || arg1 == "start") {
-                return this.hookCexrExecute(arg1, "", arg2);
+            case 8: {
+                println(this.current());
+                return 0;
             }
-            return this.appExecute("cexp", arg1, arg2);
-        }
-        if (cmd == "register" && (arg1 == "cex-dir" || arg1 == "CEX_DIR" || arg1.length() == 0)) {
-            let res: CxvmCommandResult* = this.registerBinaryAppsInCexDir();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "stop" && arg1 == "cvm") {
-            println("==> [cxvm cvm] Hook -> cxvm --app cvm server stop");
-            return this.appExecute("cvm", "server", "stop");
-        }
-        if (cmd == "stop" && arg1.length() == 0) {
-            let res: CxvmCommandResult* = this.stopCvm();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "stop" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this.stopThunder();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "status" && arg1 == "cvm") {
-            println("==> [cxvm cvm] Hook -> cxvm --app cvm status");
-            return this.appExecute("cvm", "status", "");
-        }
-        if (cmd == "status" && (arg1 == "thunder" || arg1 == "daemon")) {
-            let res: CxvmCommandResult* = this.statusThunder();
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "init") {
-            let pName: string = arg1.length() == 0 ? "my-project" : arg1;
-            let res: CxvmCommandResult* = this.cxvmInit(pName, ".");
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "open") {
-            let url: string = "";
-            let targetType: string = "browser";
-
-            if (arg1.find("--target=") == 0) {
-                targetType = arg1.substr(9);
-            } else if (arg1 == "--target" || arg1 == "-t") {
-                targetType = arg2.length() == 0 ? "browser" : arg2;
-            } else if (arg1 == "browser" || arg1 == "view") {
-                targetType = arg1;
-            } else if (arg1.length() > 0) {
-                url = arg1;
+            case 9: {
+                if (arg1 == "remote" || arg1 == "--remote") {
+                    println(this.listRemote());
+                } else {
+                    println(this.list());
+                }
+                return 0;
             }
-
-            if (arg2.find("--target=") == 0) {
-                targetType = arg2.substr(9);
-            } else if (arg2 == "--target" || arg2 == "-t") {
-                targetType = "browser";
-            } else if (arg2 == "browser" || arg2 == "view") {
-                targetType = arg2;
-            } else if (arg2.length() > 0 && url.length() == 0) {
-                url = arg2;
+            case 10: {
+                println(this.doctor());
+                return 0;
             }
-
-            let res: CxvmCommandResult* = this.cxvmOpen(url, targetType);
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "thunder" || cmd == "docker") {
+            case 11: {
+                let res: CxvmCommandResult* = this.setDefault(arg1);
+                println(res->output);
+                return res->success ? 0 : 1;
+            }
+            case 12: {
+                if (arg1 == "reinstall") {
+                    let verArg: string = arg2.length() > 0 ? arg2 : CxvmConstants::defaultVersion();
+                    let res: CxvmCommandResult* = this.reinstall(verArg);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                if (arg1 == "setup") {
+                    if (arg2 == "javis" || arg2 == "java") {
+                        return this.setupJavis("");
+                    }
+                    if (arg2 == "deps" || arg2 == "boxes") {
+                        let res: CxvmCommandResult* = this.setupDeps();
+                        println(res->output);
+                        return 0;
+                    }
+                    let verArg: string = arg2.length() > 0 ? arg2 : CxvmConstants::defaultVersion();
+                    let res: CxvmCommandResult* = this.setup(verArg);
+                    println(res->output);
+                    return 0;
+                }
+                return this.appExecute("cex", arg1, arg2);
+            }
+            case 13: {
+                if (arg1 == "reinstall") {
+                    let verArg: string = arg2.length() > 0 ? arg2 : CxvmConstants::defaultVersion();
+                    let res: CxvmCommandResult* = this.reinstall(verArg);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                return this.appExecute("cex-cli", arg1, arg2);
+            }
+            case 14: {
+                let res: CxvmCommandResult* = this.setupDeps();
+                println(res->output);
+                return 0;
+            }
+            case 15: {
+                if (arg1 == "cvm") {
+                    println("==> [cxvm cvm] Hook -> cxvm --app cvm server start");
+                    return this.appExecute("cvm", "server", "start");
+                }
+                if (arg1 == "thunder" || arg1 == "daemon") {
+                    let res: CxvmCommandResult* = this.startThunder(CxvmConstants::thunderPort(), true);
+                    println(res->output);
+                    return 0;
+                }
+                let vType: string = this.defaultCexrEdition;
+                let targetIdx: string = CxvmConstants::entrypoint();
+                if (arg1 == "bean" || arg1 == "delivery" || arg1 == "drawer" || arg1 == "factory") {
+                    vType = arg1;
+                    if (arg2.length() > 0) targetIdx = arg2;
+                } else if (arg1.find("cexr-") == 0) {
+                    vType = arg1.substr(5);
+                    if (arg2.length() > 0) targetIdx = arg2;
+                } else if (arg1.length() > 0) {
+                    targetIdx = arg1;
+                }
+                return this.hookCexrExecute(cmd, vType, targetIdx);
+            }
+            case 16: {
+                let vType: string = (cmd == "build") ? this.defaultBuildEdition : this.defaultCexrEdition;
+                let targetIdx: string = CxvmConstants::entrypoint();
+                if (arg1 == "bean" || arg1 == "delivery" || arg1 == "drawer" || arg1 == "factory") {
+                    vType = arg1;
+                    if (arg2.length() > 0) targetIdx = arg2;
+                } else if (arg1.find("cexr-") == 0) {
+                    vType = arg1.substr(5);
+                    if (arg2.length() > 0) targetIdx = arg2;
+                } else if (arg1.length() > 0) {
+                    targetIdx = arg1;
+                }
+                return this.hookCexrExecute(cmd, vType, targetIdx);
+            }
+            case 17: {
+                if (arg1 == "--app") {
+                    return this.appExecute(arg2, "", "");
+                }
+                if (arg1 == "dev" || arg1 == "build" || arg1 == "start") {
+                    return this.hookCexrExecute(arg1, "", arg2);
+                }
+                return this.appExecute("cexp", arg1, arg2);
+            }
+            case 18: {
+                if (arg1 == "cex-dir" || arg1 == "CEX_DIR" || arg1.length() == 0) {
+                    let res: CxvmCommandResult* = this.registerBinaryAppsInCexDir();
+                    println(res->output);
+                    return 0;
+                }
+                return 0;
+            }
+            case 19: {
+                if (arg1 == "cvm") {
+                    println("==> [cxvm cvm] Hook -> cxvm --app cvm server stop");
+                    return this.appExecute("cvm", "server", "stop");
+                }
+                if (arg1 == "thunder" || arg1 == "daemon") {
+                    let res: CxvmCommandResult* = this.stopThunder();
+                    println(res->output);
+                    return 0;
+                }
+                let res: CxvmCommandResult* = this.stopCvm();
+                println(res->output);
+                return 0;
+            }
+            case 20: {
+                if (arg1 == "cvm") {
+                    println("==> [cxvm cvm] Hook -> cxvm --app cvm status");
+                    return this.appExecute("cvm", "status", "");
+                }
+                if (arg1 == "thunder" || arg1 == "daemon") {
+                    let res: CxvmCommandResult* = this.statusThunder();
+                    println(res->output);
+                    return 0;
+                }
+                return 0;
+            }
+            case 21: {
+                let pName: string = arg1.length() == 0 ? "my-project" : arg1;
+                let res: CxvmCommandResult* = this.cxvmInit(pName, ".");
+                println(res->output);
+                return 0;
+            }
+            case 22: {
+                let url: string = "";
+                let targetType: string = "browser";
+                if (arg1.find("--target=") == 0) {
+                    targetType = arg1.substr(9);
+                } else if (arg1 == "--target" || arg1 == "-t") {
+                    targetType = arg2.length() == 0 ? "browser" : arg2;
+                } else if (arg1 == "browser" || arg1 == "view") {
+                    targetType = arg1;
+                } else if (arg1.length() > 0) {
+                    url = arg1;
+                }
+                if (arg2.find("--target=") == 0) {
+                    targetType = arg2.substr(9);
+                } else if (arg2 == "--target" || arg2 == "-t") {
+                    targetType = "browser";
+                } else if (arg2 == "browser" || arg2 == "view") {
+                    targetType = arg2;
+                } else if (arg2.length() > 0 && url.length() == 0) {
+                    url = arg2;
+                }
+                let res: CxvmCommandResult* = this.cxvmOpen(url, targetType);
+                println(res->output);
+                return 0;
+            }
+            case 23:
             return this.thunderExecute(arg1, arg2, "");
-        }
-        if (cmd == "light" || cmd == "lighting") {
-            let act: string = arg1.length() > 0 ? arg1 : "dev";
-            println("==> [cxvm lighting] Hook -> cexp --app mvc-lighting " + act + (arg2.length() > 0 ? " " + arg2 : ""));
-            return this.appExecute("mvc-lighting", act, arg2);
-        }
-        if (cmd == "downloads") {
+            case 24: {
+                let act: string = arg1.length() > 0 ? arg1 : "dev";
+                println("==> [cxvm lighting] Hook -> cexp --app mvc-lighting " + act + (arg2.length() > 0 ? " " + arg2 : ""));
+                return this.appExecute("mvc-lighting", act, arg2);
+            }
+            case 25:
             return this.appExecute("cex-pack", "downloads", arg1);
-        }
-        if (cmd == "lint") {
-            let targetPath: string = arg1.length() == 0 ? "." : arg1;
-            return this.appExecute("cex-lint", "fix", targetPath);
-        }
-        if (cmd == "test" || cmd == "cext") {
-            let act: string = arg1.length() == 0 ? "run" : arg1;
-            let testTarget: string = arg2;
-            if (act != "run" && act != "pipeline" && act != "coverage" && act != "version" && act != "help" && testTarget.length() == 0) {
-                testTarget = act;
-                act = "run";
+            case 26: {
+                let targetPath: string = arg1.length() == 0 ? "." : arg1;
+                return this.appExecute("cex-lint", "fix", targetPath);
             }
-            println("==> [cxvm test] Hook -> cxvm --app cext " + act + (testTarget.length() > 0 ? " " + testTarget : ""));
-            return this.appExecute("cext", act, testTarget);
-        }
-        if (cmd == "javis" || cmd == "java" || cmd == "vision" || cmd == "ultron") {
-            let targetModel: string = (cmd == "java") ? "javis" : cmd;
-            return this.appExecute(targetModel, arg1, arg2);
-        }
-        if (cmd == "cvm") {
-            let subAct: string = arg1.length() == 0 ? "status" : arg1;
-            let targetArg: string = arg2;
-            let hookMsg: string = "==> [cxvm cvm] Hook -> cxvm --app cvm " + subAct;
-            if (targetArg.length() > 0) {
-                hookMsg += " " + targetArg;
+            case 27: {
+                let act: string = arg1.length() == 0 ? "run" : arg1;
+                let testTarget: string = arg2;
+                if (act != "run" && act != "pipeline" && act != "coverage" && act != "version" && act != "help" && testTarget.length() == 0) {
+                    testTarget = act;
+                    act = "run";
+                }
+                println("==> [cxvm test] Hook -> cxvm --app cext " + act + (testTarget.length() > 0 ? " " + testTarget : ""));
+                return this.appExecute("cext", act, testTarget);
             }
-            println(hookMsg);
-            return this.appExecute("cvm", subAct, targetArg);
-        }
-        if (cmd == "commit" || cmd == "push" || cmd == "pull" || cmd == "branch" || cmd == "checkout" || cmd == "diff" || cmd == "log") {
-            let hookMsg: string = "==> [cxvm cvm] Hook -> cxvm --app cvm " + cmd;
-            let targetArg: string = "";
-            if (arg1.length() > 0) {
-                targetArg = (arg2.length() > 0) ? (arg1 + " " + arg2) : arg1;
-                hookMsg += " " + targetArg;
+            case 28: {
+                let targetModel: string = (cmd == "java") ? "javis" : cmd;
+                return this.appExecute(targetModel, arg1, arg2);
             }
-            println(hookMsg);
-            return this.appExecute("cvm", cmd, targetArg);
-        }
-        if (cmd == "add" && arg1.length() > 0) {
-            let targetArg: string = (arg2.length() > 0) ? (arg1 + " " + arg2) : arg1;
-            println("==> [cxvm cvm] Hook -> cxvm --app cvm add " + targetArg);
-            return this.appExecute("cvm", "add", targetArg);
-        }
-        if (cmd == "--app") {
-            let sub: string = arg2;
-            let rest: string = "";
-            let sp: int = (int)arg2.find(" ");
-            if (sp != -1) {
-                sub = arg2.substr(0, sp);
-                rest = arg2.substr(sp + 1);
+            case 29: {
+                let subAct: string = arg1.length() == 0 ? "status" : arg1;
+                let targetArg: string = arg2;
+                let hookMsg: string = "==> [cxvm cvm] Hook -> cxvm --app cvm " + subAct;
+                if (targetArg.length() > 0) {
+                    hookMsg += " " + targetArg;
+                }
+                println(hookMsg);
+                return this.appExecute("cvm", subAct, targetArg);
             }
-            return this.appExecute(arg1, sub, rest);
+            case 30: {
+                let hookMsg: string = "==> [cxvm cvm] Hook -> cxvm --app cvm " + cmd;
+                let targetArg: string = "";
+                if (arg1.length() > 0) {
+                    targetArg = (arg2.length() > 0) ? (arg1 + " " + arg2) : arg1;
+                    hookMsg += " " + targetArg;
+                }
+                println(hookMsg);
+                return this.appExecute("cvm", cmd, targetArg);
+            }
+            case 31: {
+                if (arg1.length() > 0) {
+                    let targetArg: string = (arg2.length() > 0) ? (arg1 + " " + arg2) : arg1;
+                    println("==> [cxvm cvm] Hook -> cxvm --app cvm add " + targetArg);
+                    return this.appExecute("cvm", "add", targetArg);
+                }
+                return 0;
+            }
+            case 32: {
+                let sub: string = arg2;
+                let rest: string = "";
+                let sp: int = (int)arg2.find(" ");
+                if (sp != -1) {
+                    sub = arg2.substr(0, sp);
+                    rest = arg2.substr(sp + 1);
+                }
+                return this.appExecute(arg1, sub, rest);
+            }
+            default:
+            println("==> [cxvm cvm] Hook -> cxvm --app cvm " + cmd + (arg1.length() > 0 ? " " + arg1 : "") + (arg2.length() > 0 ? " " + arg2 : ""));
+            return this.appExecute("cvm", cmd, arg1.length() > 0 ? (arg2.length() > 0 ? arg1 + " " + arg2 : arg1) : "");
         }
-        println("==> [cxvm cvm] Hook -> cxvm --app cvm " + cmd + (arg1.length() > 0 ? " " + arg1 : "") + (arg2.length() > 0 ? " " + arg2 : ""));
-        return this.appExecute("cvm", cmd, arg1.length() > 0 ? (arg2.length() > 0 ? arg1 + " " + arg2 : arg1) : "");
     }
 
     public hookCexrExecute(hookCmd: string, versionType: string, targetIndex: string): int {
@@ -1476,16 +1553,16 @@ class CxvmEngine {
     }
 
     public registerBinaryAppsInCexDir(): CxvmCommandResult* {
-        let cexrExactVersion: string = "1.0.26";
+        let cexrExactVersion: string = CxvmConstants::cexrVersion();
         let msg: string = "[OK] Registered binary apps in CEX_DIR:\n";
         msg += "  - cexp-v8:       CEX_DIR/cexp-v8/" + this.currentVersion + "/bin\n";
         msg += "  - cexr-factory:  CEX_DIR/cexr-factory/" + cexrExactVersion + "/bin\n";
         msg += "  - cexr-bean:     CEX_DIR/cexr-bean/" + cexrExactVersion + "/bin\n";
         msg += "  - cexr-delivery: CEX_DIR/cexr-delivery/" + cexrExactVersion + "/bin\n";
         msg += "  - cexr-drawer:   CEX_DIR/cexr-drawer/" + cexrExactVersion + "/bin\n";
-        msg += "  - cex-pack:      CEX_DIR/cex-pack/1.0.5/bin\n";
-        msg += "  - cex-lint:      CEX_DIR/cex-lint/1.0.8/bin\n";
-        msg += "  - cext:          CEX_DIR/cext/1.0.14/bin\n";
+        msg += "  - cex-pack:      CEX_DIR/cex-pack/" + CxvmConstants::cexPackVersion() + "/bin\n";
+        msg += "  - cex-lint:      CEX_DIR/cex-lint/" + CxvmConstants::cexLintVersion() + "/bin\n";
+        msg += "  - cext:          CEX_DIR/cext/" + CxvmConstants::cextVersion() + "/bin\n";
         msg += "  - javis:         CEX_DIR/bin/javis (AI Cognitive Mind & Benchmark, alias: java)\n";
         msg += "  - vision:        CEX_DIR/bin/vision (AI Conversational & Math Perception)\n";
         msg += "  - ultron:        CEX_DIR/bin/ultron (AI Affective & Emotion Computing)\n";
@@ -1496,183 +1573,223 @@ class CxvmEngine {
         return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Binary apps registered in CEX_DIR", msg);
     }
 
+    private classifyApp(name: string): int {
+        if (name == "javis" || name == "java" || name == "vision" || name == "ultron" || name == "cexm-2-vision") return 1;
+        if (name == "cex" || name == "cex-cli" || name == "cli") return 2;
+        if (name == "cexr" || name.find("cexr-") == 0) return 3;
+        if (name == "cxvm") return 4;
+        if (name == "cexp" || name.find("cexp-") == 0) return 5;
+        if (name == "cex-lint") return 6;
+        if (name == "cext" || name == "cex-test") return 7;
+        if (name == "cex-pack") return 8;
+        if (name == "mvc-lighting" || name == "lighting") return 9;
+        if (name == "cvm" || name == "cvm-cli" || name == "cex-cvm-cli") return 10;
+        return 0;
+    }
+
+    private classifyCvmSub(sub: string): int {
+        if (sub == "server") return 1;
+        if (sub == "commit") return 2;
+        if (sub == "push") return 3;
+        if (sub == "pull") return 4;
+        if (sub == "add") return 5;
+        if (sub == "branch") return 6;
+        if (sub == "checkout") return 7;
+        if (sub == "log") return 8;
+        if (sub == "diff") return 9;
+        return 0;
+    }
+
     public appExecute(appName: string, appCmd: string, manifestFile: string): int {
         let name: string = appName.length() == 0 ? "cex-pack" : appName;
         let subCmd: string = appCmd.length() == 0 ? "downloads" : appCmd;
-        let file: string = manifestFile.length() == 0 ? "cex-pack.json" : manifestFile;
+        let file: string = manifestFile.length() == 0 ? CxvmConstants::manifestFile() : manifestFile;
         println("==> [cxvm] Dispatching to " + name + " via --app (" + subCmd + ")..");
-        if (name == "javis" || name == "java" || name == "vision" || name == "ultron" || name == "cexm-2-vision") {
-            let realName: string = (name == "java") ? "javis" : name;
-            let cmdStr: string = realName;
-            if (subCmd != "downloads" && subCmd.length() > 0) cmdStr += " \"" + subCmd + "\"";
-            if (manifestFile.length() > 0 && manifestFile != "cex-pack.json") cmdStr += " \"" + manifestFile + "\"";
-            println("[OK] [" + name + "] Executing integrated AI model: " + cmdStr);
-            try {
-                let out: string = child_process.execSync(cmdStr);
-                print(out);
-                if (out.length() > 0 && out.substr(out.length() - 1, 1) != "\n") println();
-                return 0;
-            } catch (...) {
-                return 1;
+        let appCode: int = this.classifyApp(name);
+        switch (appCode) {
+            case 1: {
+                let realName: string = (name == "java") ? "javis" : name;
+                let cmdStr: string = realName;
+                if (subCmd != "downloads" && subCmd.length() > 0) cmdStr += " \"" + subCmd + "\"";
+                if (manifestFile.length() > 0 && manifestFile != "cex-pack.json") cmdStr += " \"" + manifestFile + "\"";
+                println("[OK] [" + name + "] Executing integrated AI model: " + cmdStr);
+                try {
+                    let out: string = child_process.execSync(cmdStr);
+                    print(out);
+                    if (out.length() > 0 && out.substr(out.length() - 1, 1) != "\n") println();
+                    return 0;
+                } catch (...) {
+                    return 1;
+                }
             }
-        }
-        if ((name == "cex" || name == "cex-cli" || name == "cli") && subCmd == "reinstall") {
-            let res: CxvmCommandResult* = this.reinstall(manifestFile);
-            println(res->output);
-            return res->success ? 0 : 1;
-        }
-        if (name == "cexr" || name.find("cexr-") == 0) {
-            let vType: string = (name.find("cexr-") == 0) ? name.substr(5) : (subCmd.length() == 0 ? this.defaultCexrEdition : subCmd);
-            let targetSpec: string = manifestFile.length() == 0 ? "src/index.cex" : manifestFile;
-            if (subCmd == "build" || subCmd == "compile") {
-                let pkgName: string = "cxvm";
-                let pkgVer: string = "2.0.0";
-                if (fs.exists("cex-pack.json")) {
-                    let mfContent: string = fs.readFile("cex-pack.json");
-                    let parsed: JsonValue* = JsonDoc::parse(mfContent);
-                    if (parsed != nullptr && parsed->has("name")) {
-                        let pName: string = parsed->get("name")->asString();
-                        let sPos: int = (int)pName.find("/");
-                        if (sPos != -1) {
-                            pkgName = pName.substr(sPos + 1);
-                        } else {
-                            pkgName = pName;
+            case 2: {
+                if (subCmd == "reinstall") {
+                    let res: CxvmCommandResult* = this.reinstall(manifestFile);
+                    println(res->output);
+                    return res->success ? 0 : 1;
+                }
+                return 0;
+            }
+            case 3: {
+                let vType: string = (name.find("cexr-") == 0) ? name.substr(5) : ((subCmd == "build" || subCmd == "compile") ? this.defaultBuildEdition : (subCmd == "run" || subCmd == "dev" || subCmd.length() == 0 ? this.defaultCexrEdition : subCmd));
+                let targetSpec: string = manifestFile.length() == 0 ? CxvmConstants::entrypoint() : manifestFile;
+                if (subCmd == "build" || subCmd == "compile") {
+                    let pkgName: string = "cxvm";
+                    let pkgVer: string = CxvmConstants::cxvmVersion();
+                    if (fs.exists(CxvmConstants::manifestFile())) {
+                        let mfContent: string = fs.readFile(CxvmConstants::manifestFile());
+                        let parsed: JsonValue* = JsonDoc::parse(mfContent);
+                        if (parsed != nullptr && parsed->has("name")) {
+                            let pName: string = parsed->get("name")->asString();
+                            let sPos: int = (int)pName.find("/");
+                            if (sPos != -1) {
+                                pkgName = pName.substr(sPos + 1);
+                            } else {
+                                pkgName = pName;
+                            }
+                        }
+                        if (parsed != nullptr && parsed->has("version")) {
+                            pkgVer = parsed->get("version")->asString();
                         }
                     }
-                    if (parsed != nullptr && parsed->has("version")) {
-                        pkgVer = parsed->get("version")->asString();
-                    }
+                    let distDir: string = "./dist/" + pkgName + "-" + vType + "/" + pkgVer + "/bin";
+                    println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
+                    println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Compiled target index (" + targetSpec + ") to " + distDir + " (target build: CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
+                    return 0;
                 }
-                let distDir: string = "./dist/" + pkgName + "-" + vType + "/" + pkgVer + "/bin";
-                println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
-                println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Compiled target index (" + targetSpec + ") to " + distDir + " (target build: CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
+                println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Executed target index (" + targetSpec + ") via CexR v" + this.currentVersion + " runtime (registered in CEX_DIR)");
                 return 0;
             }
-            println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Executed target index (" + targetSpec + ") via CexR v" + this.currentVersion + " runtime (registered in CEX_DIR)");
-            return 0;
-        }
-        if (name == "cxvm") {
-            let pkgType: string = this.defaultBuildEdition;
-            let distDir: string = "./dist/cxvm-" + pkgType + "/" + this.currentVersion + "/bin";
-            if (subCmd == "build" || subCmd == "compile") {
-                println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
+            case 4: {
+                let pkgType: string = this.defaultBuildEdition;
+                let distDir: string = "./dist/cxvm-" + pkgType + "/" + this.currentVersion + "/bin";
+                if (subCmd == "build" || subCmd == "compile") {
+                    println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
+                }
+                println("[OK] [cxvm] Target build output located at " + distDir + " (CXVM_DIR/cxvm/" + this.currentVersion + "/bin, CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
+                return 0;
             }
-            println("[OK] [cxvm] Target build output located at " + distDir + " (CXVM_DIR/cxvm/" + this.currentVersion + "/bin, CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
-            return 0;
-        }
-        if (name == "cexp" || name.find("cexp-") == 0) {
-            println("[OK] [" + name + "] Executed '" + name + " " + subCmd + " " + file + "' via CexP compiler (registered in CEX_DIR)");
-            return 0;
-        }
-        if (name == "cex-lint") {
-            let lintTarget: string = manifestFile.length() == 0 ? "." : manifestFile;
-            println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via registered binary app in ./dist/cex-lint/1.0.8/bin");
-            return 0;
-        }
-        if (name == "cext" || name == "cex-test") {
-            let testAct: string = appCmd.length() == 0 ? "run" : appCmd;
-            let testTarget: string = manifestFile.length() == 0 ? "tests/cxvm.test.cex" : manifestFile;
-            if (testAct != "run" && testAct != "pipeline" && testAct != "coverage" && testAct != "version" && testAct != "help" && manifestFile.length() == 0) {
-                testTarget = testAct;
-                testAct = "run";
+            case 5: {
+                println("[OK] [" + name + "] Executed '" + name + " " + subCmd + " " + file + "' via CexP compiler (registered in CEX_DIR)");
+                return 0;
             }
-            println("[OK] [cext] Executed 'cext " + testAct + " " + testTarget + "' via registered binary app in ./dist/cext/1.0.14/bin");
-            return 0;
-        }
-        if (name == "cex-pack" && subCmd == "downloads") {
-            println("[OK] [cex-pack] Dependencies downloaded into .cex_boxes/ (active runtime v" + this.currentVersion + ")");
-            println("[OK] [cex-pack] Registered binary app in ./dist/cex-pack/" + this.currentVersion + "/bin");
-            println("[OK] [cex-pack] Integrated inside ./dist/cex-pack/" + this.currentVersion + "/bin");
-            return 0;
-        }
-        if (name == "cex-pack" && (subCmd == "check" || subCmd == "lint")) {
-            println("[OK] Manifest '" + file + "' syntax and structure: VALID [OK]");
-            return 0;
-        }
-        if (name == "mvc-lighting" || name == "lighting") {
+            case 6: {
+                let lintTarget: string = manifestFile.length() == 0 ? "." : manifestFile;
+                println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via registered binary app in ./dist/cex-lint/" + CxvmConstants::cexLintVersion() + "/bin");
+                return 0;
+            }
+            case 7: {
+                let testAct: string = appCmd.length() == 0 ? "run" : appCmd;
+                let testTarget: string = manifestFile.length() == 0 ? "tests/cxvm.test.cex" : manifestFile;
+                if (testAct != "run" && testAct != "pipeline" && testAct != "coverage" && testAct != "version" && testAct != "help" && manifestFile.length() == 0) {
+                    testTarget = testAct;
+                    testAct = "run";
+                }
+                println("[OK] [cext] Executed 'cext " + testAct + " " + testTarget + "' via registered binary app in ./dist/cext/" + CxvmConstants::cextVersion() + "/bin");
+                return 0;
+            }
+            case 8: {
+                if (subCmd == "downloads") {
+                    println("[OK] [cex-pack] Dependencies downloaded into .cex_boxes/ (active runtime v" + this.currentVersion + ")");
+                    println("[OK] [cex-pack] Registered binary app in ./dist/cex-pack/" + this.currentVersion + "/bin");
+                    println("[OK] [cex-pack] Integrated inside ./dist/cex-pack/" + this.currentVersion + "/bin");
+                    return 0;
+                }
+                if (subCmd == "check" || subCmd == "lint") {
+                    println("[OK] Manifest '" + file + "' syntax and structure: VALID [OK]");
+                    return 0;
+                }
+                return 0;
+            }
+            case 9:
             return this.lightExecute(subCmd, file, "");
-        }
-        if (name == "cvm" || name == "cvm-cli" || name == "cex-cvm-cli") {
-            let cvmSub: string = subCmd;
-            let cvmArg1: string = (file == "cex-pack.json") ? "" : file;
-            if (cvmSub == "server") {
-                if (cvmArg1 == "start") {
-                    this.cvmServerRunning = true;
-                    this.cvmServerPid = 7891;
-                    this.cvmServerPort = 4000;
-                } else if (cvmArg1 == "stop") {
-                    this.cvmServerRunning = false;
-                    this.cvmServerPid = 0;
-                }
-                let sAct: string = cvmArg1.length() > 0 ? cvmArg1 : "status";
-                let res: CvmExecutionResult* = this.cvmCliRunner->serverExecute(sAct, 4000);
-                return res->exitCode;
-            }
-            if (cvmSub == "commit") {
-                let msg: string = cvmArg1;
-                if (msg.find("-m ") == 0) {
-                    msg = msg.substr(3);
-                }
-                if (msg.find("\"") == 0 && msg.length() >= 2 && msg.substr(msg.length() - 1, 1) == "\"") {
-                    msg = msg.substr(1, msg.length() - 2);
-                }
-                let res: CvmExecutionResult* = this.cvmCliRunner->commit(msg, "2-TEK Developer", "dev@2tek.local");
-                return res->exitCode;
-            }
-            if (cvmSub == "push") {
-                let remote: string = "origin";
-                let branch: string = "main";
-                if (cvmArg1.length() > 0) {
-                    let sp: int = (int)cvmArg1.find(" ");
-                    if (sp != -1) {
-                        remote = cvmArg1.substr(0, sp);
-                        branch = cvmArg1.substr(sp + 1);
-                    } else {
-                        remote = cvmArg1;
+            case 10: {
+                let cvmSub: string = subCmd;
+                let cvmArg1: string = (file == "cex-pack.json") ? "" : file;
+                let cvmCode: int = this.classifyCvmSub(cvmSub);
+                switch (cvmCode) {
+                    case 1: {
+                        if (cvmArg1 == "start") {
+                            this.cvmServerRunning = true;
+                            this.cvmServerPid = 7891;
+                            this.cvmServerPort = CxvmConstants::cvmPort();
+                        } else if (cvmArg1 == "stop") {
+                            this.cvmServerRunning = false;
+                            this.cvmServerPid = 0;
+                        }
+                        let sAct: string = cvmArg1.length() > 0 ? cvmArg1 : "status";
+                        let res: CvmExecutionResult* = this.cvmCliRunner->serverExecute(sAct, CxvmConstants::cvmPort());
+                        return res->exitCode;
                     }
-                }
-                let res: CvmExecutionResult* = this.cvmCliRunner->push(remote, branch);
-                return res->exitCode;
-            }
-            if (cvmSub == "pull") {
-                let remote: string = "origin";
-                let branch: string = "main";
-                if (cvmArg1.length() > 0) {
-                    let sp: int = (int)cvmArg1.find(" ");
-                    if (sp != -1) {
-                        remote = cvmArg1.substr(0, sp);
-                        branch = cvmArg1.substr(sp + 1);
-                    } else {
-                        remote = cvmArg1;
+                    case 2: {
+                        let msg: string = cvmArg1;
+                        if (msg.find("-m ") == 0) {
+                            msg = msg.substr(3);
+                        }
+                        if (msg.find("\"") == 0 && msg.length() >= 2 && msg.substr(msg.length() - 1, 1) == "\"") {
+                            msg = msg.substr(1, msg.length() - 2);
+                        }
+                        let res: CvmExecutionResult* = this.cvmCliRunner->commit(msg, "2-TEK Developer", "dev@2tek.local");
+                        return res->exitCode;
                     }
+                    case 3: {
+                        let remote: string = "origin";
+                        let branch: string = "main";
+                        if (cvmArg1.length() > 0) {
+                            let sp: int = (int)cvmArg1.find(" ");
+                            if (sp != -1) {
+                                remote = cvmArg1.substr(0, sp);
+                                branch = cvmArg1.substr(sp + 1);
+                            } else {
+                                remote = cvmArg1;
+                            }
+                        }
+                        let res: CvmExecutionResult* = this.cvmCliRunner->push(remote, branch);
+                        return res->exitCode;
+                    }
+                    case 4: {
+                        let remote: string = "origin";
+                        let branch: string = "main";
+                        if (cvmArg1.length() > 0) {
+                            let sp: int = (int)cvmArg1.find(" ");
+                            if (sp != -1) {
+                                remote = cvmArg1.substr(0, sp);
+                                branch = cvmArg1.substr(sp + 1);
+                            } else {
+                                remote = cvmArg1;
+                            }
+                        }
+                        let res: CvmExecutionResult* = this.cvmCliRunner->pull(remote, branch);
+                        return res->exitCode;
+                    }
+                    case 5: {
+                        let res: CvmExecutionResult* = this.cvmCliRunner->add(cvmArg1, "");
+                        return res->exitCode;
+                    }
+                    case 6: {
+                        let res: CvmExecutionResult* = this.cvmCliRunner->branch(cvmArg1);
+                        return res->exitCode;
+                    }
+                    case 7: {
+                        let res: CvmExecutionResult* = this.cvmCliRunner->checkout(cvmArg1);
+                        return res->exitCode;
+                    }
+                    case 8: {
+                        let res: CvmExecutionResult* = this.cvmCliRunner->log();
+                        return res->exitCode;
+                    }
+                    case 9: {
+                        let res: CvmExecutionResult* = this.cvmCliRunner->diff();
+                        return res->exitCode;
+                    }
+                    default:
+                    return this.cvmCliRunner->execute(cvmSub, cvmArg1, "");
                 }
-                let res: CvmExecutionResult* = this.cvmCliRunner->pull(remote, branch);
-                return res->exitCode;
             }
-            if (cvmSub == "add") {
-                let res: CvmExecutionResult* = this.cvmCliRunner->add(cvmArg1, "");
-                return res->exitCode;
-            }
-            if (cvmSub == "branch") {
-                let res: CvmExecutionResult* = this.cvmCliRunner->branch(cvmArg1);
-                return res->exitCode;
-            }
-            if (cvmSub == "checkout") {
-                let res: CvmExecutionResult* = this.cvmCliRunner->checkout(cvmArg1);
-                return res->exitCode;
-            }
-            if (cvmSub == "log") {
-                let res: CvmExecutionResult* = this.cvmCliRunner->log();
-                return res->exitCode;
-            }
-            if (cvmSub == "diff") {
-                let res: CvmExecutionResult* = this.cvmCliRunner->diff();
-                return res->exitCode;
-            }
-            return this.cvmCliRunner->execute(cvmSub, cvmArg1, "");
+            default:
+            println("[OK] [cxvm --app] Operation completed successfully (" + name + " " + subCmd + ")");
+            return 0;
         }
-        println("[OK] [cxvm --app] Operation completed successfully (" + name + " " + subCmd + ")");
-        return 0;
     }
 
     public cxvmInit(projectName: string, targetDir: string): CxvmCommandResult* {
@@ -1736,67 +1853,81 @@ class CxvmEngine {
         return new CxvmCommandResult("open", url, true, "Opened via native window (cex-view)", out);
     }
 
-    public lightExecute(cmd: string, arg1: string, arg2: string): int {
-        if (cmd == "create") {
-            let pName: string = arg1.length() == 0 ? "my-lighting-app" : arg1;
-            let res: CxvmCommandResult* = this.lightCreate(pName, ".");
-            println(res->output);
-            return 0;
-        }
-        if (cmd == "dev" || cmd == "serve" || cmd == "start") {
-            let targetType: string = "view";
-            let hasTarget: bool = false;
-            if (arg1.find("--target=") == 0) {
-                targetType = arg1.substr(9);
-                hasTarget = true;
-            } else if (arg1 == "--target" || arg1 == "-t") {
-                targetType = arg2.length() == 0 ? "view" : arg2;
-                hasTarget = true;
-            } else if (arg2.find("--target=") == 0) {
-                targetType = arg2.substr(9);
-                hasTarget = true;
-            } else if (arg1 == "view" || arg2 == "view") {
-                targetType = "view";
-                hasTarget = true;
-            } else if (arg1 == "browser" || arg2 == "browser") {
-                targetType = "view";
-                hasTarget = true;
-            }
-
-            println("==> [cxvm lighting] Starting Lighting Fullstack MVC development server on port 3080..");
-            println("[OK] [cxvm lighting] Server running at http://localhost:3080");
-            if (hasTarget) {
-                let openRes: CxvmCommandResult* = this.cxvmOpen("http://localhost:3080", targetType);
-                println(openRes->output);
-            }
-            return 0;
-        }
-        if (cmd == "test") {
-            let testTarget: string = arg1.length() == 0 ? "tests/cxvm.test.cex" : arg1;
-            println("==> [cxvm lighting test] Hook -> cxvm --app cext run " + testTarget);
-            return this.appExecute("cext", "run", testTarget);
-        }
-        if (cmd == "build") {
-            println("==> [cxvm lighting] Compiling Lighting MVC project with cexp native compiler..");
-            println("[OK] [cxvm lighting] Production binary built successfully in dist/");
-            return 0;
-        }
-        if (cmd == "doctor" || cmd == "status") {
-            println("==> [cxvm lighting] Lighting Fullstack MVC Engine Diagnostic: OK");
-            println("  - Framework: Lighting Fullstack MVC (Pure Cex)");
-            println("  - Scaffolder: lighting create <projectName> [READY]");
-            println("  - Runtime:   CexR v8 Native Engine");
-            return 0;
-        }
-        println("Lighting Fullstack MVC Engine (as lighting)");
-        println("Usage: cxvm lighting <command> [arguments]");
-        println("Commands:");
-        println("  create <projectName>    Create a new Lighting Fullstack MVC project");
-        println("  dev                     Start local development server");
-        println("  test [file]             Run test suite via cxvm --app cext");
-        println("  build                   Compile project with cexp native compiler");
-        println("  doctor                  Run Lighting engine diagnostic");
-        println("  open [url]              Open URL with native window (cex-view only)");
+    private classifyLightCommand(cmd: string): int {
+        if (cmd == "create") return 1;
+        if (cmd == "dev" || cmd == "serve" || cmd == "start") return 2;
+        if (cmd == "test") return 3;
+        if (cmd == "build") return 4;
+        if (cmd == "doctor" || cmd == "status") return 5;
         return 0;
+    }
+
+    public lightExecute(cmd: string, arg1: string, arg2: string): int {
+        let lCode: int = this.classifyLightCommand(cmd);
+        switch (lCode) {
+            case 1: {
+                let pName: string = arg1.length() == 0 ? "my-lighting-app" : arg1;
+                let res: CxvmCommandResult* = this.lightCreate(pName, ".");
+                println(res->output);
+                return 0;
+            }
+            case 2: {
+                let targetType: string = "view";
+                let hasTarget: bool = false;
+                if (arg1.find("--target=") == 0) {
+                    targetType = arg1.substr(9);
+                    hasTarget = true;
+                } else if (arg1 == "--target" || arg1 == "-t") {
+                    targetType = arg2.length() == 0 ? "view" : arg2;
+                    hasTarget = true;
+                } else if (arg2.find("--target=") == 0) {
+                    targetType = arg2.substr(9);
+                    hasTarget = true;
+                } else if (arg1 == "view" || arg2 == "view") {
+                    targetType = "view";
+                    hasTarget = true;
+                } else if (arg1 == "browser" || arg2 == "browser") {
+                    targetType = "view";
+                    hasTarget = true;
+                }
+
+                println("==> [cxvm lighting] Starting Lighting Fullstack MVC development server on port " + std::to_string(CxvmConstants::defaultPort()) + "..");
+                println("[OK] [cxvm lighting] Server running at http://localhost:" + std::to_string(CxvmConstants::defaultPort()));
+                if (hasTarget) {
+                    let openRes: CxvmCommandResult* = this.cxvmOpen("http://localhost:" + std::to_string(CxvmConstants::defaultPort()), targetType);
+                    println(openRes->output);
+                }
+                return 0;
+            }
+            case 3: {
+                let testTarget: string = arg1.length() == 0 ? "tests/cxvm.test.cex" : arg1;
+                println("==> [cxvm lighting test] Hook -> cxvm --app cext run " + testTarget);
+                return this.appExecute("cext", "run", testTarget);
+            }
+            case 4: {
+                println("==> [cxvm lighting] Compiling Lighting MVC project with cexp native compiler..");
+                println("[OK] [cxvm lighting] Production binary built successfully in dist/");
+                return 0;
+            }
+            case 5: {
+                println("==> [cxvm lighting] Lighting Fullstack MVC Engine Diagnostic: OK");
+                println("  - Framework: Lighting Fullstack MVC (Pure Cex)");
+                println("  - Scaffolder: lighting create <projectName> [READY]");
+                println("  - Runtime:   CexR v8 Native Engine");
+                return 0;
+            }
+            default: {
+                println("Lighting Fullstack MVC Engine (as lighting)");
+                println("Usage: cxvm lighting <command> [arguments]");
+                println("Commands:");
+                println("  create <projectName>    Create a new Lighting Fullstack MVC project");
+                println("  dev                     Start local development server");
+                println("  test [file]             Run test suite via cxvm --app cext");
+                println("  build                   Compile project with cexp native compiler");
+                println("  doctor                  Run Lighting engine diagnostic");
+                println("  open [url]              Open URL with native window (cex-view only)");
+                return 0;
+            }
+        }
     }
 }

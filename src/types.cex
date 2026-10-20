@@ -98,3 +98,21 @@ class FactoryStats {
         this.lastBuildTimestamp = "2026-10-07T00:00:00Z";
     }
 }
+
+class CxvmConstants {
+    public static defaultVersion(): string { return "8.0.0"; }
+    public static ltsVersion(): string { return "6.0.0"; }
+    public static cxvmVersion(): string { return "2.0.0"; }
+    public static cexrVersion(): string { return "1.0.26"; }
+    public static cextVersion(): string { return "1.0.14"; }
+    public static cexLintVersion(): string { return "1.0.8"; }
+    public static cexPackVersion(): string { return "1.0.5"; }
+    public static defaultPort(): int { return 3080; }
+    public static cvmPort(): int { return 4000; }
+    public static thunderPort(): int { return 3050; }
+    public static cvmDomain(): string { return "cvm.2-tek.com"; }
+    public static cvmApi(): string { return "https://cvm.2-tek.com/api/v1"; }
+    public static boxesDir(): string { return ".cex_boxes"; }
+    public static entrypoint(): string { return "src/index.cex"; }
+    public static manifestFile(): string { return "cex-pack.json"; }
+}

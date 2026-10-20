@@ -175,6 +175,16 @@ class FactoryController extends BaseController {
         return HttpResponse::notFound("cxvm.cmd not found");
     }
 
+    private getFileTypeCode(filename: string): int {
+        if (filename.find(".tar.gz") != -1) return 1;
+        if (filename.find(".zip") != -1) return 2;
+        if (filename.find(".sh") != -1 || filename === "cxvm") return 3;
+        if (filename.find(".ps1") != -1) return 4;
+        if (filename.find(".cmd") != -1 || filename.find(".bat") != -1) return 5;
+        if (filename.find(".json") != -1) return 6;
+        return 0;
+    }
+
     public downloadFile(req: HttpRequest*, downloadsDir: string): HttpResponse* {
         let filename: string = req->getParam("id");
         if (filename.length() == 0 || filename.find("..") != -1) {
@@ -186,18 +196,27 @@ class FactoryController extends BaseController {
         }
         let content: string = fs.readFile(fullPath);
         let cType: string = "application/octet-stream";
-        if (filename.find(".tar.gz") != -1) {
+        let typeCode: int = this.getFileTypeCode(filename);
+        switch (typeCode) {
+            case 1:
             cType = "application/gzip";
-        } else if (filename.find(".zip") != -1) {
+            break;
+            case 2:
             cType = "application/zip";
-        } else if (filename.find(".sh") != -1 || filename === "cxvm") {
+            break;
+            case 3:
             cType = "text/x-shellscript";
-        } else if (filename.find(".ps1") != -1) {
+            break;
+            case 4:
+            case 5:
             cType = "text/plain";
-        } else if (filename.find(".cmd") != -1 || filename.find(".bat") != -1) {
-            cType = "text/plain";
-        } else if (filename.find(".json") != -1) {
+            break;
+            case 6:
             cType = "application/json";
+            break;
+            default:
+            cType = "application/octet-stream";
+            break;
         }
         return HttpResponse::ok(content, cType);
     }

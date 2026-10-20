@@ -32,9 +32,10 @@ class FactoryApp {
         this.cxvm = new CxvmEngine();
 
         // Initialize default runtime with CexR v8 (.cex_boxes Dist Loader Engine)
-        this.cxvm->install("8.0.0");
-        this.cxvm->use("8.0.0");
-        this.cxvm->setDefault("8.0.0");
+        let defVer: string = CxvmConstants::defaultVersion();
+        this.cxvm->install(defVer);
+        this.cxvm->use(defVer);
+        this.cxvm->setDefault(defVer);
 
         this.setupRoutes();
     }
@@ -100,6 +101,55 @@ class FactoryApp {
         this.isRunning = false;
     }
 
+    private getHandlerCode(handlerId: string): int {
+        if (handlerId === "factory.index") return 1;
+        if (handlerId === "factory.downloads") return 2;
+        if (handlerId === "factory.cxvmDocs") return 3;
+        if (handlerId === "factory.setup") return 4;
+        if (handlerId === "factory.installSh") return 5;
+        if (handlerId === "factory.installPs1") return 6;
+        if (handlerId === "factory.setupCex") return 7;
+        if (handlerId === "factory.setupSh") return 8;
+        if (handlerId === "factory.setupPs1") return 9;
+        if (handlerId === "factory.cxvmScript") return 10;
+        if (handlerId === "factory.cxvmPs1") return 11;
+        if (handlerId === "factory.cxvmCmd") return 12;
+        if (handlerId === "factory.downloadFile") return 13;
+        if (handlerId === "factory.status") return 14;
+        if (handlerId === "factory.versions") return 15;
+        if (handlerId === "factory.platforms") return 16;
+        if (handlerId === "factory.downloadsApi") return 17;
+        if (handlerId === "factory.manifest") return 18;
+        if (handlerId === "factory.apiSetupGet") return 19;
+        if (handlerId === "factory.apiSetupPost") return 20;
+        if (handlerId === "factory.build") return 21;
+        if (handlerId === "factory.apiCvmStatus") return 22;
+        if (handlerId === "factory.apiCvmCommit") return 23;
+        if (handlerId === "factory.apiCvmPush") return 24;
+        if (handlerId === "factory.apiCvmServerStart") return 25;
+        if (handlerId === "factory.apiCvmServerStatus") return 26;
+        if (handlerId === "factory.apiCvmServerStop") return 27;
+        if (handlerId === "factory.apiThunderStatus") return 28;
+        if (handlerId === "factory.apiThunderServerStart") return 29;
+        if (handlerId === "factory.apiThunderServerStatus") return 30;
+        if (handlerId === "factory.apiThunderServerStop") return 31;
+        if (handlerId === "factory.apiThunderContainers") return 32;
+        if (handlerId === "factory.apiThunderImages") return 33;
+        if (handlerId === "factory.apiThunderVirtualLinuxSetup") return 34;
+        if (handlerId === "factory.apiThunderVirtualLinuxStatus") return 35;
+        if (handlerId === "factory.apiLinuxDistroInstall") return 36;
+        if (handlerId === "factory.apiLinuxDistroUninstall") return 37;
+        if (handlerId === "factory.apiLinuxDistroSetup") return 38;
+        if (handlerId === "factory.apiLinuxDistroStatus") return 39;
+        if (handlerId === "factory.apiLinuxDistroList") return 40;
+        if (handlerId === "factory.apiLightStatus") return 41;
+        if (handlerId === "factory.apiLightCreate") return 42;
+        if (handlerId === "factory.apiOpen") return 43;
+        if (handlerId === "factory.apiTarget") return 44;
+        if (handlerId === "factory.apiReinstall") return 45;
+        return 0;
+    }
+
     public handleRequest(req: HttpRequest*): HttpResponse* {
         // 1. Logger Middleware
         LightingMiddleware::runLogger(req);
@@ -116,188 +166,102 @@ class FactoryApp {
             return HttpResponse::notFound("No Factory route matched for: " + req->method + " " + req->path);
         }
 
-        // 4. Controller Dispatch
-        if (route->handlerId === "factory.index") {
+        // 4. Controller Dispatch via switch-case
+        let handlerCode: int = this.getHandlerCode(route->handlerId);
+        switch (handlerCode) {
+            case 1:
             return this.controller->index(req, this.port, this.builder->versions, this.builder->platforms, this.builder->artifacts, this.cxvm->current());
-        }
-
-        if (route->handlerId === "factory.downloads") {
+            case 2:
             return this.controller->downloadsHtml(req, this.port, this.builder->artifacts);
-        }
-
-        if (route->handlerId === "factory.cxvmDocs") {
+            case 3:
             return this.controller->cxvmDocs(req, this.port);
-        }
-
-        if (route->handlerId === "factory.setup") {
+            case 4:
             return this.controller->setupHtml(req, this.port, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.installSh") {
+            case 5:
             return this.controller->serveInstallSh(req, this.port, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.installPs1") {
+            case 6:
             return this.controller->serveInstallPs1(req, this.port, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.setupCex") {
+            case 7:
             return this.controller->serveSetupCex(req, this.port, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.setupSh") {
+            case 8:
             return this.controller->serveSetupSh(req, this.port, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.setupPs1") {
+            case 9:
             return this.controller->serveSetupPs1(req, this.port, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.cxvmScript") {
+            case 10:
             return this.controller->serveCxvm(req, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.cxvmPs1") {
+            case 11:
             return this.controller->serveCxvmPs1(req, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.cxvmCmd") {
+            case 12:
             return this.controller->serveCxvmCmd(req, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.downloadFile") {
+            case 13:
             return this.controller->downloadFile(req, this.downloadsDir);
-        }
-
-        if (route->handlerId === "factory.status") {
+            case 14:
             return this.controller->apiStatus(req, this.port, this.builder, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.versions") {
+            case 15:
             return this.controller->apiVersions(req, this.builder->versions);
-        }
-
-        if (route->handlerId === "factory.platforms") {
+            case 16:
             return this.controller->apiPlatforms(req, this.builder->platforms);
-        }
-
-        if (route->handlerId === "factory.downloadsApi") {
+            case 17:
             return this.controller->apiDownloads(req, this.builder->artifacts);
-        }
-
-        if (route->handlerId === "factory.manifest") {
+            case 18:
             return this.controller->apiManifest(req, this.builder);
-        }
-
-        if (route->handlerId === "factory.apiSetupGet") {
+            case 19:
             return this.controller->apiSetupGet(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiSetupPost") {
+            case 20:
             return this.controller->apiSetupPost(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.build") {
+            case 21:
             return this.controller->apiBuild(req, this.builder);
-        }
-
-        if (route->handlerId === "factory.apiCvmStatus") {
+            case 22:
             return this.controller->apiCvmStatus(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiCvmCommit") {
+            case 23:
             return this.controller->apiCvmCommit(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiCvmPush") {
+            case 24:
             return this.controller->apiCvmPush(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiCvmServerStart") {
+            case 25:
             return this.controller->apiCvmServerStart(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiCvmServerStatus") {
+            case 26:
             return this.controller->apiCvmServerStatus(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiCvmServerStop") {
+            case 27:
             return this.controller->apiCvmServerStop(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiThunderStatus") {
+            case 28:
             return this.controller->apiThunderStatus(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiThunderServerStart") {
+            case 29:
             return this.controller->apiThunderServerStart(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiThunderServerStatus") {
+            case 30:
             return this.controller->apiThunderServerStatus(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiThunderServerStop") {
+            case 31:
             return this.controller->apiThunderServerStop(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiThunderContainers") {
+            case 32:
             return this.controller->apiThunderContainers(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiThunderImages") {
+            case 33:
             return this.controller->apiThunderImages(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiThunderVirtualLinuxSetup") {
+            case 34:
             return this.controller->apiThunderVirtualLinuxSetup(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiThunderVirtualLinuxStatus") {
+            case 35:
             return this.controller->apiThunderVirtualLinuxStatus(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiLinuxDistroInstall") {
+            case 36:
             return this.controller->apiLinuxDistroInstall(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiLinuxDistroUninstall") {
+            case 37:
             return this.controller->apiLinuxDistroUninstall(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiLinuxDistroSetup") {
+            case 38:
             return this.controller->apiLinuxDistroSetup(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiLinuxDistroStatus") {
+            case 39:
             return this.controller->apiLinuxDistroStatus(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiLinuxDistroList") {
+            case 40:
             return this.controller->apiLinuxDistroList(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiLightStatus") {
+            case 41:
             return this.controller->apiLightStatus(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiLightCreate") {
+            case 42:
             return this.controller->apiLightCreate(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiOpen") {
+            case 43:
             return this.controller->apiOpen(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiTarget") {
+            case 44:
             return this.controller->apiTarget(req, this.cxvm);
-        }
-
-        if (route->handlerId === "factory.apiReinstall") {
+            case 45:
             return this.controller->apiReinstall(req, this.cxvm);
+            default:
+            return HttpResponse::notFound("Handler not implemented: " + route->handlerId);
         }
-
-        return HttpResponse::notFound("Handler not implemented: " + route->handlerId);
     }
 
     public simulateRequest(method: string, path: string, body: string, cType: string): HttpResponse* {
