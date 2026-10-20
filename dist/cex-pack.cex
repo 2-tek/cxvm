@@ -46,8 +46,8 @@ class CexPackRunner {
         manifestJson += "  \"runtime\": \"bean\",\n";
         manifestJson += "  \"target\": \"runtime\",\n";
         manifestJson += "  \"required\": {\n";
-        manifestJson += "    \"cexr\": \"^8\",\n";
-        manifestJson += "    \"cexp\": \"^8\"\n";
+        manifestJson += "    \"cexr-factory\": \"^8\",\n";
+        manifestJson += "    \"cexp-v8\": \"^8\"\n";
         manifestJson += "  },\n";
         manifestJson += "  \"scripts\": {\n";
         manifestJson += "    \"dev\": \"cxvm --app cexr bean dev src/index.cex\",\n";

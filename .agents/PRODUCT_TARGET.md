@@ -22,8 +22,8 @@ The `cxvm` repository defines the official distribution hub and version manageme
         ```json
         "target": "runtime",
         "required": {
-          "cexr": "^8",
-          "cexp": "^8"
+          "cexr-factory": "^8",
+          "cexp-v8": "^8"
         }
         ```
 

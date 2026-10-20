@@ -18,11 +18,10 @@
         "@/src": "./src"
     },
     "required": {
-        "cexp": "^8",
-        "cexr-bean": "^1",
-        "cexr-factory": "^1",
         "cexp-v8": "^8",
-        "cexp-v8-stable": "^8"
+        "cexp-v8-stable": "^8",
+        "cexr-bean": "^1",
+        "cexr-factory": "^1"
     },
     "scripts": {
         "install": "cex-pack downloads",
