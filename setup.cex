@@ -16,6 +16,9 @@ class SetupRunner {
         if (libName == "cex-pack" || libName == "cex-pack-bean") return "1.0.5";
         if (libName == "cex-lint") return "1.0.8";
         if (libName == "cext" || libName == "cex-test") return "1.0.14";
+        if (libName == "cex-cli" || libName == "cli") return "1.0.0";
+        if (libName == "cex-service" || libName == "cex-s") return "1.0.0";
+        if (libName == "cex-std") return "1.0.0";
         if (libName == "javis" || libName == "java") return "1.0.0";
         if (libName == "vision") return "2.0.0";
         if (libName == "ultron") return "1.0.0";
@@ -45,6 +48,9 @@ class SetupRunner {
         libs->push("cex-pack");
         libs->push("cex-lint");
         libs->push("cext");
+        libs->push("cex-cli");
+        libs->push("cex-service");
+        libs->push("cex-std");
         libs->push("cxvm-bean");
         libs->push("javis");
 

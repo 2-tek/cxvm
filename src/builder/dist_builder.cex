@@ -3,6 +3,7 @@
 
 import child_process from "child_process";
 import fs from "fs";
+import "@cex-std/src/filesystem.cex";
 import "../types.cex";
 import "../models/platform_model.cex";
 import "../models/version_model.cex";
@@ -61,7 +62,7 @@ class DistBuilder {
                 let size: int = 2850;
                 let hash: string = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-                if (fs.exists(filePath)) {
+                if (StdFilesystem::exists(filePath)) {
                     size = 2850;
                     hash = "97c324a082371d1dd5f9051077e0563f5df2e3d8dae08c6178035db0c7d141ca";
                 }
@@ -73,8 +74,8 @@ class DistBuilder {
     }
 
     public buildAll(): int {
-        let scriptPath: string = fs.exists("cxvm/scripts/generate_distributions.sh") ? "cxvm/scripts/generate_distributions.sh" : "scripts/generate_distributions.sh";
-        if (fs.exists(scriptPath)) {
+        let scriptPath: string = StdFilesystem::exists("cxvm/scripts/generate_distributions.sh") ? "cxvm/scripts/generate_distributions.sh" : "scripts/generate_distributions.sh";
+        if (StdFilesystem::exists(scriptPath)) {
             let cmd: string = "bash " + scriptPath + " " + this.downloadsDir;
             child_process.execSync(cmd);
         }
@@ -84,8 +85,8 @@ class DistBuilder {
 
     public getManifestDoc(): JsonValue* {
         let manifestPath: string = this.downloadsDir + "/manifest.json";
-        if (fs.exists(manifestPath)) {
-            let str: string = fs.readFile(manifestPath);
+        if (StdFilesystem::exists(manifestPath)) {
+            let str: string = StdFilesystem::read_text(manifestPath);
             return JsonDoc::parse(str);
         }
 
@@ -96,8 +97,8 @@ class DistBuilder {
 
     public getManifestJson(): string {
         let manifestPath: string = this.downloadsDir + "/manifest.json";
-        if (fs.exists(manifestPath)) {
-            let str: string = fs.readFile(manifestPath);
+        if (StdFilesystem::exists(manifestPath)) {
+            let str: string = StdFilesystem::read_text(manifestPath);
             return str;
         }
 

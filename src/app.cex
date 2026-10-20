@@ -9,12 +9,22 @@ import "./models/artifact_model.cex";
 import "./builder/dist_builder.cex";
 import "./cxvm_engine.cex";
 import "./controllers/factory_controller.cex";
+import "@cex-cli/src/terminal.cex";
+import "@cex-cli/src/cli.cex";
+import "@cex-s/src/app.cex";
+import "@cex-s/src/middleware.cex";
+import "@cex-s/src/response.cex";
+import "@cex-s/src/request.cex";
+import "@cex-s/src/ssr.cex";
+import "@cex-std/src/filesystem.cex";
+import "@cex-std/src/chrono.cex";
 
 class FactoryApp {
     public appName: string;
     public port: int;
     public isRunning: bool;
     public downloadsDir: string;
+    public service: PerfectApp*;
     public router: LightingRouter*;
     public controller: FactoryController*;
     public builder: DistBuilder*;
@@ -24,7 +34,12 @@ class FactoryApp {
         this.appName = "2-TEK cxvm Engine";
         this.port = port;
         this.isRunning = false;
-        this.downloadsDir = fs.exists("dist") ? "dist" : (fs.exists("cxvm/downloads") ? "cxvm/downloads" : (fs.exists("downloads") ? "downloads" : "dist"));
+        this.downloadsDir = StdFilesystem::exists("dist") ? "dist" : (StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : (StdFilesystem::exists("downloads") ? "downloads" : "dist"));
+
+        this.service = new PerfectApp();
+        this.service->use(new TimingMiddleware());
+        this.service->use(new CorsMiddleware("*"));
+        this.service->use(new LoggerMiddleware());
 
         this.router = new LightingRouter();
         this.controller = new FactoryController();
@@ -91,6 +106,50 @@ class FactoryApp {
         this.router->post("/api/v1/open", "factory.apiOpen");
         this.router->get("/api/v1/target", "factory.apiTarget");
         this.router->post("/api/v1/reinstall", "factory.apiReinstall");
+
+        // Register SSR Pages on Cex-Service (cex-s)
+        let dashDoc: SSRDocument* = new SSRDocument("FactoryDashboard", "2-TEK Cex Factory", "<h1>2-TEK Cex Factory</h1>", "{\"status\": \"ACTIVE\"}");
+        this.service->page("/", dashDoc);
+        let downDoc: SSRDocument* = new SSRDocument("FactoryDownloads", "2-TEK Cex Downloads", "<h1>Downloads Directory</h1>", "{\"total\": 36}");
+        this.service->page("/downloads", downDoc);
+        let cxvmDoc: SSRDocument* = new SSRDocument("CxvmDocs", "CXVM Documentation", "<h1>CXVM Version Manager</h1>", "{\"version\": \"2.0.0\"}");
+        this.service->page("/cxvm", cxvmDoc);
+        let setupDoc: SSRDocument* = new SSRDocument("SetupWindow", "CXVM Setup", "<h1>Setup Window</h1>", "{\"status\": \"HEALTHY\"}");
+        this.service->page("/setup", setupDoc);
+
+        // Register REST API Endpoints on Cex-Service (cex-s)
+        this.service->api("GET", "/api/v1/status", "Factory Status API", "{\"status\": \"ACTIVE\", \"service\": \"2-TEK Cex Factory\", \"framework\": \"Lighting MVC + CexService\"}");
+        this.service->api("GET", "/api/v1/versions", "Versions Catalog", "{\"total\": 6}");
+        this.service->api("GET", "/api/v1/platforms", "Supported Architectures", "{\"total\": 6}");
+        this.service->api("GET", "/api/v1/downloads", "Downloads Catalog", "{\"total\": 36}");
+        this.service->api("GET", "/api/v1/manifest", "Release Manifest", "{\"name\": \"cxvm\"}");
+        this.service->api("GET", "/api/v1/setup", "Setup State", "{\"status\": \"ACTIVE\"}");
+        this.service->api("POST", "/api/v1/setup", "Save Setup", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/build", "Build Archives", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/cvm/status", "CVM Status", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/cvm/commit", "CVM Commit", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/cvm/push", "CVM Push", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/cvm/server/start", "Start CVM Server", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/cvm/server/status", "CVM Server Status", "{\"status\": \"RUNNING\"}");
+        this.service->api("POST", "/api/v1/cvm/server/stop", "Stop CVM Server", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/thunder/status", "Thunder Status", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/thunder/server/start", "Start Thunder Server", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/thunder/server/status", "Thunder Server Status", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/thunder/server/stop", "Stop Thunder Server", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/thunder/containers", "Thunder Containers", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/thunder/images", "Thunder Images", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/thunder/virtual-linux/setup", "Virtual Linux Setup", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/thunder/virtual-linux", "Virtual Linux Status", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/linux-distro/install", "Install Linux Distro", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/linux-distro/uninstall", "Uninstall Linux Distro", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/linux-distro/setup", "Setup Linux Distro", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/linux-distro/status", "Linux Distro Status", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/linux-distro/list", "List Linux Distros", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/light/status", "Lighting Engine Status", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/light/create", "Create Lighting Project", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/open", "Open Target", "{\"status\": \"SUCCESS\"}");
+        this.service->api("GET", "/api/v1/target", "Get Target", "{\"status\": \"SUCCESS\"}");
+        this.service->api("POST", "/api/v1/reinstall", "Reinstall Subsystem", "{\"status\": \"SUCCESS\"}");
     }
 
     public start(): void {
@@ -161,7 +220,7 @@ class FactoryApp {
         }
 
         // 3. Router Matching
-        let route: RouteEntry* = this.router->findRoute(req);
+        let route: LightingRouteEntry* = this.router->findRoute(req);
         if (route === nullptr) {
             return HttpResponse::notFound("No Factory route matched for: " + req->method + " " + req->path);
         }
@@ -269,15 +328,21 @@ class FactoryApp {
         return this.handleRequest(req);
     }
 
+    public simulateServiceRequest(method: string, path: string, body: string): PerfectResponse* {
+        return this.service->simulateRequest(method, path, body);
+    }
+
+    public listen(port: int, host: string = "127.0.0.1"): bool {
+        return this.service->listen(port, host);
+    }
+
     public displayRoutes(): void {
-        println("+---------------------------------------------------------------+");
-        println("|             2-TEK Cex Factory Route Registry Table            |");
-        println("+---------------------------------------------------------------+");
+        TerminalUI::renderHeader("2-TEK Cex Factory Route Registry", "Powered by cex-s (CexService) & Lighting Fullstack MVC");
         println("  METHOD  ROUTE PATTERN               HANDLER ACTION");
         println("  -------------------------------------------------------------");
         let count: int = this.router->getRouteCount();
         for (let i: int = 0; i < count; i++) {
-            let r: RouteEntry* = this.router->routes->get(i);
+            let r: LightingRouteEntry* = this.router->routes->get(i);
             print("  "); print(r->method);
             for (let s: int = (int)r->method.length(); s < 8; s++) print(" ");
             print(r->pattern);

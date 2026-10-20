@@ -6,10 +6,16 @@ import "./models/version_model.cex";
 import "@cvm-cli/src/cli.cex";
 import "./lighting_mvc.cex";
 import child_process from "child_process";
+import "@cex-cli/src/terminal.cex";
+import "@cex-cli/src/cli.cex";
+import "@cex-s/src/app.cex";
+import "@cex-std/src/filesystem.cex";
+import "@cex-std/src/chrono.cex";
 
 class CxvmEngine {
     public currentVersion: string;
     public defaultVersion: string;
+    public cliRunner: CexCLI*;
     public installedVersions: Array<string>*;
     public availableVersions: Array<VersionModel*>*;
     public supportedPlatforms: Array<string>*;
@@ -71,6 +77,7 @@ class CxvmEngine {
         this.supportedPlatforms = new Array<string>();
         this.cxvmHome = "$HOME/.cxvm";
         this.cvmCliRunner = new CexCvmCLI();
+        this.cliRunner = new CexCLI();
         this.cvmServerRunning = false;
         this.cvmServerPid = 0;
         this.cvmServerPort = CxvmConstants::cvmPort();
@@ -418,6 +425,9 @@ class CxvmEngine {
         if (libName == "cex-pack" || libName == "cex-pack-bean") return "1.0.5";
         if (libName == "cex-lint") return "1.0.8";
         if (libName == "cext" || libName == "cex-test") return "1.0.14";
+        if (libName == "cex-cli" || libName == "cli") return "1.0.0";
+        if (libName == "cex-service" || libName == "cex-s") return "1.0.0";
+        if (libName == "cex-std") return "1.0.0";
         if (libName == "javis" || libName == "java") return "1.0.0";
         if (libName == "vision") return "2.0.0";
         if (libName == "ultron") return "1.0.0";
@@ -438,6 +448,9 @@ class CxvmEngine {
         libs->push("cex-pack");
         libs->push("cex-lint");
         libs->push("cext");
+        libs->push("cex-cli");
+        libs->push("cex-service");
+        libs->push("cex-std");
         libs->push("cxvm-bean");
         libs->push("javis");
 

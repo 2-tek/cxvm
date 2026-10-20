@@ -1,6 +1,6 @@
 // 2-TEK Factory: Package Entrypoint & Live Demonstration (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp)
-// CXVM Engine Edition: 2.0.0 (Native CLI Dispatcher & Factory)
+// CXVM Engine Edition: 2.1.35 (Rewritten with cex-cli, cex-s, and cex-std)
 
 import "./types.cex";
 import "./models/platform_model.cex";
@@ -9,6 +9,11 @@ import "./models/artifact_model.cex";
 import "./builder/dist_builder.cex";
 import "./cxvm_engine.cex";
 import "./app.cex";
+import "@cex-cli/src/terminal.cex";
+import "@cex-cli/src/cli.cex";
+import "@cex-s/src/app.cex";
+import "@cex-std/src/filesystem.cex";
+import "@cex-std/src/chrono.cex";
 
 fn classifyCliCommand(cmd: string): int {
     if (cmd == "-v" || cmd == "--version" || cmd == "version") return 1;
@@ -22,13 +27,13 @@ fn main(argc: int, argv: char**): int {
         let cmdCode: int = classifyCliCommand(cmd);
         switch (cmdCode) {
             case 1: {
-                println("CXVM v2.0.1 (Pure Cex Native Engine: cexr + cexp; powered by Lighting MVC)");
+                TerminalUI::renderHeader("CXVM v2.1.35", "Pure Cex Native Engine: cexr + cexp; powered by cex-cli, cex-s & cex-std");
                 let cxvm: CxvmEngine* = new CxvmEngine();
                 println(cxvm->cexrVersionOutput());
                 return 0;
             }
             case 2: {
-                println("2-TEK CXVM: Cex Version Manager (Cross-platform runtime & VCS manager for Cex)");
+                TerminalUI::renderHeader("2-TEK CXVM: Cex Version Manager", "Cross-platform runtime & VCS manager (cex-cli, cex-s, cex-std)");
                 println("Usage: cxvm <command> [arguments] [options]");
                 println("Commands: setup, resetup, reinstall, install, use, current, list, doctor, init, dev, build, start, lint, test, cexp, lighting, thunder, cvm, javis, vision, ultron");
                 return 0;
@@ -46,10 +51,7 @@ fn main(argc: int, argv: char**): int {
         return cxvm->cvmExecute(cmd, arg1, arg2);
     }
 
-    println("===============================================================================");
-    println("    2-TEK Cex Factory: Cross-Platform Runtime & Version Manager Engine        ");
-    println("                   [Powered by Lighting Fullstack MVC]                         ");
-    println("===============================================================================");
+    TerminalUI::renderHeader("2-TEK Cex Factory", "Cross-Platform Runtime & Version Manager Engine (cex-cli, cex-s, cex-std)");
 
     // 1. Initializing Factory App Kernel
     println("\n[1. Initializing Factory Application Kernel on Port " + std::to_string(CxvmConstants::defaultPort()) + "]");
@@ -177,7 +179,7 @@ fn main(argc: int, argv: char**): int {
         print(" | Size: "); print(sampleArt->sizeBytes); println(" bytes [OK]");
     }
 
-    // 5. Testing Lighting MVC SSR Views & HTTP Endpoints
+    // 5. Testing Lighting MVC & Cex-Service SSR Views & HTTP Endpoints
     println("\n[5. Testing Lighting MVC SSR Views & REST JSON API Endpoints]");
     let homeResp: HttpResponse* = app->simulateRequest("GET", "/", "", "text/html");
     print("  GET / -> Status: "); print(homeResp->statusCode);
@@ -242,10 +244,14 @@ fn main(argc: int, argv: char**): int {
     let lightCreateResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/light/create", "{\"projectName\":\"sample-service\"}", "application/json");
     print("  POST /api/v1/light/create -> "); println(lightCreateResp->body);
 
+    // 6. Testing Cex-Service (cex-s) Dispatch
+    println("\n[6. Testing Cex-Service (cex-s) In-Process Server Dispatch]");
+    let srvRes: PerfectResponse* = app->simulateServiceRequest("GET", "/api/v1/status", "");
+    print("  Service GET /api/v1/status -> Status: "); print(srvRes->statusCode);
+    print(" | Body: "); println(srvRes->body);
+
     app->stop();
-    println("\n===============================================================================");
-    println("      ✓ 2-TEK Cex Factory Fullstack Pipeline Executed Successfully!           ");
-    println("===============================================================================");
+    TerminalUI::renderSuccessBanner("2-TEK Cex Factory Fullstack Pipeline Executed Successfully (cex-cli, cex-s, cex-std)!");
 
     return 0;
 }

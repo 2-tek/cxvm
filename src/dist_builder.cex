@@ -1,0 +1,4 @@
+// 2-TEK Factory: Distribution Builder Forwarder (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "./builder/dist_builder.cex";

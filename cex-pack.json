@@ -35,6 +35,8 @@
     "dependencies": {
         "cex-test": "1.0.0",
         "cex-service": "1.0.0",
+        "cex-s": "1.0.0",
+        "cex-std": "1.0.0",
         "cex-log": "1.0.0",
         "cex-lint": "1.0.0",
         "cex-pack": "1.1.0",

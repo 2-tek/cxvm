@@ -1,4 +1,8 @@
 import json from "json";
+import "@cex-s/src/request.cex";
+import "@cex-s/src/response.cex";
+import "@cex-std/src/filesystem.cex";
+import "@cex-std/src/chrono.cex";
 
 using JsonValue = json_lib::Value;
 
@@ -124,6 +128,15 @@ class HttpRequest {
         }
         return "";
     }
+
+    public toPerfectRequest(): PerfectRequest* {
+        return new PerfectRequest(this.method, this.path, this.body);
+    }
+
+    public static fromPerfectRequest(p: PerfectRequest*): HttpRequest* {
+        let cType: string = p->getHeader("Content-Type");
+        return new HttpRequest(p->method, p->path, p->body, cType);
+    }
 }
 
 class HttpResponse {
@@ -205,6 +218,18 @@ class HttpResponse {
         }
         println("───────────────────────────────────────────────────────────────");
     }
+
+    public toPerfectResponse(): PerfectResponse* {
+        let p: PerfectResponse* = new PerfectResponse();
+        p->status(this.statusCode);
+        p->setHeader("Content-Type", this.contentType);
+        p->body = this.body;
+        return p;
+    }
+
+    public static fromPerfectResponse(p: PerfectResponse*): HttpResponse* {
+        return new HttpResponse(p->statusCode, p->statusText, p->getHeader("Content-Type"), p->body);
+    }
 }
 
 class ViewEngine {
@@ -269,7 +294,7 @@ class BaseModel {
     }
 }
 
-class RouteEntry {
+class LightingRouteEntry {
     public method: string;
     public pattern: string;
     public handlerId: string;
@@ -305,14 +330,14 @@ class RouteEntry {
 }
 
 class LightingRouter {
-    public routes: Array<RouteEntry*>*;
+    public routes: Array<LightingRouteEntry*>*;
 
     public constructor() {
-        this.routes = new Array<RouteEntry*>();
+        this.routes = new Array<LightingRouteEntry*>();
     }
 
     public addRoute(method: string, pattern: string, handlerId: string): void {
-        this.routes->push(new RouteEntry(method, pattern, handlerId));
+        this.routes->push(new LightingRouteEntry(method, pattern, handlerId));
     }
 
     public get(pattern: string, handlerId: string): void {
@@ -331,10 +356,10 @@ class LightingRouter {
         this.addRoute("DELETE", pattern, handlerId);
     }
 
-    public findRoute(req: HttpRequest*): RouteEntry* {
+    public findRoute(req: HttpRequest*): LightingRouteEntry* {
         let count: int = (int)this.routes->length();
         for (let i: int = 0; i < count; i++) {
-            let r: RouteEntry* = this.routes->get(i);
+            let r: LightingRouteEntry* = this.routes->get(i);
             if (r->match(req->method, req->path, req)) {
                 return r;
             }
