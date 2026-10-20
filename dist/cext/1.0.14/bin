@@ -9,6 +9,8 @@ CXVM_DIR="${CXVM_DIR:-$HOME/.cxvm}"
 CEX_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export CEX_HOME="${CEX_HOME:-$(cd "$CEX_BIN_DIR/.." && pwd)}"
 export PATH="$CEX_HOME/bin:$PATH"
+export CEX_IN_TEST_RUN=1
+export CEX_LINT="${CEX_LINT:-0}"
 
 # Resolve cexr-factory runner
 FACTORY_BIN="cexr-factory"
