@@ -1,0 +1,87 @@
+// 2-TEK CXVM: Linux Distribution Subsystem Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+import "@/src/app.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK CXVM: Linux Distribution Subsystem Test Suite                     ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM Linux Distro Tests");
+
+    let cxvm: CxvmEngine* = new CxvmEngine();
+    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
+
+    // 1. Direct Engine Distro Setup
+    let ldSetupRes: CxvmCommandResult* = cxvm->setupLinuxDistro("ubuntu", "24.04");
+    Assert::isTrue(ldSetupRes->success, "setupLinuxDistro succeeds");
+    Assert::isTrue(cxvm->linuxDistroReady, "Linux distro is marked ready");
+    Assert::equalsString("ubuntu", cxvm->linuxDistroName, "Active linux distro is ubuntu");
+    Assert::equalsString("24.04", cxvm->linuxDistroVersion, "Active linux distro version is 24.04");
+
+    // 2. Direct Engine Distro Install
+    let ldInstRes: CxvmCommandResult* = cxvm->installLinuxDistro("ubuntu", "24.04");
+    Assert::isTrue(ldInstRes->success, "installLinuxDistro succeeds");
+    Assert::equalsString("installed", cxvm->linuxDistroStatus, "Linux distro status is installed");
+
+    // 3. Direct Engine Distro Status
+    let ldStatRes: CxvmCommandResult* = cxvm->statusLinuxDistro();
+    Assert::isTrue(ldStatRes->success, "statusLinuxDistro succeeds");
+    Assert::isTrue(ldStatRes->output.find("ubuntu") != -1, "status output reports ubuntu");
+    Assert::isTrue(ldStatRes->output.find("YES [READY]") != -1, "status output reports YES [READY]");
+
+    // 4. Direct Engine Distro Catalog List
+    let ldListRes: CxvmCommandResult* = cxvm->listLinuxDistros();
+    Assert::isTrue(ldListRes->success, "listLinuxDistros succeeds");
+    Assert::isTrue(ldListRes->output.find("ubuntu") != -1, "list output includes ubuntu");
+    Assert::isTrue(ldListRes->output.find("cex-linux") != -1, "list output includes cex-linux");
+
+    // 5. Direct Engine Distro Uninstall
+    let ldUninstRes: CxvmCommandResult* = cxvm->uninstallLinuxDistro("ubuntu");
+    Assert::isTrue(ldUninstRes->success, "uninstallLinuxDistro succeeds");
+    Assert::isTrue(!cxvm->linuxDistroReady, "Linux distro marked not ready after uninstall");
+
+    // 6. CLI cvmExecute routing
+    let execLdInstall: int = cxvm->cvmExecute("linux-distro", "install", "ubuntu");
+    Assert::equalsInt(0, execLdInstall, "cxvm linux-distro install ubuntu returns exit code 0");
+
+    let execLdStatus: int = cxvm->cvmExecute("distro", "status", "");
+    Assert::equalsInt(0, execLdStatus, "cxvm distro status returns exit code 0");
+
+    let execLdList: int = cxvm->cvmExecute("distro", "list", "");
+    Assert::equalsInt(0, execLdList, "cxvm distro list returns exit code 0");
+
+    let execLdUninstall: int = cxvm->cvmExecute("linux-distro", "uninstall", "ubuntu");
+    Assert::equalsInt(0, execLdUninstall, "cxvm linux-distro uninstall ubuntu returns exit code 0");
+
+    // 7. REST API Endpoints
+    let resLdPostInst: HttpResponse* = app->simulateRequest("POST", "/api/v1/linux-distro/install", "{\"name\":\"ubuntu\",\"version\":\"24.04\"}", "application/json");
+    Assert::equalsInt(200, resLdPostInst->statusCode, "POST /api/v1/linux-distro/install returns 200 OK");
+    Assert::isTrue(resLdPostInst->body.find("SUCCESS") != -1, "Install API reports SUCCESS");
+    Assert::isTrue(resLdPostInst->body.find("ubuntu") != -1, "Install API reports ubuntu");
+
+    let resLdGetStat: HttpResponse* = app->simulateRequest("GET", "/api/v1/linux-distro/status", "", "application/json");
+    Assert::equalsInt(200, resLdGetStat->statusCode, "GET /api/v1/linux-distro/status returns 200 OK");
+    Assert::isTrue(resLdGetStat->body.find("ubuntu") != -1, "Status API reports active ubuntu distro");
+
+    let resLdGetList: HttpResponse* = app->simulateRequest("GET", "/api/v1/linux-distro/list", "", "application/json");
+    Assert::equalsInt(200, resLdGetList->statusCode, "GET /api/v1/linux-distro/list returns 200 OK");
+    Assert::isTrue(resLdGetList->body.find("cex-linux") != -1, "List API includes cex-linux");
+
+    let resLdPostUninst: HttpResponse* = app->simulateRequest("POST", "/api/v1/linux-distro/uninstall", "{\"name\":\"ubuntu\"}", "application/json");
+    Assert::equalsInt(200, resLdPostUninst->statusCode, "POST /api/v1/linux-distro/uninstall returns 200 OK");
+    Assert::isTrue(resLdPostUninst->body.find("SUCCESS") != -1, "Uninstall API reports SUCCESS");
+
+    suite->addResult("test_linux_distro_cli_and_api", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

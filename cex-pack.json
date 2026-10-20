@@ -30,7 +30,7 @@
         "start": "cxvm --app cexr-bean src/index.cex",
         "build": "cxvm --app cexr-bean src/index.cex",
         "lint": "cxvm --app cex-lint fix .",
-        "test": "cxvm --app cext run tests/cxvm.test.cex"
+        "test": "cxvm --app cext run tests/install.test.cex"
     },
     "dependencies": {
         "cex-test": "1.0.0",

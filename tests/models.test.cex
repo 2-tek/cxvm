@@ -1,0 +1,67 @@
+// 2-TEK CXVM: Factory Models, Validation & Architecture Matrix Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/models/platform_model.cex";
+import "@/src/models/version_model.cex";
+import "@/src/models/artifact_model.cex";
+import "@/src/dist_builder.cex";
+import "@/src/cxvm_engine.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK CXVM: Models, Validation & Architecture Matrix Test Suite         ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM Models Tests");
+
+    // 1. Factory Models & Schema Validation
+    let pValid: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8", "tar.gz", "Linux x86_64");
+    let valRes1: ModelValidationResult* = pValid->validate();
+    Assert::isTrue(valRes1->isValid, "Valid platform passes validation");
+    Assert::equalsInt(0, valRes1->getErrorCount(), "Valid platform has 0 errors");
+
+    let pInvalid: PlatformModel* = new PlatformModel("invalid", "", "", "", "", "", "");
+    let valRes2: ModelValidationResult* = pInvalid->validate();
+    Assert::isFalse(valRes2->isValid, "Invalid platform fails validation");
+    Assert::isTrue(valRes2->getErrorCount() >= 3, "Invalid platform detects missing OS, arch, triple");
+
+    let vValid: VersionModel* = new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 + CexP v8", "Stable release", true);
+    let vVal: ModelValidationResult* = vValid->validate();
+    Assert::isTrue(vVal->isValid, "Valid version passes validation");
+    Assert::isTrue(vValid->toJson().find("8.0.0") != -1, "Version JSON contains version string");
+
+    let vInvalid: VersionModel* = new VersionModel("8.0.0", "UNKNOWN_CHANNEL", "2026-10-07", "CexR v8 + CexP v8", "Invalid", false);
+    let vValInv: ModelValidationResult* = vInvalid->validate();
+    Assert::isFalse(vValInv->isValid, "Invalid channel fails validation");
+
+    let aValid: ArtifactModel* = new ArtifactModel("cex-v8.0.0-linux-x86_64.tar.gz", "8.0.0", "linux", "x86_64", 2748, "886020858b17f0045dc9e3f5cb795d0b39ff7b73eb7377a7c4c2c4dcf4fd2b60", "/downloads/cex-v8.0.0-linux-x86_64.tar.gz");
+    let aVal: ModelValidationResult* = aValid->validate();
+    Assert::isTrue(aVal->isValid, "Valid artifact passes validation");
+
+    // 2. Cross-Platform Architecture Matrix Invariants
+    let cxvm: CxvmEngine* = new CxvmEngine();
+    Assert::equalsInt(6, (int)cxvm->supportedPlatforms->length(), "cxvm supports 6 target architectures");
+    Assert::isTrue(cxvm->isPlatformSupported("linux-x86_64"), "cxvm recognizes linux-x86_64");
+    Assert::isTrue(cxvm->isPlatformSupported("windows-x64"), "cxvm recognizes windows-x64");
+    Assert::isFalse(cxvm->isPlatformSupported("unknown-os"), "cxvm rejects unknown platform");
+
+    let downRes: CxvmCommandResult* = cxvm->download("8.0.0", "linux-x86_64");
+    Assert::isTrue(downRes->success, "cxvm download succeeds");
+
+    let downAllRes: CxvmCommandResult* = cxvm->downloadAll("8.0.0");
+    Assert::isTrue(downAllRes->success, "cxvm downloadAll succeeds");
+
+    let docOut: string = cxvm->doctor();
+    Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
+
+    suite->addResult("test_models_and_matrix", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

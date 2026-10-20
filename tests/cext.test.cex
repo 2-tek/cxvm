@@ -1,0 +1,45 @@
+// 2-TEK CXVM: C-ext Test Runner Subsystem Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK CXVM: cext Test Runner Subsystem Test Suite                       ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM cext Tests");
+
+    let cxvm: CxvmEngine* = new CxvmEngine();
+
+    // 1. Dispatching to cext via --app
+    let appCextRes: int = cxvm->appExecute("cext", "run", "tests/install.test.cex");
+    Assert::equalsInt(0, appCextRes, "cxvm --app cext run tests/install.test.cex returns 0 OK");
+
+    // 2. CLI Routing cxvm test
+    let execTestRes: int = cxvm->cvmExecute("test", "tests/install.test.cex", "");
+    Assert::equalsInt(0, execTestRes, "cxvm test routes to cxvm --app cext run tests/install.test.cex");
+
+    // 3. CLI Routing cxvm cext
+    let execCextRes: int = cxvm->cvmExecute("cext", "run", "tests/install.test.cex");
+    Assert::equalsInt(0, execCextRes, "cxvm cext run routes to cxvm --app cext");
+
+    // 4. Exact Lib Version Resolution
+    Assert::equalsString(CxvmConstants::cextVersion(), cxvm->resolveLibVersion("cext"), "resolveLibVersion dynamically resolves exact cext version");
+
+    // 5. Binary App Registration Invariants
+    let regCexDirRes: CxvmCommandResult* = cxvm->registerBinaryAppsInCexDir();
+    Assert::isTrue(regCexDirRes->success, "registerBinaryAppsInCexDir succeeds");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cext/" + CxvmConstants::cextVersion() + "/bin") != -1, "register output uses exact version for cext");
+
+    suite->addResult("test_cxvm_cext_operations", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

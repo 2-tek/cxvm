@@ -1,0 +1,61 @@
+// 2-TEK CXVM: Integrated Lighting Fullstack MVC Engine Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+import "@/src/app.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK CXVM: Integrated Lighting Fullstack MVC Test Suite                ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM Lighting Tests");
+
+    let cxvm: CxvmEngine* = new CxvmEngine();
+    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
+
+    // 1. Direct Engine lightCreate
+    let lightCreateRes: CxvmCommandResult* = cxvm->lightCreate("sample-app", ".");
+    Assert::isTrue(lightCreateRes->success, "cxvm lightCreate succeeds");
+    Assert::isTrue(lightCreateRes->output.find("sample-app") != -1, "lightCreate output mentions project name");
+
+    // 2. CLI cvmExecute routing
+    let execLightCreate: int = cxvm->cvmExecute("light", "create", "test-project");
+    Assert::equalsInt(0, execLightCreate, "cxvm light create test-project returns exit code 0");
+
+    let execLightDev: int = cxvm->cvmExecute("light", "dev", "");
+    Assert::equalsInt(0, execLightDev, "cxvm light dev returns exit code 0");
+
+    let execLightingBuild: int = cxvm->cvmExecute("lighting", "build", "");
+    Assert::equalsInt(0, execLightingBuild, "cxvm lighting build returns exit code 0");
+
+    let execLightDoctor: int = cxvm->cvmExecute("light", "doctor", "");
+    Assert::equalsInt(0, execLightDoctor, "cxvm light doctor returns exit code 0");
+
+    // 3. CLI Alias --target (browser || view)
+    let execOpenView: int = cxvm->cvmExecute("open", "http://localhost:3080", "--target=view");
+    Assert::equalsInt(0, execOpenView, "cxvm open url --target=view returns exit code 0");
+
+    let execOpenBrowser: int = cxvm->cvmExecute("open", "http://localhost:3080", "--target=browser");
+    Assert::equalsInt(0, execOpenBrowser, "cxvm open url --target=browser returns exit code 0");
+
+    // 4. REST Endpoints for Lighting Engine
+    let resLightCreate: HttpResponse* = app->simulateRequest("POST", "/api/v1/light/create", "{\"projectName\":\"api-service\"}", "application/json");
+    Assert::equalsInt(200, resLightCreate->statusCode, "POST /api/v1/light/create returns 200 OK");
+    Assert::isTrue(resLightCreate->body.find("SUCCESS") != -1, "Lighting create reports SUCCESS");
+
+    let resLightStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/light/status", "", "application/json");
+    Assert::equalsInt(200, resLightStatus->statusCode, "GET /api/v1/light/status returns 200 OK");
+    Assert::isTrue(resLightStatus->body.find("Lighting") != -1, "Lighting status reports Lighting");
+
+    suite->addResult("test_integrated_lighting_operations", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

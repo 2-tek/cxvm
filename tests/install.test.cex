@@ -1,0 +1,65 @@
+// 2-TEK CXVM: Runtime Installation & Version Switching Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK CXVM: Installation & Version Manager Test Suite                   ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM Install Tests");
+
+    let cxvm: CxvmEngine* = new CxvmEngine();
+
+    // 1. Initial State & Defaults
+    Assert::equalsString("v" + CxvmConstants::defaultVersion(), cxvm->current(), "Initial cxvm state has default version active");
+    Assert::isTrue(cxvm->isVersionInstalled(CxvmConstants::defaultVersion()), "Default version is marked as installed");
+
+    // 2. Install Version 2.0.0
+    let instRes1: CxvmCommandResult* = cxvm->install("2.0.0");
+    Assert::isTrue(instRes1->success, "cxvm install 2.0.0 succeeds");
+    Assert::equalsInt(2, (int)cxvm->installedVersions->length(), "cxvm has 2 installed versions");
+
+    // 3. Version Switching (use)
+    let useRes: CxvmCommandResult* = cxvm->use("2.0.0");
+    Assert::isTrue(useRes->success, "cxvm use 2.0.0 switches active version");
+    Assert::equalsString("v2.0.0", cxvm->current(), "Active version is now v2.0.0");
+
+    // 4. Listing Installed Versions
+    let listOut: string = cxvm->list();
+    Assert::isTrue(listOut.find("-> v2.0.0 (active") != -1, "cxvm list indicates active version with arrow");
+
+    // 5. Uninstall Version
+    let uninstRes: CxvmCommandResult* = cxvm->uninstall("2.0.0");
+    Assert::isTrue(uninstRes->success, "cxvm uninstall 2.0.0 succeeds");
+    Assert::equalsString("v" + CxvmConstants::defaultVersion(), cxvm->current(), "cxvm active version falls back to remaining version");
+
+    // 6. CLI Execution Routing
+    let execInstRes: int = cxvm->cvmExecute("install", CxvmConstants::ltsVersion(), "");
+    Assert::equalsInt(0, execInstRes, "cxvm cvmExecute install LTS returns 0 OK");
+
+    let execUninstRes: int = cxvm->cvmExecute("uninstall", CxvmConstants::ltsVersion(), "");
+    Assert::equalsInt(0, execUninstRes, "cxvm cvmExecute uninstall LTS returns 0 OK");
+
+    let execUseRes: int = cxvm->cvmExecute("use", CxvmConstants::defaultVersion(), "");
+    Assert::equalsInt(0, execUseRes, "cxvm cvmExecute use default version returns 0 OK");
+
+    // 7. Auto Install & Auto Start Output Invariants
+    cxvm->uninstall(CxvmConstants::defaultVersion());
+    let instRes3: CxvmCommandResult* = cxvm->install(CxvmConstants::defaultVersion());
+    Assert::isTrue(instRes3->success, "Install default runtime succeeds");
+    Assert::isTrue(instRes3->output.find("[auto-install] thunder") != -1, "Auto-install thunder reported");
+    Assert::isTrue(instRes3->output.find("[auto-start] thunder") != -1, "Auto-start thunder reported");
+
+    suite->addResult("test_cxvm_install_operations", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

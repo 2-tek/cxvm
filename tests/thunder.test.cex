@@ -1,0 +1,96 @@
+// 2-TEK CXVM: Integrated Thunder Container Engine Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+import "@/src/app.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK CXVM: Integrated Thunder Container Engine Test Suite              ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM Thunder Tests");
+
+    let cxvm: CxvmEngine* = new CxvmEngine();
+    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
+
+    // 1. Start Thunder standalone single process
+    let thStartRes: CxvmCommandResult* = cxvm->startThunder(CxvmConstants::thunderPort(), true);
+    Assert::isTrue(thStartRes->success, "cxvm start thunder succeeds");
+    Assert::isTrue(cxvm->thunderRunning, "Thunder server marked as running");
+    Assert::equalsInt(CxvmConstants::thunderPort(), cxvm->thunderPort, "Thunder server port matches constant");
+    Assert::isTrue(thStartRes->output.find("standalone (single process)") != -1, "Output confirms Thunder standalone single process mode");
+
+    // 2. Status Thunder
+    let thStRes: CxvmCommandResult* = cxvm->statusThunder();
+    Assert::isTrue(thStRes->success, "cxvm status thunder succeeds");
+    Assert::isTrue(thStRes->output.find("single process standalone") != -1, "Status confirms Thunder single process standalone");
+
+    // 3. Stop Thunder
+    let thStopRes: CxvmCommandResult* = cxvm->stopThunder();
+    Assert::isTrue(thStopRes->success, "cxvm stop thunder succeeds");
+    Assert::isTrue(!cxvm->thunderRunning, "Thunder server marked as stopped");
+
+    // 4. CLI cvmExecute routing
+    let thExecStart: int = cxvm->cvmExecute("start", "thunder", "");
+    Assert::equalsInt(0, thExecStart, "cxvm cvmExecute start thunder returns exit code 0");
+    Assert::isTrue(cxvm->thunderRunning, "Thunder running after cvmExecute start thunder");
+
+    let thExecPs: int = cxvm->cvmExecute("thunder", "ps", "");
+    Assert::equalsInt(0, thExecPs, "cxvm cvmExecute thunder ps returns exit code 0");
+
+    let thExecDocker: int = cxvm->cvmExecute("docker", "ps", "");
+    Assert::equalsInt(0, thExecDocker, "cxvm cvmExecute docker ps returns exit code 0");
+
+    // 5. REST Endpoints for Thunder
+    let resThStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/status", "", "application/json");
+    Assert::equalsInt(200, resThStatus->statusCode, "GET /api/v1/thunder/status returns 200 OK");
+    Assert::isTrue(resThStatus->body.find("SUCCESS") != -1, "Thunder status reports SUCCESS");
+
+    let resThSrvStart: HttpResponse* = app->simulateRequest("POST", "/api/v1/thunder/server/start", "", "application/json");
+    Assert::equalsInt(200, resThSrvStart->statusCode, "POST /api/v1/thunder/server/start returns 200 OK");
+    Assert::isTrue(resThSrvStart->body.find("standalone (single process)") != -1, "Thunder server start reports standalone");
+
+    let resThSrvStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/server/status", "", "application/json");
+    Assert::equalsInt(200, resThSrvStatus->statusCode, "GET /api/v1/thunder/server/status returns 200 OK");
+    Assert::isTrue(resThSrvStatus->body.find("RUNNING") != -1, "Thunder server status reports RUNNING");
+
+    let resThContainers: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/containers", "", "application/json");
+    Assert::equalsInt(200, resThContainers->statusCode, "GET /api/v1/thunder/containers returns 200 OK");
+    Assert::isTrue(resThContainers->body.find("containers") != -1, "Thunder containers API reports containers list");
+
+    let resThImages: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/images", "", "application/json");
+    Assert::equalsInt(200, resThImages->statusCode, "GET /api/v1/thunder/images returns 200 OK");
+    Assert::isTrue(resThImages->body.find("images") != -1, "Thunder images API reports images list");
+
+    let resThSrvStop: HttpResponse* = app->simulateRequest("POST", "/api/v1/thunder/server/stop", "", "application/json");
+    Assert::equalsInt(200, resThSrvStop->statusCode, "POST /api/v1/thunder/server/stop returns 200 OK");
+
+    // 6. Virtual Linux Setup in Thunder
+    let vlSetupRes: CxvmCommandResult* = cxvm->setupThunderVirtualLinux(CxvmConstants::defaultVersion());
+    Assert::isTrue(vlSetupRes->success, "setupThunderVirtualLinux succeeds");
+    Assert::isTrue(cxvm->virtualLinuxReady, "Virtual-Linux environment in Thunder is marked ready");
+    Assert::equalsString("6.8.0-cex-thunder-virt", cxvm->virtualLinuxKernel, "Virtual-Linux kernel is 6.8.0-cex-thunder-virt");
+
+    let execThSetup: int = cxvm->cvmExecute("thunder", "setup", "virtual-linux");
+    Assert::equalsInt(0, execThSetup, "cxvm thunder setup virtual-linux returns exit code 0");
+
+    let resVlPost: HttpResponse* = app->simulateRequest("POST", "/api/v1/thunder/virtual-linux/setup", "{\"version\":\"" + CxvmConstants::defaultVersion() + "\"}", "application/json");
+    Assert::equalsInt(200, resVlPost->statusCode, "POST /api/v1/thunder/virtual-linux/setup returns 200 OK");
+    Assert::isTrue(resVlPost->body.find("virtual-linux") != -1, "POST /api/v1/thunder/virtual-linux/setup reports virtual-linux");
+
+    let resVlGet: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/virtual-linux", "", "application/json");
+    Assert::equalsInt(200, resVlGet->statusCode, "GET /api/v1/thunder/virtual-linux returns 200 OK");
+    Assert::isTrue(resVlGet->body.find("\"virtualLinuxReady\":true") != -1, "GET /api/v1/thunder/virtual-linux reports virtualLinuxReady:true");
+
+    suite->addResult("test_integrated_thunder_operations", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

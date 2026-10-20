@@ -5,6 +5,7 @@ import "./types.cex";
 import "./models/version_model.cex";
 import "@cvm-cli/src/cli.cex";
 import "./lighting_mvc.cex";
+import child_process from "child_process";
 
 class CxvmEngine {
     public currentVersion: string;

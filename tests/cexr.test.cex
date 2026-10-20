@@ -1,0 +1,68 @@
+// 2-TEK CXVM: CexR Runtime & Compiler Dispatcher Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("       2-TEK CXVM: CexR Runtime & Editions Test Suite                          ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM CexR Tests");
+
+    let cxvm: CxvmEngine* = new CxvmEngine();
+
+    // 1. Defaults Routing
+    let hookDevDefRes: int = cxvm->cvmExecute("dev", "src/index.cex", "");
+    Assert::equalsInt(0, hookDevDefRes, "cxvm dev defaults to cexr-factory");
+
+    let hookBuildDefRes: int = cxvm->cvmExecute("build", "src/index.cex", "");
+    Assert::equalsInt(0, hookBuildDefRes, "cxvm build defaults to cexr-bean");
+
+    // 2. Specific Edition Routing
+    let hookDevRes: int = cxvm->cvmExecute("dev", "bean", "src/index.cex");
+    Assert::equalsInt(0, hookDevRes, "cxvm dev hooks to cxvm --app cexr bean dev src/index.cex");
+
+    let hookBuildRes: int = cxvm->cvmExecute("build", "bean", "src/index.cex");
+    Assert::equalsInt(0, hookBuildRes, "cxvm build hooks to cxvm --app cexr bean build src/index.cex");
+
+    let hookStartRes: int = cxvm->cvmExecute("start", "bean", "src/index.cex");
+    Assert::equalsInt(0, hookStartRes, "cxvm start hooks to cxvm --app cexr bean start src/index.cex");
+
+    let appCexrRes: int = cxvm->appExecute("cexr", "bean", "dev src/index.cex");
+    Assert::equalsInt(0, appCexrRes, "cxvm --app cexr bean dev src/index.cex returns 0 OK");
+
+    // 3. Compiler hook executions
+    let hookCexpDevRes: int = cxvm->hookCexpExecute("cexr-factory", "dev", "src/index.cex");
+    Assert::equalsInt(0, hookCexpDevRes, "hookCexpExecute cexp --app cexr-factory dev returns 0 OK");
+
+    let hookCexpBuildRes: int = cxvm->hookCexpExecute("cexr-bean", "build", "src/index.cex");
+    Assert::equalsInt(0, hookCexpBuildRes, "hookCexpExecute cexp --app cexr-bean build returns 0 OK");
+
+    let execCexpAppRes: int = cxvm->cvmExecute("cexp", "--app", "cexr-factory");
+    Assert::equalsInt(0, execCexpAppRes, "cxvm cexp --app cexr-factory returns 0 OK");
+
+    // 4. Exact Editions Version Resolution
+    Assert::equalsString(CxvmConstants::cexrVersion(), cxvm->resolveLibVersion("cexr-bean"), "resolveLibVersion resolves cexr-bean");
+    Assert::equalsString(CxvmConstants::cexrVersion(), cxvm->resolveLibVersion("cexr-factory"), "resolveLibVersion resolves cexr-factory");
+
+    // 5. Binary App Registration Invariants
+    let regCexDirRes: CxvmCommandResult* = cxvm->registerBinaryAppsInCexDir();
+    Assert::isTrue(regCexDirRes->success, "registerBinaryAppsInCexDir succeeds");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexp-v8") != -1, "register output contains cexp-v8");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-factory/" + CxvmConstants::cexrVersion() + "/bin") != -1, "register output uses exact version for cexr-factory");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-bean/" + CxvmConstants::cexrVersion() + "/bin") != -1, "register output uses exact version for cexr-bean");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-delivery/" + CxvmConstants::cexrVersion() + "/bin") != -1, "register output uses exact version for cexr-delivery");
+    Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-drawer/" + CxvmConstants::cexrVersion() + "/bin") != -1, "register output uses exact version for cexr-drawer");
+
+    suite->addResult("test_cxvm_cexr_operations", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}
