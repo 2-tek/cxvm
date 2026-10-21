@@ -53,7 +53,7 @@ class DistArtifact {
     public sizeBytes: int;
     public sha256: string;
     public downloadUrl: string;
-    public isBuilt: bool;
+    public isBuilt: bool = false;
 
     public constructor(fname: string, ver: string, plat: string, arch: string, size: int, hash: string, url: string) {
         this.filename = fname;
@@ -63,7 +63,6 @@ class DistArtifact {
         this.sizeBytes = size;
         this.sha256 = hash;
         this.downloadUrl = url;
-        this.isBuilt = false;
     }
 }
 
@@ -84,19 +83,13 @@ class CxvmCommandResult {
 }
 
 class FactoryStats {
-    public totalVersions: int;
-    public supportedPlatforms: int;
-    public totalArtifacts: int;
-    public downloadsDirectory: string;
-    public lastBuildTimestamp: string;
+    public totalVersions: int = 0;
+    public supportedPlatforms: int = 0;
+    public totalArtifacts: int = 0;
+    public downloadsDirectory: string = "cxvm/downloads";
+    public lastBuildTimestamp: string = "2026-10-07T00:00:00Z";
 
-    public constructor() {
-        this.totalVersions = 0;
-        this.supportedPlatforms = 0;
-        this.totalArtifacts = 0;
-        this.downloadsDirectory = "cxvm/downloads";
-        this.lastBuildTimestamp = "2026-10-07T00:00:00Z";
-    }
+    public constructor() {}
 }
 
 class CxvmConstants {

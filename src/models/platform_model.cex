@@ -11,7 +11,7 @@ class PlatformModel extends BaseModel {
     public compiler: string;
     public archiveFormat: string;
     public displayName: string;
-    public isSupported: bool;
+    public isSupported: bool = true;
 
     public constructor(id: string, os: string, arch: string, triple: string, compiler: string, fmt: string, name: string) {
         super(id);
@@ -21,7 +21,6 @@ class PlatformModel extends BaseModel {
         this.compiler = compiler;
         this.archiveFormat = fmt;
         this.displayName = name;
-        this.isSupported = true;
     }
 
     public override validate(): ModelValidationResult* {

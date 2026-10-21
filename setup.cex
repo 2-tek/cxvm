@@ -7,7 +7,7 @@ import "@/src/cxvm_engine.cex";
 
 class SetupRunner {
     public defaultVer: string;
-    public secondaryVer: string;
+    public secondaryVer: string = "6.0.0";
     public cexrExactVersion: string;
 
     public resolveVersion(libName: string, defaultFallback: string): string {
@@ -33,7 +33,6 @@ class SetupRunner {
 
     public constructor() {
         this.defaultVer = this.resolveVersion("cexp-v8", "8.0.0");
-        this.secondaryVer = "6.0.0";
         this.cexrExactVersion = this.resolveVersion("cexr-factory", "1.0.26");
     }
 

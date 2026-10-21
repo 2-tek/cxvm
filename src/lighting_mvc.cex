@@ -85,16 +85,14 @@ class HttpRequest {
     public path: string;
     public body: string;
     public contentType: string;
-    public queryParams: Array<string>*;
-    public pathParams: Array<string>*;
+    public queryParams: Array<string>* = new Array<string>();
+    public pathParams: Array<string>* = new Array<string>();
 
     public constructor(method: string, path: string, body: string, cType: string) {
         this.method = method;
         this.path = path;
         this.body = body;
         this.contentType = cType;
-        this.queryParams = new Array<string>();
-        this.pathParams = new Array<string>();
     }
 
     public addQueryParam(key: string, value: string): void {
@@ -144,16 +142,14 @@ class HttpResponse {
     public statusMessage: string;
     public contentType: string;
     public body: string;
-    public isRedirect: bool;
-    public redirectUrl: string;
+    public isRedirect: bool = false;
+    public redirectUrl: string = "";
 
     public constructor(code: int, msg: string, cType: string, body: string) {
         this.statusCode = code;
         this.statusMessage = msg;
         this.contentType = cType;
         this.body = body;
-        this.isRedirect = false;
-        this.redirectUrl = "";
     }
 
     public static ok(body: string, cType: string): HttpResponse* {
@@ -250,13 +246,10 @@ class ViewEngine {
 }
 
 class ModelValidationResult {
-    public isValid: bool;
-    public errors: Array<string>*;
+    public isValid: bool = true;
+    public errors: Array<string>* = new Array<string>();
 
-    public constructor() {
-        this.isValid = true;
-        this.errors = new Array<string>();
-    }
+    public constructor() {}
 
     public addError(err: string): void {
         this.isValid = false;
@@ -330,11 +323,9 @@ class LightingRouteEntry {
 }
 
 class LightingRouter {
-    public routes: Array<LightingRouteEntry*>*;
+    public routes: Array<LightingRouteEntry*>* = new Array<LightingRouteEntry*>();
 
-    public constructor() {
-        this.routes = new Array<LightingRouteEntry*>();
-    }
+    public constructor() {}
 
     public addRoute(method: string, pattern: string, handlerId: string): void {
         this.routes->push(new LightingRouteEntry(method, pattern, handlerId));

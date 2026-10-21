@@ -20,31 +20,24 @@ import "@cex-std/src/filesystem.cex";
 import "@cex-std/src/chrono.cex";
 
 class FactoryApp {
-    public appName: string;
+    public appName: string = "2-TEK cxvm Engine";
     public port: int;
-    public isRunning: bool;
-    public downloadsDir: string;
-    public service: PerfectApp*;
-    public router: LightingRouter*;
-    public controller: FactoryController*;
+    public isRunning: bool = false;
+    public downloadsDir: string = StdFilesystem::exists("dist") ? "dist" : (StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : (StdFilesystem::exists("downloads") ? "downloads" : "dist"));
+    public service: PerfectApp* = new PerfectApp();
+    public router: LightingRouter* = new LightingRouter();
+    public controller: FactoryController* = new FactoryController();
     public builder: DistBuilder*;
-    public cxvm: CxvmEngine*;
+    public cxvm: CxvmEngine* = new CxvmEngine();
 
     public constructor(port: int) {
-        this.appName = "2-TEK cxvm Engine";
         this.port = port;
-        this.isRunning = false;
-        this.downloadsDir = StdFilesystem::exists("dist") ? "dist" : (StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : (StdFilesystem::exists("downloads") ? "downloads" : "dist"));
 
-        this.service = new PerfectApp();
         this.service->use(new TimingMiddleware());
         this.service->use(new CorsMiddleware("*"));
         this.service->use(new LoggerMiddleware());
 
-        this.router = new LightingRouter();
-        this.controller = new FactoryController();
         this.builder = new DistBuilder(this.downloadsDir);
-        this.cxvm = new CxvmEngine();
 
         // Initialize default runtime with CexR v8 (.cex_boxes Dist Loader Engine)
         let defVer: string = CxvmConstants::defaultVersion();

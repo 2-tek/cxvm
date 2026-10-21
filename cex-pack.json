@@ -11,7 +11,7 @@
     },
     "homepage": "https://github.com/2-tek/cxvm#readme",
     "bugs": "https://github.com/2-tek/cxvm/issues",
-    "runtime": "v8",
+    "runtime": "cexr-factory",
     "target": "runtime",
     "alias": {
         "@": ".",
@@ -22,7 +22,8 @@
         "cexp-v8": "^8",
         "cexp-v8-stable": "^8",
         "cexr-bean": "^1",
-        "cexr-factory": "^1"
+        "cexr-factory": "^1",
+        "cexr": "^8"
     },
     "scripts": {
         "install": "cex-pack downloads",
@@ -44,10 +45,15 @@
         "cex-cli": "1.0.0",
         "cex-cvm-cli": "1.0.0"
     },
-    "includeDirs": ["./src"],
+    "includeDirs": [
+        "./src"
+    ],
     "lint": {
         "onBuild": true,
-        "include": ["src", "tests"],
+        "include": [
+            "src",
+            "tests"
+        ],
         "rules": {
             "indent": {
                 "level": "error",
