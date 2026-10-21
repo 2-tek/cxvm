@@ -1577,9 +1577,9 @@ class CxvmEngine {
         return this.appExecute(app, act, idx);
     }
 
-    public registerBinaryAppsInCexDir(): CxvmCommandResult* {
+    public registerBinAppsInCexDir(): CxvmCommandResult* {
         let cexrExactVersion: string = CxvmConstants::cexrVersion();
-        let msg: string = "[OK] Registered binary apps in CEX_DIR:\n";
+        let msg: string = "[OK] Registered bin apps in CEX_DIR:\n";
         msg += "  - cexp-v8:       CEX_DIR/cexp-v8/" + this.currentVersion + "/bin\n";
         msg += "  - cexr-factory:  CEX_DIR/cexr-factory/" + cexrExactVersion + "/bin\n";
         msg += "  - cexr-bean:     CEX_DIR/cexr-bean/" + cexrExactVersion + "/bin\n";
@@ -1595,7 +1595,11 @@ class CxvmEngine {
         msg += "  - target build:  CXMV_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - integrated:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/" + this.currentVersion + "/bin)\n";
         msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cext, cxvm, javis, vision, ultron, java)\n";
-        return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Binary apps registered in CEX_DIR", msg);
+        return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Bin apps registered in CEX_DIR", msg);
+    }
+
+    public registerBinaryAppsInCexDir(): CxvmCommandResult* {
+        return this.registerBinAppsInCexDir();
     }
 
     private classifyApp(name: string): int {

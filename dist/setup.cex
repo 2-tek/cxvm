@@ -112,7 +112,7 @@ class SetupRunner {
         println("==> Packages Processed: " + std::to_string(builtCount) + " configured, " + std::to_string(cachedCount) + " cached [OK]");
     }
 
-    private registerBinaryApp(cexDir: string, cxvmDir: string, app: string, binSrc: string, ver: string): void {
+    private registerBinApp(cexDir: string, cxvmDir: string, app: string, binSrc: string, ver: string): void {
         if (binSrc.length() > 0 && fs.exists(binSrc)) {
             child_process.execSync("mkdir -p \"" + cexDir + "/" + app + "/" + ver + "\" \"" + cxvmDir + "/" + app + "/" + ver + "\"");
             child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cexDir + "/" + app + "/" + ver + "/bin\"");
@@ -122,6 +122,10 @@ class SetupRunner {
                 child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cxvmDir + "/bin/" + app + "\" 2>/dev/null || true");
             }
         }
+    }
+
+    private registerBinaryApp(cexDir: string, cxvmDir: string, app: string, binSrc: string, ver: string): void {
+        this.registerBinApp(cexDir, cxvmDir, app, binSrc, ver);
     }
 
     public run(): int {
@@ -261,49 +265,49 @@ class SetupRunner {
         child_process.execSync("cp -f \"" + projectDist + "/cex\" \"" + cexDir + "/bin/cex\" 2>/dev/null || true");
         child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cex\" \"" + cexDir + "/bin/cex\" 2>/dev/null || true");
 
-        // Register binary apps with exact version of cexr (1.0.26)
+        // Register bin apps with exact version of cexr (1.0.26)
         let exactCexr: string = this.cexrExactVersion;
         let cexrFactorySrc: string = (fs.exists(curPwd + "/dist/cexr-factory/1.0.26/bin")) ? (curPwd + "/dist/cexr-factory/1.0.26/bin") : ((fs.exists(curPwd + "/cxvm/dist/cexr-factory/1.0.26/bin")) ? (curPwd + "/cxvm/dist/cexr-factory/1.0.26/bin") : (curPwd + "/dist/cexr-factory"));
         let cexrBeanSrc: string = (fs.exists(curPwd + "/dist/cexr-bean/1.0.26/bin")) ? (curPwd + "/dist/cexr-bean/1.0.26/bin") : ((fs.exists(curPwd + "/cxvm/dist/cexr-bean/1.0.26/bin")) ? (curPwd + "/cxvm/dist/cexr-bean/1.0.26/bin") : (curPwd + "/dist/cexr-bean"));
         let cexrDeliverySrc: string = (fs.exists(curPwd + "/dist/cexr-delivery/1.0.26/bin")) ? (curPwd + "/dist/cexr-delivery/1.0.26/bin") : ((fs.exists(curPwd + "/cxvm/dist/cexr-delivery/1.0.26/bin")) ? (curPwd + "/cxvm/dist/cexr-delivery/1.0.26/bin") : (curPwd + "/dist/cexr-delivery"));
         let cexrDrawerSrc: string = (fs.exists(curPwd + "/dist/cexr-drawer/1.0.26/bin")) ? (curPwd + "/dist/cexr-drawer/1.0.26/bin") : ((fs.exists(curPwd + "/cxvm/dist/cexr-drawer/1.0.26/bin")) ? (curPwd + "/cxvm/dist/cexr-drawer/1.0.26/bin") : (curPwd + "/dist/cexr-drawer"));
 
-        this.registerBinaryApp(cexDir, cxvmDir, "cexr-factory", cexrFactorySrc, exactCexr);
-        this.registerBinaryApp(cexDir, cxvmDir, "cexr-bean", cexrBeanSrc, exactCexr);
-        this.registerBinaryApp(cexDir, cxvmDir, "cexr-delivery", cexrDeliverySrc, exactCexr);
-        this.registerBinaryApp(cexDir, cxvmDir, "cexr-drawer", cexrDrawerSrc, exactCexr);
+        this.registerBinApp(cexDir, cxvmDir, "cexr-factory", cexrFactorySrc, exactCexr);
+        this.registerBinApp(cexDir, cxvmDir, "cexr-bean", cexrBeanSrc, exactCexr);
+        this.registerBinApp(cexDir, cxvmDir, "cexr-delivery", cexrDeliverySrc, exactCexr);
+        this.registerBinApp(cexDir, cxvmDir, "cexr-drawer", cexrDrawerSrc, exactCexr);
 
         // Register compiler and tools
         let cexpV8Src: string = fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin") ? (curPwd + "/dist/cexp-v8/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin") : "");
         if (cexpV8Src.length() > 0) {
-            this.registerBinaryApp(cexDir, cxvmDir, "cexp-v8", cexpV8Src, this.defaultVer);
-            this.registerBinaryApp(cexDir, cxvmDir, "cexp", cexpV8Src, this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cexpV8Src, this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp", cexpV8Src, this.defaultVer);
         } else if (fs.exists(cxvmDir + "/bin/cexp")) {
-            this.registerBinaryApp(cexDir, cxvmDir, "cexp-v8", cxvmDir + "/bin/cexp", this.defaultVer);
-            this.registerBinaryApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp", this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cxvmDir + "/bin/cexp", this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp", this.defaultVer);
         }
 
         let cexpV8StableSrc: string = fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/dist/cexp-v8-stable/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") : "");
         if (cexpV8StableSrc.length() > 0) {
-            this.registerBinaryApp(cexDir, cxvmDir, "cexp-v8-stable", cexpV8StableSrc, this.defaultVer);
-            this.registerBinaryApp(cexDir, cxvmDir, "v8-stable", cexpV8StableSrc, this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cexpV8StableSrc, this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cexpV8StableSrc, this.defaultVer);
         }
 
         let packSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") ? (curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") : (fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : ""));
         if (packSrc.length() > 0) {
-            this.registerBinaryApp(cexDir, cxvmDir, "cex-pack", packSrc, "1.0.5");
+            this.registerBinApp(cexDir, cxvmDir, "cex-pack", packSrc, "1.0.5");
         }
         let packBeanSrc: string = fs.exists(curPwd + "/dist/cex-pack-bean/1.0.5/bin") ? (curPwd + "/dist/cex-pack-bean/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack-bean/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack-bean/1.0.5/bin") : "");
         if (packBeanSrc.length() > 0) {
-            this.registerBinaryApp(cexDir, cxvmDir, "cex-pack-bean", packBeanSrc, "1.0.5");
+            this.registerBinApp(cexDir, cxvmDir, "cex-pack-bean", packBeanSrc, "1.0.5");
         }
         let lintSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-lint/bin/cex-lint") ? (curPwd + "/.cex_boxes/cex-lint/bin/cex-lint") : (fs.exists(curPwd + "/dist/cex-lint/1.0.8/bin") ? (curPwd + "/dist/cex-lint/1.0.8/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") ? (curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") : ""));
         if (lintSrc.length() > 0) {
-            this.registerBinaryApp(cexDir, cxvmDir, "cex-lint", lintSrc, "1.0.8");
+            this.registerBinApp(cexDir, cxvmDir, "cex-lint", lintSrc, "1.0.8");
         }
         let cextSrc: string = fs.exists(curPwd + "/dist/cext/1.0.14/bin") ? (curPwd + "/dist/cext/1.0.14/bin") : (fs.exists(curPwd + "/cxvm/dist/cext/1.0.14/bin") ? (curPwd + "/cxvm/dist/cext/1.0.14/bin") : "");
         if (cextSrc.length() > 0) {
-            this.registerBinaryApp(cexDir, cxvmDir, "cext", cextSrc, "1.0.14");
+            this.registerBinApp(cexDir, cxvmDir, "cext", cextSrc, "1.0.14");
         }
 
         // Register Integrated Cognitive AI Models: javis, vision, ultron
@@ -329,11 +333,11 @@ class SetupRunner {
             let visionSrc: string = docsDir + "/bin/vision";
             let cexm2VisionSrc: string = docsDir + "/bin/cexm-2-vision";
 
-            this.registerBinaryApp(cexDir, cxvmDir, "javis", javisSrc, "1.0.0");
-            this.registerBinaryApp(cexDir, cxvmDir, "java", javisSrc, "1.0.0");
-            this.registerBinaryApp(cexDir, cxvmDir, "ultron", ultronSrc, "1.0.0");
-            this.registerBinaryApp(cexDir, cxvmDir, "vision", visionSrc, "2.0.0");
-            this.registerBinaryApp(cexDir, cxvmDir, "cexm-2-vision", cexm2VisionSrc, "2.0.0");
+            this.registerBinApp(cexDir, cxvmDir, "javis", javisSrc, "1.0.0");
+            this.registerBinApp(cexDir, cxvmDir, "java", javisSrc, "1.0.0");
+            this.registerBinApp(cexDir, cxvmDir, "ultron", ultronSrc, "1.0.0");
+            this.registerBinApp(cexDir, cxvmDir, "vision", visionSrc, "2.0.0");
+            this.registerBinApp(cexDir, cxvmDir, "cexm-2-vision", cexm2VisionSrc, "2.0.0");
         }
 
         // Target build integration: CXVM_DIR/cxvm/$version/bin & ./dist/$name-$type/$version/bin
@@ -373,7 +377,7 @@ class SetupRunner {
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmVerDir + "/bin\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmDefDir + "/bin\"");
 
-        this.registerBinaryApp(cexDir, cxvmDir, "cxvm", realCxvmBin, pkgVer);
+        this.registerBinApp(cexDir, cxvmDir, "cxvm", realCxvmBin, pkgVer);
 
         // Configure shell profile
         if (home.length() > 0) {
