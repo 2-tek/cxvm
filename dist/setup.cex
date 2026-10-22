@@ -215,6 +215,21 @@ class SetupRunner {
 
         // Copy / Link cxvm core binaries
         let realCxvmBin: string = fs.exists(nativeDistBin) ? nativeDistBin : (fs.exists("dist/cxvm") ? (curPwd + "/dist/cxvm") : (fs.exists(cxvmDir + "/bin/cxvm") ? (cxvmDir + "/bin/cxvm") : ""));
+        let isDarwin: bool = false;
+        try {
+            let uOut: string = child_process.execSync("uname -s 2>/dev/null | tr -d '\\n'");
+            if (uOut == "Darwin") isDarwin = true;
+        } catch (...) {}
+
+        if (isDarwin && realCxvmBin.length() > 0 && fs.exists(realCxvmBin)) {
+            try {
+                let fOut: string = child_process.execSync("file \"" + realCxvmBin + "\" 2>/dev/null");
+                if (fOut.find("ELF") != std::string::npos && fs.exists(curPwd + "/dist/cxvm.sh")) {
+                    realCxvmBin = curPwd + "/dist/cxvm.sh";
+                }
+            } catch (...) {}
+        }
+
         if (realCxvmBin.length() > 0 && fs.exists(realCxvmBin)) {
             child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + cxvmDir + "/bin/cxvm\"");
             child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + cexDir + "/bin/cxvm\"");
@@ -273,6 +288,21 @@ class SetupRunner {
         let cexrBeanSrc: string = (fs.exists(curPwd + "/dist/cexr-bean/1.0.26/bin")) ? (curPwd + "/dist/cexr-bean/1.0.26/bin") : ((fs.exists(curPwd + "/cxvm/dist/cexr-bean/1.0.26/bin")) ? (curPwd + "/cxvm/dist/cexr-bean/1.0.26/bin") : (curPwd + "/dist/cexr-bean"));
         let cexrDeliverySrc: string = (fs.exists(curPwd + "/dist/cexr-delivery/1.0.26/bin")) ? (curPwd + "/dist/cexr-delivery/1.0.26/bin") : ((fs.exists(curPwd + "/cxvm/dist/cexr-delivery/1.0.26/bin")) ? (curPwd + "/cxvm/dist/cexr-delivery/1.0.26/bin") : (curPwd + "/dist/cexr-delivery"));
         let cexrDrawerSrc: string = (fs.exists(curPwd + "/dist/cexr-drawer/1.0.26/bin")) ? (curPwd + "/dist/cexr-drawer/1.0.26/bin") : ((fs.exists(curPwd + "/cxvm/dist/cexr-drawer/1.0.26/bin")) ? (curPwd + "/cxvm/dist/cexr-drawer/1.0.26/bin") : (curPwd + "/dist/cexr-drawer"));
+
+        if (isDarwin) {
+            let darwinCexr: string = fs.exists(cexDir + "/bin/8.0.0/cexr") ? (cexDir + "/bin/8.0.0/cexr") : (curPwd + "/dist/cexr");
+            if (fs.exists(cexrFactorySrc)) {
+                try {
+                    let fOut: string = child_process.execSync("file \"" + cexrFactorySrc + "\" 2>/dev/null");
+                    if (fOut.find("ELF") != std::string::npos && fs.exists(darwinCexr)) {
+                        cexrFactorySrc = darwinCexr;
+                        cexrBeanSrc = darwinCexr;
+                        cexrDeliverySrc = darwinCexr;
+                        cexrDrawerSrc = darwinCexr;
+                    }
+                } catch (...) {}
+            }
+        }
 
         this.registerBinApp(cexDir, cxvmDir, "cexr-factory", cexrFactorySrc, exactCexr);
         this.registerBinApp(cexDir, cxvmDir, "cexr-bean", cexrBeanSrc, exactCexr);
