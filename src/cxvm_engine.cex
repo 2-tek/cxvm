@@ -670,7 +670,7 @@ class CxvmEngine {
         outMsg += "  Registered Apps:     CEX_DIR registered binary apps (cexp-v8, cexp-v8-stable, cexr-factory, cexr-bean, cex-pack, cex-lint, cext, javis, vision, ultron)\n";
         outMsg += "  AI Models in PATH:   javis (alias: java), vision, ultron integrated into $CXVM_DIR/bin & $CEX_DIR/bin [OK]\n";
         outMsg += "  Target Build cxvm:   CXMV_DIR/cxvm/$version/bin (CXVM_DIR/cxvm/$version/bin)\n";
-        outMsg += "  Integrated Build:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/2.0.0/bin)\n";
+        outMsg += "  Integrated Build:    {rootProjectPath}/.bin (./.bin)\n";
         outMsg += "  Package Store:       .cex_boxes/ (pure .cex_boxes only, zero deps)\n";
         outMsg += "  Hook Dispatcher:     cexp --app $appName action (short command: dev, build, start, test -> cxvm --app cext)\n";
         outMsg += "  CVM Subsystem:       cvm commit, cvm push, cvm status integrated [OK]\n";
@@ -1506,26 +1506,7 @@ class CxvmEngine {
         let appName: string = (vType.find("cexr-") == 0) ? vType : "cexr-" + vType;
         println("==> [cxvm " + action + "] Hook -> cexp --app " + appName + " " + action + " " + idx);
         if (action == "build" || action == "compile") {
-            let pkgName: string = "cxvm";
-            let pkgVer: string = "2.0.0";
-            if (fs.exists("cex-pack.json")) {
-                let mfContent: string = fs.readFile("cex-pack.json");
-                let parsed: JsonValue* = JsonDoc::parse(mfContent);
-                if (parsed != nullptr && parsed->has("name")) {
-                    let pName: string = parsed->get("name")->asString();
-                    let sPos: int = (int)pName.find("/");
-                    if (sPos != -1) {
-                        pkgName = pName.substr(sPos + 1);
-                    } else {
-                        pkgName = pName;
-                    }
-                }
-                if (parsed != nullptr && parsed->has("version")) {
-                    pkgVer = parsed->get("version")->asString();
-                }
-            }
-            let distDir: string = "./dist/" + pkgName + "-" + vType + "/" + pkgVer + "/bin";
-            println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
+            println("[OK] [cxvm build] Target integrated binary built into: {rootProjectPath}/.bin (./.bin)");
         }
         return this.appExecute(appName, action, idx);
     }
@@ -1536,9 +1517,7 @@ class CxvmEngine {
         let idx: string = targetIndex.length() == 0 ? "src/index.cex" : targetIndex;
         println("==> [cxvm " + act + "] Hook -> cexp --app " + app + " " + act + " " + idx);
         if (act == "build" || act == "compile") {
-            let vType: string = (app.find("cexr-") == 0) ? app.substr(5) : this.defaultBuildEdition;
-            let distDir: string = "./dist/cxvm-" + vType + "/" + this.currentVersion + "/bin";
-            println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
+            println("[OK] [cxvm build] Target integrated binary built into: {rootProjectPath}/.bin (./.bin)");
         }
         return this.appExecute(app, act, idx);
     }
@@ -1559,7 +1538,7 @@ class CxvmEngine {
         msg += "  - ultron:        CEX_DIR/bin/ultron (AI Affective & Emotion Computing)\n";
         msg += "  - cxvm:          CXVM_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - target build:  CXMV_DIR/cxvm/" + this.currentVersion + "/bin\n";
-        msg += "  - integrated:    ./dist/$name-$type/$version/bin (./dist/cxvm-bean/" + this.currentVersion + "/bin)\n";
+        msg += "  - integrated:    {rootProjectPath}/.bin (./.bin)\n";
         msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cext, cxvm, javis, vision, ultron, java)\n";
         return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Bin apps registered in CEX_DIR", msg);
     }
@@ -1629,39 +1608,18 @@ class CxvmEngine {
                 let vType: string = (name.find("cexr-") == 0) ? name.substr(5) : ((subCmd == "build" || subCmd == "compile") ? this.defaultBuildEdition : (subCmd == "run" || subCmd == "dev" || subCmd.length() == 0 ? this.defaultCexrEdition : subCmd));
                 let targetSpec: string = manifestFile.length() == 0 ? CxvmConstants::entrypoint() : manifestFile;
                 if (subCmd == "build" || subCmd == "compile") {
-                    let pkgName: string = "cxvm";
-                    let pkgVer: string = CxvmConstants::cxvmVersion();
-                    if (fs.exists(CxvmConstants::manifestFile())) {
-                        let mfContent: string = fs.readFile(CxvmConstants::manifestFile());
-                        let parsed: JsonValue* = JsonDoc::parse(mfContent);
-                        if (parsed != nullptr && parsed->has("name")) {
-                            let pName: string = parsed->get("name")->asString();
-                            let sPos: int = (int)pName.find("/");
-                            if (sPos != -1) {
-                                pkgName = pName.substr(sPos + 1);
-                            } else {
-                                pkgName = pName;
-                            }
-                        }
-                        if (parsed != nullptr && parsed->has("version")) {
-                            pkgVer = parsed->get("version")->asString();
-                        }
-                    }
-                    let distDir: string = "./dist/" + pkgName + "-" + vType + "/" + pkgVer + "/bin";
-                    println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
-                    println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Compiled target index (" + targetSpec + ") to " + distDir + " (target build: CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
+                    println("[OK] [cxvm build] Target integrated binary built into: {rootProjectPath}/.bin (./.bin)");
+                    println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Compiled target index (" + targetSpec + ") to {rootProjectPath}/.bin (./.bin)");
                     return 0;
                 }
                 println("[OK] [cexr " + vType + " (cexr-" + vType + ")] Executed target index (" + targetSpec + ") via CexR v" + this.currentVersion + " runtime (registered in CEX_DIR)");
                 return 0;
             }
             case 4: {
-                let pkgType: string = this.defaultBuildEdition;
-                let distDir: string = "./dist/cxvm-" + pkgType + "/" + this.currentVersion + "/bin";
                 if (subCmd == "build" || subCmd == "compile") {
-                    println("[OK] [cxvm build] Target integrated binary built into: ./dist/$name-$type/$version/bin (" + distDir + ")");
+                    println("[OK] [cxvm build] Target integrated binary built into: {rootProjectPath}/.bin (./.bin)");
                 }
-                println("[OK] [cxvm] Target build output located at " + distDir + " (CXVM_DIR/cxvm/" + this.currentVersion + "/bin, CXMV_DIR/cxvm/" + this.currentVersion + "/bin)");
+                println("[OK] [cxvm] Target build output located at {rootProjectPath}/.bin (./.bin)");
                 return 0;
             }
             case 5: {
@@ -1901,7 +1859,7 @@ class CxvmEngine {
             }
             case 4: {
                 println("==> [cxvm lighting] Compiling Lighting MVC project with cexp native compiler..");
-                println("[OK] [cxvm lighting] Production binary built successfully in dist/");
+                println("[OK] [cxvm lighting] Production binary built successfully in {rootProjectPath}/.bin (./.bin)");
                 return 0;
             }
             case 5: {
