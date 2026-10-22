@@ -42,6 +42,8 @@ bin/*
 *.bin
 *.out
 # Rule 69: target is runtime, do not use .gitignore for dist bundle file (keep dist/ with download of cxvm cross platforms)
+dist/cxvm-*/
+dist/*-*/
 
 # Modular box cache (.cex_boxes & cex_boxes)
 .cex_boxes
