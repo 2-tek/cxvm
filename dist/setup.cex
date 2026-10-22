@@ -7,7 +7,7 @@ import "@/src/cxvm_engine.cex";
 
 class SetupRunner {
     public defaultVer: string;
-    public secondaryVer: string;
+    public secondaryVer: string = "6.0.0";
     public cexrExactVersion: string;
 
     public resolveVersion(libName: string, defaultFallback: string): string {
@@ -32,8 +32,7 @@ class SetupRunner {
     }
 
     public constructor() {
-        this.defaultVer = this.resolveVersion("cexp-v8", "8.0.0");
-        this.secondaryVer = "6.0.0";
+        this.defaultVer = this.resolveVersion("cexp-v8-stable", "8.0.0");
         this.cexrExactVersion = this.resolveVersion("cexr-factory", "1.0.26");
     }
 
@@ -120,6 +119,9 @@ class SetupRunner {
             child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cexDir + "/bin/" + app + "\" 2>/dev/null || true");
             if (app != "cxvm") {
                 child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cxvmDir + "/bin/" + app + "\" 2>/dev/null || true");
+            }
+            if (fs.exists(cxvmDir + "/current/bin")) {
+                child_process.execSync("ln -sf \"" + binSrc + "\" \"" + cxvmDir + "/current/bin/" + app + "\" 2>/dev/null || true");
             }
         }
     }
@@ -252,8 +254,8 @@ class SetupRunner {
             child_process.execSync("chmod +x \"" + projectDist + "/cxvm.sh\"");
         }
 
-        // Local ./dist/cexr
-        let cexrDispatcher: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nif [ \"$1\" = \"v6\" ] || [ \"$1\" = \"6.0.0\" ]; then\n  shift\n  if [ -x \"$CXVM_DIR/bin/6.0.0/cexr\" ]; then\n    exec \"$CXVM_DIR/bin/6.0.0/cexr\" \"$@\"\n  fi\nfi\nif [ \"$1\" = \"v8\" ] || [ \"$1\" = \"8.0.0\" ]; then\n  shift\n  if [ -x \"$CXVM_DIR/bin/8.0.0/cexr\" ]; then\n    exec \"$CXVM_DIR/bin/8.0.0/cexr\" \"$@\"\n  fi\nfi\nif [ -x \"$CXVM_DIR/bin/cexr\" ]; then\n  exec \"$CXVM_DIR/bin/cexr\" \"$@\"\nfi\nif [ -x \"$CXVM_DIR/current/bin/cexr\" ]; then\n  exec \"$CXVM_DIR/current/bin/cexr\" \"$@\"\nfi\necho \"[ERROR] cexr not found. Run setup.cex first.\"\nexit 1\n";
+        // Local ./dist/cexr (defaults to cexr-factory)
+        let cexrDispatcher: string = "#!/usr/bin/env bash\nCXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\nif [ \"$1\" = \"v6\" ] || [ \"$1\" = \"6.0.0\" ]; then\n  shift\n  if [ -x \"$CXVM_DIR/bin/6.0.0/cexr\" ]; then\n    exec \"$CXVM_DIR/bin/6.0.0/cexr\" \"$@\"\n  elif [ -x \"$CXVM_DIR/bin/cexr-bean\" ]; then\n    exec \"$CXVM_DIR/bin/cexr-bean\" \"$@\"\n  fi\nfi\nif [ \"$1\" = \"v8\" ] || [ \"$1\" = \"8.0.0\" ]; then\n  shift\n  if [ -x \"$CXVM_DIR/bin/cexr-factory\" ]; then\n    exec \"$CXVM_DIR/bin/cexr-factory\" \"$@\"\n  elif [ -x \"$CXVM_DIR/bin/8.0.0/cexr\" ]; then\n    exec \"$CXVM_DIR/bin/8.0.0/cexr\" \"$@\"\n  fi\nfi\nif [ -x \"$CXVM_DIR/bin/cexr-factory\" ]; then\n  exec \"$CXVM_DIR/bin/cexr-factory\" \"$@\"\nfi\nif [ -x \"$CXVM_DIR/current/bin/cexr-factory\" ]; then\n  exec \"$CXVM_DIR/current/bin/cexr-factory\" \"$@\"\nfi\nif [ -x \"$CXVM_DIR/bin/cexr\" ]; then\n  exec \"$CXVM_DIR/bin/cexr\" \"$@\"\nfi\nif [ -x \"$CXVM_DIR/current/bin/cexr\" ]; then\n  exec \"$CXVM_DIR/current/bin/cexr\" \"$@\"\nfi\necho \"[ERROR] cexr-factory not found. Run setup.cex first.\"\nexit 1\n";
         fs.writeFile(projectDist + "/cexr", cexrDispatcher);
         child_process.execSync("chmod +x \"" + projectDist + "/cexr\"");
 
@@ -277,20 +279,29 @@ class SetupRunner {
         this.registerBinApp(cexDir, cxvmDir, "cexr-delivery", cexrDeliverySrc, exactCexr);
         this.registerBinApp(cexDir, cxvmDir, "cexr-drawer", cexrDrawerSrc, exactCexr);
 
-        // Register compiler and tools
+        // cexr defaults to cexr-factory
+        this.registerBinApp(cexDir, cxvmDir, "cexr", cexrFactorySrc, exactCexr);
+
+        // Register compiler and tools: cexp is cexp-v8-stable
+        let cexpV8StableSrc: string = fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/dist/cexp-v8-stable/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") : "");
         let cexpV8Src: string = fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin") ? (curPwd + "/dist/cexp-v8/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin") : "");
-        if (cexpV8Src.length() > 0) {
-            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cexpV8Src, this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "cexp", cexpV8Src, this.defaultVer);
+        let cexpTargetSrc: string = cexpV8StableSrc.length() > 0 ? cexpV8StableSrc : cexpV8Src;
+
+        if (cexpTargetSrc.length() > 0) {
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cexpTargetSrc, this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cexpTargetSrc, this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cexpTargetSrc, this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp", cexpTargetSrc, this.defaultVer);
+        } else if (fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
         } else if (fs.exists(cxvmDir + "/bin/cexp")) {
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cxvmDir + "/bin/cexp", this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cxvmDir + "/bin/cexp", this.defaultVer);
             this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cxvmDir + "/bin/cexp", this.defaultVer);
             this.registerBinApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp", this.defaultVer);
-        }
-
-        let cexpV8StableSrc: string = fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/dist/cexp-v8-stable/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") : "");
-        if (cexpV8StableSrc.length() > 0) {
-            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cexpV8StableSrc, this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cexpV8StableSrc, this.defaultVer);
         }
 
         let packSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") ? (curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") : (fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : ""));
@@ -372,6 +383,7 @@ class SetupRunner {
         if (fs.exists(curPwd + "/dist/cxvm")) {
             realCxvmBin = curPwd + "/dist/cxvm";
         }
+        child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + curPwd + "/.bin\" 2>/dev/null || true");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + targetDir + "/bin\"");
         child_process.execSync("ln -sf \"../../cxvm\" \"" + distTargetDir + "/bin\"");
         child_process.execSync("ln -sf \"" + realCxvmBin + "\" \"" + cxvmVerDir + "/bin\"");
@@ -406,7 +418,7 @@ class SetupRunner {
         this.setupDeps(curPwd, cexDir, cxvmDir);
 
         // Install Git pre-push hook for automated dist build before push
-        let prePushContent: string = "#!/usr/bin/env bash\n# 2-TEK CXVM: Auto build to dist before push code (pre-push hook)\n# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)\nset -e\n\necho \"==> [git pre-push hook] Auto-building to dist before push...\"\n\nREPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"\n\nif [ -x \"$REPO_ROOT/dist/cxvm\" ]; then\n  \"$REPO_ROOT/dist/cxvm\" build || true\nelif [ -f \"$REPO_ROOT/dist/cxvm\" ]; then\n  bash \"$REPO_ROOT/dist/cxvm\" build || true\nelif [ -x \"$REPO_ROOT/bin/cxvm\" ]; then\n  \"$REPO_ROOT/bin/cxvm\" build || true\nelif [ -f \"$REPO_ROOT/bin/cxvm\" ]; then\n  bash \"$REPO_ROOT/bin/cxvm\" build || true\nelif [ -n \"$CXVM_DIR\" ] && [ -x \"$CXVM_DIR/bin/cxvm\" ]; then\n  \"$CXVM_DIR/bin/cxvm\" build || true\nelif [ -x \"$HOME/.cxvm/bin/cxvm\" ]; then\n  \"$HOME/.cxvm/bin/cxvm\" build || true\nelif command -v cxvm >/dev/null 2>&1; then\n  cxvm build || true\nfi\n\necho \"[OK] [git pre-push hook] Auto-build to dist completed before push.\"\nexit 0\n";
+        let prePushContent: string = "#!/usr/bin/env bash\n# 2-TEK CXVM: Auto build to .bin before push code (pre-push hook)\n# Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)\nset -e\n\necho \"==> [git pre-push hook] Auto-building to .bin before push...\"\n\nREPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"\n\nif [ -x \"$REPO_ROOT/.bin\" ]; then\n  \"$REPO_ROOT/.bin\" build || true\nelif [ -x \"$REPO_ROOT/dist/cxvm\" ]; then\n  \"$REPO_ROOT/dist/cxvm\" build || true\nelif [ -f \"$REPO_ROOT/dist/cxvm\" ]; then\n  bash \"$REPO_ROOT/dist/cxvm\" build || true\nelif [ -x \"$REPO_ROOT/bin/cxvm\" ]; then\n  \"$REPO_ROOT/bin/cxvm\" build || true\nelif [ -f \"$REPO_ROOT/bin/cxvm\" ]; then\n  bash \"$REPO_ROOT/bin/cxvm\" build || true\nelif [ -n \"$CXVM_DIR\" ] && [ -x \"$CXVM_DIR/bin/cxvm\" ]; then\n  \"$CXVM_DIR/bin/cxvm\" build || true\nelif [ -x \"$HOME/.cxvm/bin/cxvm\" ]; then\n  \"$HOME/.cxvm/bin/cxvm\" build || true\nelif command -v cxvm >/dev/null 2>&1; then\n  cxvm build || true\nfi\n\necho \"[OK] [git pre-push hook] Auto-build to .bin completed before push.\"\nexit 0\n";
 
         let gitHooksDir: string = child_process.execSync("git rev-parse --git-path hooks 2>/dev/null | tr -d '\\n'");
         if (gitHooksDir.length() > 0) {
@@ -426,10 +438,10 @@ class SetupRunner {
         println("  CXVM Directory:    " + cxvmDir + " (alias: " + cxmvDir + ")");
         println("  cxvm Binary:       " + cxvmDir + "/bin/cxvm [READY]");
         println("  cexr Exact Version:" + this.cexrExactVersion + " (Reserve Path: CEX_DIR/cexr-factory/" + this.cexrExactVersion + "/bin)");
-        println("  Integrated Build:  " + distTargetDir + "/bin (./dist/$name-$type/$version/bin)");
+        println("  Integrated Build:  {rootProjectPath}/.bin (./.bin)");
         println("  Target Build cxvm: " + cxvmDir + "/cxvm/$version/bin (alias: CXMV_DIR/cxvm/$version/bin)");
         println("  Package Store:     " + curPwd + "/.cex_boxes (pure .cex_boxes only, zero deps)");
-        println("  Git Pre-Push Hook: .git/hooks/pre-push (auto-build to dist before push) [OK]");
+        println("  Git Pre-Push Hook: .git/hooks/pre-push (auto-build to .bin before push) [OK]");
         println("  Active Runtime:    CexR v" + this.defaultVer + " (Default)");
         println("  Secondary Runtime: CexR v" + this.secondaryVer + " (LTS)");
         println("  AI Models in PATH: javis (alias: java), vision, ultron integrated into $CXVM_DIR/bin & $CEX_DIR/bin [OK]");
