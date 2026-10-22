@@ -1710,6 +1710,17 @@ _cxvm_run_app() {
   return 1
 }
 
+_cxvm_run_resetup() {
+  echo "==============================================================="
+  echo "     CXVM Cross-Platform Resetup & Reconfiguration           "
+  echo "==============================================================="
+  echo "==> Cleaning previous runtime links and resetting environment..."
+  rm -f "$CXVM_DIR/current" 2>/dev/null || true
+  rm -f "$CXVM_DIR/bin/cexr" "$CXVM_DIR/bin/cexp" "$CXVM_DIR/bin/cex" 2>/dev/null || true
+  rm -f "$CXVM_DIR/default-cexr-edition" "$CXVM_DIR/default-cexr-build-edition" 2>/dev/null || true
+  cxvm setup "$@"
+}
+
 # -----------------------------------------------------------------------------
 # Integrated CodeVersionManager (CVM) Runner
 # -----------------------------------------------------------------------------
@@ -1761,6 +1772,19 @@ _cxvm_run_cvm() {
 
   # 3. If cvm binary is found and node is available, execute cvm
   if [ -n "$cvm_bin" ] && command -v node >/dev/null 2>&1; then
+    if [ "$cvm_cmd" = "pull" ]; then
+      local pull_rc=0
+      if [ -x "$cvm_bin" ]; then
+        "$cvm_bin" "$cvm_cmd" "$@" || pull_rc=$?
+      else
+        node "$cvm_bin" "$cvm_cmd" "$@" || pull_rc=$?
+      fi
+      if [ $pull_rc -eq 0 ]; then
+        echo "==> [cxvm pull] Triggering automatic resetup after code pull..."
+        _cxvm_run_resetup
+      fi
+      return $pull_rc
+    fi
     if [ -x "$cvm_bin" ]; then
       "$cvm_bin" "$cvm_cmd" "$@"
       return $?
@@ -1781,6 +1805,12 @@ _cxvm_run_cvm() {
         ;;
       pull)
         git pull "$@"
+        local pull_rc=$?
+        if [ $pull_rc -eq 0 ]; then
+          echo "==> [cxvm pull] Triggering automatic resetup after code pull..."
+          _cxvm_run_resetup
+        fi
+        return $pull_rc
         ;;
       status)
         git status "$@"
