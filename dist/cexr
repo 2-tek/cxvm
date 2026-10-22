@@ -4,13 +4,23 @@ if [ "$1" = "v6" ] || [ "$1" = "6.0.0" ]; then
   shift
   if [ -x "$CXVM_DIR/bin/6.0.0/cexr" ]; then
     exec "$CXVM_DIR/bin/6.0.0/cexr" "$@"
+  elif [ -x "$CXVM_DIR/bin/cexr-bean" ]; then
+    exec "$CXVM_DIR/bin/cexr-bean" "$@"
   fi
 fi
 if [ "$1" = "v8" ] || [ "$1" = "8.0.0" ]; then
   shift
-  if [ -x "$CXVM_DIR/bin/8.0.0/cexr" ]; then
+  if [ -x "$CXVM_DIR/bin/cexr-factory" ]; then
+    exec "$CXVM_DIR/bin/cexr-factory" "$@"
+  elif [ -x "$CXVM_DIR/bin/8.0.0/cexr" ]; then
     exec "$CXVM_DIR/bin/8.0.0/cexr" "$@"
   fi
+fi
+if [ -x "$CXVM_DIR/bin/cexr-factory" ]; then
+  exec "$CXVM_DIR/bin/cexr-factory" "$@"
+fi
+if [ -x "$CXVM_DIR/current/bin/cexr-factory" ]; then
+  exec "$CXVM_DIR/current/bin/cexr-factory" "$@"
 fi
 if [ -x "$CXVM_DIR/bin/cexr" ]; then
   exec "$CXVM_DIR/bin/cexr" "$@"
@@ -18,5 +28,5 @@ fi
 if [ -x "$CXVM_DIR/current/bin/cexr" ]; then
   exec "$CXVM_DIR/current/bin/cexr" "$@"
 fi
-echo "[ERROR] cexr not found. Run setup.cex first."
+echo "[ERROR] cexr-factory not found. Run setup.cex first."
 exit 1
