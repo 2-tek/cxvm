@@ -440,6 +440,25 @@ function Run-Cvm {
         Write-Host "==> [cxvm] Auto-building to dist before push..." -ForegroundColor Cyan
         Invoke-HookCexr -HookCmd "build"
     }
+    if ($CvmCmd -eq "pull") {
+        if ($cvmBin) {
+            & $cvmBin $CvmCmd @CvmArgs
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "==> [cxvm pull] Triggering automatic resetup after code pull..." -ForegroundColor Cyan
+                & $PSCommandPath resetup
+            }
+            return
+        }
+        if (Get-Command "git" -ErrorAction SilentlyContinue) {
+            & git pull @CvmArgs
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "==> [cxvm pull] Triggering automatic resetup after code pull..." -ForegroundColor Cyan
+                & $PSCommandPath resetup
+            }
+            return
+        }
+    }
+
     if ($cvmBin) {
         & $cvmBin $CvmCmd @CvmArgs
         return
@@ -692,7 +711,7 @@ switch ($Command) {
                 Write-Host "  [Step 1] Resolving Image:     $distro ($distro-v$dVer-x86_64.iso / rootfs bundle)"
                 Write-Host "  [Step 2] Unpacking Rootfs:    $cxvmHome\distros\$distro (128 MB rootfs, 420 entries)"
                 Write-Host "  [Step 3] Deploying Runtimes:  CexR v8 (cexr-factory 1.0.26), CexR v8 build (cexr-bean 1.0.26)"
-                Write-Host "  [Step 4] Toolchain Links:     /bin/cexsh, /bin/cexr, /bin/cexp-v8, /bin/cxvm"
+                Write-Host "  [Step 4] Toolchain Links:     /bin/cexsh, /bin/cexr, /bin/cexp-v8-stable, /bin/cxvm"
                 Write-Host "  [Step 5] Registering Distro:  $distro registered in CXVM distro catalog"
                 Write-Host "  Status:                       LINUX-DISTRO INSTALL COMPLETE [OK]" -ForegroundColor Green
                 New-Item -ItemType Directory -Force -Path (Join-Path $cxvmHome "distros\$distro") | Out-Null
@@ -714,8 +733,8 @@ switch ($Command) {
                 Write-Host "  [Step 1] Target Distro:        $distro (v$dVer, x86_64-unknown-linux-gnu)"
                 Write-Host "  [Step 2] Kernel Release:      6.8.0-cex-rt (Microkernel PID 1 CexInit, x86_64-cex-virt)"
                 Write-Host "  [Step 3] Rootfs & VFS:         $cxvmHome\distros\$distro (overlayfs, procfs, sysfs, cgroup2, tmpfs)"
-                Write-Host "  [Step 4] Runtime & Compiler:   CexR v8 (factory 1.0.26) + CexP v8 (8.0.0) machine compiler"
-                Write-Host "  [Step 5] Versioned Binaries:   CEX_DIR/cexp-v8/8.0.0/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin"
+                Write-Host "  [Step 4] Runtime & Compiler:   CexR v8 (factory 1.0.26) + CexP v8 (cexp-v8-stable) machine compiler"
+                Write-Host "  [Step 5] Versioned Binaries:   CEX_DIR/cexp-v8-stable/8.0.0/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin"
                 Write-Host "  [Step 6] Distro Shell:         cexsh (/bin/cexsh) & CexView Terminal UI (ready)"
                 Write-Host "  [Step 7] Diagnostic:           HEALTHY [OK]"
                 Write-Host "  Status:                        LINUX-DISTRO SETUP COMPLETE [OK]" -ForegroundColor Green
@@ -1199,6 +1218,20 @@ echo CexR Windows Runner ready.
             Write-Host "==> Setup complete! Active default: v8.0.0 (v6.0.0 ready)" -ForegroundColor Green
         }
     }
+    "resetup" {
+        Write-Host "===============================================================" -ForegroundColor Cyan
+        Write-Host "     CXVM Cross-Platform Resetup & Reconfiguration           " -ForegroundColor Cyan
+        Write-Host "===============================================================" -ForegroundColor Cyan
+        Write-Host "==> Cleaning previous runtime links and resetting environment..."
+        $currentLink = Join-Path $cxvmHome "current"
+        if (Test-Path $currentLink) { Remove-Item $currentLink -Force -Recurse -ErrorAction SilentlyContinue }
+        Remove-Item (Join-Path $cxvmHome "bin\cexr.cmd") -Force -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $cxvmHome "bin\cexp.cmd") -Force -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $cxvmHome "bin\cex.cmd") -Force -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $cxvmHome "default-cexr-edition") -Force -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $cxvmHome "default-cexr-build-edition") -Force -ErrorAction SilentlyContinue
+        & $PSCommandPath -Command "setup" -Version $Version -Platform $Platform -ExtraArgs $ExtraArgs
+    }
     "init" {
         $targetArg = if ($Version) { $Version } else { "my-project" }
         $isCurrentDir = $false
@@ -1343,8 +1376,8 @@ echo CexR Windows Runner ready.
         Write-Host "  Host OS:             Windows ($arch)"
         Write-Host "  CXVM Home:           $cxvmHome"
         Write-Host "  Active Version:      $(if (Test-Path (Join-Path $cxvmHome 'current')) { 'Active' } else { 'none' })"
-        Write-Host "  CexR Runtime:        v8 (.cex_boxes Dist Loader Runtime Engine [READY])"
-        Write-Host "  CexP Compiler:       v8 (Direct Machine Code & ELF Emitter [READY])"
+        Write-Host "  CexR Runtime:        v8 (cexr-factory default runtime [READY])"
+        Write-Host "  CexP Compiler:       cexp-v8-stable (Direct Machine Code & ELF Emitter [READY])"
         Write-Host "  Toolchain Standard:  Pure Cex Native (zero C++ dependency; powered by cexr + cexp)"
         Write-Host "  Cross-Platform:      Windows (x64, arm64), Linux, macOS"
         Write-Host "  Supported Targets:   6 architectures (download & install ready)"
@@ -1384,6 +1417,7 @@ echo CexR Windows Runner ready.
         Write-Host ""
         Write-Host "Commands:"
         Write-Host "  setup                 Display setup window & configure PATH, env, and default runtimes"
+        Write-Host "  resetup               Re-run environment setup and reconfigure runtime links"
         Write-Host "  install <ver>         Download and install a Cex runtime version (e.g. 8.0.0, 6.0.0)"
         Write-Host "  lighting create <name>   Create a new Lighting Fullstack MVC project with MVC structure"
         Write-Host "  lighting dev             Start local development server (--target <browser|view>, --open)"
