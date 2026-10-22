@@ -106,4 +106,3 @@ echo "  export CXVM_DIR=\"$CXVM_DIR\""
 echo "  export PATH=\"\$CXVM_DIR/bin:\$CXVM_DIR/current/bin:\$PATH\""
 echo ""
 echo "Or add to ~/.bashrc or ~/.zshrc."
-

@@ -39,4 +39,3 @@ fi
 
 echo "[ERROR] cexr runtime and cxvm not found. Please run install.sh first." >&2
 exit 1
-
