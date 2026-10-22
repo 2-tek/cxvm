@@ -438,7 +438,7 @@ _cxvm_run_linux_distro() {
       echo "  [Step 1] Resolving Image:     $distro (${distro}-v${ver}-x86_64.iso / rootfs bundle)"
       echo "  [Step 2] Unpacking Rootfs:    $CXVM_DIR/distros/$distro (128 MB rootfs, 420 entries)"
       echo "  [Step 3] Deploying Runtimes:  CexR v8 (cexr-factory 1.0.26), CexR v8 build (cexr-bean 1.0.26)"
-      echo "  [Step 4] Toolchain Links:     /bin/cexsh, /bin/cexr, /bin/cexp-v8, /bin/cxvm"
+      echo "  [Step 4] Toolchain Links:     /bin/cexsh, /bin/cexr, /bin/cexp-v8-stable, /bin/cxvm"
       echo "  [Step 5] Registering Distro:  $distro registered in CXVM distro catalog"
       echo "  Status:                       LINUX-DISTRO INSTALL COMPLETE [OK]"
       mkdir -p "$CXVM_DIR/distros/$distro" 2>/dev/null || true
@@ -462,8 +462,8 @@ _cxvm_run_linux_distro() {
       echo "  [Step 1] Target Distro:        $distro (v$ver, x86_64-unknown-linux-gnu)"
       echo "  [Step 2] Kernel Release:      6.8.0-cex-rt (Microkernel PID 1 CexInit, x86_64-cex-virt)"
       echo "  [Step 3] Rootfs & VFS:         $CXVM_DIR/distros/$distro (overlayfs, procfs, sysfs, cgroup2, tmpfs)"
-      echo "  [Step 4] Runtime & Compiler:   CexR v8 (factory 1.0.26) + CexP v8 (8.0.0) machine compiler"
-      echo "  [Step 5] Versioned Binaries:   CEX_DIR/cexp-v8/8.0.0/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin"
+      echo "  [Step 4] Runtime & Compiler:   CexR v8 (factory 1.0.26) + CexP v8 (cexp-v8-stable) machine compiler"
+      echo "  [Step 5] Versioned Binaries:   CEX_DIR/cexp-v8-stable/8.0.0/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin"
       echo "  [Step 6] Distro Shell:         cexsh (/bin/cexsh) & CexView Terminal UI (ready)"
       echo "  [Step 7] Diagnostic:           HEALTHY [OK]"
       echo "  Status:                        LINUX-DISTRO SETUP COMPLETE [OK]"
@@ -638,7 +638,7 @@ _cxvm_run_thunder() {
     echo "  [Step 4] Initialize CXVM_DIR:   /root/.cxvm (target platform: linux-x86_64)"
     echo "  [Step 5] Extract Bundles:       cex-v8.0.0-linux-x86_64.tar.gz (Default) & cex-v6.0.0-linux-x86_64.tar.gz (LTS)"
     echo "  [Step 6] Default Editions:      Runtime = cexr-factory (factory), Build = cexr-bean (bean)"
-    echo "  [Step 7] Versioned Binaries:    CEX_DIR/cexp-v8/$version/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin, ./dist/cex-pack-bean/1.0.5/bin"
+    echo "  [Step 7] Versioned Binaries:    CEX_DIR/cexp-v8-stable/$version/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin, ./dist/cex-pack-bean/1.0.5/bin"
     echo "  [Step 8] Virtual-Linux Doctor:  HEALTHY [OK]"
     echo "  Status:                         VIRTUAL-LINUX SETUP COMPLETE [OK]"
     return 0
@@ -982,7 +982,7 @@ _cxvm_run_light() {
   "scripts": {
     "start": "cxvm lighting dev",
     "dev": "cxvm lighting dev",
-    "build": "cexp-v8 build src/index.cex -o bin/server"
+    "build": "cexp-v8-stable build src/index.cex -o bin/server"
   },
   "dependencies": {
     "@2tek/lighting": "^8.0.0"
@@ -1021,7 +1021,11 @@ CXVM_DIR="\${CXVM_DIR:-\$HOME/.cxvm}"
 if [ "\$1" = "dev" ] || [ "\$1" = "start" ]; then
   exec "\$CXVM_DIR/bin/cxvm" lighting dev "\$@"
 elif [ "\$1" = "build" ]; then
-  exec "\$CXVM_DIR/bin/cexp-v8" build "\$PROJ_DIR/src/index.cex" -o "\$PROJ_DIR/bin/server"
+  if [ -x "\$CXVM_DIR/bin/cexp-v8-stable" ]; then
+    exec "\$CXVM_DIR/bin/cexp-v8-stable" build "\$PROJ_DIR/src/index.cex" -o "\$PROJ_DIR/bin/server"
+  else
+    exec "\$CXVM_DIR/bin/cexp-v8" build "\$PROJ_DIR/src/index.cex" -o "\$PROJ_DIR/bin/server"
+  fi
 else
   exec "\$CXVM_DIR/bin/cxvm" lighting "\$@"
 fi
@@ -1060,8 +1064,10 @@ EOF
 
   # 3. Compiler runner for `cxvm lighting build`
   if [ "$light_cmd" = "build" ]; then
-    echo "==> [cxvm lighting] Compiling Lighting MVC project with cexp-v8 native compiler..."
-    if [ -f "src/index.cex" ] && command -v cexp-v8 >/dev/null 2>&1; then
+    echo "==> [cxvm lighting] Compiling Lighting MVC project with cexp-v8-stable native compiler..."
+    if [ -f "src/index.cex" ] && command -v cexp-v8-stable >/dev/null 2>&1; then
+      cexp-v8-stable build src/index.cex -o bin/server
+    elif [ -f "src/index.cex" ] && command -v cexp-v8 >/dev/null 2>&1; then
       cexp-v8 build src/index.cex -o bin/server
     elif [ -f "src/index.cex" ] && command -v cex >/dev/null 2>&1; then
       cex build src/index.cex -o bin/server
@@ -2450,15 +2456,24 @@ RUNNER_EOF
       # Setup cexp-${short_ver} (Direct Machine Compiler) in target version
       local found_cexp=""
       for cexp_cand in \
+        "$ver_dir/cexp-v8-stable" \
         "$ver_dir/cexp-${short_ver}" \
         "$ver_dir/cexp" \
         "$ver_dir/cexp-v8" \
+        "$s_dir/cexp-v8-stable"/*/bin \
+        "$s_dir/cexp-v8-stable"/8.0.0/bin \
         "$s_dir/cexp-$short_ver"/*/bin \
         "$s_dir/cexp-$short_ver"/8.0.0/bin \
+        "$s_dir/../dist/cexp-v8-stable"/*/bin \
         "$s_dir/../dist/cexp-$short_ver"/*/bin \
+        "$s_dir/../../cxvm/dist/cexp-v8-stable"/*/bin \
         "$s_dir/../../cxvm/dist/cexp-$short_ver"/*/bin \
+        ./cxvm/dist/cexp-v8-stable/8.0.0/bin \
+        ./cxvm/dist/cexp-v8-stable/*/bin \
         ./cxvm/dist/cexp-"$short_ver"/8.0.0/bin \
         ./cxvm/dist/cexp-"$short_ver"/*/bin \
+        ./dist/cexp-v8-stable/8.0.0/bin \
+        ./dist/cexp-v8-stable/*/bin \
         ./dist/cexp-"$short_ver"/8.0.0/bin \
         ./dist/cexp-"$short_ver"/*/bin \
         ./dist/cexp-v8/*/bin \
@@ -2470,8 +2485,10 @@ RUNNER_EOF
         fi
       done
       if [ -n "$found_cexp" ]; then
+        cp -f "$found_cexp" "$ver_dir/cexp-v8-stable"
         cp -f "$found_cexp" "$ver_dir/cexp-${short_ver}"
         cp -f "$found_cexp" "$ver_dir/cexp"
+        chmod +x "$ver_dir/cexp-v8-stable" "$ver_dir/cexp-${short_ver}" "$ver_dir/cexp" 2>/dev/null || true
       elif [ ! -f "$ver_dir/cexp-${short_ver}" ]; then
         cat <<'CEXP_EOF' > "$ver_dir/cexp-${short_ver}"
 #!/usr/bin/env bash
@@ -2486,11 +2503,12 @@ fi
 if [ -x "$CEX_BIN_DIR/cexr" ]; then
   exec "$CEX_BIN_DIR/cexr" build "$@"
 fi
-echo "CexP Direct Machine Compiler ready. Usage: cexp-v8 build <file.cex> -o <binary>"
+echo "CexP Direct Machine Compiler ready. Usage: cexp-v8-stable build <file.cex> -o <binary>"
 CEXP_EOF
         cp -f "$ver_dir/cexp-${short_ver}" "$ver_dir/cexp"
+        cp -f "$ver_dir/cexp-${short_ver}" "$ver_dir/cexp-v8-stable"
+        chmod +x "$ver_dir/cexp-v8-stable" "$ver_dir/cexp-${short_ver}" "$ver_dir/cexp" 2>/dev/null || true
       fi
-      chmod +x "$ver_dir/cexp-${short_ver}" "$ver_dir/cexp" 2>/dev/null || true
 
       # Setup cexr-$type editions in $CXVM_DIR/bin/$rver/cexr-$type and target version
       for vtype in bean delivery drawer factory; do
