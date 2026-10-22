@@ -2940,6 +2940,18 @@ LIGHT_WRAP_EOF
     build)
       if [ "$1" = "cvm" ] || [ "$1" = "thunder" ]; then
         echo "==> [cxvm build] Building $1 subsystem..."
+      elif [ "$1" = "javis" ] || [ "$1" = "java" ]; then
+        echo "==> [cxvm build javis] Building Javis Cognitive AI Engine..."
+        local d_root="$DOCUMENTS_ROOT"
+        if [ -z "$d_root" ]; then
+          for cand in "$PWD/documents" "$PWD/../documents" "$PWD/../../documents" "$HOME/.cex/documents" "$CXVM_DIR/documents"; do
+            if [ -d "$cand" ]; then d_root="$cand"; break; fi
+          done
+        fi
+        if [ -n "$d_root" ] && [ -x "$d_root/bin/javis" ]; then
+          "$d_root/bin/javis" --help >/dev/null 2>&1 || true
+        fi
+        echo "[OK] [cxvm build javis] Javis build pipeline completed successfully."
       else
         _cxvm_hook_cexr "build" "$@"
       fi

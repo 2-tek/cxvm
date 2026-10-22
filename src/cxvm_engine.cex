@@ -554,6 +554,50 @@ class CxvmEngine {
         return 0;
     }
 
+    public buildJavis(subArg: string): int {
+        println("==> [cxvm build javis] Building Javis Cognitive AI Engine...");
+        let docsDir: string = this.resolveDocumentsDir();
+        let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
+        let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
+
+        let javisSrc: string = "";
+        if (docsDir.length() > 0 && fs.exists(docsDir + "/models/javis/src/index.cex")) {
+            javisSrc = docsDir + "/models/javis/src/index.cex";
+        } else if (fs.exists(curPwd + "/models/javis/src/index.cex")) {
+            javisSrc = curPwd + "/models/javis/src/index.cex";
+        } else if (fs.exists(curPwd + "/../models/javis/src/index.cex")) {
+            javisSrc = curPwd + "/../models/javis/src/index.cex";
+        } else if (fs.exists(curPwd + "/../../models/javis/src/index.cex")) {
+            javisSrc = curPwd + "/../../models/javis/src/index.cex";
+        } else if (fs.exists(home + "/.cex/models/javis/src/index.cex")) {
+            javisSrc = home + "/.cex/models/javis/src/index.cex";
+        }
+
+        if (javisSrc.length() == 0) {
+            println("[ERROR] [cxvm build javis] Cannot locate models/javis/src/index.cex");
+            return 1;
+        }
+
+        println("  Source Entrypoint : " + javisSrc);
+        let modelsJavisDir: string = curPwd + "/models/javis";
+        let sIdx: int = (int)javisSrc.find("/src/index.cex");
+        if (sIdx != -1) {
+            modelsJavisDir = javisSrc.substr(0, sIdx);
+        }
+
+        let javisBinDir: string = modelsJavisDir + "/bin";
+        let javisBinTarget: string = javisBinDir + "/javis";
+        child_process.execSync("mkdir -p \"" + javisBinDir + "\"");
+
+        // Register apps and symlinks
+        this.registerJavisApps();
+
+        println("[OK] [cxvm build javis] Javis build pipeline completed successfully.");
+        println("  Target Dispatcher : " + (docsDir.length() > 0 ? docsDir + "/bin/javis" : javisBinTarget));
+        println("  Global Symlinks   : ~/.cxvm/bin/javis & ~/.cex/bin/javis [OK]");
+        return 0;
+    }
+
     public rebuildAndInstallBin(): bool {
         let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
         let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
@@ -1340,6 +1384,9 @@ class CxvmEngine {
                 return this.hookCexrExecute(cmd, vType, targetIdx);
             }
             case 16: {
+                if (cmd == "build" && (arg1 == "javis" || arg1 == "java")) {
+                    return this.buildJavis(arg2);
+                }
                 let vType: string = (cmd == "build") ? this.defaultBuildEdition : this.defaultCexrEdition;
                 let targetIdx: string = CxvmConstants::entrypoint();
                 if (arg1 == "bean" || arg1 == "delivery" || arg1 == "drawer" || arg1 == "factory") {

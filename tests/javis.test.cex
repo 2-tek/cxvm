@@ -31,6 +31,10 @@ fn main(): int {
     let execCexSetupJavisRes: int = cxvm->cvmExecute("cex", "setup", "javis");
     Assert::equalsInt(0, execCexSetupJavisRes, "cxvm cvmExecute cex setup javis returns 0 OK");
 
+    // 2.1. CLI Routing cxvm build javis / java
+    let execBuildJavisRes: int = cxvm->cvmExecute("build", "javis", "");
+    Assert::equalsInt(0, execBuildJavisRes, "cxvm cvmExecute build javis returns 0 OK");
+
     // 3. AI Lib Version Resolution
     Assert::equalsString("1.0.0", cxvm->resolveLibVersion("javis"), "resolveLibVersion resolves javis");
     Assert::equalsString("1.0.0", cxvm->resolveLibVersion("java"), "resolveLibVersion resolves java alias");
