@@ -1772,7 +1772,17 @@ class CxvmEngine {
                                 remote = cvmArg1;
                             }
                         }
+                        try {
+                            if (fs.exists(".git")) {
+                                println("==> [cxvm pull] Executing git pull " + remote + " " + branch + "...");
+                                let gitOut: string = child_process.execSync("git pull " + remote + " " + branch + " 2>&1");
+                                print(gitOut);
+                            }
+                        } catch (...) {}
                         let res: CvmExecutionResult* = this.cvmCliRunner->pull(remote, branch);
+                        println("==> [cxvm pull] Triggering automatic resetup after code pull...");
+                        let defVer: string = this.defaultVersion.length() > 0 ? this.defaultVersion : CxvmConstants::defaultVersion();
+                        this.resetup(defVer);
                         return res->exitCode;
                     }
                     case 5: {
