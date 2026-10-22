@@ -1,6 +1,6 @@
 import json from "json";
-import "@cex-s/src/request.cex";
-import "@cex-s/src/response.cex";
+import "@cex-service/src/request.cex";
+import "@cex-service/src/response.cex";
 import "@cex-std/src/filesystem.cex";
 import "@cex-std/src/chrono.cex";
 

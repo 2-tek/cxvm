@@ -11,11 +11,11 @@ import "./cxvm_engine.cex";
 import "./controllers/factory_controller.cex";
 import "@cex-cli/src/terminal.cex";
 import "@cex-cli/src/cli.cex";
-import "@cex-s/src/app.cex";
-import "@cex-s/src/middleware.cex";
-import "@cex-s/src/response.cex";
-import "@cex-s/src/request.cex";
-import "@cex-s/src/ssr.cex";
+import "@cex-service/src/app.cex";
+import "@cex-service/src/middleware.cex";
+import "@cex-service/src/response.cex";
+import "@cex-service/src/request.cex";
+import "@cex-service/src/ssr.cex";
 import "@cex-std/src/filesystem.cex";
 import "@cex-std/src/chrono.cex";
 

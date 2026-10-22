@@ -3,12 +3,12 @@
 
 import "./types.cex";
 import "./models/version_model.cex";
-import "@cvm-cli/src/cli.cex";
+import "@cex-cvm-cli/src/cli.cex";
 import "./lighting_mvc.cex";
 import child_process from "child_process";
 import "@cex-cli/src/terminal.cex";
 import "@cex-cli/src/cli.cex";
-import "@cex-s/src/app.cex";
+import "@cex-service/src/app.cex";
 import "@cex-std/src/filesystem.cex";
 import "@cex-std/src/chrono.cex";
 
@@ -47,6 +47,7 @@ class CxvmEngine {
     public linuxDistroStatus: string = "uninstalled";
     public installedDistros: Array<string>* = new Array<string>();
     public supportedDistros: Array<string>* = new Array<string>();
+    public isForce: bool = false;
 
     public constructor() {
         this.supportedDistros->push("cex-linux");
@@ -432,16 +433,37 @@ class CxvmEngine {
             let boxDir: string = boxesDir + "/" + lib;
 
             let alreadyExists: bool = false;
-            if (fs.exists(boxDir)) {
+            if (fs.exists(boxDir + "/bin/" + lib) || fs.exists(boxDir + "/bin")) {
                 alreadyExists = true;
             }
 
-            if (alreadyExists) {
+            if (!this.isForce && alreadyExists) {
                 cachedCount++;
                 outMsg += "  [CACHE] " + lib + " v" + ver + " -> .cex_boxes/" + lib + " (already exists, skipping rebuild)\n";
             } else {
                 builtCount++;
                 child_process.execSync("mkdir -p \"" + boxDir + "/bin\"");
+                let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
+                let binSrc: string = "";
+                if (fs.exists(curPwd + "/dist/" + lib + "/" + ver + "/bin")) {
+                    binSrc = curPwd + "/dist/" + lib + "/" + ver + "/bin";
+                } else if (fs.exists(curPwd + "/cxvm/dist/" + lib + "/" + ver + "/bin")) {
+                    binSrc = curPwd + "/cxvm/dist/" + lib + "/" + ver + "/bin";
+                } else if (lib == "cexp-v8" || lib == "cexp-v8-stable") {
+                    if (fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin")) {
+                        binSrc = curPwd + "/dist/cexp-v8-stable/8.0.0/bin";
+                    } else if (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin")) {
+                        binSrc = curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin";
+                    } else if (fs.exists(this.cxvmHome + "/bin/cexp-v8-stable")) {
+                        binSrc = this.cxvmHome + "/bin/cexp-v8-stable";
+                    }
+                } else if (fs.exists(this.cxvmHome + "/" + lib + "/" + ver + "/bin")) {
+                    binSrc = this.cxvmHome + "/" + lib + "/" + ver + "/bin";
+                }
+                if (binSrc.length() > 0 && fs.exists(binSrc)) {
+                    child_process.execSync("cp -f \"" + binSrc + "\" \"" + boxDir + "/bin/" + lib + "\" 2>/dev/null || true");
+                    child_process.execSync("chmod +x \"" + boxDir + "/bin/" + lib + "\" 2>/dev/null || true");
+                }
                 outMsg += "  [OK]    " + lib + " v" + ver + " -> Configured into .cex_boxes/" + lib + "\n";
             }
         }
@@ -697,6 +719,10 @@ class CxvmEngine {
         this.setDefault(targetDef);
         this.use(targetDef);
 
+        if (this.isForce) {
+            this.forceResetupBinaries();
+        }
+
         this.rebuildAndInstallBin();
         this.registerJavisApps();
 
@@ -728,11 +754,93 @@ class CxvmEngine {
         return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, .cex_boxes, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin, and v8/v6 runtimes successfully configured.", outMsg);
     }
 
+    public forceResetupBinaries(): void {
+        let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
+        let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
+        let cxvmDir: string = home + "/.cxvm";
+        let cexDir: string = home + "/.cex";
+
+        let cexpCanonicalSrc: string = "";
+        if (fs.exists(curPwd + "/compilers/v8-stable/.bin")) {
+            cexpCanonicalSrc = curPwd + "/compilers/v8-stable/.bin";
+        } else if (fs.exists(curPwd + "/compilers/v8-stable/bin/v8-stable")) {
+            cexpCanonicalSrc = curPwd + "/compilers/v8-stable/bin/v8-stable";
+        } else if (fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin")) {
+            cexpCanonicalSrc = curPwd + "/dist/cexp-v8-stable/8.0.0/bin";
+        } else if (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin")) {
+            cexpCanonicalSrc = curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin";
+        } else if (fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
+            cexpCanonicalSrc = cxvmDir + "/bin/cexp-v8-stable";
+        } else if (fs.exists(cexDir + "/bin/cexp-v8-stable")) {
+            cexpCanonicalSrc = cexDir + "/bin/cexp-v8-stable";
+        } else if (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
+            cexpCanonicalSrc = curPwd + "/dist/cexp-v8/8.0.0/bin";
+        }
+
+        if (cexpCanonicalSrc.length() > 0 && fs.exists(cexpCanonicalSrc)) {
+            child_process.execSync("mkdir -p \"" + curPwd + "/dist/cexp-v8-stable/8.0.0\" \"" + curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/dist/cexp-v8-stable/8.0.0/bin\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin\" 2>/dev/null || true");
+            child_process.execSync("mkdir -p \"" + cxvmDir + "/bin/8.0.0\" \"" + cxvmDir + "/versions/v8.0.0/bin\" \"" + cxvmDir + "/versions/8.0.0/bin\" \"" + cxvmDir + "/versions/v/bin\" \"" + cxvmDir + "/current/bin\" \"" + cexDir + "/bin/8.0.0\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/cexp-v8-stable\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/8.0.0/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/versions/v8.0.0/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/versions/8.0.0/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/versions/v/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/current/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/8.0.0/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/1.0.12/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/1.0.23/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/1.0.25/cexp\" 2>/dev/null || true");
+            child_process.execSync("rm -rf \"" + cxvmDir + "/tmp/dependencies\" 2>/dev/null || true");
+
+            if (fs.exists(curPwd + "/cexp/bin/1.0.25/cexp-v8")) {
+                child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cexp/bin/1.0.25/cexp-v8\" 2>/dev/null || true");
+            }
+            if (fs.exists(curPwd + "/cexp/bin/cex")) {
+                child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cexp/bin/cex\" 2>/dev/null || true");
+            }
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/versions/v/bin/cexr\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/8.0.0/cexr\" 2>/dev/null || true");
+            child_process.execSync("mkdir -p \"" + cxvmDir + "/bin/8.0.0/bin\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/8.0.0/bin/cexr\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/8.0.0/cexr\" 2>/dev/null || true");
+            child_process.execSync("mkdir -p \"" + cexDir + "/bin/cexp-v8/8.0.0\" \"" + cexDir + "/versions\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/cexp-v8/8.0.0/bin\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/versions/v8\" 2>/dev/null || true");
+            child_process.execSync("mkdir -p \"" + curPwd + "/cxvm/dist/cexp-v8/8.0.0\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin\" 2>/dev/null || true");
+
+            let v7Src: string = curPwd + "/compilers/v7-cex-compile-cex-to-test-engine/bin/7.0.0/cexp";
+            if (fs.exists(v7Src)) {
+                child_process.execSync("mkdir -p \"" + cexDir + "/bin/cexp-v7/7.0.0\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + v7Src + "\" \"" + cexDir + "/bin/cexp-v7/7.0.0/bin\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + v7Src + "\" \"" + curPwd + "/compilers/v7-cex-compile-cex-to-test-engine/bin/v7\" 2>/dev/null || true");
+            }
+            let v1Src: string = curPwd + "/compilers/v1-cpp-compile-cex-to-cpp/bin/1.0.0/cexp";
+            if (fs.exists(v1Src)) {
+                child_process.execSync("mkdir -p \"" + cexDir + "/bin/cexp-v1/1.0.0\" \"" + cexDir + "/cexp-v1/1.0.25\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + v1Src + "\" \"" + cexDir + "/bin/cexp-v1/1.0.0/bin\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + v1Src + "\" \"" + cexDir + "/cexp-v1/1.0.25/bin\" 2>/dev/null || true");
+            }
+
+            child_process.execSync("find \"" + curPwd + "/projects\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+            child_process.execSync("find \"" + curPwd + "/.cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+            child_process.execSync("find \"" + curPwd + "/cxvm/.cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+        }
+    }
+
     public resetup(defaultVer: string): CxvmCommandResult* {
+        this.isForce = true;
         this.installedVersions = new Array<string>();
         this.currentVersion = "";
         this.defaultVersion = "";
-        return this.setup(defaultVer);
+        this.forceResetupBinaries();
+        let res: CxvmCommandResult* = this.setup(defaultVer);
+        this.isForce = false;
+        return res;
     }
 
     public reinstall(targetVer: string): CxvmCommandResult* {
@@ -1246,6 +1354,7 @@ class CxvmEngine {
         if (cmd == "commit" || cmd == "push" || cmd == "pull" || cmd == "branch" || cmd == "checkout" || cmd == "diff" || cmd == "log") return 30;
         if (cmd == "add") return 31;
         if (cmd == "--app") return 32;
+        if (cmd == "force" || cmd == "--force" || cmd == "-f") return 33;
         return 0;
     }
 
@@ -1272,14 +1381,20 @@ class CxvmEngine {
                     println(res->output);
                     return 0;
                 }
-                let verArg: string = arg1.length() > 0 ? arg1 : CxvmConstants::defaultVersion();
+                if (arg1 == "--force" || arg1 == "-f" || arg1 == "force" || arg2 == "--force" || arg2 == "-f" || arg2 == "force") {
+                    this.isForce = true;
+                }
+                let verArg: string = (arg1.length() > 0 && arg1 != "--force" && arg1 != "-f" && arg1 != "force") ? arg1 : ((arg2.length() > 0 && arg2 != "--force" && arg2 != "-f" && arg2 != "force") ? arg2 : CxvmConstants::defaultVersion());
                 let res: CxvmCommandResult* = this.setup(verArg);
+                this.isForce = false;
                 println(res->output);
                 return 0;
             }
             case 3: {
-                let verArg: string = arg1.length() > 0 ? arg1 : CxvmConstants::defaultVersion();
+                this.isForce = true;
+                let verArg: string = (arg1.length() > 0 && arg1 != "--force" && arg1 != "-f" && arg1 != "force") ? arg1 : ((arg2.length() > 0 && arg2 != "--force" && arg2 != "-f" && arg2 != "force") ? arg2 : CxvmConstants::defaultVersion());
                 let res: CxvmCommandResult* = this.resetup(verArg);
+                this.isForce = false;
                 println(res->output);
                 return 0;
             }
@@ -1549,6 +1664,18 @@ class CxvmEngine {
                 }
                 return this.appExecute(arg1, sub, rest);
             }
+            case 33: {
+                if (arg1 == "resetup" || arg1 == "setup") {
+                    this.isForce = true;
+                    let verArg: string = (arg2.length() > 0 && arg2 != "--force" && arg2 != "-f" && arg2 != "force") ? arg2 : CxvmConstants::defaultVersion();
+                    let res: CxvmCommandResult* = this.resetup(verArg);
+                    this.isForce = false;
+                    println(res->output);
+                    return 0;
+                }
+                println("[WARN] Unknown command after force: " + arg1);
+                return 1;
+            }
             default:
             println("==> [cxvm cvm] Hook -> cxvm --app cvm " + cmd + (arg1.length() > 0 ? " " + arg1 : "") + (arg2.length() > 0 ? " " + arg2 : ""));
             return this.appExecute("cvm", cmd, arg1.length() > 0 ? (arg2.length() > 0 ? arg1 + " " + arg2 : arg1) : "");
@@ -1683,8 +1810,20 @@ class CxvmEngine {
                 return 0;
             }
             case 5: {
-                println("[OK] [" + name + "] Executed '" + name + " " + subCmd + " " + file + "' via CexP compiler (registered in CEX_DIR)");
-                return 0;
+                let cexpCmd: string = "cexp-v8-stable";
+                let cmdStr: string = cexpCmd;
+                if (subCmd.length() > 0 && subCmd != "downloads") cmdStr += " " + subCmd;
+                if (file.length() > 0 && file != "cex-pack.json") cmdStr += " \"" + file + "\"";
+                println("[OK] [" + name + " -> cexp-v8-stable] Executing '" + cmdStr + "' via CexP compiler");
+                try {
+                    let out: string = child_process.execSync(cmdStr);
+                    print(out);
+                    if (out.length() > 0 && out.substr(out.length() - 1, 1) != "\n") println();
+                    return 0;
+                } catch (...) {
+                    println("[ERROR] Failed to execute: " + cmdStr);
+                    return 1;
+                }
             }
             case 6: {
                 let lintTarget: string = manifestFile.length() == 0 ? "." : manifestFile;

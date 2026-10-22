@@ -3,12 +3,14 @@
 
 import fs from "fs";
 import child_process from "child_process";
-import "@/src/cxvm_engine.cex";
+import "./src/types.cex";
+import "./src/cxvm_engine.cex";
 
 class SetupRunner {
     public defaultVer: string;
     public secondaryVer: string = "6.0.0";
     public cexrExactVersion: string;
+    public isForce: bool = false;
 
     public resolveVersion(libName: string, defaultFallback: string): string {
         if (libName == "cexp-v8" || libName == "cexp" || libName == "cexp-v8-stable" || libName == "v8-stable") return "8.0.0";
@@ -64,7 +66,7 @@ class SetupRunner {
             let boxBin: string = boxDir + "/bin";
 
             let isCxvmBean: bool = (lib == "cxvm-bean");
-            if (!isCxvmBean && fs.exists(boxBin) && (fs.exists(boxBin + "/" + lib) || fs.exists(boxBin))) {
+            if (!this.isForce && !isCxvmBean && fs.exists(boxBin) && (fs.exists(boxBin + "/" + lib) || fs.exists(boxBin))) {
                 cachedCount++;
                 println("  [CACHE] .cex_boxes/" + lib + " already exists (cached, skipping rebuild)");
             } else {
@@ -312,26 +314,76 @@ class SetupRunner {
         // cexr defaults to cexr-factory
         this.registerBinApp(cexDir, cxvmDir, "cexr", cexrFactorySrc, exactCexr);
 
-        // Register compiler and tools: cexp is cexp-v8-stable
-        let cexpV8StableSrc: string = fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/dist/cexp-v8-stable/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") : "");
+        // Register compiler and tools: cexp is a call to cexp-v8-stable
+        let cexpV8StableSrc: string = fs.exists(curPwd + "/compilers/v8-stable/.bin") ? (curPwd + "/compilers/v8-stable/.bin") : (fs.exists(curPwd + "/compilers/v8-stable/bin/v8-stable") ? (curPwd + "/compilers/v8-stable/bin/v8-stable") : (fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/dist/cexp-v8-stable/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin") : (fs.exists(cxvmDir + "/bin/cexp-v8-stable") ? (cxvmDir + "/bin/cexp-v8-stable") : ""))));
         let cexpV8Src: string = fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin") ? (curPwd + "/dist/cexp-v8/8.0.0/bin") : (fs.exists(curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin") ? (curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin") : "");
-        let cexpTargetSrc: string = cexpV8StableSrc.length() > 0 ? cexpV8StableSrc : cexpV8Src;
 
-        if (cexpTargetSrc.length() > 0) {
-            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cexpTargetSrc, this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cexpTargetSrc, this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cexpTargetSrc, this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "cexp", cexpTargetSrc, this.defaultVer);
+        let cexpCanonicalSrc: string = (cexpV8StableSrc.length() > 0) ? cexpV8StableSrc : cexpV8Src;
+        if (cexpCanonicalSrc.length() > 0) {
+            child_process.execSync("mkdir -p \"" + curPwd + "/dist/cexp-v8-stable/8.0.0\" \"" + curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/dist/cexp-v8-stable/8.0.0/bin\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin\" 2>/dev/null || true");
+            this.registerBinApp(cexDir, cxvmDir, "cexp", cexpCanonicalSrc, this.defaultVer);
+            child_process.execSync("mkdir -p \"" + v8Dir + "/bin\" \"" + cxvmDir + "/bin/8.0.0\" \"" + cxvmDir + "/versions/v8.0.0/bin\" \"" + cxvmDir + "/versions/8.0.0/bin\" \"" + cxvmDir + "/versions/v/bin\" \"" + cxvmDir + "/current/bin\" \"" + cexDir + "/bin/8.0.0\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + v8Dir + "/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/current/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/8.0.0/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/8.0.0/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/versions/v8.0.0/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/versions/8.0.0/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/versions/v/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/cexp\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/cexp-v8-stable\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/1.0.12/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/1.0.23/cexp\" 2>/dev/null || true");
+            child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/1.0.25/cexp\" 2>/dev/null || true");
+            child_process.execSync("rm -rf \"" + cxvmDir + "/tmp/dependencies\" 2>/dev/null || true");
+            if (fs.exists(curPwd + "/cexp/bin/1.0.25/cexp-v8")) {
+                child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cexp/bin/1.0.25/cexp-v8\" 2>/dev/null || true");
+            }
+            if (fs.exists(curPwd + "/cexp/bin/cex")) {
+                child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cexp/bin/cex\" 2>/dev/null || true");
+            }
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/versions/v/bin/cexr\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/8.0.0/cexr\" 2>/dev/null || true");
+            child_process.execSync("mkdir -p \"" + cxvmDir + "/bin/8.0.0/bin\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/8.0.0/bin/cexr\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/8.0.0/cexr\" 2>/dev/null || true");
+            child_process.execSync("mkdir -p \"" + cexDir + "/bin/cexp-v8/8.0.0\" \"" + cexDir + "/versions\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/cexp-v8/8.0.0/bin\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/versions/v8\" 2>/dev/null || true");
+            child_process.execSync("mkdir -p \"" + curPwd + "/cxvm/dist/cexp-v8/8.0.0\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin\" 2>/dev/null || true");
+
+            let v7Src: string = curPwd + "/compilers/v7-cex-compile-cex-to-test-engine/bin/7.0.0/cexp";
+            if (fs.exists(v7Src)) {
+                child_process.execSync("mkdir -p \"" + cexDir + "/bin/cexp-v7/7.0.0\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + v7Src + "\" \"" + cexDir + "/bin/cexp-v7/7.0.0/bin\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + v7Src + "\" \"" + curPwd + "/compilers/v7-cex-compile-cex-to-test-engine/bin/v7\" 2>/dev/null || true");
+            }
+            let v1Src: string = curPwd + "/compilers/v1-cpp-compile-cex-to-cpp/bin/1.0.0/cexp";
+            if (fs.exists(v1Src)) {
+                child_process.execSync("mkdir -p \"" + cexDir + "/bin/cexp-v1/1.0.0\" \"" + cexDir + "/cexp-v1/1.0.25\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + v1Src + "\" \"" + cexDir + "/bin/cexp-v1/1.0.0/bin\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + v1Src + "\" \"" + cexDir + "/cexp-v1/1.0.25/bin\" 2>/dev/null || true");
+            }
+
+            child_process.execSync("find \"" + curPwd + "/projects\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+            child_process.execSync("find \"" + curPwd + "/.cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+            child_process.execSync("find \"" + curPwd + "/cxvm/.cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
         } else if (fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
-            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
             this.registerBinApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
         } else if (fs.exists(cxvmDir + "/bin/cexp")) {
-            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cxvmDir + "/bin/cexp", this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cxvmDir + "/bin/cexp", this.defaultVer);
-            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cxvmDir + "/bin/cexp", this.defaultVer);
             this.registerBinApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp", this.defaultVer);
+        }
+
+        if (cexpV8StableSrc.length() > 0) {
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8-stable", cexpV8StableSrc, this.defaultVer);
+            this.registerBinApp(cexDir, cxvmDir, "v8-stable", cexpV8StableSrc, this.defaultVer);
+        }
+        if (cexpV8Src.length() > 0) {
+            this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cexpV8Src, this.defaultVer);
         }
 
         let packSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") ? (curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") : (fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : ""));
@@ -492,6 +544,12 @@ fn main(argc: int, argv: char**): int {
                 subArg += std::string(argv[j]);
             }
             return runner->setupJavis(subArg);
+        }
+        for (let aIdx: int = 1; aIdx < argc; aIdx++) {
+            let aStr: string = std::string(argv[aIdx]);
+            if (aStr == "--force" || aStr == "-f" || aStr == "force" || aStr == "resetup") {
+                runner->isForce = true;
+            }
         }
     }
     return runner->run();

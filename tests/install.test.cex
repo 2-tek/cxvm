@@ -2,8 +2,8 @@
 // Powered by cext (@cext/src/runner.cex)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-import "@cext/src/assert.cex";
-import "@cext/src/runner.cex";
+import "@cex-test/src/assert.cex";
+import "@cex-test/src/runner.cex";
 import fs from "fs";
 import "@/src/types.cex";
 import "@/src/cxvm_engine.cex";
