@@ -75,3 +75,5 @@ deps/*
 packages/*
 downloads/
 .cvm/
+brain/
+

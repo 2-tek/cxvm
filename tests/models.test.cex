@@ -59,6 +59,33 @@ fn main(): int {
     let docOut: string = cxvm->doctor();
     Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
 
+    // 3. Cognitive AI Models Setup, Build & Invariants
+    Assert::equalsString("1.0.0", cxvm->resolveLibVersion("models"), "cxvm resolves models version 1.0.0");
+    Assert::equalsString("1.0.0", cxvm->resolveLibVersion("javis"), "cxvm resolves javis version 1.0.0");
+    Assert::equalsString("2.0.0", cxvm->resolveLibVersion("vision"), "cxvm resolves vision version 2.0.0");
+    Assert::equalsString("1.0.0", cxvm->resolveLibVersion("ultron"), "cxvm resolves ultron version 1.0.0");
+
+    let sModelsRes: int = cxvm->setupModels("");
+    Assert::equalsInt(0, sModelsRes, "cxvm setupModels succeeds");
+
+    let bModelsRes: int = cxvm->buildModels("");
+    Assert::equalsInt(0, bModelsRes, "cxvm buildModels succeeds");
+
+    let execSetupModelsRes: int = cxvm->cvmExecute("setup", "models", "");
+    Assert::equalsInt(0, execSetupModelsRes, "cxvm cvmExecute setup models returns 0 OK");
+
+    let execBuildModelsRes: int = cxvm->cvmExecute("build", "models", "");
+    Assert::equalsInt(0, execBuildModelsRes, "cxvm cvmExecute build models returns 0 OK");
+
+    let execRebuildModelsRes: int = cxvm->cvmExecute("rebuild", "models", "");
+    Assert::equalsInt(0, execRebuildModelsRes, "cxvm cvmExecute rebuild models returns 0 OK");
+
+    let execRebuildFlagRes: int = cxvm->cvmExecute("setup", "--rebuild-models", "");
+    Assert::equalsInt(0, execRebuildFlagRes, "cxvm cvmExecute setup --rebuild-models returns 0 OK");
+
+    Assert::isTrue(fs.exists(".cex_boxes/models"), ".cex_boxes/models exists");
+    Assert::isTrue(fs.exists(".cex_boxes/models/cex-pack.json"), ".cex_boxes/models/cex-pack.json exists");
+
     suite->addResult("test_models_and_matrix", true, "", 1);
 
     println("\n");

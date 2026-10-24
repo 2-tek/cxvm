@@ -1,6 +1,6 @@
 // 2-TEK Factory: Package Entrypoint & Live Demonstration (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp)
-// CXVM Engine Edition: 2.1.40 (Force resetup stale binaries support)
+// CXVM Engine Edition: 2.1.41 (Setup with models rebuild and cex_boxes fetch)
 
 import "./types.cex";
 import "./models/platform_model.cex";
@@ -27,7 +27,7 @@ fn main(argc: int, argv: char**): int {
         let cmdCode: int = classifyCliCommand(cmd);
         switch (cmdCode) {
             case 1: {
-                TerminalUI::renderHeader("CXVM v2.1.40", "Pure Cex Native Engine: cexr + cexp; powered by cex-cli, cex-s & cex-std");
+                TerminalUI::renderHeader("CXVM v2.1.41", "Pure Cex Native Engine: cexr + cexp; powered by cex-cli, cex-s & cex-std");
                 let cxvm: CxvmEngine* = new CxvmEngine();
                 println(cxvm->cexrVersionOutput());
                 return 0;
