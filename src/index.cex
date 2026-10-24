@@ -1,12 +1,12 @@
 // 2-TEK Factory: Package Entrypoint & Live Demonstration (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp)
-// CXVM Engine Edition: 2.1.41 (Setup with models rebuild and cex_boxes fetch)
+// CXVM Engine Edition: 2.1.42 (Builder and build integrate from cex_boxes installed via cex-pack.json)
 
 import "./types.cex";
 import "./models/platform_model.cex";
 import "./models/version_model.cex";
 import "./models/artifact_model.cex";
-import "./builder/dist_builder.cex";
+import "./dist_builder.cex";
 import "./cxvm_engine.cex";
 import "./app.cex";
 import "@cex-cli/src/terminal.cex";
@@ -27,7 +27,7 @@ fn main(argc: int, argv: char**): int {
         let cmdCode: int = classifyCliCommand(cmd);
         switch (cmdCode) {
             case 1: {
-                TerminalUI::renderHeader("CXVM v2.1.41", "Pure Cex Native Engine: cexr + cexp; powered by cex-cli, cex-s & cex-std");
+                TerminalUI::renderHeader("CXVM v2.1.42", "Pure Cex Native Engine: cexr + cexp; powered by cex-cli, cex-s & cex-std");
                 let cxvm: CxvmEngine* = new CxvmEngine();
                 println(cxvm->cexrVersionOutput());
                 return 0;
@@ -35,7 +35,7 @@ fn main(argc: int, argv: char**): int {
             case 2: {
                 TerminalUI::renderHeader("2-TEK CXVM: Cex Version Manager", "Cross-platform runtime & VCS manager (cex-cli, cex-s, cex-std)");
                 println("Usage: cxvm <command> [arguments] [options]");
-                println("Commands: setup, resetup, reinstall, install, use, current, list, doctor, init, dev, build, start, lint, test, cexp, lighting, thunder, cvm, javis, vision, ultron");
+                println("Commands: setup, resetup, reinstall, install, use, current, list, doctor, init, dev, build, start, lint, test, cexp, lighting, thunder, cvm, javis, vision, ultron, builder");
                 return 0;
             }
             default:

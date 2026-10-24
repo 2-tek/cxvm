@@ -24,7 +24,7 @@ flowchart TD
     end
 
     subgraph "Core Engines"
-        DistBuilder["DistBuilder (scripts/ & src/builder/)"]
+        DistBuilder["DistBuilder (@cex-builder in .cex_boxes/)"]
         CxvmEngine["CXVM Manager Engine (src/cxvm/)"]
     end
 

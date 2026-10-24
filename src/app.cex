@@ -6,7 +6,7 @@ import "./types.cex";
 import "./models/platform_model.cex";
 import "./models/version_model.cex";
 import "./models/artifact_model.cex";
-import "./builder/dist_builder.cex";
+import "./dist_builder.cex";
 import "./cxvm_engine.cex";
 import "./controllers/factory_controller.cex";
 import "@cex-cli/src/terminal.cex";

@@ -76,4 +76,5 @@ packages/*
 downloads/
 .cvm/
 brain/
+cxvm/
 

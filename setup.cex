@@ -23,7 +23,8 @@ class SetupRunner {
             ((libName == "cex-std") ? 8 :
             ((libName == "javis" || libName == "java" || libName == "models" || libName == "ultron") ? 9 :
             ((libName == "vision" || libName.find("cexm-2") == 0) ? 10 :
-            ((libName.find("cxvm") == 0) ? 11 : 0))))))))));
+            ((libName == "cex-builder" || libName == "builder") ? 12 :
+            ((libName.find("cxvm") == 0) ? 11 : 0)))))))))));
 
         switch (vCode) {
             case 1: return "8.0.0";
@@ -36,7 +37,8 @@ class SetupRunner {
             case 8: return "1.0.0";
             case 9: return "1.0.0";
             case 10: return "2.0.0";
-            case 11: return "2.1.41";
+            case 11: return "2.1.42";
+            case 12: return "1.0.0";
             default: return defaultFallback;
         }
     }
@@ -83,6 +85,8 @@ class SetupRunner {
         libs->push("models");
         libs->push("vision");
         libs->push("ultron");
+        libs->push("cex-builder");
+        libs->push("builder");
 
         let mfPath: string = curPwd + "/cex-pack.json";
         if (fs.exists(mfPath)) {
@@ -142,6 +146,14 @@ class SetupRunner {
                     candPaths->push(curPwd + "/.cex_boxes/cext");
                     candPaths->push(home + "/Projects/cex/.cex_boxes/cext");
                 }
+                if (lib == "cex-builder" || lib == "builder") {
+                    candPaths->push(curPwd + "/.cex_boxes/cex-builder");
+                    candPaths->push(curPwd + "/.cex_boxes/builder");
+                    candPaths->push(curPwd + "/../cex/.cex_boxes/cex-builder");
+                    candPaths->push(curPwd + "/../cex/.cex_boxes/builder");
+                    candPaths->push(home + "/Projects/cex/.cex_boxes/cex-builder");
+                    candPaths->push(home + "/Projects/cex/.cex_boxes/builder");
+                }
 
                 for (let cIdx: int = 0; cIdx < (int)candPaths->length(); cIdx++) {
                     let cp: string = candPaths->get(cIdx);
@@ -185,6 +197,17 @@ class SetupRunner {
                 if (binSrc.length() == 0 && fs.exists(curPwd + "/.cex_boxes/" + lib + "/bin/" + lib)) {
                     binSrc = curPwd + "/.cex_boxes/" + lib + "/bin/" + lib;
                 }
+                if (binSrc.length() == 0 && (lib == "cex-builder" || lib == "builder")) {
+                    if (fs.exists(curPwd + "/.cex_boxes/cex-builder/bin/cex-builder")) {
+                        binSrc = curPwd + "/.cex_boxes/cex-builder/bin/cex-builder";
+                    }
+                    if (binSrc.length() == 0 && fs.exists(curPwd + "/.cex_boxes/builder/bin/builder")) {
+                        binSrc = curPwd + "/.cex_boxes/builder/bin/builder";
+                    }
+                    if (binSrc.length() == 0 && fs.exists(cxvmDir + "/bin/cex-builder")) {
+                        binSrc = cxvmDir + "/bin/cex-builder";
+                    }
+                }
 
                 if (binSrc.length() > 0 && fs.exists(binSrc)) {
                     child_process.execSync("cp -f \"" + binSrc + "\" \"" + boxBin + "/" + lib + "\"");
@@ -213,6 +236,12 @@ class SetupRunner {
         }
         if (fs.exists(curPwd + "/.cex_boxes/cext") && !fs.exists(curPwd + "/.cex_boxes/cex-test")) {
             child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes/cext\" \"" + curPwd + "/.cex_boxes/cex-test\" 2>/dev/null || true");
+        }
+        if (fs.exists(curPwd + "/.cex_boxes/cex-builder") && !fs.exists(curPwd + "/.cex_boxes/builder")) {
+            child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes/cex-builder\" \"" + curPwd + "/.cex_boxes/builder\" 2>/dev/null || true");
+        }
+        if (fs.exists(curPwd + "/.cex_boxes/builder") && !fs.exists(curPwd + "/.cex_boxes/cex-builder")) {
+            child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes/builder\" \"" + curPwd + "/.cex_boxes/cex-builder\" 2>/dev/null || true");
         }
         println("==> Packages Processed: " + std::to_string(builtCount) + " configured, " + std::to_string(cachedCount) + " cached [OK]");
     }
@@ -515,6 +544,12 @@ class SetupRunner {
         let cextSrc: string = fs.exists(curPwd + "/dist/cext/1.0.14/bin") ? (curPwd + "/dist/cext/1.0.14/bin") : (fs.exists(curPwd + "/cxvm/dist/cext/1.0.14/bin") ? (curPwd + "/cxvm/dist/cext/1.0.14/bin") : "");
         if (cextSrc.length() > 0) {
             this.registerBinApp(cexDir, cxvmDir, "cext", cextSrc, "1.0.14");
+        }
+
+        let builderSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-builder/bin/cex-builder") ? (curPwd + "/.cex_boxes/cex-builder/bin/cex-builder") : (fs.exists(curPwd + "/.cex_boxes/builder/bin/builder") ? (curPwd + "/.cex_boxes/builder/bin/builder") : (fs.exists(cxvmDir + "/bin/cex-builder") ? (cxvmDir + "/bin/cex-builder") : ""));
+        if (builderSrc.length() > 0) {
+            this.registerBinApp(cexDir, cxvmDir, "cex-builder", builderSrc, "1.0.0");
+            this.registerBinApp(cexDir, cxvmDir, "builder", builderSrc, "1.0.0");
         }
 
         // Register Integrated Cognitive AI Models: javis, vision, ultron

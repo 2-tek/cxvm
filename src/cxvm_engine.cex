@@ -397,7 +397,8 @@ class CxvmEngine {
             ((libName == "cex-std") ? 8 :
             ((libName == "javis" || libName == "java" || libName == "models" || libName == "ultron") ? 9 :
             ((libName == "vision" || libName.find("cexm-2") == 0) ? 10 :
-            ((libName.find("cxvm") == 0) ? 11 : 0))))))))));
+            ((libName == "cex-builder" || libName == "builder") ? 12 :
+            ((libName.find("cxvm") == 0) ? 11 : 0)))))))))));
 
         switch (vCode) {
             case 1: return "8.0.0";
@@ -410,7 +411,8 @@ class CxvmEngine {
             case 8: return "1.0.0";
             case 9: return "1.0.0";
             case 10: return "2.0.0";
-            case 11: return "2.1.41";
+            case 11: return "2.1.42";
+            case 12: return "1.0.0";
             default: return this.currentVersion.length() > 0 ? this.currentVersion : "8.0.0";
         }
     }
@@ -439,6 +441,8 @@ class CxvmEngine {
         libs->push("cxvm-bean");
         libs->push("javis");
         libs->push("models");
+        libs->push("cex-builder");
+        libs->push("builder");
 
         // Fetch to cex_boxes as specified in cex-pack.json
         let mfPath: string = curPwd + "/cex-pack.json";
@@ -529,6 +533,14 @@ class CxvmEngine {
                     candPaths->push(curPwd + "/../cex/.cex_boxes/cext");
                     candPaths->push(home + "/Projects/cex/.cex_boxes/cext");
                 }
+                if (lib == "cex-builder" || lib == "builder") {
+                    candPaths->push(curPwd + "/.cex_boxes/cex-builder");
+                    candPaths->push(curPwd + "/.cex_boxes/builder");
+                    candPaths->push(curPwd + "/../cex/.cex_boxes/cex-builder");
+                    candPaths->push(curPwd + "/../cex/.cex_boxes/builder");
+                    candPaths->push(home + "/Projects/cex/.cex_boxes/cex-builder");
+                    candPaths->push(home + "/Projects/cex/.cex_boxes/builder");
+                }
 
                 for (let cIdx: int = 0; cIdx < (int)candPaths->length(); cIdx++) {
                     let cp: string = candPaths->get(cIdx);
@@ -577,6 +589,17 @@ class CxvmEngine {
                 if (binSrc.length() == 0 && docsDir.length() > 0 && fs.exists(docsDir + "/bin/" + lib)) {
                     binSrc = docsDir + "/bin/" + lib;
                 }
+                if (binSrc.length() == 0 && (lib == "cex-builder" || lib == "builder")) {
+                    if (fs.exists(boxDir + "/bin/" + lib)) {
+                        binSrc = boxDir + "/bin/" + lib;
+                    }
+                    if (binSrc.length() == 0 && fs.exists(boxDir + "/bin/cex-builder")) {
+                        binSrc = boxDir + "/bin/cex-builder";
+                    }
+                    if (binSrc.length() == 0 && fs.exists(this.cxvmHome + "/bin/cex-builder")) {
+                        binSrc = this.cxvmHome + "/bin/cex-builder";
+                    }
+                }
                 if (binSrc.length() == 0 && fs.exists(this.cxvmHome + "/" + lib + "/" + ver + "/bin")) {
                     binSrc = this.cxvmHome + "/" + lib + "/" + ver + "/bin";
                 }
@@ -606,6 +629,12 @@ class CxvmEngine {
         }
         if (fs.exists(boxesDir + "/cext") && !fs.exists(boxesDir + "/cex-test")) {
             child_process.execSync("cp -r \"" + boxesDir + "/cext\" \"" + boxesDir + "/cex-test\" 2>/dev/null || true");
+        }
+        if (fs.exists(boxesDir + "/cex-builder") && !fs.exists(boxesDir + "/builder")) {
+            child_process.execSync("cp -r \"" + boxesDir + "/cex-builder\" \"" + boxesDir + "/builder\" 2>/dev/null || true");
+        }
+        if (fs.exists(boxesDir + "/builder") && !fs.exists(boxesDir + "/cex-builder")) {
+            child_process.execSync("cp -r \"" + boxesDir + "/builder\" \"" + boxesDir + "/cex-builder\" 2>/dev/null || true");
         }
 
         outMsg += "==> Packages Processed: " + std::to_string(builtCount) + " configured, " + std::to_string(cachedCount) + " cached (use .cex_boxes only, zero deps).";
@@ -1688,6 +1717,7 @@ class CxvmEngine {
         if (cmd == "add") return 31;
         if (cmd == "--app") return 32;
         if (cmd == "force" || cmd == "--force" || cmd == "-f") return 33;
+        if (cmd == "builder" || cmd == "cex-builder") return 34;
         return 0;
     }
 
@@ -1854,6 +1884,9 @@ class CxvmEngine {
                 }
                 if ((cmd == "build" || cmd == "rebuild") && (arg1 == "javis" || arg1 == "java")) {
                     return this.buildJavis(arg2);
+                }
+                if ((cmd == "build" || cmd == "rebuild") && (arg1 == "builder" || arg1 == "cex-builder")) {
+                    return this.appExecute("cex-builder", arg2, "");
                 }
                 let vType: string = (cmd == "build" || cmd == "rebuild") ? this.defaultBuildEdition : this.defaultCexrEdition;
                 let targetIdx: string = CxvmConstants::entrypoint();
@@ -2028,6 +2061,9 @@ class CxvmEngine {
                 println("[WARN] Unknown command after force: " + arg1);
                 return 1;
             }
+            case 34: {
+                return this.appExecute("cex-builder", arg1, arg2);
+            }
             default:
             println("==> [cxvm cvm] Hook -> cxvm --app cvm " + cmd + (arg1.length() > 0 ? " " + arg1 : "") + (arg2.length() > 0 ? " " + arg2 : ""));
             return this.appExecute("cvm", cmd, arg1.length() > 0 ? (arg2.length() > 0 ? arg1 + " " + arg2 : arg1) : "");
@@ -2072,13 +2108,15 @@ class CxvmEngine {
         msg += "  - cex-pack:      CEX_DIR/cex-pack/" + CxvmConstants::cexPackVersion() + "/bin\n";
         msg += "  - cex-lint:      CEX_DIR/cex-lint/" + CxvmConstants::cexLintVersion() + "/bin\n";
         msg += "  - cext:          CEX_DIR/cext/" + CxvmConstants::cextVersion() + "/bin\n";
+        msg += "  - cex-builder:   CEX_DIR/cex-builder/1.0.0/bin (Cross-Platform Distribution & Binary Packaging Engine)\n";
+        msg += "  - builder:       CEX_DIR/builder/1.0.0/bin (Self-Contained Executable Packaging Engine)\n";
         msg += "  - javis:         CEX_DIR/bin/javis (AI Cognitive Mind & Benchmark, alias: java)\n";
         msg += "  - vision:        CEX_DIR/bin/vision (AI Conversational & Math Perception)\n";
         msg += "  - ultron:        CEX_DIR/bin/ultron (AI Affective & Emotion Computing)\n";
         msg += "  - cxvm:          CXVM_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - target build:  CXMV_DIR/cxvm/" + this.currentVersion + "/bin\n";
         msg += "  - integrated:    {rootProjectPath}/.bin (./.bin)\n";
-        msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cext, cxvm, javis, vision, ultron, java)\n";
+        msg += "  - companion bin: CEX_DIR/bin (cexp, cexr, cex-pack, cex-lint, cext, cxvm, javis, vision, ultron, java, cex-builder, builder)\n";
         return new CxvmCommandResult("register CEX_DIR", this.currentVersion, true, "Bin apps registered in CEX_DIR", msg);
     }
 
@@ -2097,6 +2135,7 @@ class CxvmEngine {
         if (name == "cex-pack") return 8;
         if (name == "mvc-lighting" || name == "lighting") return 9;
         if (name == "cvm" || name == "cvm-cli" || name == "cex-cvm-cli") return 10;
+        if (name == "cex-builder" || name == "builder") return 11;
         return 0;
     }
 
@@ -2298,6 +2337,35 @@ class CxvmEngine {
                     }
                     default:
                     return this.cvmCliRunner->execute(cvmSub, cvmArg1, "");
+                }
+            }
+            case 11: {
+                let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
+                let builderBin: string = "";
+                if (fs.exists(curPwd + "/.cex_boxes/cex-builder/bin/cex-builder")) {
+                    builderBin = curPwd + "/.cex_boxes/cex-builder/bin/cex-builder";
+                }
+                if (builderBin.length() == 0 && fs.exists(curPwd + "/.cex_boxes/builder/bin/builder")) {
+                    builderBin = curPwd + "/.cex_boxes/builder/bin/builder";
+                }
+                if (builderBin.length() == 0 && fs.exists(this.cxvmHome + "/bin/cex-builder")) {
+                    builderBin = this.cxvmHome + "/bin/cex-builder";
+                }
+                if (builderBin.length() == 0 && fs.exists(this.cxvmHome + "/bin/builder")) {
+                    builderBin = this.cxvmHome + "/bin/builder";
+                }
+
+                let cmdStr: string = (builderBin.length() > 0) ? builderBin : (name == "builder" ? "builder" : "cex-builder");
+                if (subCmd != "downloads" && subCmd.length() > 0) cmdStr += " \"" + subCmd + "\"";
+                if (manifestFile.length() > 0 && manifestFile != "cex-pack.json") cmdStr += " \"" + manifestFile + "\"";
+                println("[OK] [" + name + "] Executing builder engine from .cex_boxes: " + cmdStr);
+                try {
+                    let out: string = child_process.execSync(cmdStr);
+                    print(out);
+                    if (out.length() > 0 && out.substr(out.length() - 1, 1) != "\n") println();
+                    return 0;
+                } catch (...) {
+                    return 1;
                 }
             }
             default:

@@ -7,7 +7,7 @@ import "../types.cex";
 import "../models/platform_model.cex";
 import "../models/version_model.cex";
 import "../models/artifact_model.cex";
-import "../builder/dist_builder.cex";
+import "../dist_builder.cex";
 import "../cxvm_engine.cex";
 import "../views/factory_views.cex";
 

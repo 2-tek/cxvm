@@ -1,0 +1,65 @@
+// 2-TEK CXVM: Cex Builder & Build Integration Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), RULE_NO_SYMLINK_BETWEEN_BOXES
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import child_process from "child_process";
+import "@/src/types.cex";
+import "@/src/models/platform_model.cex";
+import "@/src/models/version_model.cex";
+import "@/src/models/artifact_model.cex";
+import "@/src/dist_builder.cex";
+import "@/src/cxvm_engine.cex";
+
+fn main(): int {
+    println("===============================================================================");
+    println("         2-TEK CXVM: Cex Builder & Build Integration Test Suite                ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM Builder Tests");
+
+    // 1. Verify Builder Packages Exist in .cex_boxes as Real Self-Contained Directories (Not Symlinks)
+    Assert::isTrue(fs.exists(".cex_boxes/cex-builder"), ".cex_boxes/cex-builder exists");
+    Assert::isTrue(fs.exists(".cex_boxes/builder"), ".cex_boxes/builder exists");
+    Assert::isTrue(fs.exists(".cex_boxes/cex-builder/cex-pack.json"), ".cex_boxes/cex-builder/cex-pack.json exists");
+    Assert::isTrue(fs.exists(".cex_boxes/builder/cex-pack.json"), ".cex_boxes/builder/cex-pack.json exists");
+    Assert::isTrue(fs.exists(".cex_boxes/cex-builder/bin/cex-builder"), ".cex_boxes/cex-builder/bin/cex-builder exists");
+    Assert::isTrue(fs.exists(".cex_boxes/builder/bin/builder"), ".cex_boxes/builder/bin/builder exists");
+
+    // Verify not symbolic links (RULE_NO_SYMLINK_BETWEEN_BOXES)
+    let symCheck1: string = child_process.execSync("test -L .cex_boxes/cex-builder && echo 'symlink' || echo 'real'");
+    Assert::isTrue(symCheck1.find("real") != -1, ".cex_boxes/cex-builder is a real directory, not symlinked");
+
+    let symCheck2: string = child_process.execSync("test -L .cex_boxes/builder && echo 'symlink' || echo 'real'");
+    Assert::isTrue(symCheck2.find("real") != -1, ".cex_boxes/builder is a real directory, not symlinked");
+
+    // 2. Verify Builder Version Resolution in CxvmEngine
+    let cxvm: CxvmEngine* = new CxvmEngine();
+    Assert::equalsString("1.0.0", cxvm->resolveLibVersion("cex-builder"), "cxvm resolves cex-builder to version 1.0.0");
+    Assert::equalsString("1.0.0", cxvm->resolveLibVersion("builder"), "cxvm resolves builder to version 1.0.0");
+    Assert::equalsString("2.1.42", cxvm->resolveLibVersion("cxvm"), "cxvm resolves cxvm to version 2.1.42");
+
+    // 3. Verify DistBuilder from @cex-builder in .cex_boxes
+    let distBuilder: DistBuilder* = new DistBuilder("downloads");
+    Assert::isTrue((int)distBuilder->platforms->length() >= 6, "DistBuilder has 6 supported platforms");
+    Assert::isTrue((int)distBuilder->versions->length() >= 6, "DistBuilder has at least 6 supported versions");
+    Assert::isTrue((int)distBuilder->artifacts->length() >= 36, "DistBuilder initialized artifacts matrix");
+
+    // 4. Verify Dispatching Builder via --app and CLI
+    let appBuilderRes: int = cxvm->appExecute("cex-builder", "doctor", "");
+    Assert::equalsInt(0, appBuilderRes, "cxvm appExecute cex-builder doctor returns 0 OK");
+
+    let cmdBuilderRes: int = cxvm->cvmExecute("builder", "doctor", "");
+    Assert::equalsInt(0, cmdBuilderRes, "cxvm cvmExecute builder doctor returns 0 OK");
+
+    let cmdBuildBuilderRes: int = cxvm->cvmExecute("build", "builder", "doctor");
+    Assert::equalsInt(0, cmdBuildBuilderRes, "cxvm cvmExecute build builder doctor returns 0 OK");
+
+    suite->addResult("test_builder_cex_boxes", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}
