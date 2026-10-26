@@ -2,7 +2,6 @@
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
 import "../lighting_mvc.cex";
-import "../types.cex";
 
 class ArtifactModel extends BaseModel {
     public filename: string;
@@ -27,7 +26,10 @@ class ArtifactModel extends BaseModel {
     }
 
     public override validate(): ModelValidationResult* {
-        let res: ModelValidationResult* = super.validate();
+        let res: ModelValidationResult* = new ModelValidationResult();
+        if (this.id.length() === 0) {
+            res->addError("Model ID must not be empty");
+        }
         if (this.filename.length() === 0) {
             res->addError("Artifact filename must not be empty");
         }
@@ -52,6 +54,15 @@ class ArtifactModel extends BaseModel {
     }
 
     public override toJson(): string {
-        return JsonDoc::stringify(this.toJsonValue());
+        let obj: JsonValue* = Json::obj();
+        Json::setString(obj, "filename", this.filename);
+        Json::setString(obj, "version", this.version);
+        Json::setString(obj, "platform", this.platform);
+        Json::setString(obj, "arch", this.arch);
+        Json::setInt(obj, "sizeBytes", this.sizeBytes);
+        Json::setString(obj, "sha256", this.sha256);
+        Json::setString(obj, "downloadUrl", this.downloadUrl);
+        Json::setBool(obj, "isBuilt", this.isBuilt);
+        return Json::stringify(obj);
     }
 }

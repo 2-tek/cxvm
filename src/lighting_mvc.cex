@@ -1,4 +1,5 @@
 import json from "json";
+import "./json.cex";
 import "@cex-service/src/request.cex";
 import "@cex-service/src/response.cex";
 import "@cex-std/src/filesystem.cex";
@@ -283,7 +284,9 @@ class BaseModel {
     }
 
     public virtual toJson(): string {
-        return JsonDoc::stringify(this.toJsonValue());
+        let obj: JsonValue* = Json::obj();
+        Json::setString(obj, "id", this.id);
+        return Json::stringify(obj);
     }
 }
 

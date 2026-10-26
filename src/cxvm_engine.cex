@@ -512,8 +512,8 @@ class CxvmEngine {
                 if (parsed->has("dependencies")) {
                     let depObj: JsonValue* = (JsonValue*)parsed->get("dependencies");
                     if (depObj != nullptr) {
-                        let dKeys: std::vector<std::string> = depObj->keys();
-                        for (let k: size_t = 0; k < dKeys.size(); k++) {
+                        let dKeys: vector<string> = depObj->keys();
+                        for (let k: int = 0; k < (int)dKeys.size(); k++) {
                             let kName: string = dKeys[k];
                             let existsInList: bool = false;
                             for (let j: int = 0; j < (int)libs->length(); j++) {
@@ -528,8 +528,8 @@ class CxvmEngine {
                 if (parsed->has("required")) {
                     let reqObj: JsonValue* = (JsonValue*)parsed->get("required");
                     if (reqObj != nullptr) {
-                        let rKeys: std::vector<std::string> = reqObj->keys();
-                        for (let r: size_t = 0; r < rKeys.size(); r++) {
+                        let rKeys: vector<string> = reqObj->keys();
+                        for (let r: int = 0; r < (int)rKeys.size(); r++) {
                             let rName: string = rKeys[r];
                             let existsInList: bool = false;
                             for (let j: int = 0; j < (int)libs->length(); j++) {
