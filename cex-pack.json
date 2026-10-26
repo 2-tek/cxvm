@@ -51,15 +51,10 @@
         "cex-builder": "1.0.0",
         "builder": "1.0.0"
     },
-    "includeDirs": [
-        "./src"
-    ],
+    "includeDirs": ["./src"],
     "lint": {
         "onBuild": true,
-        "include": [
-            "src",
-            "tests"
-        ],
+        "include": ["src", "tests"],
         "rules": {
             "indent": {
                 "level": "error",
