@@ -39,7 +39,7 @@ fn main(): int {
     let cxvm: CxvmEngine* = new CxvmEngine();
     Assert::equalsString("1.0.0", cxvm->resolveLibVersion("cex-builder"), "cxvm resolves cex-builder to version 1.0.0");
     Assert::equalsString("1.0.0", cxvm->resolveLibVersion("builder"), "cxvm resolves builder to version 1.0.0");
-    Assert::equalsString("2.1.42", cxvm->resolveLibVersion("cxvm"), "cxvm resolves cxvm to version 2.1.42");
+    Assert::equalsString("2.1.43", cxvm->resolveLibVersion("cxvm"), "cxvm resolves cxvm to version 2.1.43");
 
     // 3. Verify DistBuilder from @cex-builder in .cex_boxes
     let distBuilder: DistBuilder* = new DistBuilder("downloads");

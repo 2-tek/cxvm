@@ -37,7 +37,7 @@ class SetupRunner {
             case 8: return "1.0.0";
             case 9: return "1.0.0";
             case 10: return "2.0.0";
-            case 11: return "2.1.42";
+            case 11: return "2.1.43";
             case 12: return "1.0.0";
             default: return defaultFallback;
         }
@@ -97,7 +97,7 @@ class SetupRunner {
                     let depObj: JsonValue* = (JsonValue*)parsed->get("dependencies");
                     if (depObj != nullptr) {
                         let dKeys: std::vector<std::string> = depObj->keys();
-                        for (size_t k = 0; k < dKeys.size(); k++) {
+                        for (let k: size_t = 0; k < dKeys.size(); k++) {
                             let kName: string = dKeys[k];
                             let existsInList: bool = false;
                             for (let j: int = 0; j < (int)libs->length(); j++) {
@@ -165,6 +165,9 @@ class SetupRunner {
 
                 if (candPackageDir.length() > 0) {
                     child_process.execSync("cp -rn \"" + candPackageDir + "\"/* \"" + boxDir + "/\" 2>/dev/null || true");
+                } else {
+                    let gitRepo: string = "https://github.com/2-tek/" + lib + ".git";
+                    child_process.execSync("git clone --depth 1 \"" + gitRepo + "\" \"" + boxDir + "\" 2>/dev/null || git clone --depth 1 \"https://github.com/2-tek/cex-" + lib + ".git\" \"" + boxDir + "\" 2>/dev/null || true");
                 }
 
                 let binSrc: string = "";
@@ -374,10 +377,13 @@ class SetupRunner {
         }
 
         if (realCxvmBin.length() > 0 && fs.exists(realCxvmBin)) {
+            child_process.execSync("if [ -L \"" + curPwd + "/.bin\" ]; then rm -f \"" + curPwd + "/.bin\"; fi");
+            child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + curPwd + "/.bin\" 2>/dev/null || true");
+            child_process.execSync("chmod +x \"" + curPwd + "/.bin\" 2>/dev/null || true");
             child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + cxvmDir + "/bin/cxvm\"");
             child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + cexDir + "/bin/cxvm\"");
             child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cxvm\" \"" + cexDir + "/bin/cxvm\"");
-            println("  [OK] Installed latest cxvm binary to " + cxvmDir + "/bin/cxvm and " + cexDir + "/bin/cxvm");
+            println("  [OK] Installed latest cxvm binary to " + curPwd + "/.bin, " + cxvmDir + "/bin/cxvm and " + cexDir + "/bin/cxvm");
         }
 
         // Copy setup.cex into $cxvmDir/bin and $cexDir/bin for global 'cxvm setup' dispatch
