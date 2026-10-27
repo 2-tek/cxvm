@@ -927,48 +927,59 @@ class CxvmEngine {
     }
 
     public registerJavisApps(): bool {
-        let docsDir: string = this.resolveDocumentsDir();
-        if (docsDir.length() == 0) {
-            return false;
-        }
-
         let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
         let cxvmDir: string = home + "/.cxvm";
         let cexDir: string = home + "/.cex";
 
-        let javisSrc: string = docsDir + "/bin/javis";
+        let javisCanonical: string = cxvmDir + "/dist/javis-runtime/1.1.70/bin";
+        let docsDir: string = this.resolveDocumentsDir();
+        if (docsDir.length() == 0 && !fs.exists(javisCanonical)) {
+            return false;
+        }
+
+        let javisSrc: string = fs.exists(javisCanonical) ? javisCanonical : (docsDir + "/bin/javis");
         let ultronSrc: string = docsDir + "/bin/ultron";
         let visionSrc: string = docsDir + "/bin/vision";
         let cexm2VisionSrc: string = docsDir + "/bin/cexm-2-vision";
 
         child_process.execSync("mkdir -p \"" + cxvmDir + "/bin\" \"" + cexDir + "/bin\"");
-        child_process.execSync("chmod +x \"" + javisSrc + "\" \"" + ultronSrc + "\" \"" + visionSrc + "\" 2>/dev/null || true");
+        if (fs.exists(javisSrc)) child_process.execSync("chmod +x \"" + javisSrc + "\" 2>/dev/null || true");
+        if (fs.exists(ultronSrc)) child_process.execSync("chmod +x \"" + ultronSrc + "\" 2>/dev/null || true");
+        if (fs.exists(visionSrc)) child_process.execSync("chmod +x \"" + visionSrc + "\" 2>/dev/null || true");
 
-        child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cxvmDir + "/bin/javis\"");
-        child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cxvmDir + "/bin/java\"");
-        child_process.execSync("ln -sf \"" + ultronSrc + "\" \"" + cxvmDir + "/bin/ultron\"");
-        child_process.execSync("ln -sf \"" + visionSrc + "\" \"" + cxvmDir + "/bin/vision\"");
+        if (fs.exists(javisSrc)) {
+            child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cxvmDir + "/bin/javis\"");
+            child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cxvmDir + "/bin/java\"");
+        }
+        if (fs.exists(ultronSrc)) child_process.execSync("ln -sf \"" + ultronSrc + "\" \"" + cxvmDir + "/bin/ultron\"");
+        if (fs.exists(visionSrc)) child_process.execSync("ln -sf \"" + visionSrc + "\" \"" + cxvmDir + "/bin/vision\"");
         if (fs.exists(cexm2VisionSrc)) {
             child_process.execSync("ln -sf \"" + cexm2VisionSrc + "\" \"" + cxvmDir + "/bin/cexm-2-vision\"");
         }
 
         if (fs.exists(cxvmDir + "/current/bin")) {
-            child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cxvmDir + "/current/bin/javis\"");
-            child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cxvmDir + "/current/bin/java\"");
-            child_process.execSync("ln -sf \"" + ultronSrc + "\" \"" + cxvmDir + "/current/bin/ultron\"");
-            child_process.execSync("ln -sf \"" + visionSrc + "\" \"" + cxvmDir + "/current/bin/vision\"");
+            if (fs.exists(javisSrc)) {
+                child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cxvmDir + "/current/bin/javis\"");
+                child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cxvmDir + "/current/bin/java\"");
+            }
+            if (fs.exists(ultronSrc)) child_process.execSync("ln -sf \"" + ultronSrc + "\" \"" + cxvmDir + "/current/bin/ultron\"");
+            if (fs.exists(visionSrc)) child_process.execSync("ln -sf \"" + visionSrc + "\" \"" + cxvmDir + "/current/bin/vision\"");
         }
 
-        child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cexDir + "/bin/javis\"");
-        child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cexDir + "/bin/java\"");
-        child_process.execSync("ln -sf \"" + ultronSrc + "\" \"" + cexDir + "/bin/ultron\"");
-        child_process.execSync("ln -sf \"" + visionSrc + "\" \"" + cexDir + "/bin/vision\"");
+        if (fs.exists(javisSrc)) {
+            child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cexDir + "/bin/javis\"");
+            child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + cexDir + "/bin/java\"");
+        }
+        if (fs.exists(ultronSrc)) child_process.execSync("ln -sf \"" + ultronSrc + "\" \"" + cexDir + "/bin/ultron\"");
+        if (fs.exists(visionSrc)) child_process.execSync("ln -sf \"" + visionSrc + "\" \"" + cexDir + "/bin/vision\"");
 
         if (fs.exists(home + "/.local/bin")) {
-            child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + home + "/.local/bin/javis\"");
-            child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + home + "/.local/bin/java\"");
-            child_process.execSync("ln -sf \"" + ultronSrc + "\" \"" + home + "/.local/bin/ultron\"");
-            child_process.execSync("ln -sf \"" + visionSrc + "\" \"" + home + "/.local/bin/vision\"");
+            if (fs.exists(javisSrc)) {
+                child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + home + "/.local/bin/javis\"");
+                child_process.execSync("ln -sf \"" + javisSrc + "\" \"" + home + "/.local/bin/java\"");
+            }
+            if (fs.exists(ultronSrc)) child_process.execSync("ln -sf \"" + ultronSrc + "\" \"" + home + "/.local/bin/ultron\"");
+            if (fs.exists(visionSrc)) child_process.execSync("ln -sf \"" + visionSrc + "\" \"" + home + "/.local/bin/vision\"");
         }
 
         return true;
@@ -977,9 +988,15 @@ class CxvmEngine {
     public setupJavis(subArg: string): int {
         this.registerJavisApps();
 
+        let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
+        let cxvmDir: string = home + "/.cxvm";
+        let javisCanonical: string = cxvmDir + "/dist/javis-runtime/1.1.70/bin";
+
         let docsDir: string = this.resolveDocumentsDir();
-        if (docsDir.length() > 0 && fs.exists(docsDir + "/bin/javis")) {
-            let cmd: string = "\"" + docsDir + "/bin/javis\"";
+        let javisBin: string = fs.exists(javisCanonical) ? javisCanonical : (docsDir + "/bin/javis");
+
+        if (fs.exists(javisBin)) {
+            let cmd: string = "\"" + javisBin + "\"";
             if (subArg.length() > 0 && (subArg.find("fix") == 0 || subArg.find("bug") != std::string::npos || subArg.find("error") != std::string::npos)) {
                 cmd += " \"" + subArg + "\"";
             } else {
@@ -994,7 +1011,7 @@ class CxvmEngine {
                 if (out.length() > 0 && out.substr(out.length() - 1, 1) != "\n") println();
                 return 0;
             } catch (...) {
-                println("[ERROR] Failed to run javis setup from " + docsDir);
+                println("[ERROR] Failed to run javis setup from " + javisBin);
                 return 1;
             }
         }
@@ -1030,11 +1047,14 @@ class CxvmEngine {
             javisSrc = home + "/.cex/models/javis/src/index.cex";
         }
 
+        let rootBuildPath: string = home + "/.cxvm/dist";
+        let javisCanonical: string = rootBuildPath + "/javis-runtime/1.1.70/bin";
         let javisBinFound: string = "";
-        if (docsDir.length() > 0 && fs.exists(docsDir + "/bin/javis")) {
+        if (fs.exists(javisCanonical)) {
+            javisBinFound = javisCanonical;
+        } else if (docsDir.length() > 0 && fs.exists(docsDir + "/bin/javis")) {
             javisBinFound = docsDir + "/bin/javis";
-        }
-        if (javisBinFound.length() == 0 && modelsDir.length() > 0 && fs.exists(modelsDir + "/javis/bin/javis")) {
+        } else if (modelsDir.length() > 0 && fs.exists(modelsDir + "/javis/bin/javis")) {
             javisBinFound = modelsDir + "/javis/bin/javis";
         }
 
@@ -1043,27 +1063,20 @@ class CxvmEngine {
             return 1;
         }
 
-        let javisBinDir: string = curPwd + "/cex_boxes/javis/bin";
-        let javisBinTarget: string = javisBinDir + "/javis";
-        child_process.execSync("mkdir -p \"" + javisBinDir + "\"");
-
-        if (javisBinFound.length() > 0) {
-            child_process.execSync("cp -f \"" + javisBinFound + "\" \"" + javisBinTarget + "\"");
-            child_process.execSync("chmod +x \"" + javisBinTarget + "\" 2>/dev/null || true");
-        }
         if (javisBinFound.length() == 0 && javisSrc.length() > 0) {
             try {
-                child_process.execSync("cexp compile \"" + javisSrc + "\" -o \"" + javisBinTarget + "\" 2>/dev/null || true");
-                child_process.execSync("chmod +x \"" + javisBinTarget + "\" 2>/dev/null || true");
+                child_process.execSync("mkdir -p \"" + rootBuildPath + "/javis-runtime/1.1.70\"");
+                child_process.execSync("cexp-v8-stable build \"" + javisSrc + "\" -o \"" + javisCanonical + "\" 2>/dev/null || true");
+                child_process.execSync("chmod +x \"" + javisCanonical + "\" 2>/dev/null || true");
+                javisBinFound = javisCanonical;
             } catch (...) {}
         }
-        child_process.execSync("ln -sf \"" + javisBinTarget + "\" \"" + javisBinDir + "/java\" 2>/dev/null || true");
 
         // Register apps and symlinks
         this.registerJavisApps();
 
         println("[OK] [cxvm build javis] Javis build pipeline completed successfully.");
-        println("  Target Dispatcher : " + javisBinTarget);
+        println("  Target Canonical  : " + (javisBinFound.length() > 0 ? javisBinFound : javisCanonical));
         println("  Global Symlinks   : ~/.cxvm/bin/javis & ~/.cex/bin/javis [OK]");
         return 0;
     }
