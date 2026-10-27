@@ -64,7 +64,7 @@ class SetupRunner {
     }
 
     public setupDeps(curPwd: string, cexDir: string, cxvmDir: string): void {
-        println("\n==> [setup.cex] Resolving and Configuring Packages into .cex_boxes (use .cex_boxes only)...");
+        println("\n==> [setup.cex] Resolving and Configuring Packages into cex_boxes (use cex_boxes only)...");
         let libs: Array<string>* = new Array<string>();
         libs->push("cexp-v8");
         libs->push("cexp-v8-stable");
@@ -119,40 +119,40 @@ class SetupRunner {
         for (let i: int = 0; i < (int)libs->length(); i++) {
             let lib: string = libs->get(i);
             let ver: string = this.resolveVersion(lib, this.defaultVer);
-            let boxDir: string = curPwd + "/.cex_boxes/" + lib;
+            let boxDir: string = curPwd + "/cex_boxes/" + lib;
             let boxBin: string = boxDir + "/bin";
 
             let isCxvmBean: bool = (lib == "cxvm-bean");
             if (!this.isForce && !isCxvmBean && fs.exists(boxBin) && (fs.exists(boxBin + "/" + lib) || fs.exists(boxBin))) {
                 cachedCount++;
-                println("  [CACHE] .cex_boxes/" + lib + " already exists (cached, skipping rebuild)");
+                println("  [CACHE] cex_boxes/" + lib + " already exists (cached, skipping rebuild)");
             } else {
                 builtCount++;
                 child_process.execSync("mkdir -p \"" + boxBin + "\"");
 
                 let candPackageDir: string = "";
                 let candPaths: Array<string>* = new Array<string>();
-                candPaths->push(curPwd + "/../cex/.cex_boxes/" + lib);
-                candPaths->push(curPwd + "/../cex/cxvm/.cex_boxes/" + lib);
-                candPaths->push(home + "/Projects/cex/.cex_boxes/" + lib);
-                candPaths->push(home + "/Projects/cex/cxvm/.cex_boxes/" + lib);
-                candPaths->push(home + "/.cxvm/.cex_boxes/" + lib);
-                candPaths->push(home + "/.cex/.cex_boxes/" + lib);
+                candPaths->push(curPwd + "/../cex/cex_boxes/" + lib);
+                candPaths->push(curPwd + "/../cex/cxvm/cex_boxes/" + lib);
+                candPaths->push(home + "/Projects/cex/cex_boxes/" + lib);
+                candPaths->push(home + "/Projects/cex/cxvm/cex_boxes/" + lib);
+                candPaths->push(home + "/.cxvm/cex_boxes/" + lib);
+                candPaths->push(home + "/.cex/cex_boxes/" + lib);
                 if (lib == "cext") {
-                    candPaths->push(curPwd + "/.cex_boxes/cex-test");
-                    candPaths->push(home + "/Projects/cex/.cex_boxes/cex-test");
+                    candPaths->push(curPwd + "/cex_boxes/cex-test");
+                    candPaths->push(home + "/Projects/cex/cex_boxes/cex-test");
                 }
                 if (lib == "cex-test") {
-                    candPaths->push(curPwd + "/.cex_boxes/cext");
-                    candPaths->push(home + "/Projects/cex/.cex_boxes/cext");
+                    candPaths->push(curPwd + "/cex_boxes/cext");
+                    candPaths->push(home + "/Projects/cex/cex_boxes/cext");
                 }
                 if (lib == "cex-builder" || lib == "builder") {
-                    candPaths->push(curPwd + "/.cex_boxes/cex-builder");
-                    candPaths->push(curPwd + "/.cex_boxes/builder");
-                    candPaths->push(curPwd + "/../cex/.cex_boxes/cex-builder");
-                    candPaths->push(curPwd + "/../cex/.cex_boxes/builder");
-                    candPaths->push(home + "/Projects/cex/.cex_boxes/cex-builder");
-                    candPaths->push(home + "/Projects/cex/.cex_boxes/builder");
+                    candPaths->push(curPwd + "/cex_boxes/cex-builder");
+                    candPaths->push(curPwd + "/cex_boxes/builder");
+                    candPaths->push(curPwd + "/../cex/cex_boxes/cex-builder");
+                    candPaths->push(curPwd + "/../cex/cex_boxes/builder");
+                    candPaths->push(home + "/Projects/cex/cex_boxes/cex-builder");
+                    candPaths->push(home + "/Projects/cex/cex_boxes/builder");
                 }
 
                 for (let cIdx: int = 0; cIdx < (int)candPaths->length(); cIdx++) {
@@ -197,15 +197,15 @@ class SetupRunner {
                         binSrc = curPwd + "/cxvm/dist/cxvm";
                     }
                 }
-                if (binSrc.length() == 0 && fs.exists(curPwd + "/.cex_boxes/" + lib + "/bin/" + lib)) {
-                    binSrc = curPwd + "/.cex_boxes/" + lib + "/bin/" + lib;
+                if (binSrc.length() == 0 && fs.exists(curPwd + "/cex_boxes/" + lib + "/bin/" + lib)) {
+                    binSrc = curPwd + "/cex_boxes/" + lib + "/bin/" + lib;
                 }
                 if (binSrc.length() == 0 && (lib == "cex-builder" || lib == "builder")) {
-                    if (fs.exists(curPwd + "/.cex_boxes/cex-builder/bin/cex-builder")) {
-                        binSrc = curPwd + "/.cex_boxes/cex-builder/bin/cex-builder";
+                    if (fs.exists(curPwd + "/cex_boxes/cex-builder/bin/cex-builder")) {
+                        binSrc = curPwd + "/cex_boxes/cex-builder/bin/cex-builder";
                     }
-                    if (binSrc.length() == 0 && fs.exists(curPwd + "/.cex_boxes/builder/bin/builder")) {
-                        binSrc = curPwd + "/.cex_boxes/builder/bin/builder";
+                    if (binSrc.length() == 0 && fs.exists(curPwd + "/cex_boxes/builder/bin/builder")) {
+                        binSrc = curPwd + "/cex_boxes/builder/bin/builder";
                     }
                     if (binSrc.length() == 0 && fs.exists(cxvmDir + "/bin/cex-builder")) {
                         binSrc = cxvmDir + "/bin/cex-builder";
@@ -231,20 +231,20 @@ class SetupRunner {
                     fs.writeFile(boxMf, mfData);
                 }
 
-                println("  [OK]    Configured .cex_boxes/" + lib + " into .cex_boxes/" + lib + "/bin");
+                println("  [OK]    Configured cex_boxes/" + lib + " into cex_boxes/" + lib + "/bin");
             }
         }
-        if (fs.exists(curPwd + "/.cex_boxes/cex-test") && !fs.exists(curPwd + "/.cex_boxes/cext")) {
-            child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes/cex-test\" \"" + curPwd + "/.cex_boxes/cext\" 2>/dev/null || true");
+        if (fs.exists(curPwd + "/cex_boxes/cex-test") && !fs.exists(curPwd + "/cex_boxes/cext")) {
+            child_process.execSync("cp -r \"" + curPwd + "/cex_boxes/cex-test\" \"" + curPwd + "/cex_boxes/cext\" 2>/dev/null || true");
         }
-        if (fs.exists(curPwd + "/.cex_boxes/cext") && !fs.exists(curPwd + "/.cex_boxes/cex-test")) {
-            child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes/cext\" \"" + curPwd + "/.cex_boxes/cex-test\" 2>/dev/null || true");
+        if (fs.exists(curPwd + "/cex_boxes/cext") && !fs.exists(curPwd + "/cex_boxes/cex-test")) {
+            child_process.execSync("cp -r \"" + curPwd + "/cex_boxes/cext\" \"" + curPwd + "/cex_boxes/cex-test\" 2>/dev/null || true");
         }
-        if (fs.exists(curPwd + "/.cex_boxes/cex-builder") && !fs.exists(curPwd + "/.cex_boxes/builder")) {
-            child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes/cex-builder\" \"" + curPwd + "/.cex_boxes/builder\" 2>/dev/null || true");
+        if (fs.exists(curPwd + "/cex_boxes/cex-builder") && !fs.exists(curPwd + "/cex_boxes/builder")) {
+            child_process.execSync("cp -r \"" + curPwd + "/cex_boxes/cex-builder\" \"" + curPwd + "/cex_boxes/builder\" 2>/dev/null || true");
         }
-        if (fs.exists(curPwd + "/.cex_boxes/builder") && !fs.exists(curPwd + "/.cex_boxes/cex-builder")) {
-            child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes/builder\" \"" + curPwd + "/.cex_boxes/cex-builder\" 2>/dev/null || true");
+        if (fs.exists(curPwd + "/cex_boxes/builder") && !fs.exists(curPwd + "/cex_boxes/cex-builder")) {
+            child_process.execSync("cp -r \"" + curPwd + "/cex_boxes/builder\" \"" + curPwd + "/cex_boxes/cex-builder\" 2>/dev/null || true");
         }
         println("==> Packages Processed: " + std::to_string(builtCount) + " configured, " + std::to_string(cachedCount) + " cached [OK]");
     }
@@ -517,8 +517,8 @@ class SetupRunner {
             }
 
             child_process.execSync("find \"" + curPwd + "/projects\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
-            child_process.execSync("find \"" + curPwd + "/.cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
-            child_process.execSync("find \"" + curPwd + "/cxvm/.cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+            child_process.execSync("find \"" + curPwd + "/cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+            child_process.execSync("find \"" + curPwd + "/cxvm/cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
         }
         if (cexpCanonicalSrc.length() == 0 && fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
             this.registerBinApp(cexDir, cxvmDir, "cexp", cxvmDir + "/bin/cexp-v8-stable", this.defaultVer);
@@ -535,7 +535,7 @@ class SetupRunner {
             this.registerBinApp(cexDir, cxvmDir, "cexp-v8", cexpV8Src, this.defaultVer);
         }
 
-        let packSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") ? (curPwd + "/.cex_boxes/cex-pack/bin/cex-pack") : (fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : ""));
+        let packSrc: string = fs.exists(curPwd + "/cex_boxes/cex-pack/bin/cex-pack") ? (curPwd + "/cex_boxes/cex-pack/bin/cex-pack") : (fs.exists(curPwd + "/dist/cex-pack/1.0.5/bin") ? (curPwd + "/dist/cex-pack/1.0.5/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") ? (curPwd + "/cxvm/dist/cex-pack/1.0.5/bin") : ""));
         if (packSrc.length() > 0) {
             this.registerBinApp(cexDir, cxvmDir, "cex-pack", packSrc, "1.0.5");
         }
@@ -543,7 +543,7 @@ class SetupRunner {
         if (packBeanSrc.length() > 0) {
             this.registerBinApp(cexDir, cxvmDir, "cex-pack-bean", packBeanSrc, "1.0.5");
         }
-        let lintSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-lint/bin/cex-lint") ? (curPwd + "/.cex_boxes/cex-lint/bin/cex-lint") : (fs.exists(curPwd + "/dist/cex-lint/1.0.8/bin") ? (curPwd + "/dist/cex-lint/1.0.8/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") ? (curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") : ""));
+        let lintSrc: string = fs.exists(curPwd + "/cex_boxes/cex-lint/bin/cex-lint") ? (curPwd + "/cex_boxes/cex-lint/bin/cex-lint") : (fs.exists(curPwd + "/dist/cex-lint/1.0.8/bin") ? (curPwd + "/dist/cex-lint/1.0.8/bin") : (fs.exists(curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") ? (curPwd + "/cxvm/dist/cex-lint/1.0.8/bin") : ""));
         if (lintSrc.length() > 0) {
             this.registerBinApp(cexDir, cxvmDir, "cex-lint", lintSrc, "1.0.8");
         }
@@ -552,7 +552,7 @@ class SetupRunner {
             this.registerBinApp(cexDir, cxvmDir, "cext", cextSrc, "1.0.14");
         }
 
-        let builderSrc: string = fs.exists(curPwd + "/.cex_boxes/cex-builder/bin/cex-builder") ? (curPwd + "/.cex_boxes/cex-builder/bin/cex-builder") : (fs.exists(curPwd + "/.cex_boxes/builder/bin/builder") ? (curPwd + "/.cex_boxes/builder/bin/builder") : (fs.exists(cxvmDir + "/bin/cex-builder") ? (cxvmDir + "/bin/cex-builder") : ""));
+        let builderSrc: string = fs.exists(curPwd + "/cex_boxes/cex-builder/bin/cex-builder") ? (curPwd + "/cex_boxes/cex-builder/bin/cex-builder") : (fs.exists(curPwd + "/cex_boxes/builder/bin/builder") ? (curPwd + "/cex_boxes/builder/bin/builder") : (fs.exists(cxvmDir + "/bin/cex-builder") ? (cxvmDir + "/bin/cex-builder") : ""));
         if (builderSrc.length() > 0) {
             this.registerBinApp(cexDir, cxvmDir, "cex-builder", builderSrc, "1.0.0");
             this.registerBinApp(cexDir, cxvmDir, "builder", builderSrc, "1.0.0");
@@ -679,7 +679,7 @@ class SetupRunner {
         println("  cexr Exact Version:" + this.cexrExactVersion + " (Reserve Path: CEX_DIR/cexr-factory/" + this.cexrExactVersion + "/bin)");
         println("  Integrated Build:  {rootProjectPath}/.bin (./.bin)");
         println("  Target Build cxvm: " + cxvmDir + "/cxvm/$version/bin (alias: CXMV_DIR/cxvm/$version/bin)");
-        println("  Package Store:     " + curPwd + "/.cex_boxes (pure .cex_boxes only, zero deps)");
+        println("  Package Store:     " + curPwd + "/cex_boxes (pure cex_boxes only, zero deps)");
         println("  Git Pre-Push Hook: .git/hooks/pre-push (auto-build to .bin before push) [OK]");
         println("  Active Runtime:    CexR v" + this.defaultVer + " (Default)");
         println("  Secondary Runtime: CexR v" + this.secondaryVer + " (LTS)");

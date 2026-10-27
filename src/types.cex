@@ -105,7 +105,7 @@ class CxvmConstants {
     public static thunderPort(): int { return 3050; }
     public static cvmDomain(): string { return "cvm.2-tek.com"; }
     public static cvmApi(): string { return "https://cvm.2-tek.com/api/v1"; }
-    public static boxesDir(): string { return ".cex_boxes"; }
+    public static boxesDir(): string { return "cex_boxes"; }
     public static entrypoint(): string { return "src/index.cex"; }
     public static manifestFile(): string { return "cex-pack.json"; }
 }

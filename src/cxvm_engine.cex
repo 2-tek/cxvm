@@ -73,7 +73,7 @@ class CxvmEngine {
     }
 
     private initCatalog(): void {
-        this.availableVersions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & CexP v8 Pure Engine", "CexR v8 Native .cex_boxes Dist Loader Runtime & CexP v8 Direct Machine Compiler (Default)", true));
+        this.availableVersions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & CexP v8 Pure Engine", "CexR v8 Native cex_boxes Dist Loader Runtime & CexP v8 Direct Machine Compiler (Default)", true));
         this.availableVersions->push(new VersionModel("6.0.0", "LTS", "2026-10-07", "CexR v6 & CexP v6 Pure Engine", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler", false));
         this.availableVersions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "CexR v5 & CexP v5 Pure Engine", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
         this.availableVersions->push(new VersionModel("3.0.0", "LTS", "2026-10-07", "CexR v3 & CexP v3 Pure Engine", "CexR v3 Native Machine Engine & CexP v3 Direct Compiler", false));
@@ -303,7 +303,7 @@ class CxvmEngine {
 
     public cexrVersionOutput(): string {
         let ver: string = this.currentVersion.length() > 0 ? this.currentVersion : "8.0.0";
-        let out: string = "CexR v" + ver + " (Native Machine Engine; Default Runtime: cexr-factory; Default Build: cexr-bean; CexR v8 .cex_boxes Dist Loader; Pure Cex Toolchain)\n";
+        let out: string = "CexR v" + ver + " (Native Machine Engine; Default Runtime: cexr-factory; Default Build: cexr-bean; CexR v8 cex_boxes Dist Loader; Pure Cex Toolchain)\n";
         out += "  [default-runtime] cexr-factory : CexR [factory] standalone (version " + ver + ", cexp ^8) - target: support for api cex-virtual-dom, cex-dom ; jit debug runtime; best for development\n";
         out += "  [default-build]   cexr-bean    : CexR [bean] standalone (version " + ver + ", cexp ^8) - target: one time compile, best performance with API\n";
         out += "  [edition]         cexr-delivery: CexR [delivery] standalone (version " + ver + ", cexp ^8) - target: jit support api only; best for api debug\n";
@@ -322,7 +322,7 @@ class CxvmEngine {
         out += "  CXVM Home:         " + this.cxvmHome + "\n";
         out += "  Active Cex:        " + this.current() + "\n";
         out += "  Default Cex:       " + (this.defaultVersion.length() > 0 ? "v" + this.defaultVersion : "none") + "\n";
-        out += "  CexR Runtime:      v8 (.cex_boxes Dist Loader Runtime Engine [READY])\n";
+        out += "  CexR Runtime:      v8 (cex_boxes Dist Loader Runtime Engine [READY])\n";
         out += "  CexR Default Run:  cexr-" + this.defaultCexrEdition + " (" + this.defaultCexrEdition + " edition - JIT debug & DOM/API runtime [READY])\n";
         out += "  CexR Default Build: cexr-" + this.defaultBuildEdition + " (" + this.defaultBuildEdition + " edition - one-time compile & max performance [READY])\n";
         out += "  CexR Setup:        Cross-Platform Native Runtime Ready [OK]\n";
@@ -341,7 +341,7 @@ class CxvmEngine {
         out += "  Lighting Engine:   INTEGRATED [Lighting Fullstack MVC, Pure Cex Engine, lighting CLI scaffolder]\n";
         out += "  Lighting Commands: light, lighting, lighting create <project>, lighting dev, lighting build [READY]\n";
         out += "  Target Opener:     INTEGRATED [Native Window (cex-view only) READY]\n";
-        out += "  CXVM Init:         INTEGRATED [cxvm init <name> (default: my-project, cex-pack, .cex_boxes, .cvm, .cvmignore, README, SECURITY, LICENSE)]\n";
+        out += "  CXVM Init:         INTEGRATED [cxvm init <name> (default: my-project, cex-pack, cex_boxes, .cvm, .cvmignore, README, SECURITY, LICENSE)]\n";
         out += "  Cross-Platform:    Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)\n";
         out += "  Supported Targets: " + std::to_string((int)this.supportedPlatforms->length()) + " architectures (download & install ready)\n";
         out += "  Installed Count:   " + std::to_string((int)this.installedVersions->length()) + "\n";
@@ -385,7 +385,7 @@ class CxvmEngine {
         if (libName == "builder" || libName == "cex-builder") {
             return "1.0.0";
         }
-        let boxPack: string = ".cex_boxes/" + libName + "/cex-pack.json";
+        let boxPack: string = "cex_boxes/" + libName + "/cex-pack.json";
         if (fs.exists(boxPack)) {
             let pRaw: string = fs.readFile(boxPack);
             let parsed: JsonValue* = JsonDoc::parse(pRaw);
@@ -479,7 +479,7 @@ class CxvmEngine {
     public setupDeps(): CxvmCommandResult* {
         let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
         let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
-        let boxesDir: string = curPwd + "/.cex_boxes";
+        let boxesDir: string = curPwd + "/cex_boxes";
         child_process.execSync("mkdir -p \"" + boxesDir + "\"");
 
         let libs: Array<string>* = new Array<string>();
@@ -546,7 +546,7 @@ class CxvmEngine {
 
         let modelsDir: string = this.resolveModelsDir();
         let docsDir: string = this.resolveDocumentsDir();
-        let outMsg: string = "==> [cxvm setup boxes] Finding & Resolving Packages into .cex_boxes (fetch to cex_boxes as cex-pack.json):\n";
+        let outMsg: string = "==> [cxvm setup boxes] Finding & Resolving Packages into cex_boxes (fetch to cex_boxes as cex-pack.json):\n";
         let count: int = (int)libs->length();
         let cachedCount: int = 0;
         let builtCount: int = 0;
@@ -563,42 +563,42 @@ class CxvmEngine {
 
             if (alreadyExists) {
                 cachedCount++;
-                outMsg += "  [CACHE] " + lib + " v" + ver + " -> .cex_boxes/" + lib + " (already exists, skipping rebuild)\n";
+                outMsg += "  [CACHE] " + lib + " v" + ver + " -> cex_boxes/" + lib + " (already exists, skipping rebuild)\n";
             } else {
                 builtCount++;
                 child_process.execSync("mkdir -p \"" + boxDir + "/bin\"");
 
-                // Search for candidate real directory to copy into .cex_boxes (RULE_NO_SYMLINK_BETWEEN_BOXES)
+                // Search for candidate real directory to copy into cex_boxes (RULE_NO_SYMLINK_BETWEEN_BOXES)
                 let candPackageDir: string = "";
                 let candPaths: Array<string>* = new Array<string>();
-                candPaths->push(curPwd + "/../cex/.cex_boxes/" + lib);
-                candPaths->push(curPwd + "/../cex/cxvm/.cex_boxes/" + lib);
+                candPaths->push(curPwd + "/../cex/cex_boxes/" + lib);
+                candPaths->push(curPwd + "/../cex/cxvm/cex_boxes/" + lib);
                 candPaths->push(curPwd + "/../dependencies/" + lib);
-                candPaths->push(home + "/Projects/cex/.cex_boxes/" + lib);
-                candPaths->push(home + "/Projects/cex/cxvm/.cex_boxes/" + lib);
+                candPaths->push(home + "/Projects/cex/cex_boxes/" + lib);
+                candPaths->push(home + "/Projects/cex/cxvm/cex_boxes/" + lib);
                 candPaths->push(home + "/Projects/dependencies/" + lib);
-                candPaths->push(home + "/.cxvm/.cex_boxes/" + lib);
-                candPaths->push(home + "/.cex/.cex_boxes/" + lib);
+                candPaths->push(home + "/.cxvm/cex_boxes/" + lib);
+                candPaths->push(home + "/.cex/cex_boxes/" + lib);
                 if (modelsDir.length() > 0) {
                     candPaths->push(modelsDir + "/" + lib);
                 }
                 if (lib == "cext") {
-                    candPaths->push(curPwd + "/.cex_boxes/cex-test");
-                    candPaths->push(curPwd + "/../cex/.cex_boxes/cex-test");
-                    candPaths->push(home + "/Projects/cex/.cex_boxes/cex-test");
+                    candPaths->push(curPwd + "/cex_boxes/cex-test");
+                    candPaths->push(curPwd + "/../cex/cex_boxes/cex-test");
+                    candPaths->push(home + "/Projects/cex/cex_boxes/cex-test");
                 }
                 if (lib == "cex-test") {
-                    candPaths->push(curPwd + "/.cex_boxes/cext");
-                    candPaths->push(curPwd + "/../cex/.cex_boxes/cext");
-                    candPaths->push(home + "/Projects/cex/.cex_boxes/cext");
+                    candPaths->push(curPwd + "/cex_boxes/cext");
+                    candPaths->push(curPwd + "/../cex/cex_boxes/cext");
+                    candPaths->push(home + "/Projects/cex/cex_boxes/cext");
                 }
                 if (lib == "cex-builder" || lib == "builder") {
-                    candPaths->push(curPwd + "/.cex_boxes/cex-builder");
-                    candPaths->push(curPwd + "/.cex_boxes/builder");
-                    candPaths->push(curPwd + "/../cex/.cex_boxes/cex-builder");
-                    candPaths->push(curPwd + "/../cex/.cex_boxes/builder");
-                    candPaths->push(home + "/Projects/cex/.cex_boxes/cex-builder");
-                    candPaths->push(home + "/Projects/cex/.cex_boxes/builder");
+                    candPaths->push(curPwd + "/cex_boxes/cex-builder");
+                    candPaths->push(curPwd + "/cex_boxes/builder");
+                    candPaths->push(curPwd + "/../cex/cex_boxes/cex-builder");
+                    candPaths->push(curPwd + "/../cex/cex_boxes/builder");
+                    candPaths->push(home + "/Projects/cex/cex_boxes/cex-builder");
+                    candPaths->push(home + "/Projects/cex/cex_boxes/builder");
                 }
 
                 for (let cIdx: int = 0; cIdx < (int)candPaths->length(); cIdx++) {
@@ -711,11 +711,11 @@ class CxvmEngine {
                     fs.writeFile(boxMf, mfData);
                 }
 
-                outMsg += "  [OK]    " + lib + " v" + ver + " -> Configured into .cex_boxes/" + lib + "\n";
+                outMsg += "  [OK]    " + lib + " v" + ver + " -> Configured into cex_boxes/" + lib + "\n";
             }
         }
 
-        // Special invariant: if cex-test is in .cex_boxes, ensure .cex_boxes/cext is also real directory
+        // Special invariant: if cex-test is in cex_boxes, ensure cex_boxes/cext is also real directory
         if (fs.exists(boxesDir + "/cex-test") && !fs.exists(boxesDir + "/cext")) {
             child_process.execSync("cp -r \"" + boxesDir + "/cex-test\" \"" + boxesDir + "/cext\" 2>/dev/null || true");
         }
@@ -731,8 +731,8 @@ class CxvmEngine {
 
         this.setupPath();
 
-        outMsg += "==> Packages Processed: " + std::to_string(builtCount) + " configured, " + std::to_string(cachedCount) + " cached (use .cex_boxes only, zero deps).";
-        return new CxvmCommandResult("setup boxes", std::to_string(count), true, "Packages successfully configured into .cex_boxes (use .cex_boxes only)", outMsg);
+        outMsg += "==> Packages Processed: " + std::to_string(builtCount) + " configured, " + std::to_string(cachedCount) + " cached (use cex_boxes only, zero deps).";
+        return new CxvmCommandResult("setup boxes", std::to_string(count), true, "Packages successfully configured into cex_boxes (use cex_boxes only)", outMsg);
     }
 
     public resolveDocumentsDir(): string {
@@ -818,7 +818,7 @@ class CxvmEngine {
         modelList->push("cexm-2-vision");
         modelList->push("models");
 
-        child_process.execSync("mkdir -p \"" + cxvmDir + "/bin\" \"" + cexDir + "/bin\" \"" + curPwd + "/.cex_boxes\"");
+        child_process.execSync("mkdir -p \"" + cxvmDir + "/bin\" \"" + cexDir + "/bin\" \"" + curPwd + "/cex_boxes\"");
 
         let totalModels: int = (int)modelList->length();
         let builtCount: int = 0;
@@ -840,8 +840,8 @@ class CxvmEngine {
                 mDir = docsDir + "/models/" + mName;
             }
 
-            let binTarget: string = curPwd + "/.cex_boxes/" + mName + "/bin/" + mName;
-            let boxDir: string = curPwd + "/.cex_boxes/" + mName;
+            let binTarget: string = curPwd + "/cex_boxes/" + mName + "/bin/" + mName;
+            let boxDir: string = curPwd + "/cex_boxes/" + mName;
             child_process.execSync("mkdir -p \"" + boxDir + "/bin\"");
 
             let binFound: string = "";
@@ -873,12 +873,12 @@ class CxvmEngine {
                     child_process.execSync("ln -sf \"" + binFound + "\" \"" + cexDir + "/bin/java\" 2>/dev/null || true");
                 }
                 if (mName == "cexm-2-vision") {
-                    child_process.execSync("ln -sf \"" + binTarget + "\" \"" + curPwd + "/.cex_boxes/vision/bin/vision\" 2>/dev/null || true");
+                    child_process.execSync("ln -sf \"" + binTarget + "\" \"" + curPwd + "/cex_boxes/vision/bin/vision\" 2>/dev/null || true");
                     child_process.execSync("ln -sf \"" + binFound + "\" \"" + cxvmDir + "/bin/vision\" 2>/dev/null || true");
                     child_process.execSync("ln -sf \"" + binFound + "\" \"" + cexDir + "/bin/vision\" 2>/dev/null || true");
                 }
                 builtCount++;
-                println("  [OK] Rebuilt & Installed " + mName + " -> .cex_boxes/" + mName + "/bin/" + mName);
+                println("  [OK] Rebuilt & Installed " + mName + " -> cex_boxes/" + mName + "/bin/" + mName);
             } else {
                 let mSrc: string = "";
                 if (mDir.length() > 0 && fs.exists(mDir + "/src/index.cex")) {
@@ -897,7 +897,7 @@ class CxvmEngine {
                             child_process.execSync("cp -f \"" + binTarget + "\" \"" + cexDir + "/bin/" + mName + "\" 2>/dev/null || true");
                             child_process.execSync("chmod +x \"" + cxvmDir + "/bin/" + mName + "\" \"" + cexDir + "/bin/" + mName + "\" 2>/dev/null || true");
                             builtCount++;
-                            println("  [OK] Compiled " + mName + " -> .cex_boxes/" + mName + "/bin/" + mName);
+                            println("  [OK] Compiled " + mName + " -> cex_boxes/" + mName + "/bin/" + mName);
                         }
                     } catch (...) {}
                 }
@@ -912,7 +912,7 @@ class CxvmEngine {
         }
 
         this.rebuildAndInstallBin();
-        println("[OK] [cxvm build models] Rebuilt " + std::to_string(builtCount) + " model binaries into .cex_boxes & cxvm.");
+        println("[OK] [cxvm build models] Rebuilt " + std::to_string(builtCount) + " model binaries into cex_boxes & cxvm.");
         return 0;
     }
 
@@ -1043,7 +1043,7 @@ class CxvmEngine {
             return 1;
         }
 
-        let javisBinDir: string = curPwd + "/.cex_boxes/javis/bin";
+        let javisBinDir: string = curPwd + "/cex_boxes/javis/bin";
         let javisBinTarget: string = javisBinDir + "/javis";
         child_process.execSync("mkdir -p \"" + javisBinDir + "\"");
 
@@ -1120,8 +1120,8 @@ class CxvmEngine {
 
         child_process.execSync("chmod +x \"" + cxvmDir + "/bin\"/* 2>/dev/null || true");
         child_process.execSync("chmod +x \"" + cexDir + "/bin\"/* 2>/dev/null || true");
-        child_process.execSync("chmod +x \"" + curPwd + "/.cex_boxes\"/*/bin/* 2>/dev/null || true");
-        child_process.execSync("chmod +x \"" + curPwd + "/.cex_boxes\"/*/.bin 2>/dev/null || true");
+        child_process.execSync("chmod +x \"" + curPwd + "/cex_boxes\"/*/bin/* 2>/dev/null || true");
+        child_process.execSync("chmod +x \"" + curPwd + "/cex_boxes\"/*/.bin 2>/dev/null || true");
 
         let msg: string = "[OK] [cxvm setup path] Shell PATH persistence and toolchain permissions configured for current device:\n";
         msg += "  CXVM_DIR:    " + cxvmDir + "\n";
@@ -1239,8 +1239,8 @@ class CxvmEngine {
             child_process.execSync("cp -f \"" + binPath + "\" \"" + cxvmVerDir + "/bin\" 2>/dev/null || true");
             this.allowExecutionOnCurrentDevice(cxvmVerDir + "/bin");
 
-            let boxDir: string = curPwd + "/.cex_boxes/cxvm-bean/bin";
-            if (fs.exists(curPwd + "/.cex_boxes/cxvm-bean")) {
+            let boxDir: string = curPwd + "/cex_boxes/cxvm-bean/bin";
+            if (fs.exists(curPwd + "/cex_boxes/cxvm-bean")) {
                 child_process.execSync("mkdir -p \"" + boxDir + "\" 2>/dev/null || true");
                 child_process.execSync("cp -f \"" + binPath + "\" \"" + boxDir + "/cxvm-bean\" 2>/dev/null || true");
                 child_process.execSync("cp -f \"" + binPath + "\" \"" + boxDir + "/cxvm\" 2>/dev/null || true");
@@ -1316,7 +1316,7 @@ class CxvmEngine {
         outMsg += "  AI Models in PATH:   javis (alias: java), vision, ultron integrated into $CXVM_DIR/bin & $CEX_DIR/bin [OK]\n";
         outMsg += "  Target Build cxvm:   CXMV_DIR/cxvm/$version/bin (CXVM_DIR/cxvm/$version/bin)\n";
         outMsg += "  Integrated Build:    {rootProjectPath}/.bin (./.bin)\n";
-        outMsg += "  Package Store:       .cex_boxes/ (pure .cex_boxes only, zero deps)\n";
+        outMsg += "  Package Store:       cex_boxes/ (pure cex_boxes only, zero deps)\n";
         outMsg += "  Hook Dispatcher:     cexp --app $appName action (short command: dev, build, start, test -> cxvm --app cext)\n";
         outMsg += "  CVM Subsystem:       cvm commit, cvm push, cvm status integrated [OK]\n";
         outMsg += "  Thunder Subsystem:   thunder run, thunder ps, virtual kernel integrated [OK]\n";
@@ -1326,7 +1326,7 @@ class CxvmEngine {
         outMsg += depsRes->output + "\n";
         outMsg += "  Status:              SETUP COMPLETE [OK]";
 
-        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, .cex_boxes, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin, and v8/v6 runtimes successfully configured.", outMsg);
+        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, cex_boxes, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin, and v8/v6 runtimes successfully configured.", outMsg);
     }
 
     public forceResetupBinaries(): void {
@@ -1411,8 +1411,8 @@ class CxvmEngine {
             }
 
             child_process.execSync("find \"" + curPwd + "/projects\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
-            child_process.execSync("find \"" + curPwd + "/.cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
-            child_process.execSync("find \"" + curPwd + "/cxvm/.cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+            child_process.execSync("find \"" + curPwd + "/cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
+            child_process.execSync("find \"" + curPwd + "/cxvm/cex_boxes\" -type f \\( -name \"cexp-v8*\" -o -name \"cexr\" -o -name \"cexr-v8\" \\) -exec cp -f \"" + cexpCanonicalSrc + "\" {} \\; 2>/dev/null || true");
         }
     }
 
@@ -2495,7 +2495,7 @@ class CxvmEngine {
             }
             case 8: {
                 if (subCmd == "downloads") {
-                    println("[OK] [cex-pack] Dependencies downloaded into .cex_boxes/ (active runtime v" + this.currentVersion + ")");
+                    println("[OK] [cex-pack] Dependencies downloaded into cex_boxes/ (active runtime v" + this.currentVersion + ")");
                     println("[OK] [cex-pack] Registered binary app in ./dist/cex-pack/" + this.currentVersion + "/bin");
                     println("[OK] [cex-pack] Integrated inside ./dist/cex-pack/" + this.currentVersion + "/bin");
                     return 0;
@@ -2613,11 +2613,11 @@ class CxvmEngine {
             case 11: {
                 let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
                 let builderBin: string = "";
-                if (fs.exists(curPwd + "/.cex_boxes/cex-builder/bin/cex-builder")) {
-                    builderBin = curPwd + "/.cex_boxes/cex-builder/bin/cex-builder";
+                if (fs.exists(curPwd + "/cex_boxes/cex-builder/bin/cex-builder")) {
+                    builderBin = curPwd + "/cex_boxes/cex-builder/bin/cex-builder";
                 }
-                if (builderBin.length() == 0 && fs.exists(curPwd + "/.cex_boxes/builder/bin/builder")) {
-                    builderBin = curPwd + "/.cex_boxes/builder/bin/builder";
+                if (builderBin.length() == 0 && fs.exists(curPwd + "/cex_boxes/builder/bin/builder")) {
+                    builderBin = curPwd + "/cex_boxes/builder/bin/builder";
                 }
                 if (builderBin.length() == 0 && fs.exists(this.cxvmHome + "/bin/cex-builder")) {
                     builderBin = this.cxvmHome + "/bin/cex-builder";
@@ -2629,7 +2629,7 @@ class CxvmEngine {
                 let cmdStr: string = (builderBin.length() > 0) ? builderBin : (name == "builder" ? "builder" : "cex-builder");
                 if (subCmd != "downloads" && subCmd.length() > 0) cmdStr += " \"" + subCmd + "\"";
                 if (manifestFile.length() > 0 && manifestFile != "cex-pack.json") cmdStr += " \"" + manifestFile + "\"";
-                println("[OK] [" + name + "] Executing builder engine from .cex_boxes: " + cmdStr);
+                println("[OK] [" + name + "] Executing builder engine from cex_boxes: " + cmdStr);
                 try {
                     let out: string = child_process.execSync(cmdStr);
                     print(out);
@@ -2658,7 +2658,7 @@ class CxvmEngine {
             out += "[OK] [cxvm init] Created project directory: " + projPath + "\n";
         }
         out += "[OK] [cxvm init] Generated default cex-pack.json configuration (name: " + name + ")\n";
-        out += "[OK] [cxvm init] Auto-pulled .cex_boxes dependency cache (cex-test, lighting)\n";
+        out += "[OK] [cxvm init] Auto-pulled cex_boxes dependency cache (cex-test, lighting)\n";
         out += "[OK] [cxvm init] Initialized CodeVersionManager repository (.cvm/)\n";
         out += "[OK] [cxvm init] Generated .cvmignore file\n";
         out += "[OK] [cxvm init] Generated README.md documentation\n";
@@ -2674,7 +2674,7 @@ class CxvmEngine {
         out += "  cxvm start   (or: cxvm dev)\n";
         out += "  cxvm build";
 
-        return new CxvmCommandResult("init", name, true, "Default Cex project '" + name + "' initialized successfully with cex-pack, .cex_boxes, .cvm, .cvmignore, README.md, SECURITY.md, and LICENSE", out);
+        return new CxvmCommandResult("init", name, true, "Default Cex project '" + name + "' initialized successfully with cex-pack, cex_boxes, .cvm, .cvmignore, README.md, SECURITY.md, and LICENSE", out);
     }
 
     public lightCreate(projectName: string, targetDir: string): CxvmCommandResult* {
