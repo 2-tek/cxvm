@@ -575,14 +575,17 @@ class SetupRunner {
                 break;
             }
         }
+        let javisCanonical: string = cxvmDir + "/dist/javis-runtime/1.1.70/bin";
+        let javisSrc: string = fs.exists(javisCanonical) ? javisCanonical : (docsDir.length() > 0 ? (docsDir + "/bin/javis") : "");
+        if (javisSrc.length() > 0) {
+            this.registerBinApp(cexDir, cxvmDir, "javis", javisSrc, "1.0.0");
+            this.registerBinApp(cexDir, cxvmDir, "java", javisSrc, "1.0.0");
+        }
         if (docsDir.length() > 0) {
-            let javisSrc: string = docsDir + "/bin/javis";
             let ultronSrc: string = docsDir + "/bin/ultron";
             let visionSrc: string = docsDir + "/bin/vision";
             let cexm2VisionSrc: string = docsDir + "/bin/cexm-2-vision";
 
-            this.registerBinApp(cexDir, cxvmDir, "javis", javisSrc, "1.0.0");
-            this.registerBinApp(cexDir, cxvmDir, "java", javisSrc, "1.0.0");
             this.registerBinApp(cexDir, cxvmDir, "ultron", ultronSrc, "1.0.0");
             this.registerBinApp(cexDir, cxvmDir, "vision", visionSrc, "2.0.0");
             this.registerBinApp(cexDir, cxvmDir, "cexm-2-vision", cexm2VisionSrc, "2.0.0");
