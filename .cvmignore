@@ -6,3 +6,8 @@
 .DS_Store
 brain/
 
+
+# Cex Box dependencies & local box caches
+cex_boxes/
+**/cex_boxes/
+**/.cex_boxes/
