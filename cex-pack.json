@@ -1,6 +1,8 @@
 {
     "name": "@2tek/cxvm",
     "version": "2.1.44",
+    "type": "bean",
+    "binary": "{rootPathDir}/{name}-{type}/{version}/bin",
     "description": "cxvm v2: Fullstack Cross-Platform Cex Distribution Engine & Runtime Version Manager (Pure Cex: cexr + cexp, zero C++ dependency), powered by Lighting MVC",
     "main": "src/index.cex",
     "author": "2-TEK Ecosystem",
