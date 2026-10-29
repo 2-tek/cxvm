@@ -97,9 +97,9 @@ class CxvmConstants {
     public static ltsVersion(): string { return "6.0.0"; }
     public static cxvmVersion(): string { return "2.0.0"; }
     public static cexrVersion(): string { return "1.0.26"; }
-    public static cextVersion(): string { return "1.0.14"; }
-    public static cexLintVersion(): string { return "1.0.8"; }
-    public static cexPackVersion(): string { return "1.0.5"; }
+    public static cextVersion(): string { return "1.0.16"; }
+    public static cexLintVersion(): string { return "1.0.9"; }
+    public static cexPackVersion(): string { return "1.1.0"; }
     public static defaultPort(): int { return 3080; }
     public static cvmPort(): int { return 4000; }
     public static thunderPort(): int { return 3050; }

@@ -29,9 +29,9 @@ class SetupRunner {
         switch (vCode) {
             case 1: return "8.0.0";
             case 2: return "1.0.26";
-            case 3: return "1.0.5";
-            case 4: return "1.0.8";
-            case 5: return "1.0.14";
+            case 3: return "1.1.0";
+            case 4: return "1.0.9";
+            case 5: return "1.0.16";
             case 6: return "1.0.0";
             case 7: return "1.0.0";
             case 8: return "1.0.0";
