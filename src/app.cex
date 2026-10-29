@@ -23,7 +23,7 @@ class FactoryApp {
     public appName: string = "2-TEK cxvm Engine";
     public port: int;
     public isRunning: bool = false;
-    public downloadsDir: string = StdFilesystem::exists("dist") ? "dist" : (StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : (StdFilesystem::exists("downloads") ? "downloads" : "dist"));
+    public downloadsDir: string = StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : "downloads";
     public service: PerfectApp* = new PerfectApp();
     public router: LightingRouter* = new LightingRouter();
     public controller: FactoryController* = new FactoryController();

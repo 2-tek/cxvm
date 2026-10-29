@@ -518,7 +518,7 @@ class CxvmEngine {
             case 8: return "1.0.0";
             case 9: return "1.0.0";
             case 10: return "2.0.0";
-            case 11: return "2.1.43";
+            case 11: return "2.1.44";
             case 12: return "1.0.0";
             default: return this.currentVersion.length() > 0 ? this.currentVersion : "8.0.0";
         }
@@ -1246,7 +1246,7 @@ class CxvmEngine {
 
         let pkgName: string = "cxvm";
         let pkgType: string = "bean";
-        let pkgVer: string = "2.1.43";
+        let pkgVer: string = "2.1.44";
         let mfPath: string = curPwd + "/cex-pack.json";
         if (fs.exists(mfPath)) {
             let mfRaw: string = fs.readFile(mfPath);

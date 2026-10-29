@@ -9,10 +9,6 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 if [ -x "$REPO_ROOT/.bin" ]; then
   "$REPO_ROOT/.bin" build || true
-elif [ -x "$REPO_ROOT/dist/cxvm" ]; then
-  "$REPO_ROOT/dist/cxvm" build || true
-elif [ -f "$REPO_ROOT/dist/cxvm" ]; then
-  bash "$REPO_ROOT/dist/cxvm" build || true
 elif [ -x "$REPO_ROOT/bin/cxvm" ]; then
   "$REPO_ROOT/bin/cxvm" build || true
 elif [ -f "$REPO_ROOT/bin/cxvm" ]; then

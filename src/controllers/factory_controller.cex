@@ -227,8 +227,8 @@ class FactoryController extends BaseController {
             let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/plain");
         }
-        if (fs.exists("dist/setup.cex")) {
-            let content: string = fs.readFile("dist/setup.cex");
+        if (fs.exists("cxvm/setup.cex")) {
+            let content: string = fs.readFile("cxvm/setup.cex");
             return HttpResponse::ok(content, "text/plain");
         }
         if (fs.exists("setup.cex")) {
@@ -248,8 +248,8 @@ class FactoryController extends BaseController {
             let content: string = fs.readFile("scripts/setup.sh");
             return HttpResponse::ok(content, "text/x-shellscript");
         }
-        if (fs.exists("dist/setup.sh")) {
-            let content: string = fs.readFile("dist/setup.sh");
+        if (fs.exists("cxvm/scripts/setup.sh")) {
+            let content: string = fs.readFile("cxvm/scripts/setup.sh");
             return HttpResponse::ok(content, "text/x-shellscript");
         }
         if (fs.exists("setup.sh")) {
