@@ -1,0 +1,59 @@
+// 2-TEK CXVM: Scripts Configuration Test Suite (tests/scripts.test.cex)
+// Asserts that cex-pack.json scripts invoke native .cex toolchains (RULE_CEX_SCRIPT_ONLY)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), RULE_BUILD_TESTS_BEFORE_FEATURE
+
+import "@cex-test/src/assert.cex";
+import fs from "fs";
+
+int main() {
+    println("===============================================================================");
+    println("       2-TEK CXVM: Manifest Scripts Test Suite (RULE_CEX_SCRIPT_ONLY)          ");
+    println("===============================================================================");
+
+    Assert::reset();
+
+    // 1. Verify existence of cex-pack.json
+    Assert::isTrue(fs.exists("cex-pack.json"), "cex-pack.json manifest must exist");
+    string content = fs.readFile("cex-pack.json");
+    Assert::isTrue(content.length() > 0, "cex-pack.json must not be empty");
+
+    // 2. Parse scripts section
+    int scriptsPos = (int)content.find("\"scripts\"");
+    Assert::isTrue(scriptsPos != -1, "cex-pack.json must declare scripts section");
+
+    // 3. Verify no indirect cxvm --app wrappers in scripts
+    int scriptsEnd = (int)content.find("}", scriptsPos);
+    string scriptsBlock = content.substr(scriptsPos, scriptsEnd - scriptsPos + 1);
+    Assert::isTrue(scriptsBlock.find("cxvm --app") == -1, "scripts block must NOT contain indirect 'cxvm --app' wrappers");
+
+    // 4. Verify native toolchain invocations
+    // 4.1 build script compiles via cexp-v8-stable to .bin
+    Assert::isTrue(scriptsBlock.find("\"build\": \"cexp-v8-stable build src/index.cex -o .bin\"") != -1, "build script must compile to .bin via cexp-v8-stable");
+
+    // 4.2 dev script runs via cexr-factory
+    Assert::isTrue(scriptsBlock.find("\"dev\": \"cexr-factory src/index.cex\"") != -1, "dev script must run src/index.cex via cexr-factory");
+
+    // 4.3 start script runs via cexr-bean
+    Assert::isTrue(scriptsBlock.find("\"start\": \"cexr-bean src/index.cex\"") != -1, "start script must run src/index.cex via cexr-bean");
+
+    // 4.4 test script runs via cext
+    Assert::isTrue(scriptsBlock.find("\"test\": \"cext tests/install.test.cex\"") != -1, "test script must run via cext");
+
+    // 4.5 lint script runs via cex-lint
+    Assert::isTrue(scriptsBlock.find("\"lint\": \"cex-lint fix .\"") != -1, "lint script must run via cex-lint");
+
+    // 4.6 install and downloads run via cex-pack
+    Assert::isTrue(scriptsBlock.find("\"install\": \"cex-pack downloads\"") != -1, "install script must run via cex-pack");
+    Assert::isTrue(scriptsBlock.find("\"downloads\": \"cex-pack downloads\"") != -1, "downloads script must run via cex-pack");
+
+    int fails = Assert::getFailures();
+    int checks = Assert::getTotalChecks();
+    println("Checks verified: " + std::to_string(checks) + ", Failures: " + std::to_string(fails));
+
+    if (fails > 0) {
+        println("[FAIL] scripts.test.cex: " + std::to_string(fails) + " assertion(s) failed!");
+        return 1;
+    }
+    println("[OK] All scripts in cex-pack.json strictly conform to RULE_CEX_SCRIPT_ONLY!");
+    return 0;
+}

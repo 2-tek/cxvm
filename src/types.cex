@@ -4,15 +4,15 @@
 import "./lighting_mvc.cex";
 
 class PlatformArch {
-    public id: string;
-    public os: string;
-    public arch: string;
-    public targetTriple: string;
-    public compiler: string;
-    public archiveFormat: string;
-    public displayName: string;
+    public string id;
+    public string os;
+    public string arch;
+    public string targetTriple;
+    public string compiler;
+    public string archiveFormat;
+    public string displayName;
 
-    public constructor(id: string, os: string, arch: string, triple: string, compiler: string, fmt: string, name: string) {
+    public constructor(string id, string os, string arch, string triple, string compiler, string fmt, string name) {
         this.id = id;
         this.os = os;
         this.arch = arch;
@@ -22,20 +22,20 @@ class PlatformArch {
         this.displayName = name;
     }
 
-    public getArchiveFilename(version: string): string {
+    public string getArchiveFilename(string version) {
         return "cex-v" + version + "-" + this.id + "." + this.archiveFormat;
     }
 }
 
 class RuntimeVersion {
-    public version: string;
-    public channel: string;
-    public releaseDate: string;
-    public minCpp: string;
-    public description: string;
-    public isDefault: bool;
+    public string version;
+    public string channel;
+    public string releaseDate;
+    public string minCpp;
+    public string description;
+    public bool isDefault;
 
-    public constructor(ver: string, chan: string, date: string, cpp: string, desc: string, isDef: bool) {
+    public constructor(string ver, string chan, string date, string cpp, string desc, bool isDef) {
         this.version = ver;
         this.channel = chan;
         this.releaseDate = date;
@@ -46,16 +46,16 @@ class RuntimeVersion {
 }
 
 class DistArtifact {
-    public filename: string;
-    public version: string;
-    public platform: string;
-    public arch: string;
-    public sizeBytes: int;
-    public sha256: string;
-    public downloadUrl: string;
-    public isBuilt: bool = false;
+    public string filename;
+    public string version;
+    public string platform;
+    public string arch;
+    public int sizeBytes;
+    public string sha256;
+    public string downloadUrl;
+    public bool isBuilt = false;
 
-    public constructor(fname: string, ver: string, plat: string, arch: string, size: int, hash: string, url: string) {
+    public constructor(string fname, string ver, string plat, string arch, int size, string hash, string url) {
         this.filename = fname;
         this.version = ver;
         this.platform = plat;
@@ -67,13 +67,13 @@ class DistArtifact {
 }
 
 class CxvmCommandResult {
-    public action: string;
-    public version: string;
-    public success: bool;
-    public message: string;
-    public output: string;
+    public string action;
+    public string version;
+    public bool success;
+    public string message;
+    public string output;
 
-    public constructor(action: string, ver: string, ok: bool, msg: string, out: string) {
+    public constructor(string action, string ver, bool ok, string msg, string out) {
         this.action = action;
         this.version = ver;
         this.success = ok;
@@ -83,29 +83,29 @@ class CxvmCommandResult {
 }
 
 class FactoryStats {
-    public totalVersions: int = 0;
-    public supportedPlatforms: int = 0;
-    public totalArtifacts: int = 0;
-    public downloadsDirectory: string = "cxvm/downloads";
-    public lastBuildTimestamp: string = "2026-10-07T00:00:00Z";
+    public int totalVersions = 0;
+    public int supportedPlatforms = 0;
+    public int totalArtifacts = 0;
+    public string downloadsDirectory = "cxvm/downloads";
+    public string lastBuildTimestamp = "2026-10-07T00:00:00Z";
 
     public constructor() {}
 }
 
 class CxvmConstants {
-    public static defaultVersion(): string { return "8.0.0"; }
-    public static ltsVersion(): string { return "6.0.0"; }
-    public static cxvmVersion(): string { return "2.0.0"; }
-    public static cexrVersion(): string { return "1.0.26"; }
-    public static cextVersion(): string { return "1.0.14"; }
-    public static cexLintVersion(): string { return "1.0.8"; }
-    public static cexPackVersion(): string { return "1.0.5"; }
-    public static defaultPort(): int { return 3080; }
-    public static cvmPort(): int { return 4000; }
-    public static thunderPort(): int { return 3050; }
-    public static cvmDomain(): string { return "cvm.2-tek.com"; }
-    public static cvmApi(): string { return "https://cvm.2-tek.com/api/v1"; }
-    public static boxesDir(): string { return "cex_boxes"; }
-    public static entrypoint(): string { return "src/index.cex"; }
-    public static manifestFile(): string { return "cex-pack.json"; }
+    static public string defaultVersion() { return "8.0.0"; }
+    static public string ltsVersion() { return "6.0.0"; }
+    static public string cxvmVersion() { return "2.0.0"; }
+    static public string cexrVersion() { return "2.0.0"; }
+    static public string cextVersion() { return "2.0.0"; }
+    static public string cexLintVersion() { return "2.0.0"; }
+    static public string cexPackVersion() { return "2.0.0"; }
+    static public int defaultPort() { return 3080; }
+    static public int cvmPort() { return 4000; }
+    static public int thunderPort() { return 3050; }
+    static public string cvmDomain() { return "cvm.2-tek.com"; }
+    static public string cvmApi() { return "https://cvm.2-tek.com/api/v1"; }
+    static public string boxesDir() { return "cex_boxes"; }
+    static public string entrypoint() { return "src/index.cex"; }
+    static public string manifestFile() { return "cex-pack.json"; }
 }

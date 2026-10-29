@@ -3,164 +3,164 @@ import json from "json";
 using JsonValue = cex::json_lib::Value;
 
 class Json {
-    public inner: JsonValue* = nullptr;
+    public JsonValue* inner = nullptr;
 
     public constructor() {
         this.inner = new JsonValue();
         this.inner->type = cex::json_lib::JsonType::Object;
     }
 
-    public constructor(val: JsonValue*) {
+    public constructor(JsonValue* val) {
         this.inner = val != nullptr ? val : new JsonValue();
     }
 
-    public static obj(): JsonValue* {
-        let v: JsonValue* = new JsonValue();
+    static public JsonValue* obj() {
+        JsonValue* v = new JsonValue();
         v->type = cex::json_lib::JsonType::Object;
         return v;
     }
 
-    public static arr(): JsonValue* {
-        let v: JsonValue* = new JsonValue();
+    static public JsonValue* arr() {
+        JsonValue* v = new JsonValue();
         v->type = cex::json_lib::JsonType::Array;
         return v;
     }
 
-    public static nullVal(): JsonValue* {
+    static public JsonValue* nullVal() {
         return new JsonValue(nullptr);
     }
 
-    public static str(s: string): JsonValue* {
+    static public JsonValue* str(string s) {
         return new JsonValue(s);
     }
 
-    public static num(n: double): JsonValue* {
+    static public JsonValue* num(double n) {
         return new JsonValue(n);
     }
 
-    public static integer(n: int): JsonValue* {
+    static public JsonValue* integer(int n) {
         return new JsonValue(n);
     }
 
-    public static boolean(b: bool): JsonValue* {
+    static public JsonValue* boolean(bool b) {
         return new JsonValue(b);
     }
 
-    public static stringify(v: JsonValue*): string {
+    static public string stringify(JsonValue* v) {
         if (v == nullptr) return "null";
         return JSON::stringify(v);
     }
 
-    public static stringify(v: JsonValue*, indent: int): string {
+    static public string stringify(JsonValue* v, int indent) {
         if (v == nullptr) return "null";
         return JSON::stringify(v, indent);
     }
 
-    public static stringify(j: Json*): string {
+    static public string stringify(Json* j) {
         if (j == nullptr || j->inner == nullptr) return "null";
         return JSON::stringify(j->inner);
     }
 
-    public static pretty(v: JsonValue*): string {
+    static public string pretty(JsonValue* v) {
         if (v == nullptr) return "null";
         return JSON::stringify(v, 2);
     }
 
-    public static parse(raw: string): JsonValue* {
+    static public JsonValue* parse(string raw) {
         try {
             return (JsonValue*)JSON::parse(raw);
-        } catch (...) {
+        } catch (const Error& error) {
             return nullptr;
         }
     }
 
-    public static set(obj: JsonValue*, key: string, val: JsonValue*): JsonValue* {
+    static public JsonValue* set(JsonValue* obj, string key, JsonValue* val) {
         if (obj != nullptr) obj->set(key, val);
         return obj;
     }
 
-    public static setString(obj: JsonValue*, key: string, val: string): JsonValue* {
+    static public JsonValue* setString(JsonValue* obj, string key, string val) {
         if (obj != nullptr) obj->set(key, new JsonValue(val));
         return obj;
     }
 
-    public static setInt(obj: JsonValue*, key: string, val: int): JsonValue* {
+    static public JsonValue* setInt(JsonValue* obj, string key, int val) {
         if (obj != nullptr) obj->set(key, new JsonValue(val));
         return obj;
     }
 
-    public static setBool(obj: JsonValue*, key: string, val: bool): JsonValue* {
+    static public JsonValue* setBool(JsonValue* obj, string key, bool val) {
         if (obj != nullptr) obj->set(key, new JsonValue(val));
         return obj;
     }
 
-    public static setDouble(obj: JsonValue*, key: string, val: double): JsonValue* {
+    static public JsonValue* setDouble(JsonValue* obj, string key, double val) {
         if (obj != nullptr) obj->set(key, new JsonValue(val));
         return obj;
     }
 
-    public static push(arr: JsonValue*, val: JsonValue*): JsonValue* {
+    static public JsonValue* push(JsonValue* arr, JsonValue* val) {
         if (arr != nullptr) arr->push(val);
         return arr;
     }
 
-    public static pushString(arr: JsonValue*, val: string): JsonValue* {
+    static public JsonValue* pushString(JsonValue* arr, string val) {
         if (arr != nullptr) arr->push(new JsonValue(val));
         return arr;
     }
 
-    public static getString(v: JsonValue*, key: string, defVal: string): string {
+    static public string getString(JsonValue* v, string key, string defVal) {
         if (v == nullptr || !v->has(key)) return defVal;
-        let item: JsonValue* = (JsonValue*)v->get(key);
+        JsonValue* item = (JsonValue*)v->get(key);
         return item != nullptr ? item->asString(defVal) : defVal;
     }
 
-    public static getInt(v: JsonValue*, key: string, defVal: int): int {
+    static public int getInt(JsonValue* v, string key, int defVal) {
         if (v == nullptr || !v->has(key)) return defVal;
-        let item: JsonValue* = (JsonValue*)v->get(key);
+        JsonValue* item = (JsonValue*)v->get(key);
         return item != nullptr ? item->asInt(defVal) : defVal;
     }
 
-    public static getBool(v: JsonValue*, key: string, defVal: bool): bool {
+    static public bool getBool(JsonValue* v, string key, bool defVal) {
         if (v == nullptr || !v->has(key)) return defVal;
-        let item: JsonValue* = (JsonValue*)v->get(key);
+        JsonValue* item = (JsonValue*)v->get(key);
         return item != nullptr ? item->asBool(defVal) : defVal;
     }
 
-    public setString(key: string, val: string): Json* {
+    public Json* setString(string key, string val) {
         if (this.inner != nullptr) this.inner->set(key, new JsonValue(val));
         return this;
     }
 
-    public setInt(key: string, val: int): Json* {
+    public Json* setInt(string key, int val) {
         if (this.inner != nullptr) this.inner->set(key, new JsonValue(val));
         return this;
     }
 
-    public setBool(key: string, val: bool): Json* {
+    public Json* setBool(string key, bool val) {
         if (this.inner != nullptr) this.inner->set(key, new JsonValue(val));
         return this;
     }
 
-    public getString(key: string, defVal: string = ""): string {
+    public string getString(string key, string defVal = "") {
         if (this.inner == nullptr) return defVal;
-        let it: JsonValue* = (JsonValue*)this.inner->get(key);
+        JsonValue* it = (JsonValue*)this.inner->get(key);
         return it != nullptr ? it->asString(defVal) : defVal;
     }
 
-    public getInt(key: string, defVal: int = 0): int {
+    public int getInt(string key, int defVal = 0) {
         if (this.inner == nullptr) return defVal;
-        let it: JsonValue* = (JsonValue*)this.inner->get(key);
+        JsonValue* it = (JsonValue*)this.inner->get(key);
         return it != nullptr ? it->asInt(defVal) : defVal;
     }
 
-    public getBool(key: string, defVal: bool = false): bool {
+    public bool getBool(string key, bool defVal = false) {
         if (this.inner == nullptr) return defVal;
-        let it: JsonValue* = (JsonValue*)this.inner->get(key);
+        JsonValue* it = (JsonValue*)this.inner->get(key);
         return it != nullptr ? it->asBool(defVal) : defVal;
     }
 
-    public stringify(): string {
+    public string stringify() {
         return Json::stringify(this);
     }
 }

@@ -7,9 +7,9 @@ import "../models/version_model.cex";
 import "../models/artifact_model.cex";
 
 class FactoryViews {
-    public static renderLayout(title: string, content: string, activeRoute: string, port: int): string {
-        let pStr: string = std::to_string(port);
-        let html: string = "<!DOCTYPE html>\n";
+    static public string renderLayout(string title, string content, string activeRoute, int port) {
+        string pStr = std::to_string(port);
+        string html = "<!DOCTYPE html>\n";
         html += "<html lang=\"en\">\n<head>\n";
         html += "  <meta charset=\"UTF-8\">\n";
         html += "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
@@ -75,9 +75,9 @@ class FactoryViews {
         return html;
     }
 
-    public static renderDashboard(port: int, versions: Array<VersionModel*>*, platforms: Array<PlatformModel*>*, artifacts: Array<ArtifactModel*>*, currentActive: string): string {
-        let pStr: string = std::to_string(port);
-        let content: string = "<div class=\"card\" style=\"text-align: center; padding: 48px 24px; background: radial-gradient(circle at 50% 20%, #1e293b, #0f172a);\">\n";
+    static public string renderDashboard(int port, Array<VersionModel*>* versions, Array<PlatformModel*>* platforms, Array<ArtifactModel*>* artifacts, string currentActive) {
+        string pStr = std::to_string(port);
+        string content = "<div class=\"card\" style=\"text-align: center; padding: 48px 24px; background: radial-gradient(circle at 50% 20%, #1e293b, #0f172a);\">\n";
         content += "  <h1 style=\"font-size: 34px; margin-bottom: 12px; color: #38bdf8;\">Cex Cross-Platform Factory &amp; Runtime Setup</h1>\n";
         content += "  <p style=\"font-size: 15px; color: #94a3b8; max-width: 720px; margin: 0 auto 24px;\">\n";
         content += "    Universal cross-platform toolchain distribution and version manager for C-ext (<b>.cex</b>).\n";
@@ -134,9 +134,9 @@ class FactoryViews {
         content += "    </thead>\n";
         content += "    <tbody>\n";
 
-        let pCount: int = (int)platforms->length();
-        for (let i: int = 0; i < pCount; i++) {
-            let p: PlatformModel* = platforms->get(i);
+        int pCount = (int)platforms->length();
+        for (int i = 0; i < pCount; i++) {
+            PlatformModel* p = platforms->get(i);
             content += "      <tr>\n";
             content += "        <td style=\"font-weight: bold; color: #f8fafc;\">" + p->displayName + "</td>\n";
             content += "        <td><span style=\"font-family: var(--font-mono); color: #38bdf8;\">" + p->os + "</span></td>\n";
@@ -169,10 +169,10 @@ class FactoryViews {
         content += "    </thead>\n";
         content += "    <tbody>\n";
 
-        let vCount: int = (int)versions->length();
-        for (let i: int = 0; i < vCount; i++) {
-            let v: VersionModel* = versions->get(i);
-            let chBadge: string = (v->channel === "STABLE" ? "badge-stable" : (v->channel === "LTS" ? "badge-lts" : "badge-canary"));
+        int vCount = (int)versions->length();
+        for (int i = 0; i < vCount; i++) {
+            VersionModel* v = versions->get(i);
+            string chBadge = (v->channel === "STABLE" ? "badge-stable" : (v->channel === "LTS" ? "badge-lts" : "badge-canary"));
             content += "      <tr>\n";
             content += "        <td style=\"font-weight: bold; font-family: var(--font-mono); color: #38bdf8;\">v" + v->version + "</td>\n";
             content += "        <td><span class=\"badge " + chBadge + "\">" + v->channel + "</span></td>\n";
@@ -189,8 +189,8 @@ class FactoryViews {
         return FactoryViews::renderLayout("Portal Dashboard", content, "/", port);
     }
 
-    public static renderDownloads(port: int, artifacts: Array<ArtifactModel*>*): string {
-        let content: string = "<div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;\">\n";
+    static public string renderDownloads(int port, Array<ArtifactModel*>* artifacts) {
+        string content = "<div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;\">\n";
         content += "  <div>\n";
         content += "    <h1 style=\"font-size: 26px; color: #38bdf8;\">Cross-Platform Distribution Downloads</h1>\n";
         content += "    <p style=\"color: #94a3b8; font-size: 14px;\">Pre-built native distribution bundles in <code>Factory/downloads/</code></p>\n";
@@ -235,9 +235,9 @@ class FactoryViews {
         content += "    </thead>\n";
         content += "    <tbody>\n";
 
-        let count: int = (int)artifacts->length();
-        for (let i: int = 0; i < count; i++) {
-            let a: ArtifactModel* = artifacts->get(i);
+        int count = (int)artifacts->length();
+        for (int i = 0; i < count; i++) {
+            ArtifactModel* a = artifacts->get(i);
             content += "      <tr>\n";
             content += "        <td style=\"font-family: var(--font-mono); font-weight: bold; color: #38bdf8;\">" + a->filename + "</td>\n";
             content += "        <td><span class=\"badge badge-lts\">" + a->platform + "</span></td>\n";
@@ -255,8 +255,8 @@ class FactoryViews {
         return FactoryViews::renderLayout("Downloads", content, "/downloads", port);
     }
 
-    public static renderCxvmDocs(port: int): string {
-        let content: string = "<div style=\"margin-bottom: 24px;\">\n";
+    static public string renderCxvmDocs(int port) {
+        string content = "<div style=\"margin-bottom: 24px;\">\n";
         content += "  <h1 style=\"font-size: 28px; color: #38bdf8;\">cxvm: Cex Version Manager</h1>\n";
         content += "  <p style=\"color: #94a3b8; font-size: 15px;\">The cross-platform version manager for Cex runtimes - seamlessly download cxvm to setup cexr.</p>\n";
         content += "</div>\n";
@@ -294,8 +294,8 @@ class FactoryViews {
         return FactoryViews::renderLayout("cxvm Guide", content, "/cxvm", port);
     }
 
-    public static renderSetupWindow(port: int, currentActive: string, defaultVer: string, doctorOut: string): string {
-        let content: string = "<div class=\"card\" style=\"background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; padding: 0;\">\n";
+    static public string renderSetupWindow(int port, string currentActive, string defaultVer, string doctorOut) {
+        string content = "<div class=\"card\" style=\"background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; padding: 0;\">\n";
 
         // Window Title Bar
         content += "  <div style=\"background: #0f172a; padding: 14px 20px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center;\">\n";
@@ -364,12 +364,12 @@ class FactoryViews {
         content += "    </div>\n";
 
         // Section 3: Default Toolchain Engines (v8 & v6)
-        let bColor8: string = (currentActive === "v8.0.0" ? "#0284c7" : "#334155");
-        let bBadge8: string = (currentActive === "v8.0.0" ? "badge-stable" : "badge-lts");
-        let bState8: string = (currentActive === "v8.0.0" ? "ACTIVE" : "READY");
-        let bColor6: string = (currentActive === "v6.0.0" ? "#0284c7" : "#334155");
-        let bBadge6: string = (currentActive === "v6.0.0" ? "badge-stable" : "badge-lts");
-        let bState6: string = (currentActive === "v6.0.0" ? "ACTIVE" : "READY");
+        string bColor8 = (currentActive === "v8.0.0" ? "#0284c7" : "#334155");
+        string bBadge8 = (currentActive === "v8.0.0" ? "badge-stable" : "badge-lts");
+        string bState8 = (currentActive === "v8.0.0" ? "ACTIVE" : "READY");
+        string bColor6 = (currentActive === "v6.0.0" ? "#0284c7" : "#334155");
+        string bBadge6 = (currentActive === "v6.0.0" ? "badge-stable" : "badge-lts");
+        string bState6 = (currentActive === "v6.0.0" ? "ACTIVE" : "READY");
 
         content += "    <h3 style=\"font-size: 16px; color: #f8fafc; margin-bottom: 12px;\">Configured Cex Runtime Engines (v8 &amp; v6)</h3>\n";
         content += "    <div style=\"display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;\">\n";

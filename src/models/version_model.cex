@@ -3,15 +3,15 @@
 
 import "../lighting_mvc.cex";
 
-class VersionModel extends BaseModel {
-    public version: string;
-    public channel: string;
-    public releaseDate: string;
-    public minCpp: string;
-    public description: string;
-    public isDefault: bool;
+class VersionModel : BaseModel {
+    public string version;
+    public string channel;
+    public string releaseDate;
+    public string minCpp;
+    public string description;
+    public bool isDefault;
 
-    public constructor(ver: string, chan: string, date: string, cpp: string, desc: string, isDef: bool) {
+    public constructor(string ver, string chan, string date, string cpp, string desc, bool isDef) {
         super("v" + ver);
         this.version = ver;
         this.channel = chan;
@@ -21,8 +21,8 @@ class VersionModel extends BaseModel {
         this.isDefault = isDef;
     }
 
-    public override validate(): ModelValidationResult* {
-        let res: ModelValidationResult* = new ModelValidationResult();
+    public override ModelValidationResult* validate() {
+        ModelValidationResult* res = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -35,8 +35,8 @@ class VersionModel extends BaseModel {
         return res;
     }
 
-    public virtual toJsonValue(): JsonValue* {
-        let doc: JsonValue* = JsonDoc::obj();
+    public virtual JsonValue* toJsonValue() {
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "version", this.version);
         JsonDoc::setStr(doc, "channel", this.channel);
@@ -47,8 +47,8 @@ class VersionModel extends BaseModel {
         return doc;
     }
 
-    public override toJson(): string {
-        let obj: JsonValue* = Json::obj();
+    public override string toJson() {
+        JsonValue* obj = Json::obj();
         Json::setString(obj, "version", this.version);
         Json::setString(obj, "channel", this.channel);
         Json::setString(obj, "releaseDate", this.releaseDate);

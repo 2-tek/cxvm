@@ -8,43 +8,43 @@ import fs from "fs";
 import "@/src/types.cex";
 import "@/src/cxvm_engine.cex";
 
-fn main(): int {
+int main() {
     println("===============================================================================");
     println("       2-TEK CXVM: CexR Runtime & Editions Test Suite                          ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM CexR Tests");
+    TestSuite* suite = new TestSuite("CXVM CexR Tests");
 
-    let cxvm: CxvmEngine* = new CxvmEngine();
+    CxvmEngine* cxvm = new CxvmEngine();
 
     // 1. Defaults Routing
-    let hookDevDefRes: int = cxvm->cvmExecute("dev", "src/index.cex", "");
+    int hookDevDefRes = cxvm->cvmExecute("dev", "src/index.cex", "");
     Assert::equalsInt(0, hookDevDefRes, "cxvm dev defaults to cexr-factory");
 
-    let hookBuildDefRes: int = cxvm->cvmExecute("build", "src/index.cex", "");
+    int hookBuildDefRes = cxvm->cvmExecute("build", "src/index.cex", "");
     Assert::equalsInt(0, hookBuildDefRes, "cxvm build defaults to cexr-bean");
 
     // 2. Specific Edition Routing
-    let hookDevRes: int = cxvm->cvmExecute("dev", "bean", "src/index.cex");
+    int hookDevRes = cxvm->cvmExecute("dev", "bean", "src/index.cex");
     Assert::equalsInt(0, hookDevRes, "cxvm dev hooks to cxvm --app cexr bean dev src/index.cex");
 
-    let hookBuildRes: int = cxvm->cvmExecute("build", "bean", "src/index.cex");
+    int hookBuildRes = cxvm->cvmExecute("build", "bean", "src/index.cex");
     Assert::equalsInt(0, hookBuildRes, "cxvm build hooks to cxvm --app cexr bean build src/index.cex");
 
-    let hookStartRes: int = cxvm->cvmExecute("start", "bean", "src/index.cex");
+    int hookStartRes = cxvm->cvmExecute("start", "bean", "src/index.cex");
     Assert::equalsInt(0, hookStartRes, "cxvm start hooks to cxvm --app cexr bean start src/index.cex");
 
-    let appCexrRes: int = cxvm->appExecute("cexr", "bean", "dev src/index.cex");
+    int appCexrRes = cxvm->appExecute("cexr", "bean", "dev src/index.cex");
     Assert::equalsInt(0, appCexrRes, "cxvm --app cexr bean dev src/index.cex returns 0 OK");
 
     // 3. Compiler hook executions
-    let hookCexpDevRes: int = cxvm->hookCexpExecute("cexr-factory", "dev", "src/index.cex");
+    int hookCexpDevRes = cxvm->hookCexpExecute("cexr-factory", "dev", "src/index.cex");
     Assert::equalsInt(0, hookCexpDevRes, "hookCexpExecute cexp --app cexr-factory dev returns 0 OK");
 
-    let hookCexpBuildRes: int = cxvm->hookCexpExecute("cexr-bean", "build", "src/index.cex");
+    int hookCexpBuildRes = cxvm->hookCexpExecute("cexr-bean", "build", "src/index.cex");
     Assert::equalsInt(0, hookCexpBuildRes, "hookCexpExecute cexp --app cexr-bean build returns 0 OK");
 
-    let execCexpAppRes: int = cxvm->cvmExecute("cexp", "--app", "cexr-factory");
+    int execCexpAppRes = cxvm->cvmExecute("cexp", "--app", "cexr-factory");
     Assert::equalsInt(0, execCexpAppRes, "cxvm cexp --app cexr-factory returns 0 OK");
 
     // 4. Exact Editions Version Resolution
@@ -52,7 +52,7 @@ fn main(): int {
     Assert::equalsString(CxvmConstants::cexrVersion(), cxvm->resolveLibVersion("cexr-factory"), "resolveLibVersion resolves cexr-factory");
 
     // 5. Binary App Registration Invariants
-    let regCexDirRes: CxvmCommandResult* = cxvm->registerBinaryAppsInCexDir();
+    CxvmCommandResult* regCexDirRes = cxvm->registerBinaryAppsInCexDir();
     Assert::isTrue(regCexDirRes->success, "registerBinaryAppsInCexDir succeeds");
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexp-v8") != -1, "register output contains cexp-v8");
     Assert::isTrue(regCexDirRes->output.find("CEX_DIR/cexr-factory/" + CxvmConstants::cexrVersion() + "/bin") != -1, "register output uses exact version for cexr-factory");

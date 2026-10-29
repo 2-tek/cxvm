@@ -9,91 +9,91 @@ import "@/src/types.cex";
 import "@/src/cxvm_engine.cex";
 import "@/src/app.cex";
 
-fn main(): int {
+int main() {
     println("===============================================================================");
     println("       2-TEK CXVM: Integrated CVM Subsystem Test Suite                         ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM CVM Tests");
+    TestSuite* suite = new TestSuite("CXVM CVM Tests");
 
-    let cxvm: CxvmEngine* = new CxvmEngine();
-    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
+    CxvmEngine* cxvm = new CxvmEngine();
+    FactoryApp* app = new FactoryApp(CxvmConstants::defaultPort());
 
     // 1. Start CVM standalone server
-    let srvStartRes: CxvmCommandResult* = cxvm->startCvm(CxvmConstants::cvmPort(), true);
+    CxvmCommandResult* srvStartRes = cxvm->startCvm(CxvmConstants::cvmPort(), true);
     Assert::isTrue(srvStartRes->success, "cxvm start cvm succeeds");
     Assert::isTrue(cxvm->cvmServerRunning, "CVM server marked as running");
     Assert::equalsInt(CxvmConstants::cvmPort(), cxvm->cvmServerPort, "CVM server port matches constant");
     Assert::isTrue(srvStartRes->output.find("standalone (single process)") != -1, "Output confirms CVM standalone mode");
 
     // 2. Status CVM
-    let srvStRes: CxvmCommandResult* = cxvm->statusCvm();
+    CxvmCommandResult* srvStRes = cxvm->statusCvm();
     Assert::isTrue(srvStRes->success, "cxvm status cvm succeeds");
     Assert::isTrue(srvStRes->output.find("standalone") != -1, "Status confirms CVM standalone");
 
     // 3. Stop CVM
-    let srvStopRes: CxvmCommandResult* = cxvm->stopCvm();
+    CxvmCommandResult* srvStopRes = cxvm->stopCvm();
     Assert::isTrue(srvStopRes->success, "cxvm stop cvm succeeds");
     Assert::isTrue(!cxvm->cvmServerRunning, "CVM server marked as stopped");
 
     // 4. CLI cvmExecute routing
-    let execStart: int = cxvm->cvmExecute("start", "cvm", "");
+    int execStart = cxvm->cvmExecute("start", "cvm", "");
     Assert::equalsInt(0, execStart, "cxvm cvmExecute start cvm returns exit code 0");
     Assert::isTrue(cxvm->cvmServerRunning, "CVM server is running after cvmExecute start cvm");
 
-    let execStop: int = cxvm->cvmExecute("stop", "cvm", "");
+    int execStop = cxvm->cvmExecute("stop", "cvm", "");
     Assert::equalsInt(0, execStop, "cxvm cvmExecute stop cvm returns exit code 0");
     Assert::isTrue(!cxvm->cvmServerRunning, "CVM server is stopped after cvmExecute stop cvm");
 
-    let execStatus: int = cxvm->cvmExecute("status", "cvm", "");
+    int execStatus = cxvm->cvmExecute("status", "cvm", "");
     Assert::equalsInt(0, execStatus, "cxvm cvmExecute status cvm returns exit code 0");
 
-    let execCommit: int = cxvm->cvmExecute("commit", "-m \"test-commit\"", "");
+    int execCommit = cxvm->cvmExecute("commit", "-m \"test-commit\"", "");
     Assert::equalsInt(0, execCommit, "cxvm cvmExecute commit returns exit code 0");
 
-    let execPush: int = cxvm->cvmExecute("push", "origin main", "");
+    int execPush = cxvm->cvmExecute("push", "origin main", "");
     Assert::equalsInt(0, execPush, "cxvm cvmExecute push returns exit code 0");
 
-    let execPull: int = cxvm->cvmExecute("pull", "origin main", "");
+    int execPull = cxvm->cvmExecute("pull", "origin main", "");
     Assert::equalsInt(0, execPull, "cxvm cvmExecute pull returns exit code 0");
 
-    let execAdd: int = cxvm->cvmExecute("add", ".", "");
+    int execAdd = cxvm->cvmExecute("add", ".", "");
     Assert::equalsInt(0, execAdd, "cxvm cvmExecute add returns exit code 0");
 
-    let execBranch: int = cxvm->cvmExecute("branch", "feature/test", "");
+    int execBranch = cxvm->cvmExecute("branch", "feature/test", "");
     Assert::equalsInt(0, execBranch, "cxvm cvmExecute branch returns exit code 0");
 
-    let execCheckout: int = cxvm->cvmExecute("checkout", "main", "");
+    int execCheckout = cxvm->cvmExecute("checkout", "main", "");
     Assert::equalsInt(0, execCheckout, "cxvm cvmExecute checkout returns exit code 0");
 
-    let execLog: int = cxvm->cvmExecute("cvm", "log", "");
+    int execLog = cxvm->cvmExecute("cvm", "log", "");
     Assert::equalsInt(0, execLog, "cxvm cvmExecute log returns exit code 0");
 
-    let execDiff: int = cxvm->cvmExecute("cvm", "diff", "");
+    int execDiff = cxvm->cvmExecute("cvm", "diff", "");
     Assert::equalsInt(0, execDiff, "cxvm cvmExecute diff returns exit code 0");
 
     // 5. REST Endpoints for CVM
-    let resStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/status", "", "application/json");
+    HttpResponse* resStatus = app->simulateRequest("GET", "/api/v1/cvm/status", "", "application/json");
     Assert::equalsInt(200, resStatus->statusCode, "GET /api/v1/cvm/status returns 200 OK");
     Assert::isTrue(resStatus->body.find("SUCCESS") != -1, "CVM status reports SUCCESS");
 
-    let resCommit: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/commit", "{\"message\":\"Test commit\"}", "application/json");
+    HttpResponse* resCommit = app->simulateRequest("POST", "/api/v1/cvm/commit", "{\"message\":\"Test commit\"}", "application/json");
     Assert::equalsInt(200, resCommit->statusCode, "POST /api/v1/cvm/commit returns 200 OK");
     Assert::isTrue(resCommit->body.find("SUCCESS") != -1, "CVM commit reports SUCCESS");
 
-    let resPush: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/push", "{\"remote\":\"origin\",\"branch\":\"main\"}", "application/json");
+    HttpResponse* resPush = app->simulateRequest("POST", "/api/v1/cvm/push", "{\"remote\":\"origin\",\"branch\":\"main\"}", "application/json");
     Assert::equalsInt(200, resPush->statusCode, "POST /api/v1/cvm/push returns 200 OK");
     Assert::isTrue(resPush->body.find("SUCCESS") != -1, "CVM push reports SUCCESS");
 
-    let resSrvStart: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/server/start", "", "application/json");
+    HttpResponse* resSrvStart = app->simulateRequest("POST", "/api/v1/cvm/server/start", "", "application/json");
     Assert::equalsInt(200, resSrvStart->statusCode, "POST /api/v1/cvm/server/start returns 200 OK");
     Assert::isTrue(resSrvStart->body.find("SUCCESS") != -1, "CVM server start reports SUCCESS");
 
-    let resSrvStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/server/status", "", "application/json");
+    HttpResponse* resSrvStatus = app->simulateRequest("GET", "/api/v1/cvm/server/status", "", "application/json");
     Assert::equalsInt(200, resSrvStatus->statusCode, "GET /api/v1/cvm/server/status returns 200 OK");
     Assert::isTrue(resSrvStatus->body.find("RUNNING") != -1, "CVM server status reports RUNNING");
 
-    let resSrvStop: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/server/stop", "", "application/json");
+    HttpResponse* resSrvStop = app->simulateRequest("POST", "/api/v1/cvm/server/stop", "", "application/json");
     Assert::equalsInt(200, resSrvStop->statusCode, "POST /api/v1/cvm/server/stop returns 200 OK");
 
     suite->addResult("test_integrated_cvm_operations", true, "", 1);

@@ -20,17 +20,17 @@ import "@cex-std/src/filesystem.cex";
 import "@cex-std/src/chrono.cex";
 
 class FactoryApp {
-    public appName: string = "2-TEK cxvm Engine";
-    public port: int;
-    public isRunning: bool = false;
-    public downloadsDir: string = StdFilesystem::exists("dist") ? "dist" : (StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : (StdFilesystem::exists("downloads") ? "downloads" : "dist"));
-    public service: PerfectApp* = new PerfectApp();
-    public router: LightingRouter* = new LightingRouter();
-    public controller: FactoryController* = new FactoryController();
-    public builder: DistBuilder*;
-    public cxvm: CxvmEngine* = new CxvmEngine();
+    public string appName = "2-TEK cxvm Engine";
+    public int port;
+    public bool isRunning = false;
+    public string downloadsDir = StdFilesystem::exists("dist") ? "dist" : (StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : (StdFilesystem::exists("downloads") ? "downloads" : "dist"));
+    public PerfectApp* service = new PerfectApp();
+    public LightingRouter* router = new LightingRouter();
+    public FactoryController* controller = new FactoryController();
+    public DistBuilder* builder;
+    public CxvmEngine* cxvm = new CxvmEngine();
 
-    public constructor(port: int) {
+    public constructor(int port) {
         this.port = port;
 
         this.service->use(new TimingMiddleware());
@@ -40,7 +40,7 @@ class FactoryApp {
         this.builder = new DistBuilder(this.downloadsDir);
 
         // Initialize default runtime with CexR v8 (.cex_boxes Dist Loader Engine)
-        let defVer: string = CxvmConstants::defaultVersion();
+        string defVer = CxvmConstants::defaultVersion();
         this.cxvm->install(defVer);
         this.cxvm->use(defVer);
         this.cxvm->setDefault(defVer);
@@ -48,7 +48,7 @@ class FactoryApp {
         this.setupRoutes();
     }
 
-    private setupRoutes(): void {
+    private void setupRoutes() {
         // SSR HTML Routes
         this.router->get("/", "factory.index");
         this.router->get("/downloads", "factory.downloads");
@@ -101,13 +101,13 @@ class FactoryApp {
         this.router->post("/api/v1/reinstall", "factory.apiReinstall");
 
         // Register SSR Pages on Cex-Service (cex-s)
-        let dashDoc: SSRDocument* = new SSRDocument("FactoryDashboard", "2-TEK Cex Factory", "<h1>2-TEK Cex Factory</h1>", "{\"status\": \"ACTIVE\"}");
+        SSRDocument* dashDoc = new SSRDocument("FactoryDashboard", "2-TEK Cex Factory", "<h1>2-TEK Cex Factory</h1>", "{\"status\": \"ACTIVE\"}");
         this.service->page("/", dashDoc);
-        let downDoc: SSRDocument* = new SSRDocument("FactoryDownloads", "2-TEK Cex Downloads", "<h1>Downloads Directory</h1>", "{\"total\": 36}");
+        SSRDocument* downDoc = new SSRDocument("FactoryDownloads", "2-TEK Cex Downloads", "<h1>Downloads Directory</h1>", "{\"total\": 36}");
         this.service->page("/downloads", downDoc);
-        let cxvmDoc: SSRDocument* = new SSRDocument("CxvmDocs", "CXVM Documentation", "<h1>CXVM Version Manager</h1>", "{\"version\": \"2.0.0\"}");
+        SSRDocument* cxvmDoc = new SSRDocument("CxvmDocs", "CXVM Documentation", "<h1>CXVM Version Manager</h1>", "{\"version\": \"2.0.0\"}");
         this.service->page("/cxvm", cxvmDoc);
-        let setupDoc: SSRDocument* = new SSRDocument("SetupWindow", "CXVM Setup", "<h1>Setup Window</h1>", "{\"status\": \"HEALTHY\"}");
+        SSRDocument* setupDoc = new SSRDocument("SetupWindow", "CXVM Setup", "<h1>Setup Window</h1>", "{\"status\": \"HEALTHY\"}");
         this.service->page("/setup", setupDoc);
 
         // Register REST API Endpoints on Cex-Service (cex-s)
@@ -145,15 +145,15 @@ class FactoryApp {
         this.service->api("POST", "/api/v1/reinstall", "Reinstall Subsystem", "{\"status\": \"SUCCESS\"}");
     }
 
-    public start(): void {
+    public void start() {
         this.isRunning = true;
     }
 
-    public stop(): void {
+    public void stop() {
         this.isRunning = false;
     }
 
-    private getHandlerCode(handlerId: string): int {
+    private int getHandlerCode(string handlerId) {
         if (handlerId === "factory.index") return 1;
         if (handlerId === "factory.downloads") return 2;
         if (handlerId === "factory.cxvmDocs") return 3;
@@ -202,24 +202,24 @@ class FactoryApp {
         return 0;
     }
 
-    public handleRequest(req: HttpRequest*): HttpResponse* {
+    public HttpResponse* handleRequest(HttpRequest* req) {
         // 1. Logger Middleware
         LightingMiddleware::runLogger(req);
 
         // 2. Auth Middleware
-        let authRes: MiddlewareResult* = LightingMiddleware::runAuth(req);
+        MiddlewareResult* authRes = LightingMiddleware::runAuth(req);
         if (!authRes->proceed) {
             return authRes->errorResponse;
         }
 
         // 3. Router Matching
-        let route: LightingRouteEntry* = this.router->findRoute(req);
+        LightingRouteEntry* route = this.router->findRoute(req);
         if (route === nullptr) {
             return HttpResponse::notFound("No Factory route matched for: " + req->method + " " + req->path);
         }
 
         // 4. Controller Dispatch via switch-case
-        let handlerCode: int = this.getHandlerCode(route->handlerId);
+        int handlerCode = this.getHandlerCode(route->handlerId);
         switch (handlerCode) {
             case 1:
             return this.controller->index(req, this.port, this.builder->versions, this.builder->platforms, this.builder->artifacts, this.cxvm->current());
@@ -316,30 +316,30 @@ class FactoryApp {
         }
     }
 
-    public simulateRequest(method: string, path: string, body: string, cType: string): HttpResponse* {
-        let req: HttpRequest* = new HttpRequest(method, path, body, cType);
+    public HttpResponse* simulateRequest(string method, string path, string body, string cType) {
+        HttpRequest* req = new HttpRequest(method, path, body, cType);
         return this.handleRequest(req);
     }
 
-    public simulateServiceRequest(method: string, path: string, body: string): PerfectResponse* {
+    public PerfectResponse* simulateServiceRequest(string method, string path, string body) {
         return this.service->simulateRequest(method, path, body);
     }
 
-    public listen(port: int, host: string = "127.0.0.1"): bool {
+    public bool listen(int port, string host = "127.0.0.1") {
         return this.service->listen(port, host);
     }
 
-    public displayRoutes(): void {
+    public void displayRoutes() {
         TerminalUI::renderHeader("2-TEK Cex Factory Route Registry", "Powered by cex-s (CexService) & Lighting Fullstack MVC");
         println("  METHOD  ROUTE PATTERN               HANDLER ACTION");
         println("  -------------------------------------------------------------");
-        let count: int = this.router->getRouteCount();
-        for (let i: int = 0; i < count; i++) {
-            let r: LightingRouteEntry* = this.router->routes->get(i);
+        int count = this.router->getRouteCount();
+        for (int i = 0; i < count; i++) {
+            LightingRouteEntry* r = this.router->routes->get(i);
             print("  "); print(r->method);
-            for (let s: int = (int)r->method.length(); s < 8; s++) print(" ");
+            for (int s = (int)r->method.length(); s < 8; s++) print(" ");
             print(r->pattern);
-            for (let s: int = (int)r->pattern.length(); s < 28; s++) print(" ");
+            for (int s = (int)r->pattern.length(); s < 28; s++) print(" ");
             println(r->handlerId);
         }
         println("-------------------------------------------------------------");

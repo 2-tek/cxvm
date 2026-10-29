@@ -3,16 +3,16 @@
 
 import "../lighting_mvc.cex";
 
-class PlatformModel extends BaseModel {
-    public os: string;
-    public arch: string;
-    public targetTriple: string;
-    public compiler: string;
-    public archiveFormat: string;
-    public displayName: string;
-    public isSupported: bool = true;
+class PlatformModel : BaseModel {
+    public string os;
+    public string arch;
+    public string targetTriple;
+    public string compiler;
+    public string archiveFormat;
+    public string displayName;
+    public bool isSupported = true;
 
-    public constructor(id: string, os: string, arch: string, triple: string, compiler: string, fmt: string, name: string) {
+    public constructor(string id, string os, string arch, string triple, string compiler, string fmt, string name) {
         super(id);
         this.os = os;
         this.arch = arch;
@@ -22,8 +22,8 @@ class PlatformModel extends BaseModel {
         this.displayName = name;
     }
 
-    public override validate(): ModelValidationResult* {
-        let res: ModelValidationResult* = new ModelValidationResult();
+    public override ModelValidationResult* validate() {
+        ModelValidationResult* res = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -39,8 +39,8 @@ class PlatformModel extends BaseModel {
         return res;
     }
 
-    public virtual toJsonValue(): JsonValue* {
-        let doc: JsonValue* = JsonDoc::obj();
+    public virtual JsonValue* toJsonValue() {
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "os", this.os);
         JsonDoc::setStr(doc, "arch", this.arch);
@@ -52,8 +52,8 @@ class PlatformModel extends BaseModel {
         return doc;
     }
 
-    public override toJson(): string {
-        let obj: JsonValue* = Json::obj();
+    public override string toJson() {
+        JsonValue* obj = Json::obj();
         Json::setString(obj, "os", this.os);
         Json::setString(obj, "arch", this.arch);
         Json::setString(obj, "targetTriple", this.targetTriple);

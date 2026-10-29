@@ -28,28 +28,23 @@
     "scripts": {
         "install": "cex-pack downloads",
         "downloads": "cex-pack downloads",
-        "dev": "cxvm --app cexr-factory src/index.cex",
-        "start": "cxvm --app cexr-bean src/index.cex",
-        "build": "cxvm --app cexr-bean src/index.cex",
-        "lint": "cxvm --app cex-lint fix .",
-        "test": "cxvm --app cext run tests/install.test.cex"
+        "dev": "cexr-factory src/index.cex",
+        "start": "cexr-bean src/index.cex",
+        "build": "cexp-v8-stable build src/index.cex -o .bin",
+        "lint": "cex-lint fix .",
+        "test": "cext tests/install.test.cex"
     },
     "dependencies": {
-        "cex-test": "1.0.0",
-        "cext": "1.0.14",
-        "cex-service": "1.0.2",
-        "cex-std": "1.0.0",
-        "cex-log": "1.0.0",
-        "cex-lint": "1.0.0",
-        "cex-pack": "1.1.0",
-        "cex-cli": "1.0.0",
-        "cex-cvm-cli": "1.0.0",
-        "models": "1.0.0",
-        "javis": "1.0.0",
-        "vision": "2.0.0",
-        "ultron": "1.0.0",
-        "cex-builder": "1.0.0",
-        "builder": "1.0.0"
+        "cex-test": "2.0.0",
+        "cex-service": "2.0.0",
+        "cex-std": "2.0.0",
+        "cex-log": "2.0.0",
+        "cex-lint": "2.0.0",
+        "cex-pack": "2.0.0",
+        "cex-cli": "2.0.0",
+        "cex-cvm-cli": "2.0.0",
+        "cex-builder": "2.0.0",
+        "builder": "2.0.0"
     },
     "includeDirs": ["./src"],
     "lint": {

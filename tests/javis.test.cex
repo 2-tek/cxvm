@@ -8,31 +8,31 @@ import fs from "fs";
 import "@/src/types.cex";
 import "@/src/cxvm_engine.cex";
 
-fn main(): int {
+int main() {
     println("===============================================================================");
     println("       2-TEK CXVM: Javis Cognitive Mind & AI Subsystems Test Suite             ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM Javis Tests");
+    TestSuite* suite = new TestSuite("CXVM Javis Tests");
 
-    let cxvm: CxvmEngine* = new CxvmEngine();
+    CxvmEngine* cxvm = new CxvmEngine();
 
     // 1. Setup Javis Engine
-    let resSetupJavis: int = cxvm->setupJavis("");
+    int resSetupJavis = cxvm->setupJavis("");
     Assert::equalsInt(0, resSetupJavis, "cxvm setupJavis execution succeeds");
 
     // 2. CLI Routing cxvm setup javis / java
-    let execSetupJavisRes: int = cxvm->cvmExecute("setup", "javis", "");
+    int execSetupJavisRes = cxvm->cvmExecute("setup", "javis", "");
     Assert::equalsInt(0, execSetupJavisRes, "cxvm cvmExecute setup javis returns 0 OK");
 
-    let execSetupJavaRes: int = cxvm->cvmExecute("setup", "java", "");
+    int execSetupJavaRes = cxvm->cvmExecute("setup", "java", "");
     Assert::equalsInt(0, execSetupJavaRes, "cxvm cvmExecute setup java returns 0 OK");
 
-    let execCexSetupJavisRes: int = cxvm->cvmExecute("cex", "setup", "javis");
+    int execCexSetupJavisRes = cxvm->cvmExecute("cex", "setup", "javis");
     Assert::equalsInt(0, execCexSetupJavisRes, "cxvm cvmExecute cex setup javis returns 0 OK");
 
     // 2.1. CLI Routing cxvm build javis / java
-    let execBuildJavisRes: int = cxvm->cvmExecute("build", "javis", "");
+    int execBuildJavisRes = cxvm->cvmExecute("build", "javis", "");
     Assert::equalsInt(0, execBuildJavisRes, "cxvm cvmExecute build javis returns 0 OK");
 
     // 3. AI Lib Version Resolution
@@ -42,7 +42,7 @@ fn main(): int {
     Assert::equalsString("1.0.0", cxvm->resolveLibVersion("ultron"), "resolveLibVersion resolves ultron model");
 
     // 4. Binary Registration Invariants
-    let regCexDirRes: CxvmCommandResult* = cxvm->registerBinaryAppsInCexDir();
+    CxvmCommandResult* regCexDirRes = cxvm->registerBinaryAppsInCexDir();
     Assert::isTrue(regCexDirRes->success, "registerBinaryAppsInCexDir succeeds");
     Assert::isTrue(regCexDirRes->output.find("javis") != -1, "register output mentions javis companion binary");
     Assert::isTrue(regCexDirRes->output.find("vision") != -1, "register output mentions vision companion binary");

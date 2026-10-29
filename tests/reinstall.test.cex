@@ -9,18 +9,18 @@ import "@/src/types.cex";
 import "@/src/cxvm_engine.cex";
 import "@/src/app.cex";
 
-fn main(): int {
+int main() {
     println("===============================================================================");
     println("       2-TEK CXVM: Toolchain Reinstallation Subsystem Test Suite               ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM Reinstall Tests");
+    TestSuite* suite = new TestSuite("CXVM Reinstall Tests");
 
-    let cxvm: CxvmEngine* = new CxvmEngine();
-    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
+    CxvmEngine* cxvm = new CxvmEngine();
+    FactoryApp* app = new FactoryApp(CxvmConstants::defaultPort());
 
     // 1. Direct engine reinstall
-    let reRes: CxvmCommandResult* = cxvm->reinstall(CxvmConstants::defaultVersion());
+    CxvmCommandResult* reRes = cxvm->reinstall(CxvmConstants::defaultVersion());
     Assert::isTrue(reRes->success, "cxvm reinstall succeeds");
     Assert::equalsString(CxvmConstants::defaultVersion(), cxvm->currentVersion, "Active runtime version is default after reinstall");
     Assert::equalsString(CxvmConstants::defaultVersion(), cxvm->defaultVersion, "Default runtime version is default after reinstall");
@@ -30,19 +30,19 @@ fn main(): int {
     Assert::isTrue(reRes->output.find("REINSTALL COMPLETE [OK]") != -1, "Output confirms REINSTALL COMPLETE [OK]");
 
     // 2. CLI cvmExecute routing: cxvm reinstall
-    let execReinstall: int = cxvm->cvmExecute("reinstall", CxvmConstants::defaultVersion(), "");
+    int execReinstall = cxvm->cvmExecute("reinstall", CxvmConstants::defaultVersion(), "");
     Assert::equalsInt(0, execReinstall, "cxvm reinstall returns exit code 0");
 
     // 3. CLI cvmExecute routing: cxvm cex reinstall
-    let execCexReinstall: int = cxvm->cvmExecute("cex", "reinstall", CxvmConstants::defaultVersion());
+    int execCexReinstall = cxvm->cvmExecute("cex", "reinstall", CxvmConstants::defaultVersion());
     Assert::equalsInt(0, execCexReinstall, "cxvm cex reinstall returns exit code 0");
 
     // 4. CLI cvmExecute routing: cxvm cli reinstall
-    let execCliReinstall: int = cxvm->cvmExecute("cli", "reinstall", CxvmConstants::defaultVersion());
+    int execCliReinstall = cxvm->cvmExecute("cli", "reinstall", CxvmConstants::defaultVersion());
     Assert::equalsInt(0, execCliReinstall, "cxvm cli reinstall returns exit code 0");
 
     // 5. REST API: POST /api/v1/reinstall
-    let resPostReinstall: HttpResponse* = app->simulateRequest("POST", "/api/v1/reinstall", "{\"version\":\"" + CxvmConstants::defaultVersion() + "\"}", "application/json");
+    HttpResponse* resPostReinstall = app->simulateRequest("POST", "/api/v1/reinstall", "{\"version\":\"" + CxvmConstants::defaultVersion() + "\"}", "application/json");
     Assert::equalsInt(200, resPostReinstall->statusCode, "POST /api/v1/reinstall returns 200 OK");
     Assert::isTrue(resPostReinstall->body.find("SUCCESS") != -1, "Reinstall API reports SUCCESS");
     Assert::isTrue(resPostReinstall->body.find("reinstall") != -1, "Reinstall API reports command reinstall");

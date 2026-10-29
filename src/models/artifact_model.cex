@@ -3,17 +3,17 @@
 
 import "../lighting_mvc.cex";
 
-class ArtifactModel extends BaseModel {
-    public filename: string;
-    public version: string;
-    public platform: string;
-    public arch: string;
-    public sizeBytes: int;
-    public sha256: string;
-    public downloadUrl: string;
-    public isBuilt: bool;
+class ArtifactModel : BaseModel {
+    public string filename;
+    public string version;
+    public string platform;
+    public string arch;
+    public int sizeBytes;
+    public string sha256;
+    public string downloadUrl;
+    public bool isBuilt;
 
-    public constructor(fname: string, ver: string, plat: string, arch: string, size: int, hash: string, url: string) {
+    public constructor(string fname, string ver, string plat, string arch, int size, string hash, string url) {
         super(fname);
         this.filename = fname;
         this.version = ver;
@@ -25,8 +25,8 @@ class ArtifactModel extends BaseModel {
         this.isBuilt = (size > 0);
     }
 
-    public override validate(): ModelValidationResult* {
-        let res: ModelValidationResult* = new ModelValidationResult();
+    public override ModelValidationResult* validate() {
+        ModelValidationResult* res = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -39,8 +39,8 @@ class ArtifactModel extends BaseModel {
         return res;
     }
 
-    public virtual toJsonValue(): JsonValue* {
-        let doc: JsonValue* = JsonDoc::obj();
+    public virtual JsonValue* toJsonValue() {
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "filename", this.filename);
         JsonDoc::setStr(doc, "version", this.version);
@@ -53,8 +53,8 @@ class ArtifactModel extends BaseModel {
         return doc;
     }
 
-    public override toJson(): string {
-        let obj: JsonValue* = Json::obj();
+    public override string toJson() {
+        JsonValue* obj = Json::obj();
         Json::setString(obj, "filename", this.filename);
         Json::setString(obj, "version", this.version);
         Json::setString(obj, "platform", this.platform);

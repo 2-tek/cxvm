@@ -8,103 +8,103 @@ import "@cex-std/src/chrono.cex";
 using JsonValue = json_lib::Value;
 
 class JsonDoc {
-    public static obj(): JsonValue* {
-        let v: JsonValue* = new JsonValue();
+    static public JsonValue* obj() {
+        JsonValue* v = new JsonValue();
         v->type = json_lib::JsonType::Object;
         return v;
     }
 
-    public static arr(): JsonValue* {
-        let v: JsonValue* = new JsonValue();
+    static public JsonValue* arr() {
+        JsonValue* v = new JsonValue();
         v->type = json_lib::JsonType::Array;
         return v;
     }
 
-    public static str(s: string): JsonValue* {
+    static public JsonValue* str(string s) {
         return new JsonValue(s);
     }
 
-    public static num(n: int): JsonValue* {
+    static public JsonValue* num(int n) {
         return new JsonValue(n);
     }
 
-    public static numDouble(n: double): JsonValue* {
+    static public JsonValue* numDouble(double n) {
         return new JsonValue(n);
     }
 
-    public static boolean(b: bool): JsonValue* {
+    static public JsonValue* boolean(bool b) {
         return new JsonValue(b);
     }
 
-    public static parse(s: string): JsonValue* {
+    static public JsonValue* parse(string s) {
         return json.parse(s);
     }
 
-    public static stringify(v: JsonValue*): string {
+    static public string stringify(JsonValue* v) {
         return json.stringify(v);
     }
 
-    public static stringifyIndent(v: JsonValue*, indent: int): string {
+    static public string stringifyIndent(JsonValue* v, int indent) {
         return json.stringify(v, indent);
     }
 
-    public static setStr(o: JsonValue*, key: string, val: string): void {
+    static public void setStr(JsonValue* o, string key, string val) {
         o->set(key, new JsonValue(val));
     }
 
-    public static setNum(o: JsonValue*, key: string, val: int): void {
+    static public void setNum(JsonValue* o, string key, int val) {
         o->set(key, new JsonValue(val));
     }
 
-    public static setDouble(o: JsonValue*, key: string, val: double): void {
+    static public void setDouble(JsonValue* o, string key, double val) {
         o->set(key, new JsonValue(val));
     }
 
-    public static setBool(o: JsonValue*, key: string, val: bool): void {
+    static public void setBool(JsonValue* o, string key, bool val) {
         o->set(key, new JsonValue(val));
     }
 
-    public static setVal(o: JsonValue*, key: string, val: JsonValue*): void {
+    static public void setVal(JsonValue* o, string key, JsonValue* val) {
         o->set(key, val);
     }
 
-    public static pushStr(a: JsonValue*, val: string): void {
+    static public void pushStr(JsonValue* a, string val) {
         a->push(new JsonValue(val));
     }
 
-    public static pushNum(a: JsonValue*, val: int): void {
+    static public void pushNum(JsonValue* a, int val) {
         a->push(new JsonValue(val));
     }
 
-    public static pushVal(a: JsonValue*, val: JsonValue*): void {
+    static public void pushVal(JsonValue* a, JsonValue* val) {
         a->push(val);
     }
 }
 
 class HttpRequest {
-    public method: string;
-    public path: string;
-    public body: string;
-    public contentType: string;
-    public queryParams: Array<string>* = new Array<string>();
-    public pathParams: Array<string>* = new Array<string>();
+    public string method;
+    public string path;
+    public string body;
+    public string contentType;
+    public Array<string>* queryParams = new Array<string>();
+    public Array<string>* pathParams = new Array<string>();
 
-    public constructor(method: string, path: string, body: string, cType: string) {
+    public constructor(string method, string path, string body, string cType) {
         this.method = method;
         this.path = path;
         this.body = body;
         this.contentType = cType;
     }
 
-    public addQueryParam(key: string, value: string): void {
+    public void addQueryParam(string key, string value) {
         this.queryParams->push(key + "=" + value);
     }
 
-    public getQuery(key: string): string {
-        let prefix: string = key + "=";
-        let count: int = (int)this.queryParams->length();
-        for (let i: int = 0; i < count; i++) {
-            let item: string = this.queryParams->get(i);
+    public string getQuery(string key) {
+        string prefix = key + "=";
+        int count = (int)this.queryParams->length();
+        for (int i = 0; i < count; i++) {
+            string item = this.queryParams->get(i);
             if (item.find(prefix) == 0) {
                 return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
             }
@@ -112,15 +112,15 @@ class HttpRequest {
         return "";
     }
 
-    public addPathParam(key: string, value: string): void {
+    public void addPathParam(string key, string value) {
         this.pathParams->push(key + ":" + value);
     }
 
-    public getParam(key: string): string {
-        let prefix: string = key + ":";
-        let count: int = (int)this.pathParams->length();
-        for (let i: int = 0; i < count; i++) {
-            let item: string = this.pathParams->get(i);
+    public string getParam(string key) {
+        string prefix = key + ":";
+        int count = (int)this.pathParams->length();
+        for (int i = 0; i < count; i++) {
+            string item = this.pathParams->get(i);
             if (item.find(prefix) == 0) {
                 return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
             }
@@ -128,69 +128,69 @@ class HttpRequest {
         return "";
     }
 
-    public toPerfectRequest(): PerfectRequest* {
+    public PerfectRequest* toPerfectRequest() {
         return new PerfectRequest(this.method, this.path, this.body);
     }
 
-    public static fromPerfectRequest(p: PerfectRequest*): HttpRequest* {
-        let cType: string = p->getHeader("Content-Type");
+    static public HttpRequest* fromPerfectRequest(PerfectRequest* p) {
+        string cType = p->getHeader("Content-Type");
         return new HttpRequest(p->method, p->path, p->body, cType);
     }
 }
 
 class HttpResponse {
-    public statusCode: int;
-    public statusMessage: string;
-    public contentType: string;
-    public body: string;
-    public isRedirect: bool = false;
-    public redirectUrl: string = "";
+    public int statusCode;
+    public string statusMessage;
+    public string contentType;
+    public string body;
+    public bool isRedirect = false;
+    public string redirectUrl = "";
 
-    public constructor(code: int, msg: string, cType: string, body: string) {
+    public constructor(int code, string msg, string cType, string body) {
         this.statusCode = code;
         this.statusMessage = msg;
         this.contentType = cType;
         this.body = body;
     }
 
-    public static ok(body: string, cType: string): HttpResponse* {
+    static public HttpResponse* ok(string body, string cType) {
         return new HttpResponse(200, "OK", cType, body);
     }
 
-    public static json(val: JsonValue*): HttpResponse* {
+    static public HttpResponse* json(JsonValue* val) {
         return new HttpResponse(200, "OK", "application/json", JsonDoc::stringify(val));
     }
 
-    public static json(str: string): HttpResponse* {
+    static public HttpResponse* json(string str) {
         return new HttpResponse(200, "OK", "application/json", str);
     }
 
-    public static html(htmlBody: string): HttpResponse* {
+    static public HttpResponse* html(string htmlBody) {
         return new HttpResponse(200, "OK", "text/html; charset=utf-8", htmlBody);
     }
 
-    public static notFound(msg: string): HttpResponse* {
-        let doc: JsonValue* = JsonDoc::obj();
+    static public HttpResponse* notFound(string msg) {
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "error", msg);
         JsonDoc::setNum(doc, "statusCode", 404);
         return new HttpResponse(404, "Not Found", "application/json", JsonDoc::stringify(doc));
     }
 
-    public static badRequest(msg: string): HttpResponse* {
-        let doc: JsonValue* = JsonDoc::obj();
+    static public HttpResponse* badRequest(string msg) {
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "error", msg);
         JsonDoc::setNum(doc, "statusCode", 400);
         return new HttpResponse(400, "Bad Request", "application/json", JsonDoc::stringify(doc));
     }
 
-    public static redirect(url: string): HttpResponse* {
-        let res: HttpResponse* = new HttpResponse(302, "Found", "text/plain", "Redirecting to " + url);
+    static public HttpResponse* redirect(string url) {
+        HttpResponse* res = new HttpResponse(302, "Found", "text/plain", "Redirecting to " + url);
         res->isRedirect = true;
         res->redirectUrl = url;
         return res;
     }
 
-    public display(): void {
+    public void display() {
         print("HTTP/1.1 ");
         print(this.statusCode);
         print(" ");
@@ -201,7 +201,7 @@ class HttpResponse {
         println(this.body);
     }
 
-    public displayCurl(method: string, url: string): void {
+    public void displayCurl(string method, string url) {
         println("─── Simulated cURL Request ────────────────────────────────────");
         println("> " + method + " " + url + " HTTP/1.1");
         println("< HTTP/1.1 " + std::to_string(this.statusCode) + " " + this.statusMessage);
@@ -216,22 +216,22 @@ class HttpResponse {
         println("───────────────────────────────────────────────────────────────");
     }
 
-    public toPerfectResponse(): PerfectResponse* {
-        let p: PerfectResponse* = new PerfectResponse();
+    public PerfectResponse* toPerfectResponse() {
+        PerfectResponse* p = new PerfectResponse();
         p->status(this.statusCode);
         p->setHeader("Content-Type", this.contentType);
         p->body = this.body;
         return p;
     }
 
-    public static fromPerfectResponse(p: PerfectResponse*): HttpResponse* {
+    static public HttpResponse* fromPerfectResponse(PerfectResponse* p) {
         return new HttpResponse(p->statusCode, p->statusText, p->getHeader("Content-Type"), p->body);
     }
 }
 
 class ViewEngine {
-    public static renderLayout(title: string, bodyContent: string): string {
-        let html: string = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
+    static public string renderLayout(string title, string bodyContent) {
+        string html = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
         html += "  <meta charset=\"UTF-8\">\n";
         html += "  <title>" + title + "</title>\n";
         html += "  <style>\n";
@@ -247,61 +247,61 @@ class ViewEngine {
 }
 
 class ModelValidationResult {
-    public isValid: bool = true;
-    public errors: Array<string>* = new Array<string>();
+    public bool isValid = true;
+    public Array<string>* errors = new Array<string>();
 
     public constructor() {}
 
-    public addError(err: string): void {
+    public void addError(string err) {
         this.isValid = false;
         this.errors->push(err);
     }
 
-    public getErrorCount(): int {
+    public int getErrorCount() {
         return (int)this.errors->length();
     }
 }
 
 class BaseModel {
-    public id: string;
+    public string id;
 
-    public constructor(id: string) {
+    public constructor(string id) {
         this.id = id;
     }
 
-    public virtual validate(): ModelValidationResult* {
-        let res: ModelValidationResult* = new ModelValidationResult();
+    public virtual ModelValidationResult* validate() {
+        ModelValidationResult* res = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
         return res;
     }
 
-    public virtual toJsonValue(): JsonValue* {
-        let doc: JsonValue* = JsonDoc::obj();
+    public virtual JsonValue* toJsonValue() {
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         return doc;
     }
 
-    public virtual toJson(): string {
-        let obj: JsonValue* = Json::obj();
+    public virtual string toJson() {
+        JsonValue* obj = Json::obj();
         Json::setString(obj, "id", this.id);
         return Json::stringify(obj);
     }
 }
 
 class LightingRouteEntry {
-    public method: string;
-    public pattern: string;
-    public handlerId: string;
+    public string method;
+    public string pattern;
+    public string handlerId;
 
-    public constructor(m: string, p: string, h: string) {
+    public constructor(string m, string p, string h) {
         this.method = m;
         this.pattern = p;
         this.handlerId = h;
     }
 
-    public match(reqMethod: string, reqPath: string, req: HttpRequest*): bool {
+    public bool match(string reqMethod, string reqPath, HttpRequest* req) {
         if (this.method !== reqMethod) {
             return false;
         }
@@ -311,9 +311,9 @@ class LightingRouteEntry {
         }
 
         if (this.pattern.find("/:id") != -1) {
-            let prefix: string = this.pattern.substr(0, (int)this.pattern.find("/:id"));
+            string prefix = this.pattern.substr(0, (int)this.pattern.find("/:id"));
             if (reqPath.find(prefix) == 0 && reqPath.length() > prefix.length() + 1) {
-                let idVal: string = reqPath.substr((int)prefix.length() + 1, (int)reqPath.length() - (int)prefix.length() - 1);
+                string idVal = reqPath.substr((int)prefix.length() + 1, (int)reqPath.length() - (int)prefix.length() - 1);
                 if (idVal.find("/") == -1) {
                     req->addPathParam("id", idVal);
                     return true;
@@ -326,34 +326,34 @@ class LightingRouteEntry {
 }
 
 class LightingRouter {
-    public routes: Array<LightingRouteEntry*>* = new Array<LightingRouteEntry*>();
+    public Array<LightingRouteEntry*>* routes = new Array<LightingRouteEntry*>();
 
     public constructor() {}
 
-    public addRoute(method: string, pattern: string, handlerId: string): void {
+    public void addRoute(string method, string pattern, string handlerId) {
         this.routes->push(new LightingRouteEntry(method, pattern, handlerId));
     }
 
-    public get(pattern: string, handlerId: string): void {
+    public void get(string pattern, string handlerId) {
         this.addRoute("GET", pattern, handlerId);
     }
 
-    public post(pattern: string, handlerId: string): void {
+    public void post(string pattern, string handlerId) {
         this.addRoute("POST", pattern, handlerId);
     }
 
-    public put(pattern: string, handlerId: string): void {
+    public void put(string pattern, string handlerId) {
         this.addRoute("PUT", pattern, handlerId);
     }
 
-    public del(pattern: string, handlerId: string): void {
+    public void del(string pattern, string handlerId) {
         this.addRoute("DELETE", pattern, handlerId);
     }
 
-    public findRoute(req: HttpRequest*): LightingRouteEntry* {
-        let count: int = (int)this.routes->length();
-        for (let i: int = 0; i < count; i++) {
-            let r: LightingRouteEntry* = this.routes->get(i);
+    public LightingRouteEntry* findRoute(HttpRequest* req) {
+        int count = (int)this.routes->length();
+        for (int i = 0; i < count; i++) {
+            LightingRouteEntry* r = this.routes->get(i);
             if (r->match(req->method, req->path, req)) {
                 return r;
             }
@@ -361,71 +361,71 @@ class LightingRouter {
         return nullptr;
     }
 
-    public getRouteCount(): int {
+    public int getRouteCount() {
         return (int)this.routes->length();
     }
 }
 
 class MiddlewareResult {
-    public proceed: bool;
-    public errorResponse: HttpResponse*;
+    public bool proceed;
+    public HttpResponse* errorResponse;
 
-    public constructor(proceed: bool, err: HttpResponse*) {
+    public constructor(bool proceed, HttpResponse* err) {
         this.proceed = proceed;
         this.errorResponse = err;
     }
 }
 
 class LightingMiddleware {
-    public static runLogger(req: HttpRequest*): void {
+    static public void runLogger(HttpRequest* req) {
         print("[Lighting MVC Logger] ");
         print(req->method);
         print(" ");
         println(req->path);
     }
 
-    public static runAuth(req: HttpRequest*): MiddlewareResult* {
+    static public MiddlewareResult* runAuth(HttpRequest* req) {
         if (req->path.find("/admin") != -1) {
-            let authHeader: string = req->getParam("auth");
+            string authHeader = req->getParam("auth");
             if (authHeader !== "admin-token") {
-                let doc: JsonValue* = JsonDoc::obj();
+                JsonValue* doc = JsonDoc::obj();
                 JsonDoc::setStr(doc, "error", "Unauthorized access");
                 JsonDoc::setNum(doc, "statusCode", 401);
-                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", JsonDoc::stringify(doc));
+                HttpResponse* errResp = new HttpResponse(401, "Unauthorized", "application/json", JsonDoc::stringify(doc));
                 return new MiddlewareResult(false, errResp);
             }
         }
         return new MiddlewareResult(true, nullptr);
     }
 
-    public static applyCors(res: HttpResponse*): void {
+    static public void applyCors(HttpResponse* res) {
     }
 }
 
 class BaseController {
     public constructor() {}
 
-    public html(body: string): HttpResponse* {
+    public HttpResponse* html(string body) {
         return HttpResponse::html(body);
     }
 
-    public json(val: JsonValue*): HttpResponse* {
+    public HttpResponse* json(JsonValue* val) {
         return HttpResponse::json(val);
     }
 
-    public json(str: string): HttpResponse* {
+    public HttpResponse* json(string str) {
         return HttpResponse::json(str);
     }
 
-    public badRequest(message: string): HttpResponse* {
+    public HttpResponse* badRequest(string message) {
         return HttpResponse::badRequest(message);
     }
 
-    public notFound(message: string): HttpResponse* {
+    public HttpResponse* notFound(string message) {
         return HttpResponse::notFound(message);
     }
 
-    public redirect(url: string): HttpResponse* {
+    public HttpResponse* redirect(string url) {
         return HttpResponse::redirect(url);
     }
 }

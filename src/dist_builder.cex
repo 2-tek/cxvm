@@ -10,13 +10,13 @@ import "./models/version_model.cex";
 import "./models/artifact_model.cex";
 
 class DistBuilder {
-    public platforms: Array<PlatformModel*>*;
-    public versions: Array<VersionModel*>*;
-    public artifacts: Array<ArtifactModel*>*;
-    public downloadsDir: string;
-    public totalBuilds: int;
+    public Array<PlatformModel*>* platforms;
+    public Array<VersionModel*>* versions;
+    public Array<ArtifactModel*>* artifacts;
+    public string downloadsDir;
+    public int totalBuilds;
 
-    public constructor(downloadsDir: string) {
+    public constructor(string downloadsDir) {
         this.downloadsDir = downloadsDir;
         this.platforms = new Array<PlatformModel*>();
         this.versions = new Array<VersionModel*>();
@@ -28,7 +28,7 @@ class DistBuilder {
         this.refreshArtifacts();
     }
 
-    private initPlatforms(): void {
+    private void initPlatforms() {
         this.platforms->push(new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8 (Native Direct Compiler)", "tar.gz", "Linux x86_64 (Intel/AMD)"));
         this.platforms->push(new PlatformModel("linux-aarch64", "linux", "aarch64", "aarch64-unknown-linux-gnu", "CexP v8 (Native Direct Compiler)", "tar.gz", "Linux ARM64 (aarch64)"));
         this.platforms->push(new PlatformModel("darwin-arm64", "darwin", "arm64", "aarch64-apple-darwin", "CexP v8 (Native Direct Compiler)", "tar.gz", "macOS Apple Silicon (M1-M4)"));
@@ -37,7 +37,7 @@ class DistBuilder {
         this.platforms->push(new PlatformModel("windows-arm64", "windows", "arm64", "aarch64-pc-windows-msvc", "CexP v8 (Native Direct Compiler)", "zip", "Windows ARM64"));
     }
 
-    private initVersions(): void {
+    private void initVersions() {
         this.versions->push(new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & CexP v8 Pure Engine", "CexR v8 Native .cex_boxes Dist Loader Runtime & CexP v8 Direct Machine Compiler (Default)", true));
         this.versions->push(new VersionModel("6.0.0", "LTS", "2026-10-07", "CexR v6 & CexP v6 Pure Engine", "CexR v6 High-Performance Native Server Engine & Direct Machine Compiler", false));
         this.versions->push(new VersionModel("5.0.0", "LTS", "2026-10-07", "CexR v5 & CexP v5 Pure Engine", "CexR v5 Native Server Engine & Direct Machine Compiler", false));
@@ -46,21 +46,21 @@ class DistBuilder {
         this.versions->push(new VersionModel("1.0.0", "LEGACY", "2026-08-01", "CexR v1 & CexP v1 Pure Engine", "CexR v1 Native Machine Runtime & Standard Libraries", false));
     }
 
-    public refreshArtifacts(): void {
+    public void refreshArtifacts() {
         this.artifacts = new Array<ArtifactModel*>();
 
-        let vCount: int = (int)this.versions->length();
-        let pCount: int = (int)this.platforms->length();
+        int vCount = (int)this.versions->length();
+        int pCount = (int)this.platforms->length();
 
-        for (let v: int = 0; v < vCount; v++) {
-            let ver: VersionModel* = this.versions->get(v);
-            for (let p: int = 0; p < pCount; p++) {
-                let plat: PlatformModel* = this.platforms->get(p);
-                let fname: string = "cex-v" + ver->version + "-" + plat->id + "." + plat->archiveFormat;
-                let url: string = "/downloads/" + fname;
-                let filePath: string = this.downloadsDir + "/" + fname;
-                let size: int = 2850;
-                let hash: string = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+        for (int v = 0; v < vCount; v++) {
+            VersionModel* ver = this.versions->get(v);
+            for (int p = 0; p < pCount; p++) {
+                PlatformModel* plat = this.platforms->get(p);
+                string fname = "cex-v" + ver->version + "-" + plat->id + "." + plat->archiveFormat;
+                string url = "/downloads/" + fname;
+                string filePath = this.downloadsDir + "/" + fname;
+                int size = 2850;
+                string hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
                 if (StdFilesystem::exists(filePath)) {
                     size = 2850;
@@ -73,42 +73,42 @@ class DistBuilder {
         this.totalBuilds = (int)this.artifacts->length();
     }
 
-    public buildAll(): int {
-        let scriptPath: string = StdFilesystem::exists("cxvm/scripts/generate_distributions.sh") ? "cxvm/scripts/generate_distributions.sh" : "scripts/generate_distributions.sh";
+    public int buildAll() {
+        string scriptPath = StdFilesystem::exists("cxvm/scripts/generate_distributions.sh") ? "cxvm/scripts/generate_distributions.sh" : "scripts/generate_distributions.sh";
         if (StdFilesystem::exists(scriptPath)) {
-            let cmd: string = "bash " + scriptPath + " " + this.downloadsDir;
+            string cmd = "bash " + scriptPath + " " + this.downloadsDir;
             child_process.execSync(cmd);
         }
         this.refreshArtifacts();
         return (int)this.artifacts->length();
     }
 
-    public getManifestDoc(): JsonValue* {
-        let manifestPath: string = this.downloadsDir + "/manifest.json";
+    public JsonValue* getManifestDoc() {
+        string manifestPath = this.downloadsDir + "/manifest.json";
         if (StdFilesystem::exists(manifestPath)) {
-            let str: string = StdFilesystem::read_text(manifestPath);
+            string str = StdFilesystem::read_text(manifestPath);
             return JsonDoc::parse(str);
         }
 
-        let doc: JsonValue* = JsonDoc::obj();
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "status", "pending");
         return doc;
     }
 
-    public getManifestJson(): string {
-        let manifestPath: string = this.downloadsDir + "/manifest.json";
+    public string getManifestJson() {
+        string manifestPath = this.downloadsDir + "/manifest.json";
         if (StdFilesystem::exists(manifestPath)) {
-            let str: string = StdFilesystem::read_text(manifestPath);
+            string str = StdFilesystem::read_text(manifestPath);
             return str;
         }
 
         return JsonDoc::stringifyIndent(this.getManifestDoc(), 2);
     }
 
-    public getArtifactByFilename(fname: string): ArtifactModel* {
-        let count: int = (int)this.artifacts->length();
-        for (let i: int = 0; i < count; i++) {
-            let art: ArtifactModel* = this.artifacts->get(i);
+    public ArtifactModel* getArtifactByFilename(string fname) {
+        int count = (int)this.artifacts->length();
+        for (int i = 0; i < count; i++) {
+            ArtifactModel* art = this.artifacts->get(i);
             if (art->filename === fname) {
                 return art;
             }
