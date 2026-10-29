@@ -111,6 +111,52 @@ class CxvmEngine {
         return false;
     }
 
+    public resolveRootBuildPath(): string {
+        let envRootPath: char* = getenv("ROOT_PATH");
+        if (envRootPath != nullptr && string(envRootPath).length() > 0) return string(envRootPath);
+        let envBuild: char* = getenv("ROOT_BUILD_PATH");
+        if (envBuild != nullptr && string(envBuild).length() > 0) return string(envBuild);
+        let envCexBuild: char* = getenv("CEX_BUILD_PATH");
+        if (envCexBuild != nullptr && string(envCexBuild).length() > 0) return string(envCexBuild);
+        let envCexDir: char* = getenv("CEX_DIR");
+        if (envCexDir != nullptr && string(envCexDir).length() > 0) return string(envCexDir);
+        let envCxvmDir: char* = getenv("CXVM_DIR");
+        if (envCxvmDir != nullptr && string(envCxvmDir).length() > 0) return string(envCxvmDir);
+        return this.cxvmHome;
+    }
+
+    public resolveBinary(toolName: string): string {
+        let envKey: string = toolName + "_BIN";
+        for (let i: int = 0; i < (int)envKey.length(); i++) {
+            let cVal: int = (int)envKey[i];
+            if (cVal >= 97 && cVal <= 122) {
+                envKey[i] = (char)(cVal - 32);
+            } else if (cVal == 45) {
+                envKey[i] = (char)95;
+            }
+        }
+        let envBin: char* = getenv(envKey.c_str());
+        if (envBin != nullptr && string(envBin).length() > 0 && fs.exists(string(envBin))) {
+            return string(envBin);
+        }
+        let envBinDirect: char* = getenv(toolName.c_str());
+        if (envBinDirect != nullptr && string(envBinDirect).length() > 0 && fs.exists(string(envBinDirect))) {
+            return string(envBinDirect);
+        }
+        let rootPath: string = this.resolveRootBuildPath();
+        if (rootPath.length() > 0 && fs.exists(rootPath + "/" + toolName + "/bin")) {
+            return rootPath + "/" + toolName + "/bin";
+        }
+        let curPwd: string = child_process.execSync("pwd | tr -d '\\n'");
+        if (fs.exists(curPwd + "/.bin")) {
+            return curPwd + "/.bin";
+        }
+        if (fs.exists(this.cxvmHome + "/bin/" + toolName)) {
+            return this.cxvmHome + "/bin/" + toolName;
+        }
+        return toolName;
+    }
+
     public getArchiveFilename(version: string, platformId: string): string {
         let ext: string = "tar.gz";
         if (platformId.find("windows") != -1) {
@@ -178,11 +224,12 @@ class CxvmEngine {
         let shortVer: string = (int)version.length() > 0 ? "v" + version.substr(0, 1) : "v8";
         let outMsg: string = "==> Installing Cex v" + version + " (" + shortVer + " - Pure Cex Native Engine)..\n";
         outMsg += "--> Verified checksum: PASSED [OK]\n";
-        outMsg += "--> Deployed into " + this.cxvmHome + "/dist/cexp-" + shortVer + "/" + version + "/bin & " + this.cxvmHome + "/dist/cexr-factory/1.0.26/bin\n";
+        let rootBuild: string = this.resolveRootBuildPath();
+        outMsg += "--> Deployed into " + rootBuild + "/cexp-" + shortVer + "/" + version + "/bin & " + rootBuild + "/cexr-factory/1.0.26/bin\n";
         outMsg += "  [OK] [auto-install] cexr v" + version + " runtime engine installed\n";
         outMsg += "  [OK] [auto-install] cexp v" + version + " (" + shortVer + ") machine compiler installed\n";
-        outMsg += "  [OK] [auto-install] cex-lint v1.0.8 integrated into ./dist/cex-lint/1.0.8/bin\n";
-        outMsg += "  [OK] [auto-install] cext v1.0.14 integrated into ./dist/cext/1.0.14/bin\n";
+        outMsg += "  [OK] [auto-install] cex-lint v1.0.8 integrated into " + rootBuild + "/cex-lint/1.0.8/bin\n";
+        outMsg += "  [OK] [auto-install] cext v1.0.14 integrated into " + rootBuild + "/cext/1.0.14/bin\n";
         outMsg += "  [OK] [auto-install] cvm CodeVersionManager engine installed\n";
         outMsg += "  [OK] [auto-install] thunder Container Engine & Virtual Microkernel installed\n";
         outMsg += "  [OK] [auto-install] lighting Lighting Fullstack MVC Engine (as light) installed\n";
@@ -310,8 +357,8 @@ class CxvmEngine {
         out += "  [edition]         cexr-drawer  : CexR [drawer] standalone (version " + ver + ", cexp ^8) - target: jit support, but only cex-virtual-dom, cex-dom support, best for client\n";
         out += "  [compiler]        cexp         : Cex Engine (cexp-v8-stable) version " + ver + "\n";
         out += "  [pack-manager]    cex-pack     : cex-pack v1.0.5 (2-TEK Package & Dependency Manager for CexR v8)\n";
-        out += "  [linter]          cex-lint     : CexLint v1.0.8 (./dist/cex-lint/1.0.8/bin)\n";
-        out += "  [test-runner]     cext         : CexTest v1.0.14 (./dist/cext/1.0.14/bin)";
+        out += "  [linter]          cex-lint     : CexLint v1.0.8 (" + this.resolveBinary("cex-lint") + ")\n";
+        out += "  [test-runner]     cext         : CexTest v1.0.14 (" + this.resolveBinary("cext") + ")";
         return out;
     }
 
@@ -327,8 +374,8 @@ class CxvmEngine {
         out += "  CexR Default Build: cexr-" + this.defaultBuildEdition + " (" + this.defaultBuildEdition + " edition - one-time compile & max performance [READY])\n";
         out += "  CexR Setup:        Cross-Platform Native Runtime Ready [OK]\n";
         out += "  CexP Compiler:     cexp-v8-stable (Direct Machine Code & ELF Emitter [READY])\n";
-        out += "  CexLint Binary:    ./dist/cex-lint/1.0.8/bin [READY]\n";
-        out += "  CexTest Binary:    ./dist/cext/1.0.14/bin [READY]\n";
+        out += "  CexLint Binary:    " + this.resolveBinary("cex-lint") + " [READY]\n";
+        out += "  CexTest Binary:    " + this.resolveBinary("cext") + " [READY]\n";
         out += "  Toolchain Model:   Pure Cex Native Engine (cexr + cexp; zero C++ dependency)\n";
         out += "  CVM VCS Engine:    INTEGRATED [Git object store, commit graph, DAG merges, .cvm patches]\n";
         out += "  CVM Commands:      init, commit, push, pull, status, add, branch, checkout, log, diff [READY]\n";
@@ -396,7 +443,8 @@ class CxvmEngine {
                 }
             }
         }
-        let candDir: string = "dist/" + libName;
+        let rootBuild: string = this.resolveRootBuildPath();
+        let candDir: string = rootBuild + "/" + libName;
         if (fs.exists(candDir + "/bin")) {
             let linkTarget: string = child_process.execSync("readlink \"" + candDir + "/bin\" 2>/dev/null | tr -d '\\n'");
             if (linkTarget.length() > 0) {
@@ -571,12 +619,14 @@ class CxvmEngine {
                 // Search for candidate real directory to copy into cex_boxes (RULE_NO_SYMLINK_BETWEEN_BOXES)
                 let candPackageDir: string = "";
                 let candPaths: Array<string>* = new Array<string>();
+                let rootBuildPath: string = this.resolveRootBuildPath();
+                candPaths->push(curPwd + "/cex_boxes/" + lib);
                 candPaths->push(curPwd + "/../cex/cex_boxes/" + lib);
-                candPaths->push(curPwd + "/../cex/cxvm/cex_boxes/" + lib);
+                candPaths->push(curPwd + "/../cxvm/cex_boxes/" + lib);
                 candPaths->push(curPwd + "/../dependencies/" + lib);
-                candPaths->push(home + "/Projects/cex/cex_boxes/" + lib);
-                candPaths->push(home + "/Projects/cex/cxvm/cex_boxes/" + lib);
-                candPaths->push(home + "/Projects/dependencies/" + lib);
+                if (rootBuildPath.length() > 0) {
+                    candPaths->push(rootBuildPath + "/cex_boxes/" + lib);
+                }
                 candPaths->push(home + "/.cxvm/cex_boxes/" + lib);
                 candPaths->push(home + "/.cex/cex_boxes/" + lib);
                 if (modelsDir.length() > 0) {
@@ -585,20 +635,16 @@ class CxvmEngine {
                 if (lib == "cext") {
                     candPaths->push(curPwd + "/cex_boxes/cex-test");
                     candPaths->push(curPwd + "/../cex/cex_boxes/cex-test");
-                    candPaths->push(home + "/Projects/cex/cex_boxes/cex-test");
                 }
                 if (lib == "cex-test") {
                     candPaths->push(curPwd + "/cex_boxes/cext");
                     candPaths->push(curPwd + "/../cex/cex_boxes/cext");
-                    candPaths->push(home + "/Projects/cex/cex_boxes/cext");
                 }
                 if (lib == "cex-builder" || lib == "builder") {
                     candPaths->push(curPwd + "/cex_boxes/cex-builder");
                     candPaths->push(curPwd + "/cex_boxes/builder");
                     candPaths->push(curPwd + "/../cex/cex_boxes/cex-builder");
                     candPaths->push(curPwd + "/../cex/cex_boxes/builder");
-                    candPaths->push(home + "/Projects/cex/cex_boxes/cex-builder");
-                    candPaths->push(home + "/Projects/cex/cex_boxes/builder");
                 }
 
                 for (let cIdx: int = 0; cIdx < (int)candPaths->length(); cIdx++) {
@@ -647,29 +693,25 @@ class CxvmEngine {
                 if (binSrc.length() == 0 && candPackageDir.length() > 0 && fs.exists(candPackageDir + "/bin/" + lib)) {
                     binSrc = candPackageDir + "/bin/" + lib;
                 }
-                if (binSrc.length() == 0 && fs.exists(curPwd + "/dist/" + lib + "/" + ver + "/bin")) {
-                    binSrc = curPwd + "/dist/" + lib + "/" + ver + "/bin";
+                if (binSrc.length() == 0 && rootBuildPath.length() > 0 && fs.exists(rootBuildPath + "/" + lib + "-" + ver + "/bin")) {
+                    binSrc = rootBuildPath + "/" + lib + "-" + ver + "/bin";
                 }
-                if (binSrc.length() == 0 && fs.exists(curPwd + "/cxvm/dist/" + lib + "/" + ver + "/bin")) {
-                    binSrc = curPwd + "/cxvm/dist/" + lib + "/" + ver + "/bin";
+                if (binSrc.length() == 0 && rootBuildPath.length() > 0 && fs.exists(rootBuildPath + "/" + lib + "/" + ver + "/bin")) {
+                    binSrc = rootBuildPath + "/" + lib + "/" + ver + "/bin";
                 }
                 if (binSrc.length() == 0 && (lib == "cexp-v8" || lib == "cexp-v8-stable")) {
-                    if (fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin")) {
-                        binSrc = curPwd + "/dist/cexp-v8-stable/8.0.0/bin";
-                    }
-                    if (binSrc.length() == 0 && fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin")) {
-                        binSrc = curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin";
-                    }
-                    if (binSrc.length() == 0 && fs.exists(this.cxvmHome + "/bin/cexp-v8-stable")) {
+                    let envCexp: char* = getenv("CEXP_BIN");
+                    if (envCexp != nullptr && string(envCexp).length() > 0 && fs.exists(string(envCexp))) {
+                        binSrc = string(envCexp);
+                    } else if (rootBuildPath.length() > 0 && fs.exists(rootBuildPath + "/cexp-v8-stable/8.0.0/bin")) {
+                        binSrc = rootBuildPath + "/cexp-v8-stable/8.0.0/bin";
+                    } else if (fs.exists(this.cxvmHome + "/bin/cexp-v8-stable")) {
                         binSrc = this.cxvmHome + "/bin/cexp-v8-stable";
                     }
                 }
                 if (binSrc.length() == 0 && lib == "cxvm-bean") {
-                    if (fs.exists(curPwd + "/dist/cxvm")) {
-                        binSrc = curPwd + "/dist/cxvm";
-                    }
-                    if (binSrc.length() == 0 && fs.exists(curPwd + "/cxvm/dist/cxvm")) {
-                        binSrc = curPwd + "/cxvm/dist/cxvm";
+                    if (fs.exists(curPwd + "/.bin")) {
+                        binSrc = curPwd + "/.bin";
                     }
                 }
                 if (binSrc.length() == 0 && docsDir.length() > 0 && fs.exists(docsDir + "/bin/" + lib)) {
@@ -744,12 +786,15 @@ class CxvmEngine {
         let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
         let cxvmDir: string = home + "/.cxvm";
 
+        let rootPath: string = this.resolveRootBuildPath();
         let candidates: Array<string>* = new Array<string>();
         candidates->push(curPwd);
         candidates->push(curPwd + "/../documents");
         candidates->push(curPwd + "/documents");
         candidates->push(curPwd + "/../../documents");
-        candidates->push(home + "/Projects/cex/documents");
+        if (rootPath.length() > 0) {
+            candidates->push(rootPath + "/documents");
+        }
         candidates->push(home + "/.cex/documents");
         candidates->push(cxvmDir + "/documents");
         let cCount: int = (int)candidates->length();
@@ -771,12 +816,15 @@ class CxvmEngine {
         let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
         let cxvmDir: string = home + "/.cxvm";
 
+        let rootPath: string = this.resolveRootBuildPath();
         let candidates: Array<string>* = new Array<string>();
         candidates->push(curPwd + "/models");
         candidates->push(curPwd + "/../models");
         candidates->push(curPwd + "/../../models");
         candidates->push(curPwd + "/../cex/models");
-        candidates->push(home + "/Projects/cex/models");
+        if (rootPath.length() > 0) {
+            candidates->push(rootPath + "/models");
+        }
         candidates->push(home + "/.cex/models");
         candidates->push(cxvmDir + "/models");
         let docsDir: string = this.resolveDocumentsDir();
@@ -931,7 +979,8 @@ class CxvmEngine {
         let cxvmDir: string = home + "/.cxvm";
         let cexDir: string = home + "/.cex";
 
-        let javisCanonical: string = cxvmDir + "/dist/javis-runtime/1.1.70/bin";
+        let rootBuildPath: string = this.resolveRootBuildPath();
+        let javisCanonical: string = rootBuildPath + "/javis-runtime/1.1.70/bin";
         let docsDir: string = this.resolveDocumentsDir();
         if (docsDir.length() == 0 && !fs.exists(javisCanonical)) {
             return false;
@@ -990,7 +1039,8 @@ class CxvmEngine {
 
         let home: string = child_process.execSync("printf \"%s\" \"$HOME\"");
         let cxvmDir: string = home + "/.cxvm";
-        let javisCanonical: string = cxvmDir + "/dist/javis-runtime/1.1.70/bin";
+        let rootBuildPath: string = this.resolveRootBuildPath();
+        let javisCanonical: string = rootBuildPath + "/javis-runtime/1.1.70/bin";
 
         let docsDir: string = this.resolveDocumentsDir();
         let javisBin: string = fs.exists(javisCanonical) ? javisCanonical : (docsDir + "/bin/javis");
@@ -1047,7 +1097,7 @@ class CxvmEngine {
             javisSrc = home + "/.cex/models/javis/src/index.cex";
         }
 
-        let rootBuildPath: string = home + "/.cxvm/dist";
+        let rootBuildPath: string = this.resolveRootBuildPath();
         let javisCanonical: string = rootBuildPath + "/javis-runtime/1.1.70/bin";
         let javisBinFound: string = "";
         if (fs.exists(javisCanonical)) {
@@ -1169,21 +1219,18 @@ class CxvmEngine {
             return 1;
         }
 
-        let cexpBin: string = "cexp";
-        let cCandidate: int = fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin") ? 1 :
-            (fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin") ? 2 :
-            (fs.exists(cxvmDir + "/bin/cexp-v8-stable") ? 3 :
-            (fs.exists(cxvmDir + "/bin/cexp") ? 4 :
-            (fs.exists(cexDir + "/bin/8.0.0/cexp") ? 5 :
-            (fs.exists(cexDir + "/bin/cexp") ? 6 : 0)))));
-        switch (cCandidate) {
-            case 1: cexpBin = curPwd + "/dist/cexp-v8-stable/8.0.0/bin"; break;
-            case 2: cexpBin = curPwd + "/dist/cexp-v8/8.0.0/bin"; break;
-            case 3: cexpBin = cxvmDir + "/bin/cexp-v8-stable"; break;
-            case 4: cexpBin = cxvmDir + "/bin/cexp"; break;
-            case 5: cexpBin = cexDir + "/bin/8.0.0/cexp"; break;
-            case 6: cexpBin = cexDir + "/bin/cexp"; break;
-            default: break;
+        let cexpBin: string = this.resolveBinary("cexp");
+        if (cexpBin == "cexp") {
+            let envCexp: char* = getenv("CEXP_BIN");
+            if (envCexp != nullptr && string(envCexp).length() > 0 && fs.exists(string(envCexp))) {
+                cexpBin = string(envCexp);
+            } else if (fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
+                cexpBin = cxvmDir + "/bin/cexp-v8-stable";
+            } else if (fs.exists(cxvmDir + "/bin/cexp")) {
+                cexpBin = cxvmDir + "/bin/cexp";
+            } else if (fs.exists(cexDir + "/bin/8.0.0/cexp")) {
+                cexpBin = cexDir + "/bin/8.0.0/cexp";
+            }
         }
 
         let binPath: string = (outArg.length() > 0) ? outArg : (curPwd + "/.bin");
@@ -1196,11 +1243,6 @@ class CxvmEngine {
             child_process.execSync("CEX_LINT=0 \"" + cexpBin + "\" compile \"" + srcPath + "\" -o \"" + binPath + "\" 2>/dev/null || true");
             this.allowExecutionOnCurrentDevice(binPath);
         } catch (...) {}
-
-        if (!fs.exists(binPath) && fs.exists(curPwd + "/dist/cxvm")) {
-            child_process.execSync("cp -f \"" + curPwd + "/dist/cxvm\" \"" + binPath + "\" 2>/dev/null || true");
-            this.allowExecutionOnCurrentDevice(binPath);
-        }
 
         let pkgName: string = "cxvm";
         let pkgType: string = "bean";
@@ -1233,17 +1275,15 @@ class CxvmEngine {
             }
         }
 
-        let distDefinePath: string = curPwd + "/dist";
-        let distTargetDir: string = distDefinePath + "/" + pkgName + "-" + pkgType + "/" + pkgVer;
-        child_process.execSync("mkdir -p \"" + distTargetDir + "\" \"" + distDefinePath + "\" \"" + cxvmDir + "/bin\" \"" + cexDir + "/bin\" 2>/dev/null || true");
+        let rootBuildPath: string = this.resolveRootBuildPath();
+        let targetBuildDir: string = rootBuildPath + "/" + pkgName + "-" + pkgType + "/" + pkgVer;
+        child_process.execSync("mkdir -p \"" + targetBuildDir + "\" \"" + cxvmDir + "/bin\" \"" + cexDir + "/bin\" 2>/dev/null || true");
 
         if (fs.exists(binPath)) {
-            child_process.execSync("cp -f \"" + binPath + "\" \"" + distDefinePath + "/" + pkgName + "\" 2>/dev/null || true");
-            child_process.execSync("cp -f \"" + binPath + "\" \"" + distTargetDir + "/bin\" 2>/dev/null || true");
+            child_process.execSync("cp -f \"" + binPath + "\" \"" + targetBuildDir + "/bin\" 2>/dev/null || true");
             child_process.execSync("cp -f \"" + binPath + "\" \"" + cxvmDir + "/bin/" + pkgName + "\" 2>/dev/null || true");
             child_process.execSync("cp -f \"" + binPath + "\" \"" + cexDir + "/bin/" + pkgName + "\" 2>/dev/null || true");
-            this.allowExecutionOnCurrentDevice(distDefinePath + "/" + pkgName);
-            this.allowExecutionOnCurrentDevice(distTargetDir + "/bin");
+            this.allowExecutionOnCurrentDevice(targetBuildDir + "/bin");
             this.allowExecutionOnCurrentDevice(cxvmDir + "/bin/" + pkgName);
             this.allowExecutionOnCurrentDevice(cexDir + "/bin/" + pkgName);
 
@@ -1264,7 +1304,7 @@ class CxvmEngine {
 
         println("[OK] [cxvm build] Target integrated binary built into: {rootProjectPath}/.bin (./.bin)");
         println("[OK] [cxvm build] Standalone binary machine executable: " + curPwd + "/.bin");
-        println("[OK] [cxvm build] Distribution targets: " + distTargetDir + "/bin");
+        println("[OK] [cxvm build] Ecosystem setup target: " + targetBuildDir + "/bin");
         println("[OK] [cexr bean (cexr-bean)] Compiled target index (" + srcPath + ") to {rootProjectPath}/.bin (./.bin)");
         return 0;
     }
@@ -1320,7 +1360,7 @@ class CxvmEngine {
         outMsg += "  CXVM Home:           " + this.cxvmHome + "\n";
         outMsg += "  Active Runtime:      v" + targetDef + "\n";
         outMsg += "  Installed Runtimes:  v8.0.0 (Pure Cex Default), v6.0.0 (LTS)\n";
-        outMsg += "  Versioned Binaries:  CEX_DIR/cexp-v8-stable/$version/bin, ./dist/cexp-v8/8.0.0/bin, ./dist/cexp-v6/6.0.2/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin, ./dist/cex-pack-bean/1.0.5/bin, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin\n";
+        outMsg += "  Versioned Binaries:  {rootBuildPath}/$name-$type/$version/bin (loaded dynamically from .env)\n";
         outMsg += "  Default CexR Run:    cexr-factory (factory edition - runtime/dev/start)\n";
         outMsg += "  Default CexR Build:  cexr-bean (bean edition - native build/compile)\n";
         outMsg += "  PATH Entry:          " + this.cxvmHome + "/bin:" + this.cxvmHome + "/current\n";
@@ -1339,7 +1379,7 @@ class CxvmEngine {
         outMsg += depsRes->output + "\n";
         outMsg += "  Status:              SETUP COMPLETE [OK]";
 
-        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, cex_boxes, ./dist/cex-lint/1.0.8/bin, ./dist/cext/1.0.14/bin, and v8/v6 runtimes successfully configured.", outMsg);
+        return new CxvmCommandResult("setup", targetDef, true, "CXVM environment, PATH, cexr-factory default runtime, cexr-bean build edition, cex_boxes, and v8/v6 runtimes successfully configured.", outMsg);
     }
 
     public forceResetupBinaries(): void {
@@ -1349,20 +1389,19 @@ class CxvmEngine {
         let cexDir: string = home + "/.cex";
 
         let cexpCanonicalSrc: string = "";
-        if (fs.exists(curPwd + "/compilers/v8-stable/.bin")) {
+        let envCexp: char* = getenv("CEXP_BIN");
+        if (envCexp != nullptr && string(envCexp).length() > 0 && fs.exists(string(envCexp))) {
+            cexpCanonicalSrc = string(envCexp);
+        }
+        if (cexpCanonicalSrc.length() == 0 && fs.exists(curPwd + "/compilers/v8-stable/.bin")) {
             cexpCanonicalSrc = curPwd + "/compilers/v8-stable/.bin";
         }
         if (cexpCanonicalSrc.length() == 0 && fs.exists(curPwd + "/compilers/v8-stable/bin/v8-stable")) {
             cexpCanonicalSrc = curPwd + "/compilers/v8-stable/bin/v8-stable";
         }
-        if (cexpCanonicalSrc.length() == 0 && fs.exists(curPwd + "/dist/cexp-v8-stable/8.0.0/bin")) {
-            cexpCanonicalSrc = curPwd + "/dist/cexp-v8-stable/8.0.0/bin";
-        }
-        if (cexpCanonicalSrc.length() == 0 && fs.exists(curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin")) {
-            cexpCanonicalSrc = curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin";
-        }
-        if (cexpCanonicalSrc.length() == 0 && fs.exists(home + "/Projects/cex/compilers/v8-cex-compile-cex-to-high-performance-binary/bin/8.0.0-stable/cexp-v8-stable")) {
-            cexpCanonicalSrc = home + "/Projects/cex/compilers/v8-cex-compile-cex-to-high-performance-binary/bin/8.0.0-stable/cexp-v8-stable";
+        let rootBuildPath: string = this.resolveRootBuildPath();
+        if (cexpCanonicalSrc.length() == 0 && rootBuildPath.length() > 0 && fs.exists(rootBuildPath + "/cexp-v8-stable/8.0.0/bin")) {
+            cexpCanonicalSrc = rootBuildPath + "/cexp-v8-stable/8.0.0/bin";
         }
         if (cexpCanonicalSrc.length() == 0 && fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
             cexpCanonicalSrc = cxvmDir + "/bin/cexp-v8-stable";
@@ -1370,14 +1409,12 @@ class CxvmEngine {
         if (cexpCanonicalSrc.length() == 0 && fs.exists(cexDir + "/bin/cexp-v8-stable")) {
             cexpCanonicalSrc = cexDir + "/bin/cexp-v8-stable";
         }
-        if (cexpCanonicalSrc.length() == 0 && fs.exists(curPwd + "/dist/cexp-v8/8.0.0/bin")) {
-            cexpCanonicalSrc = curPwd + "/dist/cexp-v8/8.0.0/bin";
-        }
 
         if (cexpCanonicalSrc.length() > 0 && fs.exists(cexpCanonicalSrc)) {
-            child_process.execSync("mkdir -p \"" + curPwd + "/dist/cexp-v8-stable/8.0.0\" \"" + curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0\" 2>/dev/null || true");
-            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/dist/cexp-v8-stable/8.0.0/bin\" 2>/dev/null || true");
-            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cxvm/dist/cexp-v8-stable/8.0.0/bin\" 2>/dev/null || true");
+            if (rootBuildPath.length() > 0) {
+                child_process.execSync("mkdir -p \"" + rootBuildPath + "/cexp-v8-stable/8.0.0\" 2>/dev/null || true");
+                child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + rootBuildPath + "/cexp-v8-stable/8.0.0/bin\" 2>/dev/null || true");
+            }
             child_process.execSync("mkdir -p \"" + cxvmDir + "/bin/8.0.0\" \"" + cxvmDir + "/versions/v8.0.0/bin\" \"" + cxvmDir + "/versions/8.0.0/bin\" \"" + cxvmDir + "/versions/v/bin\" \"" + cxvmDir + "/current/bin\" \"" + cexDir + "/bin/8.0.0\" 2>/dev/null || true");
             child_process.execSync("ln -sf \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/cexp\" 2>/dev/null || true");
             child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cxvmDir + "/bin/cexp-v8-stable\" 2>/dev/null || true");
@@ -1407,8 +1444,6 @@ class CxvmEngine {
             child_process.execSync("mkdir -p \"" + cexDir + "/bin/cexp-v8/8.0.0\" \"" + cexDir + "/versions\" 2>/dev/null || true");
             child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/bin/cexp-v8/8.0.0/bin\" 2>/dev/null || true");
             child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + cexDir + "/versions/v8\" 2>/dev/null || true");
-            child_process.execSync("mkdir -p \"" + curPwd + "/cxvm/dist/cexp-v8/8.0.0\" 2>/dev/null || true");
-            child_process.execSync("cp -f \"" + cexpCanonicalSrc + "\" \"" + curPwd + "/cxvm/dist/cexp-v8/8.0.0/bin\" 2>/dev/null || true");
 
             let v7Src: string = curPwd + "/compilers/v7-cex-compile-cex-to-test-engine/bin/7.0.0/cexp";
             if (fs.exists(v7Src)) {
@@ -1668,7 +1703,7 @@ class CxvmEngine {
         outMsg += "  [Step 4] Initialize CXVM_DIR:   " + this.virtualLinuxRootfs + " (target platform: linux-x86_64)\n";
         outMsg += "  [Step 5] Extract Bundles:       cex-v8.0.0-linux-x86_64.tar.gz (Default) & cex-v6.0.0-linux-x86_64.tar.gz (LTS)\n";
         outMsg += "  [Step 6] Default Editions:      Runtime = cexr-factory (factory), Build = cexr-bean (bean)\n";
-        outMsg += "  [Step 7] Versioned Binaries:    CEX_DIR/cexp-v8-stable/$version/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin, ./dist/cex-pack-bean/1.0.5/bin\n";
+        outMsg += "  [Step 7] Versioned Binaries:    {rootBuildPath}/$name-$type/$version/bin (loaded dynamically from .env)\n";
         outMsg += "  [Step 8] CexR Editions (cexr -v inside virtual-linux):\n";
         outMsg += this.cexrVersionOutput() + "\n";
         outMsg += "  [Step 9] Virtual-Linux Doctor:  HEALTHY [OK]\n";
@@ -1704,7 +1739,7 @@ class CxvmEngine {
         outMsg += "  [Step 2] Kernel Release:      " + this.linuxDistroKernel + " (Microkernel PID 1 CexInit, x86_64-cex-virt)\n";
         outMsg += "  [Step 3] Rootfs & VFS:         " + this.linuxDistroRootfs + " (overlayfs, procfs, sysfs, cgroup2, tmpfs)\n";
         outMsg += "  [Step 4] Runtime & Compiler:   CexR v8 (factory 1.0.26) + CexP v8 (cexp-v8-stable 8.0.0) machine compiler\n";
-        outMsg += "  [Step 5] Versioned Binaries:   CEX_DIR/cexp-v8-stable/8.0.0/bin, ./dist/cexr-factory/1.0.26/bin, ./dist/cexr-bean/1.0.26/bin\n";
+        outMsg += "  [Step 5] Versioned Binaries:   {rootBuildPath}/$name-$type/$version/bin (loaded dynamically from .env)\n";
         outMsg += "  [Step 6] Distro Shell:         cexsh (/bin/cexsh) & CexView Terminal UI (ready)\n";
         outMsg += "  [Step 7] Diagnostic:           HEALTHY [OK]\n";
         outMsg += "  Status:                        LINUX-DISTRO SETUP COMPLETE [OK]";
@@ -2493,7 +2528,7 @@ class CxvmEngine {
             }
             case 6: {
                 let lintTarget: string = manifestFile.length() == 0 ? "." : manifestFile;
-                println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via registered binary app in ./dist/cex-lint/" + CxvmConstants::cexLintVersion() + "/bin");
+                println("[OK] [cex-lint] Executed 'cex-lint " + subCmd + " " + lintTarget + "' via registered binary app in " + this.resolveBinary("cex-lint"));
                 return 0;
             }
             case 7: {
@@ -2503,14 +2538,14 @@ class CxvmEngine {
                     testTarget = testAct;
                     testAct = "run";
                 }
-                println("[OK] [cext] Executed 'cext " + testAct + " " + testTarget + "' via registered binary app in ./dist/cext/" + CxvmConstants::cextVersion() + "/bin");
+                println("[OK] [cext] Executed 'cext " + testAct + " " + testTarget + "' via registered binary app in " + this.resolveBinary("cext"));
                 return 0;
             }
             case 8: {
                 if (subCmd == "downloads") {
                     println("[OK] [cex-pack] Dependencies downloaded into cex_boxes/ (active runtime v" + this.currentVersion + ")");
-                    println("[OK] [cex-pack] Registered binary app in ./dist/cex-pack/" + this.currentVersion + "/bin");
-                    println("[OK] [cex-pack] Integrated inside ./dist/cex-pack/" + this.currentVersion + "/bin");
+                    println("[OK] [cex-pack] Registered binary app in " + this.resolveBinary("cex-pack"));
+                    println("[OK] [cex-pack] Integrated inside " + this.resolveBinary("cex-pack"));
                     return 0;
                 }
                 if (subCmd == "check" || subCmd == "lint") {
