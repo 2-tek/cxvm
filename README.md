@@ -195,12 +195,12 @@ cxvm use 6.0.0
 | `cxvm status cvm`             | Check single-process standalone CVM server status                    | `cxvm status cvm`                                      |
 | `cxvm stop cvm`               | Stop background standalone CVM server                                | `cxvm stop cvm`                                        |
 
-### Auto-Build to `dist/` Before Push Code:
+### Auto-Build to Environment After Push (`RULE_AUTO_BUILD_ENVIRONMENT_ON_PUSH_CXVM`):
 
-Before pushing code (`cxvm push`, `cvm push`, or native `git push`), `cxvm` automatically triggers a build to `./dist/` (`./dist/$name-$type/$version/bin`, `./dist/cxvm`, `./dist/cxvm.sh`):
+After pushing code (`cvm push origin <branch>` or `cvm push`), `cxvm` automatically triggers a project build to the runtime environment:
 
-- **Git `pre-push` Hook**: Configured and installed by `setup.cex` into `.git/hooks/pre-push` and tracked in `.githooks/pre-push`. Intercepts every direct `git push` to build to `dist/` automatically.
-- **CLI Push Commands**: Integrated into `dist/cxvm.sh`, `dist/cxvm`, `dist/cxvm.ps1`, and `src/cxvm_engine.cex` (`cvmPush()`), ensuring build execution before remote transmission.
+- **Build Target**: Compiles entrypoint to `{rootProjectPath}/.bin` and setups to `{rootPathDir}/$name-$type/$version/bin` per `RULE_BUILD_POSITION`.
+- **Zero Dist Output**: Emitting binaries or bundles into `dist/` is strictly eliminated.
 
 ### Standalone Single-Process CVM Server (`cxvm start cvm`):
 
