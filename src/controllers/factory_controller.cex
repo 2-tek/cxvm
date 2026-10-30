@@ -7,107 +7,85 @@ import "../types.cex";
 import "../models/platform_model.cex";
 import "../models/version_model.cex";
 import "../models/artifact_model.cex";
-import "../dist_builder.cex";
+import "../models/package_catalog.cex";
 import "../cxvm_engine.cex";
-import "../views/factory_views.cex";
 
 class FactoryController : BaseController {
     public constructor() {
         super();
     }
 
-    public HttpResponse* index(HttpRequest* req, int port, Array<VersionModel*>* versions, Array<PlatformModel*>* platforms, Array<ArtifactModel*>* artifacts, string activeVer) {
-        string pageHtml = FactoryViews::renderDashboard(port, versions, platforms, artifacts, activeVer);
-        return this.html(pageHtml);
-    }
-
-    public HttpResponse* downloadsHtml(HttpRequest* req, int port, Array<ArtifactModel*>* artifacts) {
-        string pageHtml = FactoryViews::renderDownloads(port, artifacts);
-        return this.html(pageHtml);
-    }
-
-    public HttpResponse* cxvmDocs(HttpRequest* req, int port) {
-        string pageHtml = FactoryViews::renderCxvmDocs(port);
-        return this.html(pageHtml);
-    }
-
-    public HttpResponse* setupHtml(HttpRequest* req, int port, CxvmEngine* cxvm) {
-        string doctorOut = cxvm->doctor();
-        string pageHtml = FactoryViews::renderSetupWindow(port, cxvm->current(), cxvm->defaultVersion, doctorOut);
-        return this.html(pageHtml);
-    }
-
-    public HttpResponse* apiStatus(HttpRequest* req, int port, DistBuilder* builder, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "ACTIVE");
-        JsonDoc::setStr(doc, "service", "2-TEK Cex Factory");
-        JsonDoc::setStr(doc, "framework", "Lighting MVC");
-        JsonDoc::setNum(doc, "port", port);
-        JsonDoc::setNum(doc, "totalPlatforms", (int)builder->platforms->length());
-        JsonDoc::setNum(doc, "totalVersions", (int)builder->versions->length());
-        JsonDoc::setNum(doc, "totalArtifacts", (int)builder->artifacts->length());
-        JsonDoc::setStr(doc, "currentActiveVersion", cxvm->current());
-        JsonDoc::setStr(doc, "crossPlatformSupport", "Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)");
+    public HttpResponse* apiStatus(HttpRequest* req, int port, PackageCatalog* builder, CxvmEngine* cxvm) {
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "ACTIVE");
+        JsonDocHelper::setStr(doc, "service", "2-TEK Cex Factory");
+        JsonDocHelper::setStr(doc, "framework", "Lighting MVC");
+        JsonDocHelper::setNum(doc, "port", port);
+        JsonDocHelper::setNum(doc, "totalPlatforms", (int)builder->platforms->length());
+        JsonDocHelper::setNum(doc, "totalVersions", (int)builder->versions->length());
+        JsonDocHelper::setNum(doc, "totalArtifacts", (int)builder->artifacts->length());
+        JsonDocHelper::setStr(doc, "currentActiveVersion", cxvm->current());
+        JsonDocHelper::setStr(doc, "crossPlatformSupport", "Linux (x86_64, aarch64), macOS (arm64, x86_64), Windows (x64, arm64)");
         return this.json(doc);
     }
 
     public HttpResponse* apiVersions(HttpRequest* req, Array<VersionModel*>* versions) {
-        int count = (int)versions->length();
-        JsonValue* doc = JsonDoc::obj();
-        JsonValue* arr = JsonDoc::arr();
-        for (int i = 0; i < count; i++) {
-            JsonDoc::pushVal(arr, versions->get(i)->toJsonValue());
+        let count: int = (int)versions->length();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        let arr: JsonValue* = JsonDocHelper::arr();
+        for (let i: int = 0; i < count; i++) {
+            JsonDocHelper::pushVal(arr, versions->get(i)->toJsonValue());
         }
-        JsonDoc::setNum(doc, "total", count);
-        JsonDoc::setVal(doc, "versions", arr);
+        JsonDocHelper::setNum(doc, "total", count);
+        JsonDocHelper::setVal(doc, "versions", arr);
         return this.json(doc);
     }
 
     public HttpResponse* apiPlatforms(HttpRequest* req, Array<PlatformModel*>* platforms) {
-        int count = (int)platforms->length();
-        JsonValue* doc = JsonDoc::obj();
-        JsonValue* arr = JsonDoc::arr();
-        for (int i = 0; i < count; i++) {
-            JsonDoc::pushVal(arr, platforms->get(i)->toJsonValue());
+        let count: int = (int)platforms->length();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        let arr: JsonValue* = JsonDocHelper::arr();
+        for (let i: int = 0; i < count; i++) {
+            JsonDocHelper::pushVal(arr, platforms->get(i)->toJsonValue());
         }
-        JsonDoc::setVal(doc, "platforms", arr);
-        JsonDoc::setNum(doc, "total", count);
+        JsonDocHelper::setVal(doc, "platforms", arr);
+        JsonDocHelper::setNum(doc, "total", count);
         return this.json(doc);
     }
 
     public HttpResponse* apiDownloads(HttpRequest* req, Array<ArtifactModel*>* artifacts) {
-        int count = (int)artifacts->length();
-        JsonValue* doc = JsonDoc::obj();
-        JsonValue* arr = JsonDoc::arr();
-        for (int i = 0; i < count; i++) {
-            JsonDoc::pushVal(arr, artifacts->get(i)->toJsonValue());
+        let count: int = (int)artifacts->length();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        let arr: JsonValue* = JsonDocHelper::arr();
+        for (let i: int = 0; i < count; i++) {
+            JsonDocHelper::pushVal(arr, artifacts->get(i)->toJsonValue());
         }
-        JsonDoc::setVal(doc, "artifacts", arr);
-        JsonDoc::setNum(doc, "total", count);
+        JsonDocHelper::setVal(doc, "artifacts", arr);
+        JsonDocHelper::setNum(doc, "total", count);
         return this.json(doc);
     }
 
-    public HttpResponse* apiManifest(HttpRequest* req, DistBuilder* builder) {
+    public HttpResponse* apiManifest(HttpRequest* req, PackageCatalog* builder) {
         return this.json(builder->getManifestDoc());
     }
 
-    public HttpResponse* apiBuild(HttpRequest* req, DistBuilder* builder) {
-        int count = builder->buildAll();
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "message", "All cross-platform distribution archives generated in Factory/downloads/");
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setNum(doc, "totalPackagesBuilt", count);
+    public HttpResponse* apiBuild(HttpRequest* req, PackageCatalog* builder) {
+        let count: int = builder->buildAll();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "message", "All cross-platform distribution archives generated in Factory/downloads/");
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setNum(doc, "totalPackagesBuilt", count);
         return this.json(doc);
     }
 
     public HttpResponse* serveInstallSh(HttpRequest* req, int port, string downloadsDir) {
-        string filePath = downloadsDir + "/install.sh";
+        let filePath: string = downloadsDir + "/install.sh";
         if (fs.exists(filePath)) {
-            string content = fs.readFile(filePath);
+            let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/x-shellscript");
         }
-        string pStr = std::to_string(port);
-        string script = "#!/usr/bin/env bash\n";
+        let pStr: string = std::to_string(port);
+        let script: string = "#!/usr/bin/env bash\n";
         script += "# 2-TEK Cex Factory: Cross-Platform Quick Installer\n";
         script += "set -e\n";
         script += "CXVM_DIR=\"${CXVM_DIR:-$HOME/.cxvm}\"\n";
@@ -127,13 +105,13 @@ class FactoryController : BaseController {
     }
 
     public HttpResponse* serveInstallPs1(HttpRequest* req, int port, string downloadsDir) {
-        string filePath = downloadsDir + "/install.ps1";
+        let filePath: string = downloadsDir + "/install.ps1";
         if (fs.exists(filePath)) {
-            string content = fs.readFile(filePath);
+            let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/plain");
         }
-        string pStr = std::to_string(port);
-        string script = "# 2-TEK Cex Factory: Windows PowerShell Quick Installer\n";
+        let pStr: string = std::to_string(port);
+        let script: string = "# 2-TEK Cex Factory: Windows PowerShell Quick Installer\n";
         script += "$ErrorActionPreference = \"Stop\"\n";
         script += "$cxvmDir = Join-Path $HOME \".cxvm\"\n";
         script += "$factoryUrl = if ($env:CEX_FACTORY_URL) { $env:CEX_FACTORY_URL } else { \"https://raw.githubusercontent.com/2-tek/cxvm/main\" }\n";
@@ -146,30 +124,30 @@ class FactoryController : BaseController {
     }
 
     public HttpResponse* serveCxvm(HttpRequest* req, string downloadsDir) {
-        string filePath = downloadsDir + "/cxvm";
+        let filePath: string = downloadsDir + "/cxvm";
         if (fs.exists(filePath)) {
-            string content = fs.readFile(filePath);
+            let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/x-shellscript");
         }
-        string script = "#!/usr/bin/env bash\n";
+        let script: string = "#!/usr/bin/env bash\n";
         script += "# cxvm: Cex Version Manager\n";
         script += "echo \"cxvm v8.0.0 (Cex Version Manager)\"\n";
         return HttpResponse::ok(script, "text/x-shellscript");
     }
 
     public HttpResponse* serveCxvmPs1(HttpRequest* req, string downloadsDir) {
-        string filePath = downloadsDir + "/cxvm.ps1";
+        let filePath: string = downloadsDir + "/cxvm.ps1";
         if (fs.exists(filePath)) {
-            string content = fs.readFile(filePath);
+            let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/plain");
         }
         return HttpResponse::notFound("cxvm.ps1 not found");
     }
 
     public HttpResponse* serveCxvmCmd(HttpRequest* req, string downloadsDir) {
-        string filePath = downloadsDir + "/cxvm.cmd";
+        let filePath: string = downloadsDir + "/cxvm.cmd";
         if (fs.exists(filePath)) {
-            string content = fs.readFile(filePath);
+            let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/plain");
         }
         return HttpResponse::notFound("cxvm.cmd not found");
@@ -186,17 +164,17 @@ class FactoryController : BaseController {
     }
 
     public HttpResponse* downloadFile(HttpRequest* req, string downloadsDir) {
-        string filename = req->getParam("id");
+        let filename: string = req->getParam("id");
         if (filename.length() == 0 || filename.find("..") != -1) {
             return HttpResponse::badRequest("Invalid download artifact filename");
         }
-        string fullPath = downloadsDir + "/" + filename;
+        let fullPath: string = downloadsDir + "/" + filename;
         if (!fs.exists(fullPath)) {
             return HttpResponse::notFound("Artifact not found: " + filename);
         }
-        string content = fs.readFile(fullPath);
-        string cType = "application/octet-stream";
-        int typeCode = this.getFileTypeCode(filename);
+        let content: string = fs.readFile(fullPath);
+        let cType: string = "application/octet-stream";
+        let typeCode: int = this.getFileTypeCode(filename);
         switch (typeCode) {
             case 1:
             cType = "application/gzip";
@@ -222,350 +200,350 @@ class FactoryController : BaseController {
     }
 
     public HttpResponse* serveSetupCex(HttpRequest* req, int port, string downloadsDir) {
-        string filePath = downloadsDir + "/setup.cex";
+        let filePath: string = downloadsDir + "/setup.cex";
         if (fs.exists(filePath)) {
-            string content = fs.readFile(filePath);
+            let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/plain");
         }
         if (fs.exists("dist/setup.cex")) {
-            string content = fs.readFile("dist/setup.cex");
+            let content: string = fs.readFile("dist/setup.cex");
             return HttpResponse::ok(content, "text/plain");
         }
         if (fs.exists("setup.cex")) {
-            string content = fs.readFile("setup.cex");
+            let content: string = fs.readFile("setup.cex");
             return HttpResponse::ok(content, "text/plain");
         }
         return HttpResponse::notFound("setup.cex not found");
     }
 
     public HttpResponse* serveSetupSh(HttpRequest* req, int port, string downloadsDir) {
-        string filePath = downloadsDir + "/setup.sh";
+        let filePath: string = downloadsDir + "/setup.sh";
         if (fs.exists(filePath)) {
-            string content = fs.readFile(filePath);
+            let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/x-shellscript");
         }
         if (fs.exists("scripts/setup.sh")) {
-            string content = fs.readFile("scripts/setup.sh");
+            let content: string = fs.readFile("scripts/setup.sh");
             return HttpResponse::ok(content, "text/x-shellscript");
         }
         if (fs.exists("dist/setup.sh")) {
-            string content = fs.readFile("dist/setup.sh");
+            let content: string = fs.readFile("dist/setup.sh");
             return HttpResponse::ok(content, "text/x-shellscript");
         }
         if (fs.exists("setup.sh")) {
-            string content = fs.readFile("setup.sh");
+            let content: string = fs.readFile("setup.sh");
             return HttpResponse::ok(content, "text/x-shellscript");
         }
         return HttpResponse::notFound("setup.sh not found");
     }
 
     public HttpResponse* serveSetupPs1(HttpRequest* req, int port, string downloadsDir) {
-        string filePath = downloadsDir + "/setup.ps1";
+        let filePath: string = downloadsDir + "/setup.ps1";
         if (fs.exists(filePath)) {
-            string content = fs.readFile(filePath);
+            let content: string = fs.readFile(filePath);
             return HttpResponse::ok(content, "text/plain");
         }
         if (fs.exists("scripts/setup.ps1")) {
-            string content = fs.readFile("scripts/setup.ps1");
+            let content: string = fs.readFile("scripts/setup.ps1");
             return HttpResponse::ok(content, "text/plain");
         }
         return HttpResponse::notFound("setup.ps1 not found");
     }
 
     public HttpResponse* apiSetupGet(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "ACTIVE");
-        JsonDoc::setStr(doc, "cxvmHome", cxvm->cxvmHome);
-        JsonDoc::setStr(doc, "currentActive", cxvm->current());
-        JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
-        JsonDoc::setStr(doc, "defaultCexrRuntime", "cexr-factory");
-        JsonDoc::setStr(doc, "defaultCexrBuild", "cexr-bean");
-        JsonDoc::setStr(doc, "cexrVersionCommand", "cexr -v");
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "ACTIVE");
+        JsonDocHelper::setStr(doc, "cxvmHome", cxvm->cxvmHome);
+        JsonDocHelper::setStr(doc, "currentActive", cxvm->current());
+        JsonDocHelper::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
+        JsonDocHelper::setStr(doc, "defaultCexrRuntime", "cexr-factory");
+        JsonDocHelper::setStr(doc, "defaultCexrBuild", "cexr-bean");
+        JsonDocHelper::setStr(doc, "cexrVersionCommand", "cexr -v");
 
-        JsonValue* arr = JsonDoc::arr();
-        int count = (int)cxvm->installedVersions->length();
-        for (int i = 0; i < count; i++) {
-            JsonDoc::pushStr(arr, "v" + cxvm->installedVersions->get(i));
+        let arr: JsonValue* = JsonDocHelper::arr();
+        let count: int = (int)cxvm->installedVersions->length();
+        for (let i: int = 0; i < count; i++) {
+            JsonDocHelper::pushStr(arr, "v" + cxvm->installedVersions->get(i));
         }
-        JsonDoc::setVal(doc, "installedVersions", arr);
+        JsonDocHelper::setVal(doc, "installedVersions", arr);
 
-        JsonValue* disp = JsonDoc::obj();
-        JsonDoc::setStr(disp, "cexr", "./bin/cexr (v8 default: cexr-factory for run, cexr-bean for build)");
-        JsonDoc::setStr(disp, "cex", "./bin/cex");
-        JsonDoc::setStr(disp, "cexrFactory", "./bin/cexr-factory");
-        JsonDoc::setStr(disp, "cexrBean", "./bin/cexr-bean");
-        JsonDoc::setStr(disp, "cexrDelivery", "./bin/cexr-delivery");
-        JsonDoc::setStr(disp, "cexrDrawer", "./bin/cexr-drawer");
-        JsonDoc::setVal(doc, "dispatchers", disp);
+        let disp: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(disp, "cexr", "./bin/cexr (v8 default: cexr-factory for run, cexr-bean for build)");
+        JsonDocHelper::setStr(disp, "cex", "./bin/cex");
+        JsonDocHelper::setStr(disp, "cexrFactory", "./bin/cexr-factory");
+        JsonDocHelper::setStr(disp, "cexrBean", "./bin/cexr-bean");
+        JsonDocHelper::setStr(disp, "cexrDelivery", "./bin/cexr-delivery");
+        JsonDocHelper::setStr(disp, "cexrDrawer", "./bin/cexr-drawer");
+        JsonDocHelper::setVal(doc, "dispatchers", disp);
 
-        JsonDoc::setStr(doc, "toolchain", "Pure Cex Native Engine (zero C++ dependency; powered by cexr + cexp)");
+        JsonDocHelper::setStr(doc, "toolchain", "Pure Cex Native Engine (zero C++ dependency; powered by cexr + cexp)");
         return this.json(doc);
     }
 
     public HttpResponse* apiSetupPost(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->setup("8.0.0");
-        string statStr = res->success ? "SUCCESS" : "ERROR";
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", statStr);
-        JsonDoc::setStr(doc, "message", res->message);
-        JsonDoc::setStr(doc, "activeVersion", cxvm->current());
-        JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
-        JsonDoc::setStr(doc, "defaultCexrRuntime", "cexr-factory");
-        JsonDoc::setStr(doc, "defaultCexrBuild", "cexr-bean");
+        let res: CxvmCommandResult* = cxvm->setup("8.0.0");
+        let statStr: string = res->success ? "SUCCESS" : "ERROR";
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", statStr);
+        JsonDocHelper::setStr(doc, "message", res->message);
+        JsonDocHelper::setStr(doc, "activeVersion", cxvm->current());
+        JsonDocHelper::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
+        JsonDocHelper::setStr(doc, "defaultCexrRuntime", "cexr-factory");
+        JsonDocHelper::setStr(doc, "defaultCexrBuild", "cexr-bean");
         return this.json(doc);
     }
 
     public HttpResponse* apiCvmStatus(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->cvmStatus();
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "branch", res->version);
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->cvmStatus();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "branch", res->version);
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiCvmCommit(HttpRequest* req, CxvmEngine* cxvm) {
-        string msg = req->body.length() > 0 ? req->body : "Commit via CXVM Lighting API";
-        CxvmCommandResult* res = cxvm->cvmCommit(msg, "API User", "api@2tek.local");
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "commitHash", res->version);
-        JsonDoc::setStr(doc, "message", res->message);
+        let msg: string = req->body.length() > 0 ? req->body : "Commit via CXVM Lighting API";
+        let res: CxvmCommandResult* = cxvm->cvmCommit(msg, "API User", "api@2tek.local");
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "commitHash", res->version);
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiCvmPush(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->cvmPush("origin", "main");
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "branch", res->version);
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->cvmPush("origin", "main");
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "branch", res->version);
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiCvmServerStart(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->startCvm(4000, true);
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setStr(doc, "service", "cvm-server");
-        JsonDoc::setStr(doc, "mode", "standalone (single process)");
-        JsonDoc::setNum(doc, "port", cxvm->cvmServerPort);
-        JsonDoc::setNum(doc, "pid", cxvm->cvmServerPid);
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->startCvm(4000, true);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setStr(doc, "service", "cvm-server");
+        JsonDocHelper::setStr(doc, "mode", "standalone (single process)");
+        JsonDocHelper::setNum(doc, "port", cxvm->cvmServerPort);
+        JsonDocHelper::setNum(doc, "pid", cxvm->cvmServerPid);
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiCvmServerStatus(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->statusCvm();
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", cxvm->cvmServerRunning ? "RUNNING" : "STOPPED");
-        JsonDoc::setBool(doc, "isRunning", cxvm->cvmServerRunning);
-        JsonDoc::setNum(doc, "port", cxvm->cvmServerPort);
-        JsonDoc::setNum(doc, "pid", cxvm->cvmServerPid);
-        JsonDoc::setStr(doc, "mode", "standalone (single process)");
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->statusCvm();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", cxvm->cvmServerRunning ? "RUNNING" : "STOPPED");
+        JsonDocHelper::setBool(doc, "isRunning", cxvm->cvmServerRunning);
+        JsonDocHelper::setNum(doc, "port", cxvm->cvmServerPort);
+        JsonDocHelper::setNum(doc, "pid", cxvm->cvmServerPid);
+        JsonDocHelper::setStr(doc, "mode", "standalone (single process)");
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiCvmServerStop(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->stopCvm();
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "STOPPED");
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->stopCvm();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "STOPPED");
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiThunderStatus(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setStr(doc, "health", "HEALTHY");
-        JsonDoc::setStr(doc, "engine", "ThunderEngine");
-        JsonDoc::setNum(doc, "controlPort", cxvm->thunderPort);
-        JsonDoc::setBool(doc, "singleProcess", true);
-        JsonDoc::setNum(doc, "containersRunning", cxvm->thunderContainersRunning);
-        JsonDoc::setNum(doc, "totalImages", cxvm->thunderTotalImages);
-        JsonDoc::setStr(doc, "kernel", "Linux 6.8.0-2tek-microkernel");
-        JsonDoc::setStr(doc, "cgroups", "v2");
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setStr(doc, "health", "HEALTHY");
+        JsonDocHelper::setStr(doc, "engine", "ThunderEngine");
+        JsonDocHelper::setNum(doc, "controlPort", cxvm->thunderPort);
+        JsonDocHelper::setBool(doc, "singleProcess", true);
+        JsonDocHelper::setNum(doc, "containersRunning", cxvm->thunderContainersRunning);
+        JsonDocHelper::setNum(doc, "totalImages", cxvm->thunderTotalImages);
+        JsonDocHelper::setStr(doc, "kernel", "Linux 6.8.0-2tek-microkernel");
+        JsonDocHelper::setStr(doc, "cgroups", "v2");
         return this.json(doc);
     }
 
     public HttpResponse* apiThunderServerStart(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->startThunder(3050, true);
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setStr(doc, "service", "thunder-daemon");
-        JsonDoc::setStr(doc, "mode", "standalone (single process)");
-        JsonDoc::setNum(doc, "port", cxvm->thunderPort);
-        JsonDoc::setNum(doc, "pid", cxvm->thunderPid);
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->startThunder(3050, true);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setStr(doc, "service", "thunder-daemon");
+        JsonDocHelper::setStr(doc, "mode", "standalone (single process)");
+        JsonDocHelper::setNum(doc, "port", cxvm->thunderPort);
+        JsonDocHelper::setNum(doc, "pid", cxvm->thunderPid);
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiThunderServerStatus(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->statusThunder();
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", cxvm->thunderRunning ? "RUNNING" : "STOPPED");
-        JsonDoc::setBool(doc, "isRunning", cxvm->thunderRunning);
-        JsonDoc::setNum(doc, "port", cxvm->thunderPort);
-        JsonDoc::setNum(doc, "pid", cxvm->thunderPid);
-        JsonDoc::setStr(doc, "mode", "standalone (single process)");
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->statusThunder();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", cxvm->thunderRunning ? "RUNNING" : "STOPPED");
+        JsonDocHelper::setBool(doc, "isRunning", cxvm->thunderRunning);
+        JsonDocHelper::setNum(doc, "port", cxvm->thunderPort);
+        JsonDocHelper::setNum(doc, "pid", cxvm->thunderPid);
+        JsonDocHelper::setStr(doc, "mode", "standalone (single process)");
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiThunderServerStop(HttpRequest* req, CxvmEngine* cxvm) {
-        CxvmCommandResult* res = cxvm->stopThunder();
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "STOPPED");
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->stopThunder();
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "STOPPED");
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiThunderContainers(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setNum(doc, "total", cxvm->thunderContainersRunning);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setNum(doc, "total", cxvm->thunderContainersRunning);
 
-        JsonValue* arr = JsonDoc::arr();
+        let arr: JsonValue* = JsonDocHelper::arr();
 
-        JsonValue* c1 = JsonDoc::obj();
-        JsonDoc::setStr(c1, "id", "cxt-1a8f9");
-        JsonDoc::setStr(c1, "name", "thunder-daemon");
-        JsonDoc::setStr(c1, "image", "@2tek/thunder:latest");
-        JsonDoc::setNum(c1, "hostPort", 3050);
-        JsonDoc::setStr(c1, "status", "RUNNING");
-        JsonDoc::pushVal(arr, c1);
+        let c1: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(c1, "id", "cxt-1a8f9");
+        JsonDocHelper::setStr(c1, "name", "thunder-daemon");
+        JsonDocHelper::setStr(c1, "image", "@2tek/thunder:latest");
+        JsonDocHelper::setNum(c1, "hostPort", 3050);
+        JsonDocHelper::setStr(c1, "status", "RUNNING");
+        JsonDocHelper::pushVal(arr, c1);
 
-        JsonValue* c2 = JsonDoc::obj();
-        JsonDoc::setStr(c2, "id", "cxt-2a8f9");
-        JsonDoc::setStr(c2, "name", "cvm-server");
-        JsonDoc::setStr(c2, "image", "@2tek/cvm:latest");
-        JsonDoc::setNum(c2, "hostPort", 4000);
-        JsonDoc::setStr(c2, "status", "RUNNING");
-        JsonDoc::pushVal(arr, c2);
+        let c2: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(c2, "id", "cxt-2a8f9");
+        JsonDocHelper::setStr(c2, "name", "cvm-server");
+        JsonDocHelper::setStr(c2, "image", "@2tek/cvm:latest");
+        JsonDocHelper::setNum(c2, "hostPort", 4000);
+        JsonDocHelper::setStr(c2, "status", "RUNNING");
+        JsonDocHelper::pushVal(arr, c2);
 
-        JsonValue* c3 = JsonDoc::obj();
-        JsonDoc::setStr(c3, "id", "cxt-3a8f9");
-        JsonDoc::setStr(c3, "name", "cxvm-factory");
-        JsonDoc::setStr(c3, "image", "@2tek/cxvm:latest");
-        JsonDoc::setNum(c3, "hostPort", 3080);
-        JsonDoc::setStr(c3, "status", "RUNNING");
-        JsonDoc::pushVal(arr, c3);
+        let c3: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(c3, "id", "cxt-3a8f9");
+        JsonDocHelper::setStr(c3, "name", "cxvm-factory");
+        JsonDocHelper::setStr(c3, "image", "@2tek/cxvm:latest");
+        JsonDocHelper::setNum(c3, "hostPort", 3080);
+        JsonDocHelper::setStr(c3, "status", "RUNNING");
+        JsonDocHelper::pushVal(arr, c3);
 
-        JsonValue* c4 = JsonDoc::obj();
-        JsonDoc::setStr(c4, "id", "cxt-4a8f9");
-        JsonDoc::setStr(c4, "name", "lighting-mvc");
-        JsonDoc::setStr(c4, "image", "@2tek/lighting:latest");
-        JsonDoc::setNum(c4, "hostPort", 3060);
-        JsonDoc::setStr(c4, "status", "RUNNING");
-        JsonDoc::pushVal(arr, c4);
+        let c4: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(c4, "id", "cxt-4a8f9");
+        JsonDocHelper::setStr(c4, "name", "lighting-mvc");
+        JsonDocHelper::setStr(c4, "image", "@2tek/lighting:latest");
+        JsonDocHelper::setNum(c4, "hostPort", 3060);
+        JsonDocHelper::setStr(c4, "status", "RUNNING");
+        JsonDocHelper::pushVal(arr, c4);
 
-        JsonValue* c5 = JsonDoc::obj();
-        JsonDoc::setStr(c5, "id", "cxt-5a8f9");
-        JsonDoc::setStr(c5, "name", "codestorm-editor");
-        JsonDoc::setStr(c5, "image", "@2tek/code-storm:latest");
-        JsonDoc::setNum(c5, "hostPort", 3055);
-        JsonDoc::setStr(c5, "status", "RUNNING");
-        JsonDoc::pushVal(arr, c5);
+        let c5: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(c5, "id", "cxt-5a8f9");
+        JsonDocHelper::setStr(c5, "name", "codestorm-editor");
+        JsonDocHelper::setStr(c5, "image", "@2tek/code-storm:latest");
+        JsonDocHelper::setNum(c5, "hostPort", 3055);
+        JsonDocHelper::setStr(c5, "status", "RUNNING");
+        JsonDocHelper::pushVal(arr, c5);
 
-        JsonDoc::setVal(doc, "containers", arr);
+        JsonDocHelper::setVal(doc, "containers", arr);
         return this.json(doc);
     }
 
     public HttpResponse* apiThunderImages(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setNum(doc, "total", cxvm->thunderTotalImages);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setNum(doc, "total", cxvm->thunderTotalImages);
 
-        JsonValue* arr = JsonDoc::arr();
+        let arr: JsonValue* = JsonDocHelper::arr();
 
-        JsonValue* im1 = JsonDoc::obj();
-        JsonDoc::setStr(im1, "tag", "@2tek/thunder:latest");
-        JsonDoc::setStr(im1, "id", "sha256:7f92a10");
-        JsonDoc::setDouble(im1, "sizeMb", 42.5);
-        JsonDoc::pushVal(arr, im1);
+        let im1: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(im1, "tag", "@2tek/thunder:latest");
+        JsonDocHelper::setStr(im1, "id", "sha256:7f92a10");
+        JsonDocHelper::setDouble(im1, "sizeMb", 42.5);
+        JsonDocHelper::pushVal(arr, im1);
 
-        JsonValue* im2 = JsonDoc::obj();
-        JsonDoc::setStr(im2, "tag", "@2tek/cvm:latest");
-        JsonDoc::setStr(im2, "id", "sha256:8b41c30");
-        JsonDoc::setDouble(im2, "sizeMb", 38.2);
-        JsonDoc::pushVal(arr, im2);
+        let im2: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(im2, "tag", "@2tek/cvm:latest");
+        JsonDocHelper::setStr(im2, "id", "sha256:8b41c30");
+        JsonDocHelper::setDouble(im2, "sizeMb", 38.2);
+        JsonDocHelper::pushVal(arr, im2);
 
-        JsonValue* im3 = JsonDoc::obj();
-        JsonDoc::setStr(im3, "tag", "@2tek/cxvm:latest");
-        JsonDoc::setStr(im3, "id", "sha256:5d12e84");
-        JsonDoc::setDouble(im3, "sizeMb", 34.0);
-        JsonDoc::pushVal(arr, im3);
+        let im3: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(im3, "tag", "@2tek/cxvm:latest");
+        JsonDocHelper::setStr(im3, "id", "sha256:5d12e84");
+        JsonDocHelper::setDouble(im3, "sizeMb", 34.0);
+        JsonDocHelper::pushVal(arr, im3);
 
-        JsonValue* im4 = JsonDoc::obj();
-        JsonDoc::setStr(im4, "tag", "@2tek/lighting:latest");
-        JsonDoc::setStr(im4, "id", "sha256:3a91e52");
-        JsonDoc::setDouble(im4, "sizeMb", 28.7);
-        JsonDoc::pushVal(arr, im4);
+        let im4: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(im4, "tag", "@2tek/lighting:latest");
+        JsonDocHelper::setStr(im4, "id", "sha256:3a91e52");
+        JsonDocHelper::setDouble(im4, "sizeMb", 28.7);
+        JsonDocHelper::pushVal(arr, im4);
 
-        JsonValue* im5 = JsonDoc::obj();
-        JsonDoc::setStr(im5, "tag", "@2tek/code-storm:latest");
-        JsonDoc::setStr(im5, "id", "sha256:9c44b11");
-        JsonDoc::setDouble(im5, "sizeMb", 56.1);
-        JsonDoc::pushVal(arr, im5);
+        let im5: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(im5, "tag", "@2tek/code-storm:latest");
+        JsonDocHelper::setStr(im5, "id", "sha256:9c44b11");
+        JsonDocHelper::setDouble(im5, "sizeMb", 56.1);
+        JsonDocHelper::pushVal(arr, im5);
 
-        JsonDoc::setVal(doc, "images", arr);
+        JsonDocHelper::setVal(doc, "images", arr);
         return this.json(doc);
     }
 
     public HttpResponse* apiThunderVirtualLinuxSetup(HttpRequest* req, CxvmEngine* cxvm) {
-        string ver = "8.0.0";
+        let ver: string = "8.0.0";
         if (req->body.length() > 0 && req->body.find("{") != -1) {
-            JsonValue* parsed = JsonDoc::parse(req->body);
+            let parsed: JsonValue* = JsonDocHelper::parse(req->body);
             if (parsed != nullptr && parsed->has("version")) {
                 ver = parsed->get("version")->asString();
             }
         }
-        CxvmCommandResult* res = cxvm->setupThunderVirtualLinux(ver);
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "environment", "virtual-linux");
-        JsonDoc::setStr(doc, "engine", "ThunderEngine");
-        JsonDoc::setBool(doc, "virtualLinuxReady", cxvm->virtualLinuxReady);
-        JsonDoc::setStr(doc, "kernel", cxvm->virtualLinuxKernel);
-        JsonDoc::setStr(doc, "platform", "linux-x86_64");
-        JsonDoc::setStr(doc, "cxvmDir", cxvm->virtualLinuxRootfs);
-        JsonDoc::setStr(doc, "containerId", cxvm->virtualLinuxContainerId);
-        JsonDoc::setStr(doc, "network", "thunder-net (" + cxvm->virtualLinuxIp + ")");
-        JsonDoc::setStr(doc, "rootfs", "overlayfs");
-        JsonDoc::setStr(doc, "cgroups", "v2");
-        JsonDoc::setStr(doc, "activeVersion", cxvm->current());
-        JsonDoc::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
-        JsonDoc::setStr(doc, "defaultCexrRuntime", "cexr-factory");
-        JsonDoc::setStr(doc, "defaultCexrBuild", "cexr-bean");
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->setupThunderVirtualLinux(ver);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "environment", "virtual-linux");
+        JsonDocHelper::setStr(doc, "engine", "ThunderEngine");
+        JsonDocHelper::setBool(doc, "virtualLinuxReady", cxvm->virtualLinuxReady);
+        JsonDocHelper::setStr(doc, "kernel", cxvm->virtualLinuxKernel);
+        JsonDocHelper::setStr(doc, "platform", "linux-x86_64");
+        JsonDocHelper::setStr(doc, "cxvmDir", cxvm->virtualLinuxRootfs);
+        JsonDocHelper::setStr(doc, "containerId", cxvm->virtualLinuxContainerId);
+        JsonDocHelper::setStr(doc, "network", "thunder-net (" + cxvm->virtualLinuxIp + ")");
+        JsonDocHelper::setStr(doc, "rootfs", "overlayfs");
+        JsonDocHelper::setStr(doc, "cgroups", "v2");
+        JsonDocHelper::setStr(doc, "activeVersion", cxvm->current());
+        JsonDocHelper::setStr(doc, "defaultVersion", "v" + cxvm->defaultVersion);
+        JsonDocHelper::setStr(doc, "defaultCexrRuntime", "cexr-factory");
+        JsonDocHelper::setStr(doc, "defaultCexrBuild", "cexr-bean");
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiThunderVirtualLinuxStatus(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setStr(doc, "environment", "virtual-linux");
-        JsonDoc::setStr(doc, "engine", "ThunderEngine");
-        JsonDoc::setBool(doc, "virtualLinuxReady", cxvm->virtualLinuxReady);
-        JsonDoc::setStr(doc, "kernel", cxvm->virtualLinuxKernel);
-        JsonDoc::setStr(doc, "platform", "linux-x86_64");
-        JsonDoc::setStr(doc, "cxvmDir", cxvm->virtualLinuxRootfs);
-        JsonDoc::setStr(doc, "containerId", cxvm->virtualLinuxContainerId);
-        JsonDoc::setStr(doc, "network", "thunder-net (" + cxvm->virtualLinuxIp + ")");
-        JsonDoc::setStr(doc, "rootfs", "overlayfs");
-        JsonDoc::setStr(doc, "cgroups", "v2");
-        JsonDoc::setStr(doc, "activeVersion", cxvm->current());
-        JsonDoc::setStr(doc, "defaultCexrRuntime", "cexr-" + cxvm->defaultCexrEdition);
-        JsonDoc::setStr(doc, "defaultCexrBuild", "cexr-" + cxvm->defaultBuildEdition);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setStr(doc, "environment", "virtual-linux");
+        JsonDocHelper::setStr(doc, "engine", "ThunderEngine");
+        JsonDocHelper::setBool(doc, "virtualLinuxReady", cxvm->virtualLinuxReady);
+        JsonDocHelper::setStr(doc, "kernel", cxvm->virtualLinuxKernel);
+        JsonDocHelper::setStr(doc, "platform", "linux-x86_64");
+        JsonDocHelper::setStr(doc, "cxvmDir", cxvm->virtualLinuxRootfs);
+        JsonDocHelper::setStr(doc, "containerId", cxvm->virtualLinuxContainerId);
+        JsonDocHelper::setStr(doc, "network", "thunder-net (" + cxvm->virtualLinuxIp + ")");
+        JsonDocHelper::setStr(doc, "rootfs", "overlayfs");
+        JsonDocHelper::setStr(doc, "cgroups", "v2");
+        JsonDocHelper::setStr(doc, "activeVersion", cxvm->current());
+        JsonDocHelper::setStr(doc, "defaultCexrRuntime", "cexr-" + cxvm->defaultCexrEdition);
+        JsonDocHelper::setStr(doc, "defaultCexrBuild", "cexr-" + cxvm->defaultBuildEdition);
         return this.json(doc);
     }
 
     public HttpResponse* apiLinuxDistroInstall(HttpRequest* req, CxvmEngine* cxvm) {
-        string name = "cex-linux";
-        string ver = "1.0.0";
+        let name: string = "cex-linux";
+        let ver: string = "1.0.0";
         if (req->body.length() > 0 && req->body.find("{") != -1) {
-            JsonValue* parsed = JsonDoc::parse(req->body);
+            let parsed: JsonValue* = JsonDocHelper::parse(req->body);
             if (parsed != nullptr && parsed->has("name")) {
                 name = parsed->get("name")->asString();
             }
@@ -573,44 +551,44 @@ class FactoryController : BaseController {
                 ver = parsed->get("version")->asString();
             }
         }
-        CxvmCommandResult* res = cxvm->installLinuxDistro(name, ver);
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "command", "install");
-        JsonDoc::setStr(doc, "distro", cxvm->linuxDistroName);
-        JsonDoc::setStr(doc, "version", cxvm->linuxDistroVersion);
-        JsonDoc::setStr(doc, "kernel", cxvm->linuxDistroKernel);
-        JsonDoc::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
-        JsonDoc::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
-        JsonDoc::setBool(doc, "distroReady", cxvm->linuxDistroReady);
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->installLinuxDistro(name, ver);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "command", "install");
+        JsonDocHelper::setStr(doc, "distro", cxvm->linuxDistroName);
+        JsonDocHelper::setStr(doc, "version", cxvm->linuxDistroVersion);
+        JsonDocHelper::setStr(doc, "kernel", cxvm->linuxDistroKernel);
+        JsonDocHelper::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
+        JsonDocHelper::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
+        JsonDocHelper::setBool(doc, "distroReady", cxvm->linuxDistroReady);
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiLinuxDistroUninstall(HttpRequest* req, CxvmEngine* cxvm) {
-        string name = "cex-linux";
+        let name: string = "cex-linux";
         if (req->body.length() > 0 && req->body.find("{") != -1) {
-            JsonValue* parsed = JsonDoc::parse(req->body);
+            let parsed: JsonValue* = JsonDocHelper::parse(req->body);
             if (parsed != nullptr && parsed->has("name")) {
                 name = parsed->get("name")->asString();
             }
         }
-        CxvmCommandResult* res = cxvm->uninstallLinuxDistro(name);
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "command", "uninstall");
-        JsonDoc::setStr(doc, "distro", name);
-        JsonDoc::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
-        JsonDoc::setBool(doc, "distroReady", cxvm->linuxDistroReady);
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->uninstallLinuxDistro(name);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "command", "uninstall");
+        JsonDocHelper::setStr(doc, "distro", name);
+        JsonDocHelper::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
+        JsonDocHelper::setBool(doc, "distroReady", cxvm->linuxDistroReady);
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiLinuxDistroSetup(HttpRequest* req, CxvmEngine* cxvm) {
-        string name = "cex-linux";
-        string ver = "1.0.0";
+        let name: string = "cex-linux";
+        let ver: string = "1.0.0";
         if (req->body.length() > 0 && req->body.find("{") != -1) {
-            JsonValue* parsed = JsonDoc::parse(req->body);
+            let parsed: JsonValue* = JsonDocHelper::parse(req->body);
             if (parsed != nullptr && parsed->has("name")) {
                 name = parsed->get("name")->asString();
             }
@@ -618,89 +596,89 @@ class FactoryController : BaseController {
                 ver = parsed->get("version")->asString();
             }
         }
-        CxvmCommandResult* res = cxvm->setupLinuxDistro(name, ver);
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "command", "setup");
-        JsonDoc::setStr(doc, "distro", cxvm->linuxDistroName);
-        JsonDoc::setStr(doc, "version", cxvm->linuxDistroVersion);
-        JsonDoc::setStr(doc, "kernel", cxvm->linuxDistroKernel);
-        JsonDoc::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
-        JsonDoc::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
-        JsonDoc::setBool(doc, "distroReady", cxvm->linuxDistroReady);
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->setupLinuxDistro(name, ver);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "command", "setup");
+        JsonDocHelper::setStr(doc, "distro", cxvm->linuxDistroName);
+        JsonDocHelper::setStr(doc, "version", cxvm->linuxDistroVersion);
+        JsonDocHelper::setStr(doc, "kernel", cxvm->linuxDistroKernel);
+        JsonDocHelper::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
+        JsonDocHelper::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
+        JsonDocHelper::setBool(doc, "distroReady", cxvm->linuxDistroReady);
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiLinuxDistroStatus(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setStr(doc, "distro", cxvm->linuxDistroName);
-        JsonDoc::setStr(doc, "version", cxvm->linuxDistroVersion);
-        JsonDoc::setStr(doc, "kernel", cxvm->linuxDistroKernel);
-        JsonDoc::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
-        JsonDoc::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
-        JsonDoc::setBool(doc, "distroReady", cxvm->linuxDistroReady);
-        JsonDoc::setNum(doc, "installedCount", (int)cxvm->installedDistros->length());
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setStr(doc, "distro", cxvm->linuxDistroName);
+        JsonDocHelper::setStr(doc, "version", cxvm->linuxDistroVersion);
+        JsonDocHelper::setStr(doc, "kernel", cxvm->linuxDistroKernel);
+        JsonDocHelper::setStr(doc, "rootfs", cxvm->linuxDistroRootfs);
+        JsonDocHelper::setStr(doc, "distroStatus", cxvm->linuxDistroStatus);
+        JsonDocHelper::setBool(doc, "distroReady", cxvm->linuxDistroReady);
+        JsonDocHelper::setNum(doc, "installedCount", (int)cxvm->installedDistros->length());
         return this.json(doc);
     }
 
     public HttpResponse* apiLinuxDistroList(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonValue* arr = JsonDoc::arr();
-        for (int i = 0; i < (int)cxvm->supportedDistros->length(); i++) {
-            JsonDoc::pushStr(arr, cxvm->supportedDistros->get(i));
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        let arr: JsonValue* = JsonDocHelper::arr();
+        for (let i: int = 0; i < (int)cxvm->supportedDistros->length(); i++) {
+            JsonDocHelper::pushStr(arr, cxvm->supportedDistros->get(i));
         }
-        JsonDoc::setVal(doc, "supported", arr);
-        JsonValue* instArr = JsonDoc::arr();
-        for (int i = 0; i < (int)cxvm->installedDistros->length(); i++) {
-            JsonDoc::pushStr(instArr, cxvm->installedDistros->get(i));
+        JsonDocHelper::setVal(doc, "supported", arr);
+        let instArr: JsonValue* = JsonDocHelper::arr();
+        for (let i: int = 0; i < (int)cxvm->installedDistros->length(); i++) {
+            JsonDocHelper::pushStr(instArr, cxvm->installedDistros->get(i));
         }
-        JsonDoc::setVal(doc, "installed", instArr);
+        JsonDocHelper::setVal(doc, "installed", instArr);
         return this.json(doc);
     }
 
     public HttpResponse* apiLightStatus(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setStr(doc, "engine", "LightingFullstackMVC");
-        JsonDoc::setBool(doc, "ready", cxvm->lightEngineReady);
-        JsonDoc::setStr(doc, "framework", "Lighting Fullstack MVC (Pure Cex)");
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setStr(doc, "engine", "LightingFullstackMVC");
+        JsonDocHelper::setBool(doc, "ready", cxvm->lightEngineReady);
+        JsonDocHelper::setStr(doc, "framework", "Lighting Fullstack MVC (Pure Cex)");
 
-        JsonValue* arr = JsonDoc::arr();
-        JsonDoc::pushStr(arr, "create");
-        JsonDoc::pushStr(arr, "dev");
-        JsonDoc::pushStr(arr, "build");
-        JsonDoc::pushStr(arr, "doctor");
-        JsonDoc::setVal(doc, "commands", arr);
+        let arr: JsonValue* = JsonDocHelper::arr();
+        JsonDocHelper::pushStr(arr, "create");
+        JsonDocHelper::pushStr(arr, "dev");
+        JsonDocHelper::pushStr(arr, "build");
+        JsonDocHelper::pushStr(arr, "doctor");
+        JsonDocHelper::setVal(doc, "commands", arr);
 
-        JsonDoc::setStr(doc, "version", "8.0.0");
+        JsonDocHelper::setStr(doc, "version", "8.0.0");
         return this.json(doc);
     }
 
     public HttpResponse* apiLightCreate(HttpRequest* req, CxvmEngine* cxvm) {
-        string projectName = "my-lighting-app";
+        let projectName: string = "my-lighting-app";
         if (req->body.length() > 0 && req->body.find("{") != -1) {
-            JsonValue* parsed = JsonDoc::parse(req->body);
+            let parsed: JsonValue* = JsonDocHelper::parse(req->body);
             if (parsed != nullptr && parsed->has("projectName")) {
                 projectName = parsed->get("projectName")->asString();
             }
         }
-        CxvmCommandResult* res = cxvm->lightCreate(projectName, ".");
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", "SUCCESS");
-        JsonDoc::setStr(doc, "projectName", projectName);
-        JsonDoc::setStr(doc, "framework", "Lighting Fullstack MVC");
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->lightCreate(projectName, ".");
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", "SUCCESS");
+        JsonDocHelper::setStr(doc, "projectName", projectName);
+        JsonDocHelper::setStr(doc, "framework", "Lighting Fullstack MVC");
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiOpen(HttpRequest* req, CxvmEngine* cxvm) {
-        string url = "http://localhost:3080/";
-        string target = "browser";
+        let url: string = "http://localhost:3080/";
+        let target: string = "browser";
         if (req->body.length() > 0 && req->body.find("{") != -1) {
-            JsonValue* parsed = JsonDoc::parse(req->body);
+            let parsed: JsonValue* = JsonDocHelper::parse(req->body);
             if (parsed != nullptr) {
                 if (parsed->has("url")) {
                     url = parsed->get("url")->asString();
@@ -710,44 +688,44 @@ class FactoryController : BaseController {
                 }
             }
         }
-        CxvmCommandResult* res = cxvm->cxvmOpen(url, target);
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "target", target);
-        JsonDoc::setStr(doc, "url", url);
-        JsonDoc::setStr(doc, "engine", "cex-view");
-        JsonDoc::setStr(doc, "message", res->message);
+        let res: CxvmCommandResult* = cxvm->cxvmOpen(url, target);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "target", target);
+        JsonDocHelper::setStr(doc, "url", url);
+        JsonDocHelper::setStr(doc, "engine", "cex-view");
+        JsonDocHelper::setStr(doc, "message", res->message);
         return this.json(doc);
     }
 
     public HttpResponse* apiTarget(HttpRequest* req, CxvmEngine* cxvm) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "defaultTarget", cxvm->defaultTarget);
-        JsonValue* arr = JsonDoc::arr();
-        JsonDoc::pushStr(arr, "view");
-        JsonDoc::setVal(doc, "supportedTargets", arr);
-        JsonValue* engines = JsonDoc::obj();
-        JsonDoc::setStr(engines, "view", "cex-view (native desktop window engine, cex-view only)");
-        JsonDoc::setVal(doc, "engines", engines);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "defaultTarget", cxvm->defaultTarget);
+        let arr: JsonValue* = JsonDocHelper::arr();
+        JsonDocHelper::pushStr(arr, "view");
+        JsonDocHelper::setVal(doc, "supportedTargets", arr);
+        let engines: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(engines, "view", "cex-view (native desktop window engine, cex-view only)");
+        JsonDocHelper::setVal(doc, "engines", engines);
         return this.json(doc);
     }
 
     public HttpResponse* apiReinstall(HttpRequest* req, CxvmEngine* cxvm) {
-        string ver = "8.0.0";
+        let ver: string = "8.0.0";
         if (req->body.length() > 0 && req->body.find("{") != -1) {
-            JsonValue* parsed = JsonDoc::parse(req->body);
+            let parsed: JsonValue* = JsonDocHelper::parse(req->body);
             if (parsed != nullptr && parsed->has("version")) {
                 ver = parsed->get("version")->asString();
             }
         }
-        CxvmCommandResult* res = cxvm->reinstall(ver);
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
-        JsonDoc::setStr(doc, "command", "reinstall");
-        JsonDoc::setStr(doc, "version", res->version);
-        JsonDoc::setStr(doc, "activeVersion", cxvm->currentVersion);
-        JsonDoc::setStr(doc, "message", res->message);
-        JsonDoc::setStr(doc, "output", res->output);
+        let res: CxvmCommandResult* = cxvm->reinstall(ver);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "status", res->success ? "SUCCESS" : "ERROR");
+        JsonDocHelper::setStr(doc, "command", "reinstall");
+        JsonDocHelper::setStr(doc, "version", res->version);
+        JsonDocHelper::setStr(doc, "activeVersion", cxvm->currentVersion);
+        JsonDocHelper::setStr(doc, "message", res->message);
+        JsonDocHelper::setStr(doc, "output", res->output);
         return this.json(doc);
     }
 }

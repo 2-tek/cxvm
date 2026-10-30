@@ -13,12 +13,12 @@ int main() {
     println("       2-TEK CXVM: Setup, Resetup & .cex_boxes Subsystem Test Suite            ");
     println("===============================================================================");
 
-    TestSuite* suite = new TestSuite("CXVM Resetup & Boxes Tests");
+    let suite: TestSuite* = new TestSuite("CXVM Resetup & Boxes Tests");
 
-    CxvmEngine* cxvm = new CxvmEngine();
+    let cxvm: CxvmEngine* = new CxvmEngine();
 
     // 1. Initial Setup
-    CxvmCommandResult* setupCmdRes = cxvm->setup(CxvmConstants::defaultVersion());
+    let setupCmdRes: CxvmCommandResult* = cxvm->setup(CxvmConstants::defaultVersion());
     Assert::isTrue(setupCmdRes->success, "cxvm setup succeeds");
     Assert::equalsString("v" + CxvmConstants::defaultVersion(), cxvm->current(), "Active version after setup matches default");
     Assert::equalsString("factory", cxvm->defaultCexrEdition, "Default cexr runtime edition after setup is factory");
@@ -27,34 +27,34 @@ int main() {
     Assert::isTrue(setupCmdRes->output.find("cexr-bean") != -1, "Setup output displays default build cexr-bean");
 
     // 2. Direct Resetup
-    CxvmCommandResult* resetupRes = cxvm->resetup(CxvmConstants::defaultVersion());
+    let resetupRes: CxvmCommandResult* = cxvm->resetup(CxvmConstants::defaultVersion());
     Assert::isTrue(resetupRes->success, "cxvm resetup succeeds");
     Assert::equalsString("v" + CxvmConstants::defaultVersion(), cxvm->current(), "cxvm active version after resetup matches default");
 
     // 3. CLI Routing cxvm resetup
-    int execResetupRes = cxvm->cvmExecute("resetup", CxvmConstants::defaultVersion(), "");
+    let execResetupRes: int = cxvm->cvmExecute("resetup", CxvmConstants::defaultVersion(), "");
     Assert::equalsInt(0, execResetupRes, "cxvm cvmExecute resetup returns 0 OK");
 
     // 4. Resolving Packages into .cex_boxes (Zero deps/)
-    CxvmCommandResult* depsRes = cxvm->setupDeps();
+    let depsRes: CxvmCommandResult* = cxvm->setupDeps();
     Assert::isTrue(depsRes->success, "cxvm setupDeps succeeds");
     Assert::isTrue(depsRes->output.find(".cex_boxes") != -1, "setupDeps mentions target .cex_boxes");
     Assert::isFalse(fs.exists("deps"), "deps directory is not created or used");
     Assert::isTrue(fs.exists(".cex_boxes"), ".cex_boxes directory exists");
 
     // 5. Caching and skipping rebuilds
-    CxvmCommandResult* depsRes2 = cxvm->setupDeps();
+    let depsRes2: CxvmCommandResult* = cxvm->setupDeps();
     Assert::isTrue(depsRes2->success, "second setupDeps execution succeeds");
     Assert::isTrue(depsRes2->output.find("skipping rebuild") != -1, "setupDeps skips rebuild when existing version exists");
 
     // 6. CLI Execution Routing
-    int execCexSetupRes = cxvm->cvmExecute("cex", "setup", "");
+    let execCexSetupRes: int = cxvm->cvmExecute("cex", "setup", "");
     Assert::equalsInt(0, execCexSetupRes, "cxvm cvmExecute cex setup returns 0 OK");
 
-    int execSetupDepsRes = cxvm->cvmExecute("setup", "deps", "");
+    let execSetupDepsRes: int = cxvm->cvmExecute("setup", "deps", "");
     Assert::equalsInt(0, execSetupDepsRes, "cxvm cvmExecute setup deps returns 0 OK");
 
-    int execSetupBoxesRes = cxvm->cvmExecute("setup", "boxes", "");
+    let execSetupBoxesRes: int = cxvm->cvmExecute("setup", "boxes", "");
     Assert::equalsInt(0, execSetupBoxesRes, "cxvm cvmExecute setup boxes returns 0 OK");
 
     suite->addResult("test_cxvm_resetup_and_boxes", true, "", 1);

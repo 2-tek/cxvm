@@ -1,0 +1,60 @@
+// 2-TEK CXVM: MVC-Lighting Migration & Deprecated Import Audit Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import child_process from "child_process";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+
+int main() {
+    println("===============================================================================");
+    println("   2-TEK CXVM: MVC-Lighting Migration & Deprecated Imports Test Suite         ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM MVC-Lighting Migration Tests");
+
+    // 1. Verify Manifest Dependencies in cex-pack.json
+    println("[Test 1] TC-MIG-01: Verifying dependencies in cex-pack.json...");
+    Assert::isTrue(fs.exists("cex-pack.json"), "cex-pack.json must exist");
+    let packContent: string = fs.readFile("cex-pack.json");
+    Assert::isTrue(packContent.find("\"mvc-lighting\": \"6.1.10\"") != -1, "cex-pack.json must declare mvc-lighting 6.1.10");
+    Assert::isTrue(packContent.find("\"cex-service\"") == -1, "cex-pack.json must not declare deprecated cex-service");
+
+    // 2. Verify CxvmEngine Version Resolution
+    println("[Test 2] TC-MIG-02: Verifying cxvm resolveLibVersion for mvc-lighting...");
+    let cxvm: CxvmEngine* = new CxvmEngine();
+    let verMvcLighting: string = cxvm->resolveLibVersion("mvc-lighting");
+    let verLighting: string = cxvm->resolveLibVersion("lighting");
+    Assert::equalsString("6.1.10", verMvcLighting, "resolveLibVersion(mvc-lighting) resolves to 6.1.10");
+    Assert::equalsString("6.1.10", verLighting, "resolveLibVersion(lighting) resolves to 6.1.10");
+
+    // 3. Verify Box Store Integrity (RULE_NO_SYMLINK_BETWEEN_BOXES)
+    println("[Test 3] TC-MIG-03: Verifying box store integrity...");
+    let hasLightingBox: bool = fs.exists("cex_boxes/mvc-lighting");
+    Assert::isTrue(hasLightingBox, "cex_boxes/mvc-lighting must exist");
+    if (hasLightingBox) {
+        let symCheck: string = child_process.execSync("test -L cex_boxes/mvc-lighting && echo 'symlink' || echo 'real'");
+        Assert::isTrue(symCheck.find("real") != -1, "cex_boxes/mvc-lighting must be real directory, not symlinked");
+        Assert::isTrue(fs.exists("cex_boxes/mvc-lighting/cex-pack.json"), "cex_boxes/mvc-lighting/cex-pack.json exists");
+        let boxPackRaw: string = fs.readFile("cex_boxes/mvc-lighting/cex-pack.json");
+        Assert::isTrue(boxPackRaw.find("\"version\": \"6.1.10\"") != -1, "cex_boxes/mvc-lighting manifest is v6.1.10");
+    }
+    Assert::isTrue(!fs.exists("cex_boxes/cex-service"), "deprecated cex_boxes/cex-service must be removed");
+
+    // 4. Verify Deprecated Import Purge across src/ and tests/
+    println("[Test 4] TC-MIG-04: Verifying zero deprecated imports in src/ and tests/...");
+    let grepCexService: string = child_process.execSync("grep -rnE 'import.*@cex-service' src/ tests/ 2>/dev/null || true");
+    Assert::equalsString("", grepCexService, "zero @cex-service imports in src/ and tests/");
+
+    let grepCexTest: string = child_process.execSync("grep -rnE 'import.*@cex-test' src/ tests/ 2>/dev/null || true");
+    Assert::equalsString("", grepCexTest, "zero @cex-test imports in src/ and tests/");
+
+    suite->addResult("test_mvc_lighting_migration", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

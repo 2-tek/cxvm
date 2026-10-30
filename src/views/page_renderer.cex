@@ -1,0 +1,215 @@
+// 2-TEK CXVM: MVC-Lighting Page & Layout XHTML SSR Renderer (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types)
+
+#pragma once
+
+import "@cex-std/src/filesystem.cex";
+import "cpp/string";
+import "cpp/map";
+import "cpp/vector";
+import "cpp/sstream";
+import "cpp/fstream";
+
+class TemplateItem {
+    public std::map<string, string> data;
+
+    public constructor() {}
+
+    public void set(string key, string val) {
+        this.data[key] = val;
+    }
+
+    public string get(string key) {
+        if (this.data.find(key) != this.data.end()) {
+            return this.data[key];
+        }
+        return "";
+    }
+}
+
+class TemplateContext {
+    public std::map<string, string> values;
+    public std::map<string, std::vector<std::map<string, string>>> listItems;
+
+    public constructor() {}
+
+    public void set(string key, string val) {
+        this.values[key] = val;
+    }
+
+    public string get(string key) {
+        return this.get(key, "");
+    }
+
+    public string get(string key, string defaultVal) {
+        if (this.values.find(key) != this.values.end()) {
+            return this.values[key];
+        }
+        return defaultVal;
+    }
+
+    public void addListItem(string listKey, TemplateItem* item) {
+        this.listItems[listKey].push_back(item->data);
+    }
+}
+
+class TemplateEngine {
+    static public string replaceAll(string str, string from, string to) {
+        if (from.empty()) return str;
+        let res: string = str;
+        let pos: size_t = 0;
+        while ((pos = res.find(from, pos)) != string::npos) {
+            res.replace(pos, from.length(), to);
+            pos += to.length();
+        }
+        return res;
+    }
+
+    static public string processVariables(string tpl, TemplateContext* ctx) {
+        let res: string = tpl;
+        for (const auto& kv : ctx->values) {
+            let token1: string = "{{" + kv.first + "}}";
+            let token2: string = "{{ " + kv.first + " }}";
+            res = TemplateEngine::replaceAll(res, token1, kv.second);
+            res = TemplateEngine::replaceAll(res, token2, kv.second);
+        }
+        return res;
+    }
+
+    static public string processConditionals(string tpl, TemplateContext* ctx) {
+        let res: string = tpl;
+        let startTag: string = "{{#if ";
+        let endTag: string = "{{/if}}";
+
+        let startPos: size_t = 0;
+        while ((startPos = res.find(startTag, startPos)) != string::npos) {
+            let tagEnd: size_t = res.find("}}", startPos);
+            if (tagEnd == string::npos) break;
+            let key: string = res.substr(startPos + startTag.length(), tagEnd - (startPos + startTag.length()));
+            while (!key.empty() && key.substr(key.length() - 1, 1) == " ") key.pop_back();
+            while (!key.empty() && key.substr(0, 1) == " ") key.erase(0, 1);
+
+            let blockEnd: size_t = res.find(endTag, tagEnd);
+            if (blockEnd == string::npos) break;
+
+            let innerContent: string = res.substr(tagEnd + 2, blockEnd - (tagEnd + 2));
+            let ifPart: string = innerContent;
+            let elsePart: string = "";
+
+            let elsePos: size_t = innerContent.find("{{else}}");
+            if (elsePos != string::npos) {
+                ifPart = innerContent.substr(0, elsePos);
+                elsePart = innerContent.substr(elsePos + 8);
+            }
+
+            let condition: bool = false;
+            let val: string = ctx->get(key);
+            if (!val.empty() && val != "0" && val != "false" && val != "null") {
+                condition = true;
+            }
+
+            let replacement: string = condition ? ifPart : elsePart;
+            res.replace(startPos, (blockEnd + endTag.length()) - startPos, replacement);
+            startPos += replacement.length();
+        }
+        return res;
+    }
+
+    static public string processLoops(string tpl, TemplateContext* ctx) {
+        let res: string = tpl;
+        let startTag: string = "{{#each ";
+        let endTag: string = "{{/each}}";
+
+        let startPos: size_t = 0;
+        while ((startPos = res.find(startTag, startPos)) != string::npos) {
+            let tagEnd: size_t = res.find("}}", startPos);
+            if (tagEnd == string::npos) break;
+
+            let listKey: string = res.substr(startPos + startTag.length(), tagEnd - (startPos + startTag.length()));
+            while (!listKey.empty() && listKey.substr(listKey.length() - 1, 1) == " ") listKey.pop_back();
+            while (!listKey.empty() && listKey.substr(0, 1) == " ") listKey.erase(0, 1);
+
+            let blockEnd: size_t = res.find(endTag, tagEnd);
+            if (blockEnd == string::npos) break;
+
+            let loopTpl: string = res.substr(tagEnd + 2, blockEnd - (tagEnd + 2));
+            let loopOutput: string = "";
+
+            if (ctx->listItems.find(listKey) != ctx->listItems.end()) {
+                const auto& items = ctx->listItems[listKey];
+                for (const auto& itemMap : items) {
+                    let itemHtml: string = loopTpl;
+                    for (const auto& kv : itemMap) {
+                        let token1: string = "{{this." + kv.first + "}}";
+                        let token2: string = "{{ this." + kv.first + " }}";
+                        let token3: string = "{{" + kv.first + "}}";
+                        let token4: string = "{{ " + kv.first + " }}";
+                        itemHtml = TemplateEngine::replaceAll(itemHtml, token1, kv.second);
+                        itemHtml = TemplateEngine::replaceAll(itemHtml, token2, kv.second);
+                        itemHtml = TemplateEngine::replaceAll(itemHtml, token3, kv.second);
+                        itemHtml = TemplateEngine::replaceAll(itemHtml, token4, kv.second);
+                    }
+                    loopOutput += itemHtml;
+                }
+            }
+
+            res.replace(startPos, (blockEnd + endTag.length()) - startPos, loopOutput);
+            startPos += loopOutput.length();
+        }
+        return res;
+    }
+
+    static public string render(string tpl, TemplateContext* ctx) {
+        let output: string = tpl;
+        output = TemplateEngine::processConditionals(output, ctx);
+        output = TemplateEngine::processLoops(output, ctx);
+        output = TemplateEngine::processVariables(output, ctx);
+        return output;
+    }
+}
+
+class PageRenderer {
+    static public string resolveFilePath(string path) {
+        if (StdFilesystem::exists(path)) return path;
+        if (StdFilesystem::exists("cxvm/" + path)) return "cxvm/" + path;
+        if (StdFilesystem::exists("src/views/" + path)) return "src/views/" + path;
+        if (StdFilesystem::exists("cxvm/src/views/" + path)) return "cxvm/src/views/" + path;
+        return path;
+    }
+
+    static public string readFile(string path) {
+        let resolved: string = PageRenderer::resolveFilePath(path);
+        if (!StdFilesystem::exists(resolved)) return "";
+        try {
+            return StdFilesystem::read_text(resolved);
+        } catch (error) {
+            return "";
+        }
+    }
+
+    static public string render(string pageContent, string layoutContent, TemplateContext* ctx) {
+        let renderedPage: string = TemplateEngine::render(pageContent, ctx);
+        if (layoutContent.empty()) {
+            return renderedPage;
+        }
+
+        let fullDocument: string = layoutContent;
+        fullDocument = TemplateEngine::replaceAll(fullDocument, "<!-- REALITY_PAGE_SLOT -->", renderedPage);
+        fullDocument = TemplateEngine::replaceAll(fullDocument, "{{ children }}", renderedPage);
+        fullDocument = TemplateEngine::replaceAll(fullDocument, "{{children}}", renderedPage);
+        fullDocument = TemplateEngine::replaceAll(fullDocument, "<slot />", renderedPage);
+        fullDocument = TemplateEngine::replaceAll(fullDocument, "<slot/>", renderedPage);
+        fullDocument = TemplateEngine::replaceAll(fullDocument, "<slot></slot>", renderedPage);
+
+        return TemplateEngine::render(fullDocument, ctx);
+    }
+
+    static public string renderFiles(string pagePath, string layoutPath, TemplateContext* ctx) {
+        let pageContent: string = PageRenderer::readFile(pagePath);
+        let layoutContent: string = "";
+        if (!layoutPath.empty()) {
+            layoutContent = PageRenderer::readFile(layoutPath);
+        }
+        return PageRenderer::render(pageContent, layoutContent, ctx);
+    }
+}

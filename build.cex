@@ -1,0 +1,79 @@
+// Pure Cex In-Project Self Build Runner (build.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_CEX_SCRIPT_ONLY, RULE_SELF_TEST_BUILD_INSIDE_PROJECT_ONLY
+
+import fs from "fs";
+
+class ProjectSelfBuilder {
+    public static string resolveCompiler() {
+        char* envCexp = getenv("CEXP_BIN");
+        if (envCexp != nullptr && string(envCexp).length() > 0 && fs.exists(string(envCexp))) {
+            return string(envCexp);
+        }
+        char* envCexp2 = getenv("CEXP");
+        if (envCexp2 != nullptr && string(envCexp2).length() > 0 && fs.exists(string(envCexp2))) {
+            return string(envCexp2);
+        }
+
+        char* envHome = getenv("HOME");
+        string homeStr = (envHome != nullptr) ? string(envHome) : "";
+        if (homeStr.length() > 0 && fs.exists(homeStr + "/.cxvm/bin/cexp-v8-stable")) {
+            return homeStr + "/.cxvm/bin/cexp-v8-stable";
+        }
+        if (homeStr.length() > 0 && fs.exists(homeStr + "/.cex/bin/cexp-v8-stable")) {
+            return homeStr + "/.cex/bin/cexp-v8-stable";
+        }
+        return "cexp-v8-stable";
+    }
+
+    public static string resolveEntrypoint() {
+        if (fs.exists("cex-pack.json")) {
+            string content = fs.readFile("cex-pack.json");
+            int mPos = (int)content.find("\"main\"");
+            if (mPos != -1) {
+                int col = (int)content.find(":", mPos);
+                if (col != -1) {
+                    int q1 = (int)content.find("\"", col);
+                    int q2 = (int)content.find("\"", q1 + 1);
+                    if (q1 != -1 && q2 != -1) {
+                        string mainFile = content.substr(q1 + 1, q2 - q1 - 1);
+                        if (fs.exists(mainFile)) return mainFile;
+                    }
+                }
+            }
+        }
+        if (fs.exists("src/index.cex")) return "src/index.cex";
+        if (fs.exists("src/server.cex")) return "src/server.cex";
+        if (fs.exists("src/cli/reality_cli.cex")) return "src/cli/reality_cli.cex";
+        if (fs.exists("bin/start.cex")) return "bin/start.cex";
+        if (fs.exists("bin/remote-access.cex")) return "bin/remote-access.cex";
+        if (fs.exists("src/cli.cex")) return "src/cli.cex";
+        if (fs.exists("src/app.cex")) return "src/app.cex";
+        return "";
+    }
+
+    public static int build() {
+        string entry = ProjectSelfBuilder::resolveEntrypoint();
+        if (entry.length() == 0) {
+            println("[ERROR] No valid entrypoint found in project.");
+            return 1;
+        }
+
+        string compiler = ProjectSelfBuilder::resolveCompiler();
+        println("==> [Self-Build] Building project entrypoint (" + entry + " -> .bin) via " + compiler + "...");
+
+        string cmd = "\"" + compiler + "\" build \"" + entry + "\" -o .bin";
+        int res = system(cmd.c_str());
+
+        if (res == 0 && fs.exists(".bin")) {
+            println("[OK] Project compiled to .bin successfully");
+            return 0;
+        }
+
+        println("[FAIL] Project compilation failed (exit code: " + std::to_string(res) + ")");
+        return 1;
+    }
+}
+
+int main(int argc, char** argv) {
+    return ProjectSelfBuilder::build();
+}

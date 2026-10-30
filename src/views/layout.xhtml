@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="https://www.2-tek.com/xhtml" lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="generator" content="2-TEK Lighting MVC .xhtml Engine" />
+  <title>{{title}} - 2-TEK Cex Factory</title>
+  <style>
+    :root {
+      --bg: #070b14; --surface: #0f172a; --surface-card: #1e293b; --border: #334155;
+      --text: #f8fafc; --muted: #94a3b8; --primary: #0284c7; --primary-hover: #38bdf8;
+      --cyan: #06b6d4; --emerald: #10b981; --amber: #f59e0b; --purple: #8b5cf6;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.6; }
+    header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #38bdf8; font-size: 18px; font-weight: 800; }
+    nav { display: flex; gap: 14px; align-items: center; }
+    nav a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 6px; transition: all 0.15s ease; }
+    nav a:hover, nav a.active { color: #fff; background: var(--surface-card); }
+    .container { max-width: 1200px; margin: 36px auto; padding: 0 24px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+    .btn { background: var(--primary); color: #fff; padding: 9px 18px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; border: none; cursor: pointer; transition: 0.15s; }
+    .btn:hover { background: var(--primary-hover); color: #070b14; }
+    .btn-secondary { background: #1e293b; color: #f8fafc; border: 1px solid #475569; }
+    .btn-secondary:hover { background: #334155; color: #fff; }
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-stable { background: #065f46; color: #34d399; border: 1px solid #059669; }
+    .badge-lts { background: #1e3a8a; color: #60a5fa; border: 1px solid #2563eb; }
+    .badge-canary { background: #78350f; color: #fbbf24; border: 1px solid #d97706; }
+    .code-box { background: #050811; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 18px; font-family: var(--font-mono); font-size: 13px; color: #38bdf8; display: flex; justify-content: space-between; align-items: center; margin: 10px 0; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+    th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--muted); font-size: 12px; text-transform: uppercase; }
+    td { padding: 12px; border-bottom: 1px solid #1e293b; }
+    footer { text-align: center; padding: 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; margin-top: 60px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="brand">2-TEK Factory <small style="color: var(--cyan); font-size: 10px; border: 1px solid var(--cyan); padding: 2px 6px; border-radius: 4px;">MVC-LIGHTING .XHTML</small></a>
+    <nav>
+      <a href="/" class="{{activeHome}}">Portal</a>
+      <a href="/downloads" class="{{activeDownloads}}">Downloads</a>
+      <a href="/cxvm" class="{{activeDocs}}">cxvm Guide</a>
+      <a href="/setup" class="{{activeSetup}}" style="color: #38bdf8; font-weight: 700;">Setup Window</a>
+      <a href="/api/v1/status" target="_blank">API Status</a>
+      <a href="http://127.0.0.1:3055/editor" target="_blank" style="color: #38bdf8;">CodeStorm IDE</a>
+    </nav>
+  </header>
+  <main class="container">
+    <slot />
+  </main>
+  <footer>
+    <p>2-TEK Cex Factory &amp; Cross-Platform Runtime Engine on Port {{port}} (Powered by Lighting MVC .xhtml)</p>
+    <p style="margin-top: 4px;">Cross-Platform Targets: Linux (x86_64, aarch64) &bull; macOS (Apple Silicon, Intel) &bull; Windows (x64, arm64)</p>
+  </footer>
+</body>
+</html>

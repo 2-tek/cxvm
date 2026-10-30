@@ -13,26 +13,26 @@ int main() {
     println("       2-TEK CXVM: Javis Cognitive Mind & AI Subsystems Test Suite             ");
     println("===============================================================================");
 
-    TestSuite* suite = new TestSuite("CXVM Javis Tests");
+    let suite: TestSuite* = new TestSuite("CXVM Javis Tests");
 
-    CxvmEngine* cxvm = new CxvmEngine();
+    let cxvm: CxvmEngine* = new CxvmEngine();
 
     // 1. Setup Javis Engine
-    int resSetupJavis = cxvm->setupJavis("");
+    let resSetupJavis: int = cxvm->setupJavis("");
     Assert::equalsInt(0, resSetupJavis, "cxvm setupJavis execution succeeds");
 
     // 2. CLI Routing cxvm setup javis / java
-    int execSetupJavisRes = cxvm->cvmExecute("setup", "javis", "");
+    let execSetupJavisRes: int = cxvm->cvmExecute("setup", "javis", "");
     Assert::equalsInt(0, execSetupJavisRes, "cxvm cvmExecute setup javis returns 0 OK");
 
-    int execSetupJavaRes = cxvm->cvmExecute("setup", "java", "");
+    let execSetupJavaRes: int = cxvm->cvmExecute("setup", "java", "");
     Assert::equalsInt(0, execSetupJavaRes, "cxvm cvmExecute setup java returns 0 OK");
 
-    int execCexSetupJavisRes = cxvm->cvmExecute("cex", "setup", "javis");
+    let execCexSetupJavisRes: int = cxvm->cvmExecute("cex", "setup", "javis");
     Assert::equalsInt(0, execCexSetupJavisRes, "cxvm cvmExecute cex setup javis returns 0 OK");
 
     // 2.1. CLI Routing cxvm build javis / java
-    int execBuildJavisRes = cxvm->cvmExecute("build", "javis", "");
+    let execBuildJavisRes: int = cxvm->cvmExecute("build", "javis", "");
     Assert::equalsInt(0, execBuildJavisRes, "cxvm cvmExecute build javis returns 0 OK");
 
     // 3. AI Lib Version Resolution
@@ -42,7 +42,7 @@ int main() {
     Assert::equalsString("1.0.0", cxvm->resolveLibVersion("ultron"), "resolveLibVersion resolves ultron model");
 
     // 4. Binary Registration Invariants
-    CxvmCommandResult* regCexDirRes = cxvm->registerBinaryAppsInCexDir();
+    let regCexDirRes: CxvmCommandResult* = cxvm->registerBinaryAppsInCexDir();
     Assert::isTrue(regCexDirRes->success, "registerBinaryAppsInCexDir succeeds");
     Assert::isTrue(regCexDirRes->output.find("javis") != -1, "register output mentions javis companion binary");
     Assert::isTrue(regCexDirRes->output.find("vision") != -1, "register output mentions vision companion binary");

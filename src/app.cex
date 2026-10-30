@@ -6,41 +6,32 @@ import "./types.cex";
 import "./models/platform_model.cex";
 import "./models/version_model.cex";
 import "./models/artifact_model.cex";
-import "./dist_builder.cex";
+import "./models/package_catalog.cex";
+import "./views/page_renderer.cex";
 import "./cxvm_engine.cex";
 import "./controllers/factory_controller.cex";
 import "@cex-cli/src/terminal.cex";
 import "@cex-cli/src/cli.cex";
-import "@cex-service/src/app.cex";
-import "@cex-service/src/middleware.cex";
-import "@cex-service/src/response.cex";
-import "@cex-service/src/request.cex";
-import "@cex-service/src/ssr.cex";
 import "@cex-std/src/filesystem.cex";
 import "@cex-std/src/chrono.cex";
 
 class FactoryApp {
-    public string appName = "2-TEK cxvm Engine";
-    public int port;
-    public bool isRunning = false;
-    public string downloadsDir = StdFilesystem::exists("dist") ? "dist" : (StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : (StdFilesystem::exists("downloads") ? "downloads" : "dist"));
-    public PerfectApp* service = new PerfectApp();
-    public LightingRouter* router = new LightingRouter();
-    public FactoryController* controller = new FactoryController();
-    public DistBuilder* builder;
-    public CxvmEngine* cxvm = new CxvmEngine();
+    public appName: string = "2-TEK cxvm Engine";
+    public port: int;
+    public isRunning: bool = false;
+    public downloadsDir: string = StdFilesystem::exists("cxvm/downloads") ? "cxvm/downloads" : "downloads";
+    public router: LightingRouter* = new LightingRouter();
+    public controller: FactoryController* = new FactoryController();
+    public builder: PackageCatalog*;
+    public cxvm: CxvmEngine* = new CxvmEngine();
 
     public constructor(int port) {
         this.port = port;
 
-        this.service->use(new TimingMiddleware());
-        this.service->use(new CorsMiddleware("*"));
-        this.service->use(new LoggerMiddleware());
-
-        this.builder = new DistBuilder(this.downloadsDir);
+        this.builder = new PackageCatalog(this.downloadsDir);
 
         // Initialize default runtime with CexR v8 (.cex_boxes Dist Loader Engine)
-        string defVer = CxvmConstants::defaultVersion();
+        let defVer: string = CxvmConstants::defaultVersion();
         this.cxvm->install(defVer);
         this.cxvm->use(defVer);
         this.cxvm->setDefault(defVer);
@@ -99,50 +90,6 @@ class FactoryApp {
         this.router->post("/api/v1/open", "factory.apiOpen");
         this.router->get("/api/v1/target", "factory.apiTarget");
         this.router->post("/api/v1/reinstall", "factory.apiReinstall");
-
-        // Register SSR Pages on Cex-Service (cex-s)
-        SSRDocument* dashDoc = new SSRDocument("FactoryDashboard", "2-TEK Cex Factory", "<h1>2-TEK Cex Factory</h1>", "{\"status\": \"ACTIVE\"}");
-        this.service->page("/", dashDoc);
-        SSRDocument* downDoc = new SSRDocument("FactoryDownloads", "2-TEK Cex Downloads", "<h1>Downloads Directory</h1>", "{\"total\": 36}");
-        this.service->page("/downloads", downDoc);
-        SSRDocument* cxvmDoc = new SSRDocument("CxvmDocs", "CXVM Documentation", "<h1>CXVM Version Manager</h1>", "{\"version\": \"2.0.0\"}");
-        this.service->page("/cxvm", cxvmDoc);
-        SSRDocument* setupDoc = new SSRDocument("SetupWindow", "CXVM Setup", "<h1>Setup Window</h1>", "{\"status\": \"HEALTHY\"}");
-        this.service->page("/setup", setupDoc);
-
-        // Register REST API Endpoints on Cex-Service (cex-s)
-        this.service->api("GET", "/api/v1/status", "Factory Status API", "{\"status\": \"ACTIVE\", \"service\": \"2-TEK Cex Factory\", \"framework\": \"Lighting MVC + CexService\"}");
-        this.service->api("GET", "/api/v1/versions", "Versions Catalog", "{\"total\": 6}");
-        this.service->api("GET", "/api/v1/platforms", "Supported Architectures", "{\"total\": 6}");
-        this.service->api("GET", "/api/v1/downloads", "Downloads Catalog", "{\"total\": 36}");
-        this.service->api("GET", "/api/v1/manifest", "Release Manifest", "{\"name\": \"cxvm\"}");
-        this.service->api("GET", "/api/v1/setup", "Setup State", "{\"status\": \"ACTIVE\"}");
-        this.service->api("POST", "/api/v1/setup", "Save Setup", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/build", "Build Archives", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/cvm/status", "CVM Status", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/cvm/commit", "CVM Commit", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/cvm/push", "CVM Push", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/cvm/server/start", "Start CVM Server", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/cvm/server/status", "CVM Server Status", "{\"status\": \"RUNNING\"}");
-        this.service->api("POST", "/api/v1/cvm/server/stop", "Stop CVM Server", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/thunder/status", "Thunder Status", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/thunder/server/start", "Start Thunder Server", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/thunder/server/status", "Thunder Server Status", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/thunder/server/stop", "Stop Thunder Server", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/thunder/containers", "Thunder Containers", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/thunder/images", "Thunder Images", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/thunder/virtual-linux/setup", "Virtual Linux Setup", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/thunder/virtual-linux", "Virtual Linux Status", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/linux-distro/install", "Install Linux Distro", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/linux-distro/uninstall", "Uninstall Linux Distro", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/linux-distro/setup", "Setup Linux Distro", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/linux-distro/status", "Linux Distro Status", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/linux-distro/list", "List Linux Distros", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/light/status", "Lighting Engine Status", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/light/create", "Create Lighting Project", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/open", "Open Target", "{\"status\": \"SUCCESS\"}");
-        this.service->api("GET", "/api/v1/target", "Get Target", "{\"status\": \"SUCCESS\"}");
-        this.service->api("POST", "/api/v1/reinstall", "Reinstall Subsystem", "{\"status\": \"SUCCESS\"}");
     }
 
     public void start() {
@@ -207,28 +154,28 @@ class FactoryApp {
         LightingMiddleware::runLogger(req);
 
         // 2. Auth Middleware
-        MiddlewareResult* authRes = LightingMiddleware::runAuth(req);
+        let authRes: MiddlewareResult* = LightingMiddleware::runAuth(req);
         if (!authRes->proceed) {
             return authRes->errorResponse;
         }
 
         // 3. Router Matching
-        LightingRouteEntry* route = this.router->findRoute(req);
+        let route: LightingRouteEntry* = this.router->findRoute(req);
         if (route === nullptr) {
             return HttpResponse::notFound("No Factory route matched for: " + req->method + " " + req->path);
         }
 
         // 4. Controller Dispatch via switch-case
-        int handlerCode = this.getHandlerCode(route->handlerId);
+        let handlerCode: int = this.getHandlerCode(route->handlerId);
         switch (handlerCode) {
             case 1:
-            return this.controller->index(req, this.port, this.builder->versions, this.builder->platforms, this.builder->artifacts, this.cxvm->current());
+            return this.renderDashboard();
             case 2:
-            return this.controller->downloadsHtml(req, this.port, this.builder->artifacts);
+            return this.renderDownloads();
             case 3:
-            return this.controller->cxvmDocs(req, this.port);
+            return this.renderCxvmDocs();
             case 4:
-            return this.controller->setupHtml(req, this.port, this.cxvm);
+            return this.renderSetup();
             case 5:
             return this.controller->serveInstallSh(req, this.port, this.downloadsDir);
             case 6:
@@ -317,31 +264,117 @@ class FactoryApp {
     }
 
     public HttpResponse* simulateRequest(string method, string path, string body, string cType) {
-        HttpRequest* req = new HttpRequest(method, path, body, cType);
+        let req: HttpRequest* = new HttpRequest(method, path, body, cType);
         return this.handleRequest(req);
-    }
-
-    public PerfectResponse* simulateServiceRequest(string method, string path, string body) {
-        return this.service->simulateRequest(method, path, body);
-    }
-
-    public bool listen(int port, string host = "127.0.0.1") {
-        return this.service->listen(port, host);
     }
 
     public void displayRoutes() {
         TerminalUI::renderHeader("2-TEK Cex Factory Route Registry", "Powered by cex-s (CexService) & Lighting Fullstack MVC");
         println("  METHOD  ROUTE PATTERN               HANDLER ACTION");
         println("  -------------------------------------------------------------");
-        int count = this.router->getRouteCount();
-        for (int i = 0; i < count; i++) {
-            LightingRouteEntry* r = this.router->routes->get(i);
+        let count: int = this.router->getRouteCount();
+        for (let i: int = 0; i < count; i++) {
+            let r: LightingRouteEntry* = this.router->routes->get(i);
             print("  "); print(r->method);
-            for (int s = (int)r->method.length(); s < 8; s++) print(" ");
+            for (let s: int = (int)r->method.length(); s < 8; s++) print(" ");
             print(r->pattern);
-            for (int s = (int)r->pattern.length(); s < 28; s++) print(" ");
+            for (let s: int = (int)r->pattern.length(); s < 28; s++) print(" ");
             println(r->handlerId);
         }
         println("-------------------------------------------------------------");
+    }
+
+    private HttpResponse* renderDashboard() {
+        let ctx: TemplateContext* = new TemplateContext();
+        ctx->set("title", "Portal Dashboard");
+        ctx->set("port", std::to_string(this.port));
+        ctx->set("activeHome", "active");
+        ctx->set("activeDownloads", "");
+        ctx->set("activeDocs", "");
+        ctx->set("activeSetup", "");
+        ctx->set("totalArtifacts", std::to_string((int)this.builder->artifacts->length()));
+        ctx->set("totalPlatforms", std::to_string((int)this.builder->platforms->length()));
+        ctx->set("currentActive", this.cxvm->current());
+
+        for (let i: int = 0; i < (int)this.builder->platforms->length(); i++) {
+            let p: PlatformModel* = this.builder->platforms->get(i);
+            let item: TemplateItem* = new TemplateItem();
+            item->set("displayName", p->displayName);
+            item->set("os", p->os);
+            item->set("targetTriple", p->targetTriple);
+            item->set("compiler", p->compiler);
+            item->set("archiveFormat", p->archiveFormat);
+            ctx->addListItem("platforms", item);
+        }
+
+        for (let i: int = 0; i < (int)this.builder->versions->length(); i++) {
+            let v: VersionModel* = this.builder->versions->get(i);
+            let item: TemplateItem* = new TemplateItem();
+            item->set("version", v->version);
+            item->set("channel", v->channel);
+            item->set("channelBadge", (v->channel == "STABLE" ? "badge-stable" : (v->channel == "LTS" ? "badge-lts" : "badge-canary")));
+            item->set("releaseDate", v->releaseDate);
+            item->set("minCpp", v->minCpp);
+            item->set("description", v->description);
+            ctx->addListItem("versions", item);
+        }
+
+        let html: string = PageRenderer::renderFiles("src/views/dashboard.xhtml", "src/views/layout.xhtml", ctx);
+        return HttpResponse::ok(html, "text/html");
+    }
+
+    private HttpResponse* renderDownloads() {
+        let ctx: TemplateContext* = new TemplateContext();
+        ctx->set("title", "Downloads");
+        ctx->set("port", std::to_string(this.port));
+        ctx->set("activeHome", "");
+        ctx->set("activeDownloads", "active");
+        ctx->set("activeDocs", "");
+        ctx->set("activeSetup", "");
+        ctx->set("downloadsDir", this.downloadsDir);
+
+        for (let i: int = 0; i < (int)this.builder->artifacts->length(); i++) {
+            let a: ArtifactModel* = this.builder->artifacts->get(i);
+            let item: TemplateItem* = new TemplateItem();
+            item->set("filename", a->filename);
+            item->set("platform", a->platform);
+            item->set("arch", a->arch);
+            item->set("sizeBytes", std::to_string(a->sizeBytes));
+            item->set("shaPrefix", a->sha256.length() > 16 ? a->sha256.substr(0, 16) : a->sha256);
+            item->set("downloadUrl", a->downloadUrl);
+            ctx->addListItem("artifacts", item);
+        }
+
+        let html: string = PageRenderer::renderFiles("src/views/downloads.xhtml", "src/views/layout.xhtml", ctx);
+        return HttpResponse::ok(html, "text/html");
+    }
+
+    private HttpResponse* renderCxvmDocs() {
+        let ctx: TemplateContext* = new TemplateContext();
+        ctx->set("title", "cxvm Guide");
+        ctx->set("port", std::to_string(this.port));
+        ctx->set("activeHome", "");
+        ctx->set("activeDownloads", "");
+        ctx->set("activeDocs", "active");
+        ctx->set("activeSetup", "");
+
+        let html: string = PageRenderer::renderFiles("src/views/cxvm_docs.xhtml", "src/views/layout.xhtml", ctx);
+        return HttpResponse::ok(html, "text/html");
+    }
+
+    private HttpResponse* renderSetup() {
+        let ctx: TemplateContext* = new TemplateContext();
+        ctx->set("title", "Setup Window");
+        ctx->set("port", std::to_string(this.port));
+        ctx->set("activeHome", "");
+        ctx->set("activeDownloads", "");
+        ctx->set("activeDocs", "");
+        ctx->set("activeSetup", "active");
+        ctx->set("currentActive", this.cxvm->current());
+        ctx->set("defaultVer", this.cxvm->defaultVersion);
+        ctx->set("doctorOut", this.cxvm->doctor());
+
+        let html: string = PageRenderer::renderFiles("src/views/setup.xhtml", "src/views/layout.xhtml", ctx);
+        return HttpResponse::ok(html, "text/html");
     }
 }

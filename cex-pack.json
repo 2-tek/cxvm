@@ -19,11 +19,10 @@
     },
     "required": {
         "cexp": "^8",
-        "cexp-v8": "^8",
         "cexp-v8-stable": "^8",
+        "cexp-v8": "^8",
         "cexr-bean": "^1",
-        "cexr-factory": "^1",
-        "cexr": "^8"
+        "cexr-factory": "^1"
     },
     "scripts": {
         "install": "cex-pack downloads",
@@ -36,7 +35,7 @@
     },
     "dependencies": {
         "cex-test": "2.0.0",
-        "cex-service": "2.0.0",
+        "mvc-lighting": "6.1.10",
         "cex-std": "2.0.0",
         "cex-log": "2.0.0",
         "cex-lint": "2.0.0",
@@ -46,10 +45,15 @@
         "cex-builder": "2.0.0",
         "builder": "2.0.0"
     },
-    "includeDirs": ["./src"],
+    "includeDirs": [
+        "./src"
+    ],
     "lint": {
         "onBuild": true,
-        "include": ["src", "tests"],
+        "include": [
+            "src",
+            "tests"
+        ],
         "rules": {
             "indent": {
                 "level": "error",

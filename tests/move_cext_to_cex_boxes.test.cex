@@ -1,0 +1,98 @@
+// Standard Specification: .agents/ssr/30-10-2026/move-cext-to-cex-boxes-and-update-modules-path/ssr.md
+// Conformance: Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types), RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <cstdlib>
+#include <sys/stat.h>
+
+using namespace std;
+
+void assertCondition(bool condition, string message) {
+    if (condition) {
+        cout << "  [PASS] " << message << endl;
+    } else {
+        cout << "  [FAIL] " << message << endl;
+        exit(1);
+    }
+}
+
+bool fileExists(string path) {
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+
+string readFile(string path) {
+    ifstream file(path);
+    if (!file.is_open()) return "";
+    string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+    return content;
+}
+
+int main(int argc, char** argv) {
+    cout << "=================================================================" << endl;
+    cout << "Running Unit Test: Move cext to cex_boxes & Update Module Paths" << endl;
+    cout << "=================================================================" << endl;
+
+    // Test 1: TC-01: Verifying root cext/ is deleted
+    cout << "[Test 1] TC-01: Verifying root cext/ directory does not exist..." << endl;
+    assertCondition(!fileExists("cext"), "Root cext/ directory does not exist");
+
+    // Test 2: TC-02: Verifying cex_boxes/cext exists and contains essential files
+    cout << "[Test 2] TC-02: Verifying cex_boxes/cext exists with essential files..." << endl;
+    assertCondition(fileExists("cex_boxes/cext"), "cex_boxes/cext exists");
+    assertCondition(fileExists("cex_boxes/cext/cex-pack.json"), "cex_boxes/cext/cex-pack.json exists");
+    assertCondition(fileExists("cex_boxes/cext/src/assert.cex"), "cex_boxes/cext/src/assert.cex exists");
+
+    // Test 3: TC-03: Verifying .gitmodules contains deps/cext mapping
+    cout << "[Test 3] TC-03: Verifying .gitmodules contains deps/cext mapping..." << endl;
+    let gitmodules: string = readFile(".gitmodules");
+    assertCondition(!gitmodules.empty(), ".gitmodules exists and is non-empty");
+    assertCondition(gitmodules.find("submodule \"deps/cext\"") != string::npos, ".gitmodules has submodule deps/cext");
+    assertCondition(gitmodules.find("path = cex_boxes/cext") != string::npos, ".gitmodules has path = cex_boxes/cext");
+
+    // Test 4: TC-04: Verifying README.md has updated module paths
+    cout << "[Test 4] TC-04: Verifying README.md has updated module paths..." << endl;
+    let readme: string = readFile("README.md");
+    assertCondition(!readme.empty(), "README.md exists and is non-empty");
+    assertCondition(readme.find("compilers/") != string::npos, "README.md documents compilers/");
+    assertCondition(readme.find("runtimes/") != string::npos, "README.md documents runtimes/");
+    assertCondition(readme.find("cxvm/") != string::npos, "README.md documents cxvm/");
+    assertCondition(readme.find("cex_boxes/") != string::npos, "README.md documents cex_boxes/");
+    assertCondition(readme.find("projects/") != string::npos, "README.md documents projects/");
+    assertCondition(readme.find("alpha/core") == string::npos, "README.md has no legacy alpha/core references");
+    assertCondition(readme.find("alpha/deps") == string::npos, "README.md has no legacy alpha/deps references");
+
+    // Test 5: TC-05: Verifying PROJECT_TARGET.md includes cex_boxes and cext
+    cout << "[Test 5] TC-05: Verifying PROJECT_TARGET.md includes cex_boxes and cext..." << endl;
+    let projectTarget: string = readFile("PROJECT_TARGET.md");
+    assertCondition(!projectTarget.empty(), "PROJECT_TARGET.md exists and is non-empty");
+    assertCondition(projectTarget.find("cex_boxes/") != string::npos, "PROJECT_TARGET.md contains cex_boxes/");
+    assertCondition(projectTarget.find("cext") != string::npos, "PROJECT_TARGET.md contains cext");
+    assertCondition(projectTarget.find("alpha/deps") == string::npos, "PROJECT_TARGET.md has no legacy alpha/deps");
+    assertCondition(projectTarget.find("alpha/mvc-lighting") == string::npos, "PROJECT_TARGET.md has no legacy alpha/mvc-lighting");
+
+    // Test 6: TC-06: Verifying Rule 29 EOF single trailing newline
+    cout << "[Test 6] TC-06: Verifying Rule 29 single trailing newline EOF..." << endl;
+    vector<string> filesToCheck = {
+        ".gitmodules",
+        "README.md",
+        "PROJECT_TARGET.md"
+    };
+
+    for (let i: size_t = 0; i < filesToCheck.size(); i++) {
+        let content: string = readFile(filesToCheck[i]);
+        assertCondition(!content.empty(), filesToCheck[i] + " is not empty");
+        assertCondition(content.substr(content.size() - 1, 1) == "\n", filesToCheck[i] + " ends with newline");
+        if (content.size() >= 2) {
+            assertCondition(content.substr(content.size() - 2, 1) != "\n", filesToCheck[i] + " has single trailing newline");
+        }
+    }
+
+    cout << "=================================================================" << endl;
+    cout << "ALL TEST CASES PASSED SUCCESSFULLY (6/6)" << endl;
+    cout << "=================================================================" << endl;
+    return 0;
+}

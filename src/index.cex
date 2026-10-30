@@ -7,12 +7,11 @@ import "./types.cex";
 import "./models/platform_model.cex";
 import "./models/version_model.cex";
 import "./models/artifact_model.cex";
-import "./dist_builder.cex";
+import "./models/package_catalog.cex";
 import "./cxvm_engine.cex";
 import "./app.cex";
 import "@cex-cli/src/terminal.cex";
 import "@cex-cli/src/cli.cex";
-import "@cex-service/src/app.cex";
 import "@cex-std/src/filesystem.cex";
 import "@cex-std/src/chrono.cex";
 
@@ -24,31 +23,32 @@ int classifyCliCommand(string cmd) {
 
 int main(int argc, char** argv) {
     if (argc > 1) {
-        string cmd = std::string(argv[1]);
-        int cmdCode = classifyCliCommand(cmd);
+        let cmd: string = std::string(argv[1]);
+        let cmdCode: int = classifyCliCommand(cmd);
         switch (cmdCode) {
             case 1: {
                 TerminalUI::renderHeader("CXVM v2.1.43", "Pure Cex Native Engine: cexr + cexp; powered by cex-cli, cex-s & cex-std");
-                CxvmEngine* cxvm = new CxvmEngine();
+                let cxvm: CxvmEngine* = new CxvmEngine();
                 println(cxvm->cexrVersionOutput());
                 return 0;
             }
             case 2: {
                 TerminalUI::renderHeader("2-TEK CXVM: Cex Version Manager", "Cross-platform runtime & VCS manager (cex-cli, cex-s, cex-std)");
                 println("Usage: cxvm <command> [arguments] [options]");
-                println("Commands: setup, resetup, reinstall, install, use, current, list, doctor, init, dev, build, rebuild, path, fixed, jumpy, start, lint, test, cexp, lighting, thunder, cvm, javis, vision, ultron, builder");
+                println("Commands: setup, resetup, reinstall, install, use, upgrade, current, list, doctor, init, dev, build, rebuild, path, fixed, jumpy, start, lint, test, cexp, lighting, thunder, cvm, javis, vision, ultron, builder");
+                println("  upgrade [options]    Auto pull and build libraries with last version in git | cvm");
                 return 0;
             }
             default:
             break;
         }
-        string arg1 = (argc > 2) ? std::string(argv[2]) : "";
-        string arg2 = "";
-        for (int i = 3; i < argc; i++) {
+        let arg1: string = (argc > 2) ? std::string(argv[2]) : "";
+        let arg2: string = "";
+        for (let i: int = 3; i < argc; i++) {
             if (arg2.length() > 0) arg2 += " ";
             arg2 += std::string(argv[i]);
         }
-        CxvmEngine* cxvm = new CxvmEngine();
+        let cxvm: CxvmEngine* = new CxvmEngine();
         return cxvm->cvmExecute(cmd, arg1, arg2);
     }
 
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
 
     // 1. Initializing Factory App Kernel
     println("\n[1. Initializing Factory Application Kernel on Port " + std::to_string(CxvmConstants::defaultPort()) + "]");
-    FactoryApp* app = new FactoryApp(CxvmConstants::defaultPort());
+    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
     app->start();
     print("  Application:     "); println(app->appName);
     print("  Server Port:     "); println(app->port);
@@ -66,16 +66,16 @@ int main(int argc, char** argv) {
 
     // 2. Testing Model Layer & Validation
     println("\n[2. Testing Model Layer & Entity Validation]");
-    PlatformModel* pModel = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8 (Native Direct Compiler)", "tar.gz", "Linux x86_64");
-    ModelValidationResult* pVal = pModel->validate();
+    let pModel: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8 (Native Direct Compiler)", "tar.gz", "Linux x86_64");
+    let pVal: ModelValidationResult* = pModel->validate();
     print("  Platform Model Validation: "); println(pVal->isValid ? "PASSED [OK]" : "FAILED");
 
-    VersionModel* vModel = new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & CexP v8 Pure Engine", "CexR v8 High-Performance Native Server Engine", true);
-    ModelValidationResult* vVal = vModel->validate();
+    let vModel: VersionModel* = new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 & CexP v8 Pure Engine", "CexR v8 High-Performance Native Server Engine", true);
+    let vVal: ModelValidationResult* = vModel->validate();
     print("  Version Model Validation:  "); println(vVal->isValid ? "PASSED [OK]" : "FAILED");
 
-    ArtifactModel* aModel = new ArtifactModel("cex-v8.0.0-linux-x86_64.tar.gz", "8.0.0", "linux", "x86_64", 2797, "97c324a082371d1dd5f9051077e0563f5df2e3d8dae08c6178035db0c7d141ca", "/downloads/cex-v8.0.0-linux-x86_64.tar.gz");
-    ModelValidationResult* aVal = aModel->validate();
+    let aModel: ArtifactModel* = new ArtifactModel("cex-v8.0.0-linux-x86_64.tar.gz", "8.0.0", "linux", "x86_64", 2797, "97c324a082371d1dd5f9051077e0563f5df2e3d8dae08c6178035db0c7d141ca", "/downloads/cex-v8.0.0-linux-x86_64.tar.gz");
+    let aVal: ModelValidationResult* = aModel->validate();
     print("  Artifact Model Validation: "); println(aVal->isValid ? "PASSED [OK]" : "FAILED");
 
     // 3. Testing CXVM Version Manager Engine (like nvm)
@@ -84,16 +84,16 @@ int main(int argc, char** argv) {
     println("  " + app->cxvm->list());
 
     println("  ▶ Simulating: cxvm install 2.0.0");
-    CxvmCommandResult* instRes = app->cxvm->install("2.0.0");
+    let instRes: CxvmCommandResult* = app->cxvm->install("2.0.0");
     print("    Result: "); println(instRes->success ? "PASSED [OK]" : "FAILED");
 
     println("  ▶ Simulating: cxvm use 2.0.0");
-    CxvmCommandResult* useRes = app->cxvm->use("2.0.0");
+    let useRes: CxvmCommandResult* = app->cxvm->use("2.0.0");
     print("    Result: "); println(useRes->success ? "PASSED [OK]" : "FAILED");
     print("    Active Version now: "); println(app->cxvm->current());
 
     println("\n  ▶ Simulating: cxvm init (default init project with cex-pack, my-project, .cex_boxes, .cvm)");
-    CxvmCommandResult* initRes = app->cxvm->cxvmInit("my-project", ".");
+    let initRes: CxvmCommandResult* = app->cxvm->cxvmInit("my-project", ".");
     print("    Result: "); println(initRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(initRes->output);
 
@@ -103,75 +103,75 @@ int main(int argc, char** argv) {
     // 3b. Testing Integrated CVM (CodeVersionManager) Commands
     println("\n[3b. Testing Integrated CVM Commands (cxvm commit, cxvm push, cxvm status)]");
     println("  ▶ Simulating: cxvm status");
-    CxvmCommandResult* stRes = app->cxvm->cvmStatus();
+    let stRes: CxvmCommandResult* = app->cxvm->cvmStatus();
     println("    " + stRes->output);
 
     println("  ▶ Simulating: cxvm add src/app.cex");
-    CxvmCommandResult* addRes = app->cxvm->cvmAdd("src/app.cex", "// app content\n");
+    let addRes: CxvmCommandResult* = app->cxvm->cvmAdd("src/app.cex", "// app content\n");
     print("    Result: "); println(addRes->success ? "PASSED [OK]" : "FAILED");
 
     println("  ▶ Simulating: cxvm commit -m \"feat(cxvm): integrate cvm into cxvm\"");
-    CxvmCommandResult* comRes = app->cxvm->cvmCommit("feat(cxvm): integrate cvm into cxvm", "2-TEK Lead", "lead@2tek.local");
+    let comRes: CxvmCommandResult* = app->cxvm->cvmCommit("feat(cxvm): integrate cvm into cxvm", "2-TEK Lead", "lead@2tek.local");
     print("    Result: "); println(comRes->success ? "PASSED [OK]" : "FAILED");
     print("    Commit: "); println(comRes->output);
 
     println("  ▶ Simulating: cxvm push origin main");
-    CxvmCommandResult* pushRes = app->cxvm->cvmPush("origin", "main");
+    let pushRes: CxvmCommandResult* = app->cxvm->cvmPush("origin", "main");
     print("    Result: "); println(pushRes->success ? "PASSED [OK]" : "FAILED");
     print("    Push output:\n    "); println(pushRes->output);
 
     println("\n  ▶ Simulating: cxvm start cvm (standalone single process)");
-    CxvmCommandResult* srvStartRes = app->cxvm->startCvm(4000, true);
+    let srvStartRes: CxvmCommandResult* = app->cxvm->startCvm(4000, true);
     print("    Result: "); println(srvStartRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(srvStartRes->output);
 
     println("  ▶ Simulating: cxvm status cvm");
-    CxvmCommandResult* srvStatRes = app->cxvm->statusCvm();
+    let srvStatRes: CxvmCommandResult* = app->cxvm->statusCvm();
     println("    " + srvStatRes->output);
 
     println("  ▶ Simulating: cxvm stop cvm");
-    CxvmCommandResult* srvStopRes = app->cxvm->stopCvm();
+    let srvStopRes: CxvmCommandResult* = app->cxvm->stopCvm();
     print("    Result: "); println(srvStopRes->success ? "PASSED [OK]" : "FAILED");
 
     // 3c. Testing Integrated Thunder Container Engine Commands
     println("\n[3c. Testing Integrated Thunder Engine (cxvm thunder, cxvm docker, cxvm start thunder)]");
     println("  ▶ Simulating: cxvm start thunder (standalone single process)");
-    CxvmCommandResult* thStartRes = app->cxvm->startThunder(3050, true);
+    let thStartRes: CxvmCommandResult* = app->cxvm->startThunder(3050, true);
     print("    Result: "); println(thStartRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(thStartRes->output);
 
     println("  ▶ Simulating: cxvm status thunder");
-    CxvmCommandResult* thStatRes = app->cxvm->statusThunder();
+    let thStatRes: CxvmCommandResult* = app->cxvm->statusThunder();
     println("    " + thStatRes->output);
 
     println("  ▶ Simulating: cxvm thunder ps");
-    int thPsCode = app->cxvm->thunderExecute("ps", "", "");
+    let thPsCode: int = app->cxvm->thunderExecute("ps", "", "");
     print("    Result: "); println(thPsCode == 0 ? "PASSED [OK]" : "FAILED");
 
     println("  ▶ Simulating: cxvm stop thunder");
-    CxvmCommandResult* thStopRes = app->cxvm->stopThunder();
+    let thStopRes: CxvmCommandResult* = app->cxvm->stopThunder();
     print("    Result: "); println(thStopRes->success ? "PASSED [OK]" : "FAILED");
 
     // 3d. Testing Integrated Lighting Fullstack MVC Engine (cxvm light, cxvm lighting create)
     println("\n[3d. Testing Integrated Lighting Engine (cxvm lighting create, cxvm lighting dev, cxvm lighting build)]");
     println("  ▶ Simulating: cxvm lighting create sample-service");
-    CxvmCommandResult* lightCreateRes = app->cxvm->lightCreate("sample-service", ".");
+    let lightCreateRes: CxvmCommandResult* = app->cxvm->lightCreate("sample-service", ".");
     print("    Result: "); println(lightCreateRes->success ? "PASSED [OK]" : "FAILED");
     print("    Output:\n    "); println(lightCreateRes->output);
 
     println("  ▶ Simulating: cxvm lighting dev");
-    int lightDevCode = app->cxvm->lightExecute("dev", "", "");
+    let lightDevCode: int = app->cxvm->lightExecute("dev", "", "");
     print("    Result: "); println(lightDevCode == 0 ? "PASSED [OK]" : "FAILED");
 
     println("  ▶ Simulating: cxvm lighting doctor");
-    int lightDocCode = app->cxvm->lightExecute("doctor", "", "");
+    let lightDocCode: int = app->cxvm->lightExecute("doctor", "", "");
     print("    Result: "); println(lightDocCode == 0 ? "PASSED [OK]" : "FAILED");
 
     // 4. Testing Cross-Platform DistBuilder
     println("[4. Testing Cross-Platform Distribution Builder & Downloads Directory]");
     print("  Supported Architectures: "); println((int)app->builder->platforms->length());
     print("  Built Artifacts in Store: "); println((int)app->builder->artifacts->length());
-    ArtifactModel* sampleArt = app->builder->getArtifactByFilename("cex-v8.0.0-linux-x86_64.tar.gz");
+    let sampleArt: ArtifactModel* = app->builder->getArtifactByFilename("cex-v8.0.0-linux-x86_64.tar.gz");
     if (sampleArt === nullptr) {
         sampleArt = app->builder->getArtifactByFilename("cex-v6.0.0-linux-x86_64.tar.gz");
     }
@@ -182,72 +182,72 @@ int main(int argc, char** argv) {
 
     // 5. Testing Lighting MVC & Cex-Service SSR Views & HTTP Endpoints
     println("\n[5. Testing Lighting MVC SSR Views & REST JSON API Endpoints]");
-    HttpResponse* homeResp = app->simulateRequest("GET", "/", "", "text/html");
+    let homeResp: HttpResponse* = app->simulateRequest("GET", "/", "", "text/html");
     print("  GET / -> Status: "); print(homeResp->statusCode);
     print(" | Content-Type: "); print(homeResp->contentType);
     print(" | Size: "); print((int)homeResp->body.length()); println(" bytes");
 
-    HttpResponse* downResp = app->simulateRequest("GET", "/downloads", "", "text/html");
+    let downResp: HttpResponse* = app->simulateRequest("GET", "/downloads", "", "text/html");
     print("  GET /downloads -> Status: "); print(downResp->statusCode);
     print(" | Size: "); print((int)downResp->body.length()); println(" bytes");
 
-    HttpResponse* cxvmDocsResp = app->simulateRequest("GET", "/cxvm", "", "text/html");
+    let cxvmDocsResp: HttpResponse* = app->simulateRequest("GET", "/cxvm", "", "text/html");
     print("  GET /cxvm -> Status: "); print(cxvmDocsResp->statusCode);
     print(" | Size: "); print((int)cxvmDocsResp->body.length()); println(" bytes");
 
-    HttpResponse* setupResp = app->simulateRequest("GET", "/setup", "", "text/html");
+    let setupResp: HttpResponse* = app->simulateRequest("GET", "/setup", "", "text/html");
     print("  GET /setup -> Status: "); print(setupResp->statusCode);
     print(" | Size: "); print((int)setupResp->body.length()); println(" bytes");
 
-    HttpResponse* shResp = app->simulateRequest("GET", "/install.sh", "", "text/x-shellscript");
+    let shResp: HttpResponse* = app->simulateRequest("GET", "/install.sh", "", "text/x-shellscript");
     print("  GET /install.sh -> Status: "); print(shResp->statusCode);
     print(" | Content-Type: "); println(shResp->contentType);
 
-    HttpResponse* statusResp = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
+    let statusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
     print("  GET /api/v1/status -> "); println(statusResp->body);
 
-    HttpResponse* verResp = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
+    let verResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
     print("  GET /api/v1/versions -> "); println(verResp->body);
 
-    HttpResponse* platResp = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
+    let platResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
     print("  GET /api/v1/platforms -> "); println(platResp->body);
 
-    HttpResponse* setupApiResp = app->simulateRequest("GET", "/api/v1/setup", "", "application/json");
+    let setupApiResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/setup", "", "application/json");
     print("  GET /api/v1/setup -> "); println(setupApiResp->body);
 
-    HttpResponse* buildResp = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
+    let buildResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/build", "", "application/json");
     print("  POST /api/v1/build -> "); println(buildResp->body);
 
-    HttpResponse* cvmStatusResp = app->simulateRequest("GET", "/api/v1/cvm/status", "", "application/json");
+    let cvmStatusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/status", "", "application/json");
     print("  GET /api/v1/cvm/status -> "); println(cvmStatusResp->body);
 
-    HttpResponse* cvmCommitResp = app->simulateRequest("POST", "/api/v1/cvm/commit", "feat: api commit test", "application/json");
+    let cvmCommitResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/commit", "feat: api commit test", "application/json");
     print("  POST /api/v1/cvm/commit -> "); println(cvmCommitResp->body);
 
-    HttpResponse* cvmPushResp = app->simulateRequest("POST", "/api/v1/cvm/push", "", "application/json");
+    let cvmPushResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/cvm/push", "", "application/json");
     print("  POST /api/v1/cvm/push -> "); println(cvmPushResp->body);
 
-    HttpResponse* cvmSrvStatResp = app->simulateRequest("GET", "/api/v1/cvm/server/status", "", "application/json");
+    let cvmSrvStatResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/cvm/server/status", "", "application/json");
     print("  GET /api/v1/cvm/server/status -> "); println(cvmSrvStatResp->body);
 
-    HttpResponse* thStatusResp = app->simulateRequest("GET", "/api/v1/thunder/status", "", "application/json");
+    let thStatusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/status", "", "application/json");
     print("  GET /api/v1/thunder/status -> "); println(thStatusResp->body);
 
-    HttpResponse* thContainersResp = app->simulateRequest("GET", "/api/v1/thunder/containers", "", "application/json");
+    let thContainersResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/containers", "", "application/json");
     print("  GET /api/v1/thunder/containers -> "); println(thContainersResp->body);
 
-    HttpResponse* thImagesResp = app->simulateRequest("GET", "/api/v1/thunder/images", "", "application/json");
+    let thImagesResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/thunder/images", "", "application/json");
     print("  GET /api/v1/thunder/images -> "); println(thImagesResp->body);
 
-    HttpResponse* lightStatusResp = app->simulateRequest("GET", "/api/v1/light/status", "", "application/json");
+    let lightStatusResp: HttpResponse* = app->simulateRequest("GET", "/api/v1/light/status", "", "application/json");
     print("  GET /api/v1/light/status -> "); println(lightStatusResp->body);
 
-    HttpResponse* lightCreateResp = app->simulateRequest("POST", "/api/v1/light/create", "{\"projectName\":\"sample-service\"}", "application/json");
+    let lightCreateResp: HttpResponse* = app->simulateRequest("POST", "/api/v1/light/create", "{\"projectName\":\"sample-service\"}", "application/json");
     print("  POST /api/v1/light/create -> "); println(lightCreateResp->body);
 
-    // 6. Testing Cex-Service (cex-s) Dispatch
-    println("\n[6. Testing Cex-Service (cex-s) In-Process Server Dispatch]");
-    PerfectResponse* srvRes = app->simulateServiceRequest("GET", "/api/v1/status", "");
+    // 6. Testing In-Process Server Dispatch
+    println("\n[6. Testing In-Process Server Dispatch]");
+    let srvRes: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
     print("  Service GET /api/v1/status -> Status: "); print(srvRes->statusCode);
     print(" | Body: "); println(srvRes->body);
 

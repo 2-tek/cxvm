@@ -4,13 +4,13 @@
 import "../lighting_mvc.cex";
 
 class PlatformModel : BaseModel {
-    public string os;
-    public string arch;
-    public string targetTriple;
-    public string compiler;
-    public string archiveFormat;
-    public string displayName;
-    public bool isSupported = true;
+    public os: string;
+    public arch: string;
+    public targetTriple: string;
+    public compiler: string;
+    public archiveFormat: string;
+    public displayName: string;
+    public isSupported: bool = true;
 
     public constructor(string id, string os, string arch, string triple, string compiler, string fmt, string name) {
         super(id);
@@ -23,7 +23,7 @@ class PlatformModel : BaseModel {
     }
 
     public override ModelValidationResult* validate() {
-        ModelValidationResult* res = new ModelValidationResult();
+        let res: ModelValidationResult* = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -40,7 +40,7 @@ class PlatformModel : BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        JsonValue* doc = JsonDoc::obj();
+        let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "os", this.os);
         JsonDoc::setStr(doc, "arch", this.arch);
@@ -53,7 +53,7 @@ class PlatformModel : BaseModel {
     }
 
     public override string toJson() {
-        JsonValue* obj = Json::obj();
+        let obj: JsonValue* = Json::obj();
         Json::setString(obj, "os", this.os);
         Json::setString(obj, "arch", this.arch);
         Json::setString(obj, "targetTriple", this.targetTriple);

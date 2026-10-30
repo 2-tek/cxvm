@@ -1,0 +1,90 @@
+// Standard Specification: .agents/ssr/30-10-2026/delete-root-test-and-tasks-use-inside-project/ssr.md
+// Conformance: Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types), RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <cstdlib>
+#include <sys/stat.h>
+
+using namespace std;
+
+void assertCondition(bool condition, string message) {
+    if (condition) {
+        cout << "  [PASS] " << message << endl;
+    } else {
+        cout << "  [FAIL] " << message << endl;
+        exit(1);
+    }
+}
+
+bool fileExists(string path) {
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+
+string readFile(string path) {
+    ifstream file(path);
+    if (!file.is_open()) return "";
+    string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+    return content;
+}
+
+int main(int argc, char** argv) {
+    cout << "=================================================================" << endl;
+    cout << "Running Unit Test: In-Project Tests and Tasks Only (Root Purge)" << endl;
+    cout << "=================================================================" << endl;
+
+    // Test 1: TC-01: Verifying root test/ is deleted
+    cout << "[Test 1] TC-01: Verifying root test/ directory is deleted..." << endl;
+    assertCondition(!fileExists("test"), "Root test/ directory does not exist");
+
+    // Test 2: TC-02: Verifying root tasks/ is deleted
+    cout << "[Test 2] TC-02: Verifying root tasks/ directory is deleted..." << endl;
+    assertCondition(!fileExists("tasks"), "Root tasks/ directory does not exist");
+
+    // Test 3: TC-03: Verifying .agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md
+    cout << "[Test 3] TC-03: Verifying .agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md..." << endl;
+    let rule1: string = readFile(".agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md");
+    assertCondition(!rule1.empty(), ".agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md exists and is non-empty");
+    assertCondition(rule1.find("IN-PROJECT TESTS AND TASKS ONLY") != string::npos, "Rule contains in-project tests & tasks mandate");
+    assertCondition(rule1.find("PROHIBITION OF ROOT TEST AND TASKS") != string::npos || rule1.find("PROHIBITION OF ROOT") != string::npos, "Rule strictly prohibits root test and tasks");
+
+    // Test 4: TC-04: Verifying documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md
+    cout << "[Test 4] TC-04: Verifying documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md..." << endl;
+    let ruleDoc: string = readFile("documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md");
+    assertCondition(!ruleDoc.empty(), "documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md exists");
+    assertCondition(ruleDoc.find("IN-PROJECT TESTS AND TASKS ONLY") != string::npos, "Mirror rule contains mandate");
+
+    // Test 5: TC-05: Verifying RULE_STANDARDS.md integration
+    cout << "[Test 5] TC-05: Verifying RULE_STANDARDS.md references in-project tests & tasks..." << endl;
+    let stdRule: string = readFile(".agents/rules/RULE_STANDARDS.md");
+    assertCondition(!stdRule.empty(), ".agents/rules/RULE_STANDARDS.md exists");
+    assertCondition(stdRule.find("RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY") != string::npos, "RULE_STANDARDS.md references RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY");
+
+    // Test 6: TC-06: Verifying Rule 29 EOF single trailing newline
+    cout << "[Test 6] TC-06: Verifying Rule 29 single trailing newline EOF..." << endl;
+    vector<string> ruleFiles = {
+        ".agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md",
+        ".agents/rules/rule-in-project-tests-and-tasks-only.md",
+        "documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md",
+        "documents/rules/.agents/rule-in-project-tests-and-tasks-only.md",
+        ".agents/rules/RULE_STANDARDS.md",
+        "documents/rules/.agents/RULE_STANDARDS.md"
+    };
+
+    for (let i: size_t = 0; i < ruleFiles.size(); i++) {
+        let rContent: string = readFile(ruleFiles[i]);
+        assertCondition(!rContent.empty(), ruleFiles[i] + " is not empty");
+        assertCondition(rContent.substr(rContent.size() - 1, 1) == "\n", ruleFiles[i] + " ends with newline");
+        if (rContent.size() >= 2) {
+            assertCondition(rContent.substr(rContent.size() - 2, 1) != "\n", ruleFiles[i] + " has single trailing newline");
+        }
+    }
+
+    cout << "=================================================================" << endl;
+    cout << "ALL TEST CASES PASSED SUCCESSFULLY (6/6)" << endl;
+    cout << "=================================================================" << endl;
+    return 0;
+}

@@ -3,7 +3,7 @@
 **SSR Reference**: `SSR-20261029-CXVM-SCRIPTS-01`  
 **Date**: 29-10-2026  
 **Status**: COMPLETED [100% PASS]  
-**Test Runner**: `cexr tests/scripts.test.cex`  
+**Test Runner**: `cexr-factory tests/scripts.test.cex`  
 
 ---
 
@@ -11,8 +11,8 @@
 
 | Phase | Test Suite | Command | Total Checks | Failed | Passed | Exit Code | Result |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Red Phase** | `tests/scripts.test.cex` | `cexr tests/scripts.test.cex` | 11 | 6 | 5 | 1 | **FAIL (Verified Initial State)** |
-| **Green Phase** | `tests/scripts.test.cex` | `cexr tests/scripts.test.cex` | 11 | 0 | 11 | 0 | **PASS (100% Verified)** |
+| **Red Phase** | `tests/scripts.test.cex` | `cexr-factory tests/scripts.test.cex` | 11 | 6 | 5 | 1 | **FAIL (Verified Initial State)** |
+| **Green Phase** | `tests/scripts.test.cex` | `cexr-factory tests/scripts.test.cex` | 11 | 0 | 11 | 0 | **PASS (100% Verified)** |
 
 ---
 

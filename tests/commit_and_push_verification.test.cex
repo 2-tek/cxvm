@@ -1,0 +1,34 @@
+#include <std/core>
+#include <std/test>
+#include <std/fs>
+#include <std/json>
+
+class CommitAndPushVerificationTest {
+    public static void run() {
+        Test.describe("Commit and Push Verification Pre-flight Invariants", () => {
+            Test.it("TC-VCS-01: root cex-pack.json version is 2.0.8", () => {
+                let rootPackPath: string = "cex-pack.json";
+                Assert.isTrue(Fs.exists(rootPackPath), "root cex-pack.json must exist");
+                let content: string = Fs.readFile(rootPackPath);
+                Assert.isTrue(content.includes("\"version\": \"2.0.8\""), "root cex-pack.json version must be 2.0.8");
+            });
+
+            Test.it("TC-VCS-02: cexr-factory directory exists and runtimes is eliminated", () => {
+                Assert.isTrue(Fs.exists("cexr-factory"), "cexr-factory directory must exist");
+                Assert.isFalse(Fs.exists("runtimes"), "legacy runtimes directory must be eliminated");
+            });
+
+            Test.it("TC-VCS-03: SSR documents for commit and push exist", () => {
+                let ssrDir: string = ".agents/ssr/30-10-2026/commit-changed-then-push-code";
+                Assert.isTrue(Fs.exists(ssrDir + "/ssr.md"), "ssr.md must exist");
+                Assert.isTrue(Fs.exists(ssrDir + "/testcases.md"), "testcases.md must exist");
+                Assert.isTrue(Fs.exists(ssrDir + "/expectation.md"), "expectation.md must exist");
+            });
+        });
+    }
+}
+
+int main() {
+    CommitAndPushVerificationTest.run();
+    return 0;
+}

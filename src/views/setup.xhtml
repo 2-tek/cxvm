@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<div xmlns="https://www.2-tek.com/xhtml" class="setup-view">
+  <div class="card" style="background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; padding: 0;">
+    <div style="background: #0f172a; padding: 14px 20px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+        <span style="font-weight: 700; color: #f8fafc; font-size: 13px; margin-left: 10px;">CXVM Setup Window &amp; Environment Diagnostics</span>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <span class="badge badge-stable">Active: {{currentActive}}</span>
+        <span class="badge badge-lts">Default: {{defaultVer}}</span>
+      </div>
+    </div>
+
+    <div style="padding: 24px;">
+      <h2 style="font-size: 20px; color: #38bdf8; margin-bottom: 8px;">Automated Toolchain &amp; Subsystem Diagnostics</h2>
+      <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">
+        Live health evaluation of <code>cxvm</code>, <code>cexr</code> runtime, <code>cexp</code> compiler, <code>cvm</code> version control, and container services.
+      </p>
+
+      <div style="background: #050811; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 24px;">
+        <h4 style="color: #38bdf8; font-size: 12px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Diagnostic Log (cxvm doctor)</h4>
+        <pre style="font-family: var(--font-mono); font-size: 12px; color: #94a3b8; line-height: 1.5; white-space: pre-wrap; overflow-x: auto;">{{doctorOut}}</pre>
+      </div>
+
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <form method="POST" action="/api/v1/setup">
+          <input type="hidden" name="action" value="reinstall" />
+          <button type="submit" class="btn">[SYS] Run Complete Reinstallation</button>
+        </form>
+        <form method="POST" action="/api/v1/cvm/server/start">
+          <button type="submit" class="btn btn-secondary">[CVM] Start CVM Daemon</button>
+        </form>
+        <form method="POST" action="/api/v1/thunder/server/start">
+          <button type="submit" class="btn btn-secondary">[THUNDER] Start Thunder Daemon</button>
+        </form>
+        <a href="/api/v1/status" target="_blank" class="btn btn-secondary">[API] JSON Telemetry</a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<div xmlns="https://www.2-tek.com/xhtml" class="downloads-view">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div>
+      <h1 style="font-size: 26px; color: #38bdf8;">Cross-Platform Distribution Downloads</h1>
+      <p style="color: #94a3b8; font-size: 14px;">Pre-built native distribution bundles in <code>{{downloadsDir}}/</code></p>
+    </div>
+    <form method="POST" action="/api/v1/build">
+      <button type="submit" class="btn">Rebuild Distributions</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">cxvm Management Scripts</h3>
+    <table>
+      <thead>
+        <tr><th>Script Name</th><th>Platform</th><th>Format</th><th>Download</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>cxvm</b></td><td>Linux / macOS</td><td><span class="badge badge-lts">POSIX Bash</span></td><td><a href="/downloads/cxvm" class="btn" style="padding:4px 10px; font-size:12px;">Download cxvm</a></td></tr>
+        <tr><td><b>cxvm.ps1</b></td><td>Windows PowerShell</td><td><span class="badge badge-stable">PS1 Script</span></td><td><a href="/downloads/cxvm.ps1" class="btn" style="padding:4px 10px; font-size:12px;">Download cxvm.ps1</a></td></tr>
+        <tr><td><b>cxvm.cmd</b></td><td>Windows CMD</td><td><span class="badge badge-canary">Batch Launcher</span></td><td><a href="/downloads/cxvm.cmd" class="btn" style="padding:4px 10px; font-size:12px;">Download cxvm.cmd</a></td></tr>
+        <tr><td><b>setup.cex</b></td><td>All Platforms</td><td><span class="badge badge-stable">Pure Cex Native Setup</span></td><td><a href="/downloads/setup.cex" class="btn" style="padding:4px 10px; font-size:12px;">Download setup.cex</a></td></tr>
+        <tr><td><b>setup.sh</b></td><td>Linux / macOS</td><td><span class="badge badge-lts">POSIX Setup Window</span></td><td><a href="/downloads/setup.sh" class="btn" style="padding:4px 10px; font-size:12px;">Download setup.sh</a></td></tr>
+        <tr><td><b>setup.ps1</b></td><td>Windows PowerShell</td><td><span class="badge badge-stable">PS1 Setup Window</span></td><td><a href="/downloads/setup.ps1" class="btn" style="padding:4px 10px; font-size:12px;">Download setup.ps1</a></td></tr>
+        <tr><td><b>setup.cmd</b></td><td>Windows CMD</td><td><span class="badge badge-canary">CMD Setup Launcher</span></td><td><a href="/downloads/setup.cmd" class="btn" style="padding:4px 10px; font-size:12px;">Download setup.cmd</a></td></tr>
+        <tr><td><b>install.sh</b></td><td>Linux / macOS</td><td><span class="badge badge-lts">POSIX Quick Installer</span></td><td><a href="/downloads/install.sh" class="btn" style="padding:4px 10px; font-size:12px;">Download install.sh</a></td></tr>
+        <tr><td><b>install.ps1</b></td><td>Windows PowerShell</td><td><span class="badge badge-stable">PowerShell Quick Installer</span></td><td><a href="/downloads/install.ps1" class="btn" style="padding:4px 10px; font-size:12px;">Download install.ps1</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">Cex Runtime Bundles (with Native cexr)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Archive Filename</th>
+          <th>Target OS</th>
+          <th>Architecture</th>
+          <th>Size</th>
+          <th>SHA256 Checksum</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each artifacts}}
+        <tr>
+          <td style="font-family: var(--font-mono); font-weight: bold; color: #38bdf8;">{{this.filename}}</td>
+          <td><span class="badge badge-lts">{{this.platform}}</span></td>
+          <td><code style="color: #f8fafc;">{{this.arch}}</code></td>
+          <td>{{this.sizeBytes}} bytes</td>
+          <td><code style="font-size: 11px; color: #64748b;">{{this.shaPrefix}}...</code></td>
+          <td><a href="{{this.downloadUrl}}" class="btn" style="padding: 5px 12px; font-size: 12px;">Download</a></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>

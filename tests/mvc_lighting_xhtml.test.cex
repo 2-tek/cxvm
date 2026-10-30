@@ -1,0 +1,75 @@
+// 2-TEK CXVM: MVC-Lighting XHTML & API Controller Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import child_process from "child_process";
+import "@/src/types.cex";
+import "@/src/app.cex";
+
+int main() {
+    println("===============================================================================");
+    println("   2-TEK CXVM: MVC-Lighting XHTML Views & REST API Controller Test Suite       ");
+    println("===============================================================================");
+
+    let suite: TestSuite* = new TestSuite("CXVM MVC-Lighting XHTML Tests");
+
+    // 1. Verify Native .xhtml Files Exist
+    println("[Test 1] TC-CXVM-01: Verifying native .xhtml template files in src/views/...");
+    Assert::isTrue(fs.exists("src/views/layout.xhtml") || fs.exists("cxvm/src/views/layout.xhtml"), "layout.xhtml exists");
+    Assert::isTrue(fs.exists("src/views/dashboard.xhtml") || fs.exists("cxvm/src/views/dashboard.xhtml"), "dashboard.xhtml exists");
+    Assert::isTrue(fs.exists("src/views/downloads.xhtml") || fs.exists("cxvm/src/views/downloads.xhtml"), "downloads.xhtml exists");
+    Assert::isTrue(fs.exists("src/views/cxvm_docs.xhtml") || fs.exists("cxvm/src/views/cxvm_docs.xhtml"), "cxvm_docs.xhtml exists");
+    Assert::isTrue(fs.exists("src/views/setup.xhtml") || fs.exists("cxvm/src/views/setup.xhtml"), "setup.xhtml exists");
+
+    // 2. Verify Deprecated Files are Deleted
+    println("[Test 2] TC-CXVM-05: Verifying deprecated files are eliminated...");
+    Assert::isTrue(!fs.exists("src/dist_builder.cex") && !fs.exists("cxvm/src/dist_builder.cex"), "dist_builder.cex is deleted");
+    Assert::isTrue(!fs.exists("src/views/factory_views.cex") && !fs.exists("cxvm/src/views/factory_views.cex"), "factory_views.cex is deleted");
+    Assert::isTrue(!fs.exists("cex-pack-linked.json") && !fs.exists("cxvm/cex-pack-linked.json"), "cex-pack-linked.json is deleted");
+    Assert::isTrue(!fs.exists(".cex_boxes") && !fs.exists("cxvm/.cex_boxes"), "legacy .cex_boxes directory is deleted");
+
+    // 3. Verify FactoryApp Serves .xhtml Views
+    println("[Test 3] TC-CXVM-02 & TC-CXVM-03: Verifying .xhtml view responses...");
+    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
+    app->start();
+
+    let resHome: HttpResponse* = app->simulateRequest("GET", "/", "", "text/html");
+    Assert::equalsInt(200, resHome->statusCode, "GET / returns 200 OK");
+    Assert::isTrue(resHome->body.find("<!DOCTYPE html") != -1 || resHome->body.find("<?xml") != -1, "Home view contains DOCTYPE");
+    Assert::isTrue(resHome->body.find("2-TEK Cex Factory") != -1 || resHome->body.find("CXVM") != -1, "Home view contains portal heading");
+
+    let resDownloads: HttpResponse* = app->simulateRequest("GET", "/downloads", "", "text/html");
+    Assert::equalsInt(200, resDownloads->statusCode, "GET /downloads returns 200 OK");
+    Assert::isTrue(resDownloads->body.find("Downloads") != -1, "Downloads view rendered");
+
+    let resDocs: HttpResponse* = app->simulateRequest("GET", "/cxvm", "", "text/html");
+    Assert::equalsInt(200, resDocs->statusCode, "GET /cxvm returns 200 OK");
+    Assert::isTrue(resDocs->body.find("CXVM") != -1, "Docs view rendered");
+
+    let resSetup: HttpResponse* = app->simulateRequest("GET", "/setup", "", "text/html");
+    Assert::equalsInt(200, resSetup->statusCode, "GET /setup returns 200 OK");
+    Assert::isTrue(resSetup->body.find("Setup") != -1, "Setup view rendered");
+
+    // 4. Verify REST API Endpoints via FactoryController
+    println("[Test 4] TC-CXVM-04 & TC-CXVM-06: Verifying REST API endpoints...");
+    let resStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
+    Assert::equalsInt(200, resStatus->statusCode, "GET /api/v1/status returns 200 OK");
+    Assert::isTrue(resStatus->body.find("ACTIVE") != -1, "Status API returns ACTIVE");
+
+    let resVersions: HttpResponse* = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
+    Assert::equalsInt(200, resVersions->statusCode, "GET /api/v1/versions returns 200 OK");
+    Assert::isTrue(resVersions->body.find("versions") != -1, "Versions API returns versions array");
+
+    let resPlatforms: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
+    Assert::equalsInt(200, resPlatforms->statusCode, "GET /api/v1/platforms returns 200 OK");
+    Assert::isTrue(resPlatforms->body.find("platforms") != -1, "Platforms API returns platforms array");
+
+    suite->addResult("test_mvc_lighting_xhtml_and_api_controller", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<div xmlns="https://www.2-tek.com/xhtml" class="dashboard-view">
+  <div class="card" style="text-align: center; padding: 48px 24px; background: radial-gradient(circle at 50% 20%, #1e293b, #0f172a);">
+    <h1 style="font-size: 34px; margin-bottom: 12px; color: #38bdf8;">Cex Cross-Platform Factory &amp; Runtime Setup</h1>
+    <p style="font-size: 15px; color: #94a3b8; max-width: 720px; margin: 0 auto 24px;">
+      Universal cross-platform toolchain distribution and version manager for C-ext (<strong>.cex</strong>).
+      Download <strong>cxvm</strong> across platforms to effortlessly install, switch, and maintain native <strong>cexr</strong> runtimes on Linux, macOS, and Windows.
+    </p>
+    <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+      <a href="/setup" class="btn" style="background: #0284c7;">[WIN] Open Setup Window</a>
+      <a href="/downloads" class="btn">[PKG] Explore Downloads ({{totalArtifacts}} Bundles)</a>
+      <a href="/cxvm" class="btn btn-secondary">[DOCS] cxvm CLI Guide</a>
+      <a href="/downloads/cxvm" class="btn btn-secondary">Download cxvm (POSIX)</a>
+      <a href="/downloads/cxvm.ps1" class="btn btn-secondary">Download cxvm (PowerShell)</a>
+      <a href="/api/v1/manifest" target="_blank" class="btn btn-secondary">Manifest JSON</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">Cross-Platform One-Line Installers to Setup cexr</h2>
+    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">Run the quick installer in your terminal to bootstrap <code>cxvm</code> and configure the native <code>cexr</code> runtime:</p>
+
+    <div style="margin-bottom: 16px;">
+      <span style="font-size: 12px; font-weight: 700; color: #34d399;">Linux &amp; macOS (curl | bash via GitHub):</span>
+      <div class="code-box">
+        <code>curl -fsSL https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/install.sh | bash</code>
+        <span style="color: #64748b; font-size: 11px;">POSIX sh/bash</span>
+      </div>
+    </div>
+
+    <div>
+      <span style="font-size: 12px; font-weight: 700; color: #60a5fa;">Windows (PowerShell irm | iex via GitHub):</span>
+      <div class="code-box">
+        <code>irm https://raw.githubusercontent.com/2-tek/cxvm/main/downloads/install.ps1 | iex</code>
+        <span style="color: #64748b; font-size: 11px;">PowerShell 5.1+</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2>Cross-Platform Architecture Support Matrix</h2>
+      <span class="badge badge-stable">{{totalPlatforms}} Architectures Active</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Target Architecture</th>
+          <th>Operating System</th>
+          <th>Target Triple</th>
+          <th>Native Toolchain</th>
+          <th>Format</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each platforms}}
+        <tr>
+          <td style="font-weight: bold; color: #f8fafc;">{{this.displayName}}</td>
+          <td><span style="font-family: var(--font-mono); color: #38bdf8;">{{this.os}}</span></td>
+          <td><code style="color: #94a3b8;">{{this.targetTriple}}</code></td>
+          <td>{{this.compiler}}</td>
+          <td><span class="badge badge-lts">.{{this.archiveFormat}}</span></td>
+          <td><span class="badge badge-stable">READY</span></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2>Available Cex Runtime Versions</h2>
+      <span class="badge badge-lts">Current Default: {{currentActive}}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Version</th>
+          <th>Channel</th>
+          <th>Release Date</th>
+          <th>Toolchain Standard</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each versions}}
+        <tr>
+          <td style="font-weight: bold; font-family: var(--font-mono); color: #38bdf8;">v{{this.version}}</td>
+          <td><span class="badge {{this.channelBadge}}">{{this.channel}}</span></td>
+          <td>{{this.releaseDate}}</td>
+          <td><code style="color: #34d399;">{{this.minCpp}}</code></td>
+          <td style="color: #94a3b8;">{{this.description}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>

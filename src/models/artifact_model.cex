@@ -4,14 +4,14 @@
 import "../lighting_mvc.cex";
 
 class ArtifactModel : BaseModel {
-    public string filename;
-    public string version;
-    public string platform;
-    public string arch;
-    public int sizeBytes;
-    public string sha256;
-    public string downloadUrl;
-    public bool isBuilt;
+    public filename: string;
+    public version: string;
+    public platform: string;
+    public arch: string;
+    public sizeBytes: int;
+    public sha256: string;
+    public downloadUrl: string;
+    public isBuilt: bool;
 
     public constructor(string fname, string ver, string plat, string arch, int size, string hash, string url) {
         super(fname);
@@ -26,7 +26,7 @@ class ArtifactModel : BaseModel {
     }
 
     public override ModelValidationResult* validate() {
-        ModelValidationResult* res = new ModelValidationResult();
+        let res: ModelValidationResult* = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -40,7 +40,7 @@ class ArtifactModel : BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        JsonValue* doc = JsonDoc::obj();
+        let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "filename", this.filename);
         JsonDoc::setStr(doc, "version", this.version);
@@ -54,7 +54,7 @@ class ArtifactModel : BaseModel {
     }
 
     public override string toJson() {
-        JsonValue* obj = Json::obj();
+        let obj: JsonValue* = Json::obj();
         Json::setString(obj, "filename", this.filename);
         Json::setString(obj, "version", this.version);
         Json::setString(obj, "platform", this.platform);

@@ -19,6 +19,7 @@ class SetupRunner {
             ((libName == "cex-lint") ? 4 :
             ((libName == "cext" || libName == "cex-test") ? 5 :
             ((libName == "cex-cli" || libName == "cli" || libName == "cex-cvm-cli") ? 6 :
+            ((libName == "mvc-lighting" || libName == "lighting") ? 13 :
             ((libName == "cex-service" || libName == "cex-s") ? 7 :
             ((libName == "cex-std") ? 8 :
             ((libName == "javis" || libName == "java" || libName == "models" || libName == "ultron") ? 9 :
@@ -39,6 +40,7 @@ class SetupRunner {
             case 10: return "2.0.0";
             case 11: return "2.1.43";
             case 12: return "1.0.0";
+            case 13: return "6.1.10";
             default: return defaultFallback;
         }
     }
@@ -78,7 +80,7 @@ class SetupRunner {
         libs->push("cex-test");
         libs->push("cex-cli");
         libs->push("cex-cvm-cli");
-        libs->push("cex-service");
+        libs->push("mvc-lighting");
         libs->push("cex-std");
         libs->push("cxvm-bean");
         libs->push("javis");
@@ -402,10 +404,10 @@ class SetupRunner {
 
         // Register bin apps with exact version of cexr (1.0.26)
         string exactCexr = this.cexrExactVersion;
-        string cexrFactorySrc = fs.exists(curPwd + "/runtimes/cexr-factory/.bin") ? (curPwd + "/runtimes/cexr-factory/.bin") : (fs.exists(curPwd + "/runtimes/cexr-factory/bin/cexr-factory") ? (curPwd + "/runtimes/cexr-factory/bin/cexr-factory") : (fs.exists(cxvmDir + "/bin/8.0.0/cexr") ? (cxvmDir + "/bin/8.0.0/cexr") : (cxvmDir + "/bin/cexr-factory")));
-        string cexrBeanSrc = fs.exists(curPwd + "/runtimes/cexr-bean/.bin") ? (curPwd + "/runtimes/cexr-bean/.bin") : (fs.exists(curPwd + "/runtimes/cexr-bean/bin/cexr-bean") ? (curPwd + "/runtimes/cexr-bean/bin/cexr-bean") : (fs.exists(cxvmDir + "/bin/cexr-bean") ? (cxvmDir + "/bin/cexr-bean") : cexrFactorySrc));
-        string cexrDeliverySrc = fs.exists(curPwd + "/runtimes/cexr-delivery/.bin") ? (curPwd + "/runtimes/cexr-delivery/.bin") : (fs.exists(curPwd + "/runtimes/cexr-delivery/bin/cexr-delivery") ? (curPwd + "/runtimes/cexr-delivery/bin/cexr-delivery") : (fs.exists(cxvmDir + "/bin/cexr-delivery") ? (cxvmDir + "/bin/cexr-delivery") : cexrFactorySrc));
-        string cexrDrawerSrc = fs.exists(curPwd + "/runtimes/cexr-drawer/.bin") ? (curPwd + "/runtimes/cexr-drawer/.bin") : (fs.exists(curPwd + "/runtimes/cexr-drawer/bin/cexr-drawer") ? (curPwd + "/runtimes/cexr-drawer/bin/cexr-drawer") : (fs.exists(cxvmDir + "/bin/cexr-drawer") ? (cxvmDir + "/bin/cexr-drawer") : cexrFactorySrc));
+        string cexrFactorySrc = fs.exists(curPwd + "/cexr-factory/.bin") ? (curPwd + "/cexr-factory/.bin") : (fs.exists(curPwd + "/runtimes/.bin") ? (curPwd + "/runtimes/.bin") : (fs.exists(curPwd + "/runtimes/cexr-factory/.bin") ? (curPwd + "/runtimes/cexr-factory/.bin") : (fs.exists(curPwd + "/runtimes/cexr-factory/bin/cexr-factory") ? (curPwd + "/runtimes/cexr-factory/bin/cexr-factory") : (fs.exists(cxvmDir + "/bin/8.0.0/cexr") ? (cxvmDir + "/bin/8.0.0/cexr") : (cxvmDir + "/bin/cexr-factory")))));
+        string cexrBeanSrc = fs.exists(curPwd + "/cexr-factory/.bin") ? (curPwd + "/cexr-factory/.bin") : (fs.exists(curPwd + "/runtimes/.bin") ? (curPwd + "/runtimes/.bin") : (fs.exists(curPwd + "/runtimes/cexr-bean/.bin") ? (curPwd + "/runtimes/cexr-bean/.bin") : (fs.exists(curPwd + "/runtimes/cexr-bean/bin/cexr-bean") ? (curPwd + "/runtimes/cexr-bean/bin/cexr-bean") : (fs.exists(cxvmDir + "/bin/cexr-bean") ? (cxvmDir + "/bin/cexr-bean") : cexrFactorySrc))));
+        string cexrDeliverySrc = fs.exists(curPwd + "/cexr-factory/.bin") ? (curPwd + "/cexr-factory/.bin") : (fs.exists(curPwd + "/runtimes/.bin") ? (curPwd + "/runtimes/.bin") : (fs.exists(curPwd + "/runtimes/cexr-delivery/.bin") ? (curPwd + "/runtimes/cexr-delivery/.bin") : (fs.exists(curPwd + "/runtimes/cexr-delivery/bin/cexr-delivery") ? (curPwd + "/runtimes/cexr-delivery/bin/cexr-delivery") : (fs.exists(cxvmDir + "/bin/cexr-delivery") ? (cxvmDir + "/bin/cexr-delivery") : cexrFactorySrc))));
+        string cexrDrawerSrc = fs.exists(curPwd + "/cexr-factory/.bin") ? (curPwd + "/cexr-factory/.bin") : (fs.exists(curPwd + "/runtimes/.bin") ? (curPwd + "/runtimes/.bin") : (fs.exists(curPwd + "/runtimes/cexr-drawer/.bin") ? (curPwd + "/runtimes/cexr-drawer/.bin") : (fs.exists(curPwd + "/runtimes/cexr-drawer/bin/cexr-drawer") ? (curPwd + "/runtimes/cexr-drawer/bin/cexr-drawer") : (fs.exists(cxvmDir + "/bin/cexr-drawer") ? (cxvmDir + "/bin/cexr-drawer") : cexrFactorySrc))));
 
         if (isDarwin) {
             string darwinCexr = fs.exists(cexDir + "/bin/8.0.0/cexr") ? (cexDir + "/bin/8.0.0/cexr") : (cxvmDir + "/bin/cexr");

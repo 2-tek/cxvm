@@ -1,21 +1,19 @@
 import json from "json";
 import "./json.cex";
-import "@cex-service/src/request.cex";
-import "@cex-service/src/response.cex";
 import "@cex-std/src/filesystem.cex";
 import "@cex-std/src/chrono.cex";
 
 using JsonValue = json_lib::Value;
 
-class JsonDoc {
+class JsonDocHelper {
     static public JsonValue* obj() {
-        JsonValue* v = new JsonValue();
+        let v: JsonValue* = new JsonValue();
         v->type = json_lib::JsonType::Object;
         return v;
     }
 
     static public JsonValue* arr() {
-        JsonValue* v = new JsonValue();
+        let v: JsonValue* = new JsonValue();
         v->type = json_lib::JsonType::Array;
         return v;
     }
@@ -82,12 +80,12 @@ class JsonDoc {
 }
 
 class HttpRequest {
-    public string method;
-    public string path;
-    public string body;
-    public string contentType;
-    public Array<string>* queryParams = new Array<string>();
-    public Array<string>* pathParams = new Array<string>();
+    public method: string;
+    public path: string;
+    public body: string;
+    public contentType: string;
+    public queryParams: Array<string>* = new Array<string>();
+    public pathParams: Array<string>* = new Array<string>();
 
     public constructor(string method, string path, string body, string cType) {
         this.method = method;
@@ -101,10 +99,10 @@ class HttpRequest {
     }
 
     public string getQuery(string key) {
-        string prefix = key + "=";
-        int count = (int)this.queryParams->length();
-        for (int i = 0; i < count; i++) {
-            string item = this.queryParams->get(i);
+        let prefix: string = key + "=";
+        let count: int = (int)this.queryParams->length();
+        for (let i: int = 0; i < count; i++) {
+            let item: string = this.queryParams->get(i);
             if (item.find(prefix) == 0) {
                 return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
             }
@@ -117,10 +115,10 @@ class HttpRequest {
     }
 
     public string getParam(string key) {
-        string prefix = key + ":";
-        int count = (int)this.pathParams->length();
-        for (int i = 0; i < count; i++) {
-            string item = this.pathParams->get(i);
+        let prefix: string = key + ":";
+        let count: int = (int)this.pathParams->length();
+        for (let i: int = 0; i < count; i++) {
+            let item: string = this.pathParams->get(i);
             if (item.find(prefix) == 0) {
                 return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
             }
@@ -128,23 +126,15 @@ class HttpRequest {
         return "";
     }
 
-    public PerfectRequest* toPerfectRequest() {
-        return new PerfectRequest(this.method, this.path, this.body);
-    }
-
-    static public HttpRequest* fromPerfectRequest(PerfectRequest* p) {
-        string cType = p->getHeader("Content-Type");
-        return new HttpRequest(p->method, p->path, p->body, cType);
-    }
 }
 
 class HttpResponse {
-    public int statusCode;
-    public string statusMessage;
-    public string contentType;
-    public string body;
-    public bool isRedirect = false;
-    public string redirectUrl = "";
+    public statusCode: int;
+    public statusMessage: string;
+    public contentType: string;
+    public body: string;
+    public isRedirect: bool = false;
+    public redirectUrl: string = "";
 
     public constructor(int code, string msg, string cType, string body) {
         this.statusCode = code;
@@ -158,7 +148,7 @@ class HttpResponse {
     }
 
     static public HttpResponse* json(JsonValue* val) {
-        return new HttpResponse(200, "OK", "application/json", JsonDoc::stringify(val));
+        return new HttpResponse(200, "OK", "application/json", JsonDocHelper::stringify(val));
     }
 
     static public HttpResponse* json(string str) {
@@ -170,21 +160,21 @@ class HttpResponse {
     }
 
     static public HttpResponse* notFound(string msg) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "error", msg);
-        JsonDoc::setNum(doc, "statusCode", 404);
-        return new HttpResponse(404, "Not Found", "application/json", JsonDoc::stringify(doc));
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "error", msg);
+        JsonDocHelper::setNum(doc, "statusCode", 404);
+        return new HttpResponse(404, "Not Found", "application/json", JsonDocHelper::stringify(doc));
     }
 
     static public HttpResponse* badRequest(string msg) {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "error", msg);
-        JsonDoc::setNum(doc, "statusCode", 400);
-        return new HttpResponse(400, "Bad Request", "application/json", JsonDoc::stringify(doc));
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "error", msg);
+        JsonDocHelper::setNum(doc, "statusCode", 400);
+        return new HttpResponse(400, "Bad Request", "application/json", JsonDocHelper::stringify(doc));
     }
 
     static public HttpResponse* redirect(string url) {
-        HttpResponse* res = new HttpResponse(302, "Found", "text/plain", "Redirecting to " + url);
+        let res: HttpResponse* = new HttpResponse(302, "Found", "text/plain", "Redirecting to " + url);
         res->isRedirect = true;
         res->redirectUrl = url;
         return res;
@@ -216,22 +206,11 @@ class HttpResponse {
         println("───────────────────────────────────────────────────────────────");
     }
 
-    public PerfectResponse* toPerfectResponse() {
-        PerfectResponse* p = new PerfectResponse();
-        p->status(this.statusCode);
-        p->setHeader("Content-Type", this.contentType);
-        p->body = this.body;
-        return p;
-    }
-
-    static public HttpResponse* fromPerfectResponse(PerfectResponse* p) {
-        return new HttpResponse(p->statusCode, p->statusText, p->getHeader("Content-Type"), p->body);
-    }
 }
 
 class ViewEngine {
     static public string renderLayout(string title, string bodyContent) {
-        string html = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
+        let html: string = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
         html += "  <meta charset=\"UTF-8\">\n";
         html += "  <title>" + title + "</title>\n";
         html += "  <style>\n";
@@ -247,8 +226,8 @@ class ViewEngine {
 }
 
 class ModelValidationResult {
-    public bool isValid = true;
-    public Array<string>* errors = new Array<string>();
+    public isValid: bool = true;
+    public errors: Array<string>* = new Array<string>();
 
     public constructor() {}
 
@@ -263,14 +242,14 @@ class ModelValidationResult {
 }
 
 class BaseModel {
-    public string id;
+    public id: string;
 
     public constructor(string id) {
         this.id = id;
     }
 
     public virtual ModelValidationResult* validate() {
-        ModelValidationResult* res = new ModelValidationResult();
+        let res: ModelValidationResult* = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -278,22 +257,22 @@ class BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        JsonValue* doc = JsonDoc::obj();
-        JsonDoc::setStr(doc, "id", this.id);
+        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonDocHelper::setStr(doc, "id", this.id);
         return doc;
     }
 
     public virtual string toJson() {
-        JsonValue* obj = Json::obj();
+        let obj: JsonValue* = Json::obj();
         Json::setString(obj, "id", this.id);
         return Json::stringify(obj);
     }
 }
 
 class LightingRouteEntry {
-    public string method;
-    public string pattern;
-    public string handlerId;
+    public method: string;
+    public pattern: string;
+    public handlerId: string;
 
     public constructor(string m, string p, string h) {
         this.method = m;
@@ -311,9 +290,9 @@ class LightingRouteEntry {
         }
 
         if (this.pattern.find("/:id") != -1) {
-            string prefix = this.pattern.substr(0, (int)this.pattern.find("/:id"));
+            let prefix: string = this.pattern.substr(0, (int)this.pattern.find("/:id"));
             if (reqPath.find(prefix) == 0 && reqPath.length() > prefix.length() + 1) {
-                string idVal = reqPath.substr((int)prefix.length() + 1, (int)reqPath.length() - (int)prefix.length() - 1);
+                let idVal: string = reqPath.substr((int)prefix.length() + 1, (int)reqPath.length() - (int)prefix.length() - 1);
                 if (idVal.find("/") == -1) {
                     req->addPathParam("id", idVal);
                     return true;
@@ -326,7 +305,7 @@ class LightingRouteEntry {
 }
 
 class LightingRouter {
-    public Array<LightingRouteEntry*>* routes = new Array<LightingRouteEntry*>();
+    public routes: Array<LightingRouteEntry*>* = new Array<LightingRouteEntry*>();
 
     public constructor() {}
 
@@ -351,9 +330,9 @@ class LightingRouter {
     }
 
     public LightingRouteEntry* findRoute(HttpRequest* req) {
-        int count = (int)this.routes->length();
-        for (int i = 0; i < count; i++) {
-            LightingRouteEntry* r = this.routes->get(i);
+        let count: int = (int)this.routes->length();
+        for (let i: int = 0; i < count; i++) {
+            let r: LightingRouteEntry* = this.routes->get(i);
             if (r->match(req->method, req->path, req)) {
                 return r;
             }
@@ -367,8 +346,8 @@ class LightingRouter {
 }
 
 class MiddlewareResult {
-    public bool proceed;
-    public HttpResponse* errorResponse;
+    public proceed: bool;
+    public errorResponse: HttpResponse*;
 
     public constructor(bool proceed, HttpResponse* err) {
         this.proceed = proceed;
@@ -386,12 +365,12 @@ class LightingMiddleware {
 
     static public MiddlewareResult* runAuth(HttpRequest* req) {
         if (req->path.find("/admin") != -1) {
-            string authHeader = req->getParam("auth");
+            let authHeader: string = req->getParam("auth");
             if (authHeader !== "admin-token") {
-                JsonValue* doc = JsonDoc::obj();
-                JsonDoc::setStr(doc, "error", "Unauthorized access");
-                JsonDoc::setNum(doc, "statusCode", 401);
-                HttpResponse* errResp = new HttpResponse(401, "Unauthorized", "application/json", JsonDoc::stringify(doc));
+                let doc: JsonValue* = JsonDocHelper::obj();
+                JsonDocHelper::setStr(doc, "error", "Unauthorized access");
+                JsonDocHelper::setNum(doc, "statusCode", 401);
+                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", JsonDocHelper::stringify(doc));
                 return new MiddlewareResult(false, errResp);
             }
         }

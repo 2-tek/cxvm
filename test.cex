@@ -1,0 +1,65 @@
+// Pure Cex In-Project Self Test Runner (test.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_CEX_SCRIPT_ONLY, RULE_SELF_TEST_BUILD_INSIDE_PROJECT_ONLY
+
+import fs from "fs";
+
+class ProjectSelfTester {
+    public static int runTests() {
+        println("==> [Self-Test] Running project unit tests...");
+        let suites: Array<string>* = new Array<string>();
+
+        let testDir: string = "";
+        if (fs.exists("test")) testDir = "test";
+        else if (fs.exists("tests")) testDir = "tests";
+
+        if (testDir.length() == 0) {
+            println("[INFO] Zero test suites found (neither ./test nor ./tests exist).");
+            return 0;
+        }
+
+        let cmdList: string = "ls " + testDir + "/*.test.cex 2>/dev/null";
+        let fp: FILE* = popen(cmdList.c_str(), "r");
+        if (fp != nullptr) {
+            char buf[512];
+            while (fgets(buf, sizeof(buf), fp) != nullptr) {
+                let line: string = string(buf);
+                while (line.length() > 0 && (line.substr(line.length() - 1, 1) == "\n" || line.substr(line.length() - 1, 1) == "\r")) {
+                    line = line.substr(0, line.length() - 1);
+                }
+                if (line.length() > 0) suites->push(line);
+            }
+            pclose(fp);
+        }
+
+        if (suites->length() == 0) {
+            println("[INFO] Zero test files found in ./" + testDir + " matching *.test.cex");
+            return 0;
+        }
+
+        let passed: int = 0;
+        let failed: int = 0;
+
+        for (let i: int = 0; i < (int)suites->length(); i++) {
+            let suite: string = suites->get(i);
+            print("[TEST] Running " + suite + " ... ");
+            let runCmd: string = "cext " + suite + " > /dev/null 2>&1";
+            let st: int = system(runCmd.c_str());
+            if (st == 0) {
+                println("[PASS]");
+                passed++;
+            } else {
+                println("[FAIL]");
+                failed++;
+            }
+        }
+
+        println("==> [Self-Test Summary] Passed: " + std::to_string(passed) + ", Failed: " + std::to_string(failed) + " (Total: " + std::to_string(suites->length()) + ")");
+        if (failed > 0) return 1;
+        println("[OK] All project test suites passed 100%");
+        return 0;
+    }
+}
+
+int main(int argc, char** argv) {
+    return ProjectSelfTester::runTests();
+}

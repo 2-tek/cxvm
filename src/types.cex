@@ -4,13 +4,13 @@
 import "./lighting_mvc.cex";
 
 class PlatformArch {
-    public string id;
-    public string os;
-    public string arch;
-    public string targetTriple;
-    public string compiler;
-    public string archiveFormat;
-    public string displayName;
+    public id: string;
+    public os: string;
+    public arch: string;
+    public targetTriple: string;
+    public compiler: string;
+    public archiveFormat: string;
+    public displayName: string;
 
     public constructor(string id, string os, string arch, string triple, string compiler, string fmt, string name) {
         this.id = id;
@@ -28,12 +28,12 @@ class PlatformArch {
 }
 
 class RuntimeVersion {
-    public string version;
-    public string channel;
-    public string releaseDate;
-    public string minCpp;
-    public string description;
-    public bool isDefault;
+    public version: string;
+    public channel: string;
+    public releaseDate: string;
+    public minCpp: string;
+    public description: string;
+    public isDefault: bool;
 
     public constructor(string ver, string chan, string date, string cpp, string desc, bool isDef) {
         this.version = ver;
@@ -46,14 +46,14 @@ class RuntimeVersion {
 }
 
 class DistArtifact {
-    public string filename;
-    public string version;
-    public string platform;
-    public string arch;
-    public int sizeBytes;
-    public string sha256;
-    public string downloadUrl;
-    public bool isBuilt = false;
+    public filename: string;
+    public version: string;
+    public platform: string;
+    public arch: string;
+    public sizeBytes: int;
+    public sha256: string;
+    public downloadUrl: string;
+    public isBuilt: bool = false;
 
     public constructor(string fname, string ver, string plat, string arch, int size, string hash, string url) {
         this.filename = fname;
@@ -67,11 +67,11 @@ class DistArtifact {
 }
 
 class CxvmCommandResult {
-    public string action;
-    public string version;
-    public bool success;
-    public string message;
-    public string output;
+    public action: string;
+    public version: string;
+    public success: bool;
+    public message: string;
+    public output: string;
 
     public constructor(string action, string ver, bool ok, string msg, string out) {
         this.action = action;
@@ -83,11 +83,11 @@ class CxvmCommandResult {
 }
 
 class FactoryStats {
-    public int totalVersions = 0;
-    public int supportedPlatforms = 0;
-    public int totalArtifacts = 0;
-    public string downloadsDirectory = "cxvm/downloads";
-    public string lastBuildTimestamp = "2026-10-07T00:00:00Z";
+    public totalVersions: int = 0;
+    public supportedPlatforms: int = 0;
+    public totalArtifacts: int = 0;
+    public downloadsDirectory: string = "cxvm/downloads";
+    public lastBuildTimestamp: string = "2026-10-07T00:00:00Z";
 
     public constructor() {}
 }

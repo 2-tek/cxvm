@@ -4,12 +4,12 @@
 import "../lighting_mvc.cex";
 
 class VersionModel : BaseModel {
-    public string version;
-    public string channel;
-    public string releaseDate;
-    public string minCpp;
-    public string description;
-    public bool isDefault;
+    public version: string;
+    public channel: string;
+    public releaseDate: string;
+    public minCpp: string;
+    public description: string;
+    public isDefault: bool;
 
     public constructor(string ver, string chan, string date, string cpp, string desc, bool isDef) {
         super("v" + ver);
@@ -22,7 +22,7 @@ class VersionModel : BaseModel {
     }
 
     public override ModelValidationResult* validate() {
-        ModelValidationResult* res = new ModelValidationResult();
+        let res: ModelValidationResult* = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -36,7 +36,7 @@ class VersionModel : BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        JsonValue* doc = JsonDoc::obj();
+        let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "version", this.version);
         JsonDoc::setStr(doc, "channel", this.channel);
@@ -48,7 +48,7 @@ class VersionModel : BaseModel {
     }
 
     public override string toJson() {
-        JsonValue* obj = Json::obj();
+        let obj: JsonValue* = Json::obj();
         Json::setString(obj, "version", this.version);
         Json::setString(obj, "channel", this.channel);
         Json::setString(obj, "releaseDate", this.releaseDate);
