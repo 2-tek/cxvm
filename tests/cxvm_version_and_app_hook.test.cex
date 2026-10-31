@@ -1,0 +1,80 @@
+// 2-TEK CXVM: Core Version Control (cexr-factory & cexp-v8-stable) and App Hook Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+
+int main() {
+    println("===============================================================================");
+    println("  2-TEK CXVM: Core Version Control & App Hook via rootPathBuilder Test Suite   ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("CXVM Version Control and App Hook Tests");
+
+    CxvmEngine* cxvm = new CxvmEngine();
+
+    // 1. Core Version Control - Current Active Versions
+    string curAll = cxvm->current();
+    Assert::isTrue(curAll.find("cexr-factory") != -1, "current() reports cexr-factory version");
+    Assert::isTrue(curAll.find("cexp-v8-stable") != -1, "current() reports cexp-v8-stable version");
+
+    string curRuntime = cxvm->current("cexr-factory");
+    Assert::isTrue(curRuntime.length() > 0, "current('cexr-factory') returns non-empty version string");
+
+    string curCompiler = cxvm->current("cexp-v8-stable");
+    Assert::isTrue(curCompiler.length() > 0, "current('cexp-v8-stable') returns non-empty version string");
+
+    // 2. Listing Installed Versions for Core Components
+    string listOut = cxvm->list();
+    Assert::isTrue(listOut.find("cexr-factory") != -1, "list() lists cexr-factory");
+    Assert::isTrue(listOut.find("cexp-v8-stable") != -1, "list() lists cexp-v8-stable");
+    Assert::isTrue(listOut.find("->") != -1, "list() indicates active version with arrow");
+
+    // 3. Version Switching (use)
+    CxvmCommandResult* useRuntimeRes = cxvm->use("cexr-factory", "2.0.0");
+    Assert::isTrue(useRuntimeRes->success, "use('cexr-factory', '2.0.0') succeeds");
+    Assert::equalsString("2.0.0", cxvm->current("cexr-factory"), "Active cexr-factory version updated to 2.0.0");
+
+    CxvmCommandResult* useCompilerRes = cxvm->use("cexp-v8-stable", "8.0.0");
+    Assert::isTrue(useCompilerRes->success, "use('cexp-v8-stable', '8.0.0') succeeds");
+    Assert::equalsString("8.0.0", cxvm->current("cexp-v8-stable"), "Active cexp-v8-stable version updated to 8.0.0");
+
+    // 4. Version Installation & Registration
+    CxvmCommandResult* instRes = cxvm->install("cexr-factory", "2.2.0");
+    Assert::isTrue(instRes->success, "install('cexr-factory', '2.2.0') succeeds");
+    Assert::isTrue(cxvm->isComponentVersionInstalled("cexr-factory", "2.2.0"), "Version 2.2.0 is now recorded as installed");
+
+    // 5. Toolchain Doctor
+    string docReport = cxvm->doctor();
+    Assert::isTrue(docReport.find("cexr-factory") != -1, "doctor() checks cexr-factory");
+    Assert::isTrue(docReport.find("cexp-v8-stable") != -1, "doctor() checks cexp-v8-stable");
+
+    // 6. Dynamic Binary Resolution Through rootPathBuilder
+    string rootPathBuilder = cxvm->resolveRootPathBuilder();
+    Assert::isTrue(rootPathBuilder.length() > 0, "resolveRootPathBuilder returns non-empty path");
+
+    // 7. App Binary Resolution for Existing Apps
+    string binPath = cxvm->resolveAppBinary("cvm");
+    Assert::isTrue(binPath.length() > 0, "resolveAppBinary('cvm') successfully resolves binary path");
+
+    // 8. CLI Routing for --app Hook
+    int appHookCode = cxvm->cvmExecute("--app", "cvm", "status");
+    Assert::equalsInt(0, appHookCode, "cxvm --app cvm status executes with exit code 0");
+
+    // 9. Standard Dev & Build Routing
+    int devHookCode = cxvm->cvmExecute("dev", "src/index.cex", "");
+    Assert::equalsInt(0, devHookCode, "cxvm dev delegates cleanly");
+
+    int buildHookCode = cxvm->cvmExecute("build", "src/index.cex", "");
+    Assert::equalsInt(0, buildHookCode, "cxvm build delegates cleanly");
+
+    suite->addResult("test_cxvm_core_version_and_app_hook", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

@@ -23,7 +23,7 @@ class PlatformModel : BaseModel {
     }
 
     public override ModelValidationResult* validate() {
-        let res: ModelValidationResult* = new ModelValidationResult();
+        ModelValidationResult* res = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -40,7 +40,7 @@ class PlatformModel : BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        let doc: JsonValue* = JsonDoc::obj();
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "os", this.os);
         JsonDoc::setStr(doc, "arch", this.arch);
@@ -53,7 +53,7 @@ class PlatformModel : BaseModel {
     }
 
     public override string toJson() {
-        let obj: JsonValue* = Json::obj();
+        JsonValue* obj = Json::obj();
         Json::setString(obj, "os", this.os);
         Json::setString(obj, "arch", this.arch);
         Json::setString(obj, "targetTriple", this.targetTriple);

@@ -7,13 +7,13 @@ using JsonValue = json_lib::Value;
 
 class JsonDocHelper {
     static public JsonValue* obj() {
-        let v: JsonValue* = new JsonValue();
+        JsonValue* v = new JsonValue();
         v->type = json_lib::JsonType::Object;
         return v;
     }
 
     static public JsonValue* arr() {
-        let v: JsonValue* = new JsonValue();
+        JsonValue* v = new JsonValue();
         v->type = json_lib::JsonType::Array;
         return v;
     }
@@ -99,10 +99,10 @@ class HttpRequest {
     }
 
     public string getQuery(string key) {
-        let prefix: string = key + "=";
-        let count: int = (int)this.queryParams->length();
-        for (let i: int = 0; i < count; i++) {
-            let item: string = this.queryParams->get(i);
+        string prefix = key + "=";
+        int count = (int)this.queryParams->length();
+        for (int i = 0; i < count; i++) {
+            string item = this.queryParams->get(i);
             if (item.find(prefix) == 0) {
                 return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
             }
@@ -115,10 +115,10 @@ class HttpRequest {
     }
 
     public string getParam(string key) {
-        let prefix: string = key + ":";
-        let count: int = (int)this.pathParams->length();
-        for (let i: int = 0; i < count; i++) {
-            let item: string = this.pathParams->get(i);
+        string prefix = key + ":";
+        int count = (int)this.pathParams->length();
+        for (int i = 0; i < count; i++) {
+            string item = this.pathParams->get(i);
             if (item.find(prefix) == 0) {
                 return item.substr((int)prefix.length(), (int)item.length() - (int)prefix.length());
             }
@@ -160,21 +160,21 @@ class HttpResponse {
     }
 
     static public HttpResponse* notFound(string msg) {
-        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonValue* doc = JsonDocHelper::obj();
         JsonDocHelper::setStr(doc, "error", msg);
         JsonDocHelper::setNum(doc, "statusCode", 404);
         return new HttpResponse(404, "Not Found", "application/json", JsonDocHelper::stringify(doc));
     }
 
     static public HttpResponse* badRequest(string msg) {
-        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonValue* doc = JsonDocHelper::obj();
         JsonDocHelper::setStr(doc, "error", msg);
         JsonDocHelper::setNum(doc, "statusCode", 400);
         return new HttpResponse(400, "Bad Request", "application/json", JsonDocHelper::stringify(doc));
     }
 
     static public HttpResponse* redirect(string url) {
-        let res: HttpResponse* = new HttpResponse(302, "Found", "text/plain", "Redirecting to " + url);
+        HttpResponse* res = new HttpResponse(302, "Found", "text/plain", "Redirecting to " + url);
         res->isRedirect = true;
         res->redirectUrl = url;
         return res;
@@ -210,7 +210,7 @@ class HttpResponse {
 
 class ViewEngine {
     static public string renderLayout(string title, string bodyContent) {
-        let html: string = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
+        string html = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
         html += "  <meta charset=\"UTF-8\">\n";
         html += "  <title>" + title + "</title>\n";
         html += "  <style>\n";
@@ -249,7 +249,7 @@ class BaseModel {
     }
 
     public virtual ModelValidationResult* validate() {
-        let res: ModelValidationResult* = new ModelValidationResult();
+        ModelValidationResult* res = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -257,13 +257,13 @@ class BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonValue* doc = JsonDocHelper::obj();
         JsonDocHelper::setStr(doc, "id", this.id);
         return doc;
     }
 
     public virtual string toJson() {
-        let obj: JsonValue* = Json::obj();
+        JsonValue* obj = Json::obj();
         Json::setString(obj, "id", this.id);
         return Json::stringify(obj);
     }
@@ -290,9 +290,9 @@ class LightingRouteEntry {
         }
 
         if (this.pattern.find("/:id") != -1) {
-            let prefix: string = this.pattern.substr(0, (int)this.pattern.find("/:id"));
+            string prefix = this.pattern.substr(0, (int)this.pattern.find("/:id"));
             if (reqPath.find(prefix) == 0 && reqPath.length() > prefix.length() + 1) {
-                let idVal: string = reqPath.substr((int)prefix.length() + 1, (int)reqPath.length() - (int)prefix.length() - 1);
+                string idVal = reqPath.substr((int)prefix.length() + 1, (int)reqPath.length() - (int)prefix.length() - 1);
                 if (idVal.find("/") == -1) {
                     req->addPathParam("id", idVal);
                     return true;
@@ -330,9 +330,9 @@ class LightingRouter {
     }
 
     public LightingRouteEntry* findRoute(HttpRequest* req) {
-        let count: int = (int)this.routes->length();
-        for (let i: int = 0; i < count; i++) {
-            let r: LightingRouteEntry* = this.routes->get(i);
+        int count = (int)this.routes->length();
+        for (int i = 0; i < count; i++) {
+            LightingRouteEntry* r = this.routes->get(i);
             if (r->match(req->method, req->path, req)) {
                 return r;
             }
@@ -365,12 +365,12 @@ class LightingMiddleware {
 
     static public MiddlewareResult* runAuth(HttpRequest* req) {
         if (req->path.find("/admin") != -1) {
-            let authHeader: string = req->getParam("auth");
+            string authHeader = req->getParam("auth");
             if (authHeader !== "admin-token") {
-                let doc: JsonValue* = JsonDocHelper::obj();
+                JsonValue* doc = JsonDocHelper::obj();
                 JsonDocHelper::setStr(doc, "error", "Unauthorized access");
                 JsonDocHelper::setNum(doc, "statusCode", 401);
-                let errResp: HttpResponse* = new HttpResponse(401, "Unauthorized", "application/json", JsonDocHelper::stringify(doc));
+                HttpResponse* errResp = new HttpResponse(401, "Unauthorized", "application/json", JsonDocHelper::stringify(doc));
                 return new MiddlewareResult(false, errResp);
             }
         }

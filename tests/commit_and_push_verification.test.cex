@@ -7,9 +7,9 @@ class CommitAndPushVerificationTest {
     public static void run() {
         Test.describe("Commit and Push Verification Pre-flight Invariants", () => {
             Test.it("TC-VCS-01: root cex-pack.json version is 2.0.8", () => {
-                let rootPackPath: string = "cex-pack.json";
+                string rootPackPath = "cex-pack.json";
                 Assert.isTrue(Fs.exists(rootPackPath), "root cex-pack.json must exist");
-                let content: string = Fs.readFile(rootPackPath);
+                string content = Fs.readFile(rootPackPath);
                 Assert.isTrue(content.includes("\"version\": \"2.0.8\""), "root cex-pack.json version must be 2.0.8");
             });
 
@@ -19,7 +19,7 @@ class CommitAndPushVerificationTest {
             });
 
             Test.it("TC-VCS-03: SSR documents for commit and push exist", () => {
-                let ssrDir: string = ".agents/ssr/30-10-2026/commit-changed-then-push-code";
+                string ssrDir = ".agents/ssr/30-10-2026/commit-changed-then-push-code";
                 Assert.isTrue(Fs.exists(ssrDir + "/ssr.md"), "ssr.md must exist");
                 Assert.isTrue(Fs.exists(ssrDir + "/testcases.md"), "testcases.md must exist");
                 Assert.isTrue(Fs.exists(ssrDir + "/expectation.md"), "expectation.md must exist");

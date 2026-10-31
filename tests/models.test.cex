@@ -17,46 +17,46 @@ int main() {
     println("       2-TEK CXVM: Models, Validation & Architecture Matrix Test Suite         ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM Models Tests");
+    TestSuite* suite = new TestSuite("CXVM Models Tests");
 
     // 1. Factory Models & Schema Validation
-    let pValid: PlatformModel* = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8", "tar.gz", "Linux x86_64");
-    let valRes1: ModelValidationResult* = pValid->validate();
+    PlatformModel* pValid = new PlatformModel("linux-x86_64", "linux", "x86_64", "x86_64-unknown-linux-gnu", "CexP v8", "tar.gz", "Linux x86_64");
+    ModelValidationResult* valRes1 = pValid->validate();
     Assert::isTrue(valRes1->isValid, "Valid platform passes validation");
     Assert::equalsInt(0, valRes1->getErrorCount(), "Valid platform has 0 errors");
 
-    let pInvalid: PlatformModel* = new PlatformModel("invalid", "", "", "", "", "", "");
-    let valRes2: ModelValidationResult* = pInvalid->validate();
+    PlatformModel* pInvalid = new PlatformModel("invalid", "", "", "", "", "", "");
+    ModelValidationResult* valRes2 = pInvalid->validate();
     Assert::isFalse(valRes2->isValid, "Invalid platform fails validation");
     Assert::isTrue(valRes2->getErrorCount() >= 3, "Invalid platform detects missing OS, arch, triple");
 
-    let vValid: VersionModel* = new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 + CexP v8", "Stable release", true);
-    let vVal: ModelValidationResult* = vValid->validate();
+    VersionModel* vValid = new VersionModel("8.0.0", "STABLE", "2026-10-07", "CexR v8 + CexP v8", "Stable release", true);
+    ModelValidationResult* vVal = vValid->validate();
     Assert::isTrue(vVal->isValid, "Valid version passes validation");
     Assert::isTrue(vValid->toJson().find("8.0.0") != -1, "Version JSON contains version string");
 
-    let vInvalid: VersionModel* = new VersionModel("8.0.0", "UNKNOWN_CHANNEL", "2026-10-07", "CexR v8 + CexP v8", "Invalid", false);
-    let vValInv: ModelValidationResult* = vInvalid->validate();
+    VersionModel* vInvalid = new VersionModel("8.0.0", "UNKNOWN_CHANNEL", "2026-10-07", "CexR v8 + CexP v8", "Invalid", false);
+    ModelValidationResult* vValInv = vInvalid->validate();
     Assert::isFalse(vValInv->isValid, "Invalid channel fails validation");
 
-    let aValid: ArtifactModel* = new ArtifactModel("cex-v8.0.0-linux-x86_64.tar.gz", "8.0.0", "linux", "x86_64", 2748, "886020858b17f0045dc9e3f5cb795d0b39ff7b73eb7377a7c4c2c4dcf4fd2b60", "/downloads/cex-v8.0.0-linux-x86_64.tar.gz");
-    let aVal: ModelValidationResult* = aValid->validate();
+    ArtifactModel* aValid = new ArtifactModel("cex-v8.0.0-linux-x86_64.tar.gz", "8.0.0", "linux", "x86_64", 2748, "886020858b17f0045dc9e3f5cb795d0b39ff7b73eb7377a7c4c2c4dcf4fd2b60", "/downloads/cex-v8.0.0-linux-x86_64.tar.gz");
+    ModelValidationResult* aVal = aValid->validate();
     Assert::isTrue(aVal->isValid, "Valid artifact passes validation");
 
     // 2. Cross-Platform Architecture Matrix Invariants
-    let cxvm: CxvmEngine* = new CxvmEngine();
+    CxvmEngine* cxvm = new CxvmEngine();
     Assert::equalsInt(6, (int)cxvm->supportedPlatforms->length(), "cxvm supports 6 target architectures");
     Assert::isTrue(cxvm->isPlatformSupported("linux-x86_64"), "cxvm recognizes linux-x86_64");
     Assert::isTrue(cxvm->isPlatformSupported("windows-x64"), "cxvm recognizes windows-x64");
     Assert::isFalse(cxvm->isPlatformSupported("unknown-os"), "cxvm rejects unknown platform");
 
-    let downRes: CxvmCommandResult* = cxvm->download("8.0.0", "linux-x86_64");
+    CxvmCommandResult* downRes = cxvm->download("8.0.0", "linux-x86_64");
     Assert::isTrue(downRes->success, "cxvm download succeeds");
 
-    let downAllRes: CxvmCommandResult* = cxvm->downloadAll("8.0.0");
+    CxvmCommandResult* downAllRes = cxvm->downloadAll("8.0.0");
     Assert::isTrue(downAllRes->success, "cxvm downloadAll succeeds");
 
-    let docOut: string = cxvm->doctor();
+    string docOut = cxvm->doctor();
     Assert::isTrue(docOut.find("HEALTHY [OK]") != -1, "cxvm doctor reports HEALTHY");
 
     // 3. Cognitive AI Models Setup, Build & Invariants
@@ -65,22 +65,22 @@ int main() {
     Assert::equalsString("2.0.0", cxvm->resolveLibVersion("vision"), "cxvm resolves vision version 2.0.0");
     Assert::equalsString("1.0.0", cxvm->resolveLibVersion("ultron"), "cxvm resolves ultron version 1.0.0");
 
-    let sModelsRes: int = cxvm->setupModels("");
+    int sModelsRes = cxvm->setupModels("");
     Assert::equalsInt(0, sModelsRes, "cxvm setupModels succeeds");
 
-    let bModelsRes: int = cxvm->buildModels("");
+    int bModelsRes = cxvm->buildModels("");
     Assert::equalsInt(0, bModelsRes, "cxvm buildModels succeeds");
 
-    let execSetupModelsRes: int = cxvm->cvmExecute("setup", "models", "");
+    int execSetupModelsRes = cxvm->cvmExecute("setup", "models", "");
     Assert::equalsInt(0, execSetupModelsRes, "cxvm cvmExecute setup models returns 0 OK");
 
-    let execBuildModelsRes: int = cxvm->cvmExecute("build", "models", "");
+    int execBuildModelsRes = cxvm->cvmExecute("build", "models", "");
     Assert::equalsInt(0, execBuildModelsRes, "cxvm cvmExecute build models returns 0 OK");
 
-    let execRebuildModelsRes: int = cxvm->cvmExecute("rebuild", "models", "");
+    int execRebuildModelsRes = cxvm->cvmExecute("rebuild", "models", "");
     Assert::equalsInt(0, execRebuildModelsRes, "cxvm cvmExecute rebuild models returns 0 OK");
 
-    let execRebuildFlagRes: int = cxvm->cvmExecute("setup", "--rebuild-models", "");
+    int execRebuildFlagRes = cxvm->cvmExecute("setup", "--rebuild-models", "");
     Assert::equalsInt(0, execRebuildFlagRes, "cxvm cvmExecute setup --rebuild-models returns 0 OK");
 
     Assert::isTrue(fs.exists(".cex_boxes/models"), ".cex_boxes/models exists");

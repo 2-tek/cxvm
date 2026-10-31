@@ -31,7 +31,7 @@ class FactoryApp {
         this.builder = new PackageCatalog(this.downloadsDir);
 
         // Initialize default runtime with CexR v8 (.cex_boxes Dist Loader Engine)
-        let defVer: string = CxvmConstants::defaultVersion();
+        string defVer = CxvmConstants::defaultVersion();
         this.cxvm->install(defVer);
         this.cxvm->use(defVer);
         this.cxvm->setDefault(defVer);
@@ -154,19 +154,19 @@ class FactoryApp {
         LightingMiddleware::runLogger(req);
 
         // 2. Auth Middleware
-        let authRes: MiddlewareResult* = LightingMiddleware::runAuth(req);
+        MiddlewareResult* authRes = LightingMiddleware::runAuth(req);
         if (!authRes->proceed) {
             return authRes->errorResponse;
         }
 
         // 3. Router Matching
-        let route: LightingRouteEntry* = this.router->findRoute(req);
+        LightingRouteEntry* route = this.router->findRoute(req);
         if (route === nullptr) {
             return HttpResponse::notFound("No Factory route matched for: " + req->method + " " + req->path);
         }
 
         // 4. Controller Dispatch via switch-case
-        let handlerCode: int = this.getHandlerCode(route->handlerId);
+        int handlerCode = this.getHandlerCode(route->handlerId);
         switch (handlerCode) {
             case 1:
             return this.renderDashboard();
@@ -264,7 +264,7 @@ class FactoryApp {
     }
 
     public HttpResponse* simulateRequest(string method, string path, string body, string cType) {
-        let req: HttpRequest* = new HttpRequest(method, path, body, cType);
+        HttpRequest* req = new HttpRequest(method, path, body, cType);
         return this.handleRequest(req);
     }
 
@@ -272,20 +272,20 @@ class FactoryApp {
         TerminalUI::renderHeader("2-TEK Cex Factory Route Registry", "Powered by cex-s (CexService) & Lighting Fullstack MVC");
         println("  METHOD  ROUTE PATTERN               HANDLER ACTION");
         println("  -------------------------------------------------------------");
-        let count: int = this.router->getRouteCount();
-        for (let i: int = 0; i < count; i++) {
-            let r: LightingRouteEntry* = this.router->routes->get(i);
+        int count = this.router->getRouteCount();
+        for (int i = 0; i < count; i++) {
+            LightingRouteEntry* r = this.router->routes->get(i);
             print("  "); print(r->method);
-            for (let s: int = (int)r->method.length(); s < 8; s++) print(" ");
+            for (int s = (int)r->method.length(); s < 8; s++) print(" ");
             print(r->pattern);
-            for (let s: int = (int)r->pattern.length(); s < 28; s++) print(" ");
+            for (int s = (int)r->pattern.length(); s < 28; s++) print(" ");
             println(r->handlerId);
         }
         println("-------------------------------------------------------------");
     }
 
     private HttpResponse* renderDashboard() {
-        let ctx: TemplateContext* = new TemplateContext();
+        TemplateContext* ctx = new TemplateContext();
         ctx->set("title", "Portal Dashboard");
         ctx->set("port", std::to_string(this.port));
         ctx->set("activeHome", "active");
@@ -296,9 +296,9 @@ class FactoryApp {
         ctx->set("totalPlatforms", std::to_string((int)this.builder->platforms->length()));
         ctx->set("currentActive", this.cxvm->current());
 
-        for (let i: int = 0; i < (int)this.builder->platforms->length(); i++) {
-            let p: PlatformModel* = this.builder->platforms->get(i);
-            let item: TemplateItem* = new TemplateItem();
+        for (int i = 0; i < (int)this.builder->platforms->length(); i++) {
+            PlatformModel* p = this.builder->platforms->get(i);
+            TemplateItem* item = new TemplateItem();
             item->set("displayName", p->displayName);
             item->set("os", p->os);
             item->set("targetTriple", p->targetTriple);
@@ -307,9 +307,9 @@ class FactoryApp {
             ctx->addListItem("platforms", item);
         }
 
-        for (let i: int = 0; i < (int)this.builder->versions->length(); i++) {
-            let v: VersionModel* = this.builder->versions->get(i);
-            let item: TemplateItem* = new TemplateItem();
+        for (int i = 0; i < (int)this.builder->versions->length(); i++) {
+            VersionModel* v = this.builder->versions->get(i);
+            TemplateItem* item = new TemplateItem();
             item->set("version", v->version);
             item->set("channel", v->channel);
             item->set("channelBadge", (v->channel == "STABLE" ? "badge-stable" : (v->channel == "LTS" ? "badge-lts" : "badge-canary")));
@@ -319,12 +319,12 @@ class FactoryApp {
             ctx->addListItem("versions", item);
         }
 
-        let html: string = PageRenderer::renderFiles("src/views/dashboard.xhtml", "src/views/layout.xhtml", ctx);
+        string html = PageRenderer::renderFiles("src/views/dashboard.xhtml", "src/views/layout.xhtml", ctx);
         return HttpResponse::ok(html, "text/html");
     }
 
     private HttpResponse* renderDownloads() {
-        let ctx: TemplateContext* = new TemplateContext();
+        TemplateContext* ctx = new TemplateContext();
         ctx->set("title", "Downloads");
         ctx->set("port", std::to_string(this.port));
         ctx->set("activeHome", "");
@@ -333,9 +333,9 @@ class FactoryApp {
         ctx->set("activeSetup", "");
         ctx->set("downloadsDir", this.downloadsDir);
 
-        for (let i: int = 0; i < (int)this.builder->artifacts->length(); i++) {
-            let a: ArtifactModel* = this.builder->artifacts->get(i);
-            let item: TemplateItem* = new TemplateItem();
+        for (int i = 0; i < (int)this.builder->artifacts->length(); i++) {
+            ArtifactModel* a = this.builder->artifacts->get(i);
+            TemplateItem* item = new TemplateItem();
             item->set("filename", a->filename);
             item->set("platform", a->platform);
             item->set("arch", a->arch);
@@ -345,12 +345,12 @@ class FactoryApp {
             ctx->addListItem("artifacts", item);
         }
 
-        let html: string = PageRenderer::renderFiles("src/views/downloads.xhtml", "src/views/layout.xhtml", ctx);
+        string html = PageRenderer::renderFiles("src/views/downloads.xhtml", "src/views/layout.xhtml", ctx);
         return HttpResponse::ok(html, "text/html");
     }
 
     private HttpResponse* renderCxvmDocs() {
-        let ctx: TemplateContext* = new TemplateContext();
+        TemplateContext* ctx = new TemplateContext();
         ctx->set("title", "cxvm Guide");
         ctx->set("port", std::to_string(this.port));
         ctx->set("activeHome", "");
@@ -358,12 +358,12 @@ class FactoryApp {
         ctx->set("activeDocs", "active");
         ctx->set("activeSetup", "");
 
-        let html: string = PageRenderer::renderFiles("src/views/cxvm_docs.xhtml", "src/views/layout.xhtml", ctx);
+        string html = PageRenderer::renderFiles("src/views/cxvm_docs.xhtml", "src/views/layout.xhtml", ctx);
         return HttpResponse::ok(html, "text/html");
     }
 
     private HttpResponse* renderSetup() {
-        let ctx: TemplateContext* = new TemplateContext();
+        TemplateContext* ctx = new TemplateContext();
         ctx->set("title", "Setup Window");
         ctx->set("port", std::to_string(this.port));
         ctx->set("activeHome", "");
@@ -374,7 +374,7 @@ class FactoryApp {
         ctx->set("defaultVer", this.cxvm->defaultVersion);
         ctx->set("doctorOut", this.cxvm->doctor());
 
-        let html: string = PageRenderer::renderFiles("src/views/setup.xhtml", "src/views/layout.xhtml", ctx);
+        string html = PageRenderer::renderFiles("src/views/setup.xhtml", "src/views/layout.xhtml", ctx);
         return HttpResponse::ok(html, "text/html");
     }
 }

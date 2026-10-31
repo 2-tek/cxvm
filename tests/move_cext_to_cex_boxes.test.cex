@@ -48,14 +48,14 @@ int main(int argc, char** argv) {
 
     // Test 3: TC-03: Verifying .gitmodules contains deps/cext mapping
     cout << "[Test 3] TC-03: Verifying .gitmodules contains deps/cext mapping..." << endl;
-    let gitmodules: string = readFile(".gitmodules");
+    string gitmodules = readFile(".gitmodules");
     assertCondition(!gitmodules.empty(), ".gitmodules exists and is non-empty");
     assertCondition(gitmodules.find("submodule \"deps/cext\"") != string::npos, ".gitmodules has submodule deps/cext");
     assertCondition(gitmodules.find("path = cex_boxes/cext") != string::npos, ".gitmodules has path = cex_boxes/cext");
 
     // Test 4: TC-04: Verifying README.md has updated module paths
     cout << "[Test 4] TC-04: Verifying README.md has updated module paths..." << endl;
-    let readme: string = readFile("README.md");
+    string readme = readFile("README.md");
     assertCondition(!readme.empty(), "README.md exists and is non-empty");
     assertCondition(readme.find("compilers/") != string::npos, "README.md documents compilers/");
     assertCondition(readme.find("runtimes/") != string::npos, "README.md documents runtimes/");
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 
     // Test 5: TC-05: Verifying PROJECT_TARGET.md includes cex_boxes and cext
     cout << "[Test 5] TC-05: Verifying PROJECT_TARGET.md includes cex_boxes and cext..." << endl;
-    let projectTarget: string = readFile("PROJECT_TARGET.md");
+    string projectTarget = readFile("PROJECT_TARGET.md");
     assertCondition(!projectTarget.empty(), "PROJECT_TARGET.md exists and is non-empty");
     assertCondition(projectTarget.find("cex_boxes/") != string::npos, "PROJECT_TARGET.md contains cex_boxes/");
     assertCondition(projectTarget.find("cext") != string::npos, "PROJECT_TARGET.md contains cext");
@@ -82,8 +82,8 @@ int main(int argc, char** argv) {
         "PROJECT_TARGET.md"
     };
 
-    for (let i: size_t = 0; i < filesToCheck.size(); i++) {
-        let content: string = readFile(filesToCheck[i]);
+    for (size_t i = 0; i < filesToCheck.size(); i++) {
+        string content = readFile(filesToCheck[i]);
         assertCondition(!content.empty(), filesToCheck[i] + " is not empty");
         assertCondition(content.substr(content.size() - 1, 1) == "\n", filesToCheck[i] + " ends with newline");
         if (content.size() >= 2) {

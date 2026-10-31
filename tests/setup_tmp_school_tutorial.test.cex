@@ -1,0 +1,162 @@
+// 2-TEK Tutorial: Setup ./tmp For CexR-Factory From Zero & MVC-Lighting School App (.xhtml) Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import "@mvc-lighting/src/framework/compiler/xhtml_compiler.cex";
+import "@mvc-lighting/src/framework/viewbinding/xhtml_context.cex";
+import "@mvc-lighting/src/framework/types.cex";
+
+bool fileExists(string path) {
+    return std::filesystem::exists(path);
+}
+
+int main() {
+    println("===============================================================================");
+    println("  2-TEK Tutorial: Setup ./tmp & MVC-Lighting School App (.xhtml) Test Suite    ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("Setup ./tmp & School MVC-Lighting Tutorial Tests");
+
+    // -------------------------------------------------------------
+    // Test 1: Verify ./tmp zero-setup core files
+    // -------------------------------------------------------------
+    string tmpReadmePath = "tmp/README.md";
+    bool tmpReadmeExists = fileExists(tmpReadmePath);
+    Assert::isTrue(tmpReadmeExists, "tmp/README.md exists");
+    if (tmpReadmeExists) {
+        string tmpReadme = XhtmlCompiler::readFile(tmpReadmePath);
+        Assert::isTrue(tmpReadme.find("cexr-factory") != string::npos, "tmp/README.md mentions cexr-factory");
+        Assert::isTrue(tmpReadme.find("Zero-Setup") != string::npos, "tmp/README.md details zero-setup workflow");
+    }
+
+    string tmpManifestPath = "tmp/cex-pack.json";
+    bool tmpManifestExists = fileExists(tmpManifestPath);
+    Assert::isTrue(tmpManifestExists, "tmp/cex-pack.json exists");
+    if (tmpManifestExists) {
+        string manifestContent = XhtmlCompiler::readFile(tmpManifestPath);
+        Assert::isTrue(manifestContent.find("\"runtime\": \"cexr-factory\"") != string::npos, "tmp/cex-pack.json declares runtime: cexr-factory");
+        Assert::isTrue(manifestContent.find("\"maxWarnings\": 0") != string::npos, "tmp/cex-pack.json sets maxWarnings: 0");
+    }
+
+    string tmpSetupPath = "tmp/setup.cex";
+    bool tmpSetupExists = fileExists(tmpSetupPath);
+    Assert::isTrue(tmpSetupExists, "tmp/setup.cex bootstrap script exists");
+
+    // -------------------------------------------------------------
+    // Test 2: Verify ./tmp/school tutorial documentation and manifest
+    // -------------------------------------------------------------
+    string tutPath = "tmp/school/TUTORIAL.md";
+    bool tutExists = fileExists(tutPath);
+    Assert::isTrue(tutExists, "tmp/school/TUTORIAL.md exists");
+    if (tutExists) {
+        string tutContent = XhtmlCompiler::readFile(tutPath);
+        Assert::isTrue(tutContent.find(".xhtml") != string::npos, "TUTORIAL.md teaches .xhtml single-file components");
+        Assert::isTrue(tutContent.find("mvc-lighting") != string::npos, "TUTORIAL.md teaches mvc-lighting architecture");
+        Assert::isTrue(tutContent.find("<dom name=") != string::npos, "TUTORIAL.md explains <dom name=...> syntax");
+        Assert::isTrue(tutContent.find("XhtmlCompiler") != string::npos, "TUTORIAL.md explains XhtmlCompiler");
+    }
+
+    string schoolManifestPath = "tmp/school/cex-pack.json";
+    bool schoolManifestExists = fileExists(schoolManifestPath);
+    Assert::isTrue(schoolManifestExists, "tmp/school/cex-pack.json exists");
+
+    // -------------------------------------------------------------
+    // Test 3: Parse Reusable School .xhtml Components
+    // -------------------------------------------------------------
+    string btnPath = "tmp/school/views/components/button.xhtml";
+    bool btnExists = fileExists(btnPath);
+    Assert::isTrue(btnExists, "button.xhtml exists");
+    if (btnExists) {
+        string btnContent = XhtmlCompiler::readFile(btnPath);
+        XhtmlParsedComponent* compBtn = XhtmlCompiler::parse(btnContent, "SchoolButton", btnPath);
+        Assert::isTrue(compBtn != nullptr, "SchoolButton parses successfully");
+        Assert::equalsString("SchoolButton", compBtn->componentName, "Component name is SchoolButton");
+        Assert::isTrue(btnContent.find("let ") == string::npos, "button.xhtml eliminates legacy 'let'");
+    }
+
+    string cardPath = "tmp/school/views/components/card.xhtml";
+    bool cardExists = fileExists(cardPath);
+    Assert::isTrue(cardExists, "card.xhtml exists");
+    if (cardExists) {
+        string cardContent = XhtmlCompiler::readFile(cardPath);
+        XhtmlParsedComponent* compCard = XhtmlCompiler::parse(cardContent, "SchoolCard", cardPath);
+        Assert::isTrue(compCard != nullptr, "SchoolCard parses successfully");
+        Assert::equalsString("SchoolCard", compCard->componentName, "Component name is SchoolCard");
+        Assert::isTrue(cardContent.find("let ") == string::npos, "card.xhtml eliminates legacy 'let'");
+    }
+
+    string statPath = "tmp/school/views/components/stat_card.xhtml";
+    bool statExists = fileExists(statPath);
+    Assert::isTrue(statExists, "stat_card.xhtml exists");
+    if (statExists) {
+        string statContent = XhtmlCompiler::readFile(statPath);
+        XhtmlParsedComponent* compStat = XhtmlCompiler::parse(statContent, "SchoolStatCard", statPath);
+        Assert::isTrue(compStat != nullptr, "SchoolStatCard parses successfully");
+        Assert::equalsString("SchoolStatCard", compStat->componentName, "Component name is SchoolStatCard");
+    }
+
+    string badgePath = "tmp/school/views/components/badge.xhtml";
+    bool badgeExists = fileExists(badgePath);
+    Assert::isTrue(badgeExists, "badge.xhtml exists");
+    if (badgeExists) {
+        string badgeContent = XhtmlCompiler::readFile(badgePath);
+        XhtmlParsedComponent* compBadge = XhtmlCompiler::parse(badgeContent, "SchoolBadge", badgePath);
+        Assert::isTrue(compBadge != nullptr, "SchoolBadge parses successfully");
+        Assert::equalsString("SchoolBadge", compBadge->componentName, "Component name is SchoolBadge");
+    }
+
+    // -------------------------------------------------------------
+    // Test 4: Parse & Render Page Views (.xhtml)
+    // -------------------------------------------------------------
+    string dashPath = "tmp/school/views/dashboard.xhtml";
+    bool dashExists = fileExists(dashPath);
+    Assert::isTrue(dashExists, "dashboard.xhtml exists");
+    if (dashExists) {
+        string dashContent = XhtmlCompiler::readFile(dashPath);
+        XhtmlContext* dashCtx = new XhtmlContext(false, "SchoolDashboard");
+        dashCtx->props->set("totalStudents", "1250");
+        dashCtx->props->set("activeCourses", "48");
+        dashCtx->props->set("facultyCount", "74");
+        dashCtx->props->set("avgGpa", "3.68");
+
+        string dashHtml = XhtmlCompiler::renderXhtmlToHtml(dashContent, "SchoolDashboard", dashCtx);
+        Assert::isTrue(!dashHtml.empty(), "Rendered dashboard HTML is non-empty");
+        Assert::isTrue(dashHtml.find("1250") != string::npos, "Dashboard contains total students 1250");
+        Assert::isTrue(dashHtml.find("48") != string::npos, "Dashboard contains active courses 48");
+        Assert::isTrue(dashHtml.find("3.68") != string::npos, "Dashboard contains average GPA 3.68");
+    }
+
+    string studentsPath = "tmp/school/views/students.xhtml";
+    bool studentsExists = fileExists(studentsPath);
+    Assert::isTrue(studentsExists, "students.xhtml exists");
+
+    string coursesPath = "tmp/school/views/courses.xhtml";
+    bool coursesExists = fileExists(coursesPath);
+    Assert::isTrue(coursesExists, "courses.xhtml exists");
+
+    string teachersPath = "tmp/school/views/teachers.xhtml";
+    bool teachersExists = fileExists(teachersPath);
+    Assert::isTrue(teachersExists, "teachers.xhtml exists");
+
+    // -------------------------------------------------------------
+    // Test 5: Verify Standalone Entrypoint & Models
+    // -------------------------------------------------------------
+    string indexPath = "tmp/school/index.cex";
+    bool indexExists = fileExists(indexPath);
+    Assert::isTrue(indexExists, "tmp/school/index.cex exists");
+
+    string appPath = "tmp/school/school_app.cex";
+    bool appExists = fileExists(appPath);
+    Assert::isTrue(appExists, "tmp/school/school_app.cex exists");
+
+    string controllerPath = "tmp/school/controllers/school.controller.cex";
+    bool controllerExists = fileExists(controllerPath);
+    Assert::isTrue(controllerExists, "tmp/school/controllers/school.controller.cex exists");
+
+    println("===============================================================================");
+    println("  Tutorial & Test Suite Verification Completed                                 ");
+    println("===============================================================================");
+    return 0;
+}

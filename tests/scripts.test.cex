@@ -14,16 +14,16 @@ int main() {
 
     // 1. Verify existence of cex-pack.json
     Assert::isTrue(fs.exists("cex-pack.json"), "cex-pack.json manifest must exist");
-    let content: string = fs.readFile("cex-pack.json");
+    string content = fs.readFile("cex-pack.json");
     Assert::isTrue(content.length() > 0, "cex-pack.json must not be empty");
 
     // 2. Parse scripts section
-    let scriptsPos: int = (int)content.find("\"scripts\"");
+    int scriptsPos = (int)content.find("\"scripts\"");
     Assert::isTrue(scriptsPos != -1, "cex-pack.json must declare scripts section");
 
     // 3. Verify no indirect cxvm --app wrappers in scripts
-    let scriptsEnd: int = (int)content.find("}", scriptsPos);
-    let scriptsBlock: string = content.substr(scriptsPos, scriptsEnd - scriptsPos + 1);
+    int scriptsEnd = (int)content.find("}", scriptsPos);
+    string scriptsBlock = content.substr(scriptsPos, scriptsEnd - scriptsPos + 1);
     Assert::isTrue(scriptsBlock.find("cxvm --app") == -1, "scripts block must NOT contain indirect 'cxvm --app' wrappers");
 
     // 4. Verify native toolchain invocations
@@ -46,8 +46,8 @@ int main() {
     Assert::isTrue(scriptsBlock.find("\"install\": \"cex-pack downloads\"") != -1, "install script must run via cex-pack");
     Assert::isTrue(scriptsBlock.find("\"downloads\": \"cex-pack downloads\"") != -1, "downloads script must run via cex-pack");
 
-    let fails: int = Assert::getFailures();
-    let checks: int = Assert::getTotalChecks();
+    int fails = Assert::getFailures();
+    int checks = Assert::getTotalChecks();
     println("Checks verified: " + std::to_string(checks) + ", Failures: " + std::to_string(fails));
 
     if (fails > 0) {

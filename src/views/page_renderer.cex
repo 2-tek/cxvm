@@ -56,8 +56,8 @@ class TemplateContext {
 class TemplateEngine {
     static public string replaceAll(string str, string from, string to) {
         if (from.empty()) return str;
-        let res: string = str;
-        let pos: size_t = 0;
+        string res = str;
+        size_t pos = 0;
         while ((pos = res.find(from, pos)) != string::npos) {
             res.replace(pos, from.length(), to);
             pos += to.length();
@@ -66,10 +66,10 @@ class TemplateEngine {
     }
 
     static public string processVariables(string tpl, TemplateContext* ctx) {
-        let res: string = tpl;
+        string res = tpl;
         for (const auto& kv : ctx->values) {
-            let token1: string = "{{" + kv.first + "}}";
-            let token2: string = "{{ " + kv.first + " }}";
+            string token1 = "{{" + kv.first + "}}";
+            string token2 = "{{ " + kv.first + " }}";
             res = TemplateEngine::replaceAll(res, token1, kv.second);
             res = TemplateEngine::replaceAll(res, token2, kv.second);
         }
@@ -77,38 +77,38 @@ class TemplateEngine {
     }
 
     static public string processConditionals(string tpl, TemplateContext* ctx) {
-        let res: string = tpl;
-        let startTag: string = "{{#if ";
-        let endTag: string = "{{/if}}";
+        string res = tpl;
+        string startTag = "{{#if ";
+        string endTag = "{{/if}}";
 
-        let startPos: size_t = 0;
+        size_t startPos = 0;
         while ((startPos = res.find(startTag, startPos)) != string::npos) {
-            let tagEnd: size_t = res.find("}}", startPos);
+            size_t tagEnd = res.find("}}", startPos);
             if (tagEnd == string::npos) break;
-            let key: string = res.substr(startPos + startTag.length(), tagEnd - (startPos + startTag.length()));
+            string key = res.substr(startPos + startTag.length(), tagEnd - (startPos + startTag.length()));
             while (!key.empty() && key.substr(key.length() - 1, 1) == " ") key.pop_back();
             while (!key.empty() && key.substr(0, 1) == " ") key.erase(0, 1);
 
-            let blockEnd: size_t = res.find(endTag, tagEnd);
+            size_t blockEnd = res.find(endTag, tagEnd);
             if (blockEnd == string::npos) break;
 
-            let innerContent: string = res.substr(tagEnd + 2, blockEnd - (tagEnd + 2));
-            let ifPart: string = innerContent;
-            let elsePart: string = "";
+            string innerContent = res.substr(tagEnd + 2, blockEnd - (tagEnd + 2));
+            string ifPart = innerContent;
+            string elsePart = "";
 
-            let elsePos: size_t = innerContent.find("{{else}}");
+            size_t elsePos = innerContent.find("{{else}}");
             if (elsePos != string::npos) {
                 ifPart = innerContent.substr(0, elsePos);
                 elsePart = innerContent.substr(elsePos + 8);
             }
 
-            let condition: bool = false;
-            let val: string = ctx->get(key);
+            bool condition = false;
+            string val = ctx->get(key);
             if (!val.empty() && val != "0" && val != "false" && val != "null") {
                 condition = true;
             }
 
-            let replacement: string = condition ? ifPart : elsePart;
+            string replacement = condition ? ifPart : elsePart;
             res.replace(startPos, (blockEnd + endTag.length()) - startPos, replacement);
             startPos += replacement.length();
         }
@@ -116,34 +116,34 @@ class TemplateEngine {
     }
 
     static public string processLoops(string tpl, TemplateContext* ctx) {
-        let res: string = tpl;
-        let startTag: string = "{{#each ";
-        let endTag: string = "{{/each}}";
+        string res = tpl;
+        string startTag = "{{#each ";
+        string endTag = "{{/each}}";
 
-        let startPos: size_t = 0;
+        size_t startPos = 0;
         while ((startPos = res.find(startTag, startPos)) != string::npos) {
-            let tagEnd: size_t = res.find("}}", startPos);
+            size_t tagEnd = res.find("}}", startPos);
             if (tagEnd == string::npos) break;
 
-            let listKey: string = res.substr(startPos + startTag.length(), tagEnd - (startPos + startTag.length()));
+            string listKey = res.substr(startPos + startTag.length(), tagEnd - (startPos + startTag.length()));
             while (!listKey.empty() && listKey.substr(listKey.length() - 1, 1) == " ") listKey.pop_back();
             while (!listKey.empty() && listKey.substr(0, 1) == " ") listKey.erase(0, 1);
 
-            let blockEnd: size_t = res.find(endTag, tagEnd);
+            size_t blockEnd = res.find(endTag, tagEnd);
             if (blockEnd == string::npos) break;
 
-            let loopTpl: string = res.substr(tagEnd + 2, blockEnd - (tagEnd + 2));
-            let loopOutput: string = "";
+            string loopTpl = res.substr(tagEnd + 2, blockEnd - (tagEnd + 2));
+            string loopOutput = "";
 
             if (ctx->listItems.find(listKey) != ctx->listItems.end()) {
                 const auto& items = ctx->listItems[listKey];
                 for (const auto& itemMap : items) {
-                    let itemHtml: string = loopTpl;
+                    string itemHtml = loopTpl;
                     for (const auto& kv : itemMap) {
-                        let token1: string = "{{this." + kv.first + "}}";
-                        let token2: string = "{{ this." + kv.first + " }}";
-                        let token3: string = "{{" + kv.first + "}}";
-                        let token4: string = "{{ " + kv.first + " }}";
+                        string token1 = "{{this." + kv.first + "}}";
+                        string token2 = "{{ this." + kv.first + " }}";
+                        string token3 = "{{" + kv.first + "}}";
+                        string token4 = "{{ " + kv.first + " }}";
                         itemHtml = TemplateEngine::replaceAll(itemHtml, token1, kv.second);
                         itemHtml = TemplateEngine::replaceAll(itemHtml, token2, kv.second);
                         itemHtml = TemplateEngine::replaceAll(itemHtml, token3, kv.second);
@@ -160,7 +160,7 @@ class TemplateEngine {
     }
 
     static public string render(string tpl, TemplateContext* ctx) {
-        let output: string = tpl;
+        string output = tpl;
         output = TemplateEngine::processConditionals(output, ctx);
         output = TemplateEngine::processLoops(output, ctx);
         output = TemplateEngine::processVariables(output, ctx);
@@ -178,7 +178,7 @@ class PageRenderer {
     }
 
     static public string readFile(string path) {
-        let resolved: string = PageRenderer::resolveFilePath(path);
+        string resolved = PageRenderer::resolveFilePath(path);
         if (!StdFilesystem::exists(resolved)) return "";
         try {
             return StdFilesystem::read_text(resolved);
@@ -188,12 +188,12 @@ class PageRenderer {
     }
 
     static public string render(string pageContent, string layoutContent, TemplateContext* ctx) {
-        let renderedPage: string = TemplateEngine::render(pageContent, ctx);
+        string renderedPage = TemplateEngine::render(pageContent, ctx);
         if (layoutContent.empty()) {
             return renderedPage;
         }
 
-        let fullDocument: string = layoutContent;
+        string fullDocument = layoutContent;
         fullDocument = TemplateEngine::replaceAll(fullDocument, "<!-- REALITY_PAGE_SLOT -->", renderedPage);
         fullDocument = TemplateEngine::replaceAll(fullDocument, "{{ children }}", renderedPage);
         fullDocument = TemplateEngine::replaceAll(fullDocument, "{{children}}", renderedPage);
@@ -205,8 +205,8 @@ class PageRenderer {
     }
 
     static public string renderFiles(string pagePath, string layoutPath, TemplateContext* ctx) {
-        let pageContent: string = PageRenderer::readFile(pagePath);
-        let layoutContent: string = "";
+        string pageContent = PageRenderer::readFile(pagePath);
+        string layoutContent = "";
         if (!layoutPath.empty()) {
             layoutContent = PageRenderer::readFile(layoutPath);
         }

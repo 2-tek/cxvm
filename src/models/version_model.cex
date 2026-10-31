@@ -22,7 +22,7 @@ class VersionModel : BaseModel {
     }
 
     public override ModelValidationResult* validate() {
-        let res: ModelValidationResult* = new ModelValidationResult();
+        ModelValidationResult* res = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -36,7 +36,7 @@ class VersionModel : BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        let doc: JsonValue* = JsonDoc::obj();
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "version", this.version);
         JsonDoc::setStr(doc, "channel", this.channel);
@@ -48,7 +48,7 @@ class VersionModel : BaseModel {
     }
 
     public override string toJson() {
-        let obj: JsonValue* = Json::obj();
+        JsonValue* obj = Json::obj();
         Json::setString(obj, "version", this.version);
         Json::setString(obj, "channel", this.channel);
         Json::setString(obj, "releaseDate", this.releaseDate);

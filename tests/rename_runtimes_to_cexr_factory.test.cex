@@ -31,16 +31,16 @@ void assertCondition(bool cond, const std::string& passMsg, const std::string& f
 }
 
 int main() {
-    let passCount: int = 0;
-    let failCount: int = 0;
+    int passCount = 0;
+    int failCount = 0;
 
     std::cout << "=================================================================\n";
     std::cout << "Running Unit Test: Rename runtimes to cexr-factory\n";
     std::cout << "=================================================================\n";
 
     // 1. Directory presence and legacy absence
-    let cexrFactoryExists: bool = dirExists("cexr-factory");
-    let runtimesExists: bool = dirExists("runtimes");
+    bool cexrFactoryExists = dirExists("cexr-factory");
+    bool runtimesExists = dirExists("runtimes");
 
     assertCondition(cexrFactoryExists && !runtimesExists,
         "Directory 'cexr-factory' exists and legacy 'runtimes' does not exist",
@@ -48,10 +48,10 @@ int main() {
         passCount, failCount);
 
     // 2. Core files inside cexr-factory
-    let hasPack: bool = fileExists("cexr-factory/cex-pack.json");
-    let hasIndex: bool = fileExists("cexr-factory/index.cex");
-    let hasBuild: bool = fileExists("cexr-factory/build.cex");
-    let hasTest: bool = fileExists("cexr-factory/test.cex");
+    bool hasPack = fileExists("cexr-factory/cex-pack.json");
+    bool hasIndex = fileExists("cexr-factory/index.cex");
+    bool hasBuild = fileExists("cexr-factory/build.cex");
+    bool hasTest = fileExists("cexr-factory/test.cex");
 
     assertCondition(hasPack && hasIndex && hasBuild && hasTest,
         "All core files (cex-pack.json, index.cex, build.cex, test.cex) exist in cexr-factory",
@@ -59,7 +59,7 @@ int main() {
         passCount, failCount);
 
     // 3. Manifest name declared as cexr-factory
-    let hasCorrectName: bool = fileContains("cexr-factory/cex-pack.json", "\"name\": \"cexr-factory\"");
+    bool hasCorrectName = fileContains("cexr-factory/cex-pack.json", "\"name\": \"cexr-factory\"");
     assertCondition(hasCorrectName,
         "cexr-factory/cex-pack.json declares \"name\": \"cexr-factory\"",
         "cexr-factory/cex-pack.json does not declare \"name\": \"cexr-factory\"",

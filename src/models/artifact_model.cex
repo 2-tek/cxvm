@@ -26,7 +26,7 @@ class ArtifactModel : BaseModel {
     }
 
     public override ModelValidationResult* validate() {
-        let res: ModelValidationResult* = new ModelValidationResult();
+        ModelValidationResult* res = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -40,7 +40,7 @@ class ArtifactModel : BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        let doc: JsonValue* = JsonDoc::obj();
+        JsonValue* doc = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "filename", this.filename);
         JsonDoc::setStr(doc, "version", this.version);
@@ -54,7 +54,7 @@ class ArtifactModel : BaseModel {
     }
 
     public override string toJson() {
-        let obj: JsonValue* = Json::obj();
+        JsonValue* obj = Json::obj();
         Json::setString(obj, "filename", this.filename);
         Json::setString(obj, "version", this.version);
         Json::setString(obj, "platform", this.platform);

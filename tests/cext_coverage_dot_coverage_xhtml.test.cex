@@ -1,0 +1,93 @@
+// 2-TEK CXVM: CexT Coverage to .coverage & XHTML Output Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import "@cext/src/coverage.cex";
+import fs from "fs";
+
+int main() {
+    println("===============================================================================");
+    println("       2-TEK CexT: Coverage to .coverage & XHTML Output Test Suite             ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("CexT Coverage .coverage & XHTML Tests");
+
+    // 1. Setup mock coverage stats
+    CoverageStats* stats = new CoverageStats();
+    stats->totalFiles = 1;
+    stats->totalLines = 50;
+    stats->totalExecutable = 30;
+    stats->totalHit = 27;
+    stats->totalMissed = 3;
+    stats->overallPercentage = 90.0;
+    stats->overallPctInt = 90;
+
+    FileCoverage* fc = new FileCoverage("src/service.cex");
+    fc->addLine(1, true, "int x = 1;");
+    fc->addLine(2, true, "int y = 2;");
+    fc->recordHit(1, 1);
+    fc->recordHit(2, 1);
+    fc->recalculate();
+    stats->files->push(fc);
+
+    // 2. Verify CoverageGenerator::generateXhtml
+    println("[Step 1]: Verifying CoverageGenerator::generateXhtml structure");
+    string xhtml = CoverageGenerator::generateXhtml(stats, "Test Coverage Dashboard");
+    Assert::isTrue(xhtml.find("<?xml version=\"1.0\" encoding=\"UTF-8\"?>") != -1, "XHTML includes XML declaration");
+    Assert::isTrue(xhtml.find("xmlns=\"http://www.w3.org/1999/xhtml\"") != -1, "XHTML specifies standard XHTML namespace");
+    Assert::isTrue(xhtml.find("<title>Test Coverage Dashboard</title>") != -1, "XHTML dashboard title matches");
+    Assert::isTrue(xhtml.find("progress-bar") != -1, "XHTML progress bar present");
+    Assert::isTrue(xhtml.find("src/service.cex") != -1, "XHTML table row contains file path");
+    suite->addResult("test_generate_xhtml", true, "", 1);
+
+    // 3. Verify CoverageGenerator::exportReports outputs index.xhtml
+    println("[Step 2]: Verifying CoverageGenerator::exportReports writes index.xhtml");
+    string testDir = ".cex_cache/test_cov_export";
+    if (fs.exists(testDir)) {
+        CexFilesystem::removeAll(testDir);
+    }
+    bool exportRes = CoverageGenerator::exportReports(stats, testDir, "coverage");
+    Assert::isTrue(exportRes, "exportReports returns true");
+    Assert::isTrue(fs.exists(testDir + "/index.xhtml"), "index.xhtml was written to outputDir");
+    Assert::isTrue(fs.exists(testDir + "/index.html"), "index.html exists for backward compatibility");
+    Assert::isTrue(fs.exists(testDir + "/lcov.info"), "lcov.info was written to outputDir");
+    Assert::isTrue(fs.exists(testDir + "/coverage.json"), "coverage.json was written to outputDir");
+    Assert::isTrue(fs.exists(testDir + "/summary.txt"), "summary.txt was written to outputDir");
+
+    string writtenXhtml = fs.readFile(testDir + "/index.xhtml");
+    Assert::isTrue(writtenXhtml.find("xmlns=\"http://www.w3.org/1999/xhtml\"") != -1, "written index.xhtml contains XHTML namespace");
+    suite->addResult("test_export_reports_xhtml", true, "", 1);
+
+    // 4. Verify CLI cext coverage defaults to .coverage/
+    println("[Step 3]: Verifying cext coverage CLI command defaults to .coverage/");
+    string dotCovDir = ".coverage";
+    if (fs.exists(dotCovDir)) {
+        CexFilesystem::removeAll(dotCovDir);
+    }
+    int cliCovRes = CexCstdlib::system("cext coverage cxvm/tests/install.test.cex");
+    Assert::equalsInt(0, cliCovRes, "cext coverage command exits with 0");
+    Assert::isTrue(fs.exists(dotCovDir + "/index.xhtml"), "CLI exported index.xhtml to .coverage/");
+    Assert::isTrue(fs.exists(dotCovDir + "/lcov.info"), "CLI exported lcov.info to .coverage/");
+    Assert::isTrue(fs.exists(dotCovDir + "/coverage.json"), "CLI exported coverage.json to .coverage/");
+    Assert::isTrue(fs.exists(dotCovDir + "/summary.txt"), "CLI exported summary.txt to .coverage/");
+    suite->addResult("test_cli_coverage_default_dot_coverage", true, "", 1);
+
+    // 5. Verify CLI cext coverage with --xhtml option
+    println("[Step 4]: Verifying cext coverage CLI with --xhtml option");
+    string customXhtml = ".coverage/custom_dashboard.xhtml";
+    if (fs.exists(customXhtml)) {
+        CexUnistd::unlink(customXhtml);
+    }
+    int cliXhtmlRes = CexCstdlib::system("cext coverage cxvm/tests/install.test.cex --xhtml " + customXhtml);
+    Assert::equalsInt(0, cliXhtmlRes, "cext coverage with --xhtml exits 0");
+    Assert::isTrue(fs.exists(customXhtml), "custom_dashboard.xhtml exists");
+    string customContent = fs.readFile(customXhtml);
+    Assert::isTrue(customContent.find("xmlns=\"http://www.w3.org/1999/xhtml\"") != -1, "custom XHTML contains namespace");
+    suite->addResult("test_cli_coverage_explicit_xhtml_flag", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

@@ -18,35 +18,35 @@ int main() {
     println("         2-TEK CXVM: Cex Builder & Build Integration Test Suite                ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM Builder Tests");
+    TestSuite* suite = new TestSuite("CXVM Builder Tests");
 
     // 1. Verify Builder Packages Exist in cex_boxes as Real Self-Contained Directories (Not Symlinks)
-    let hasBuilder: bool = fs.exists("cex_boxes/cex-builder") || fs.exists(".cex_boxes/cex-builder");
+    bool hasBuilder = fs.exists("cex_boxes/cex-builder") || fs.exists(".cex_boxes/cex-builder");
     Assert::isTrue(hasBuilder, "cex-builder exists in boxes");
 
     // Verify not symbolic links (RULE_NO_SYMLINK_BETWEEN_BOXES)
-    let symCheck1: string = child_process.execSync("test -L cex_boxes/cex-builder && echo 'symlink' || echo 'real'");
+    string symCheck1 = child_process.execSync("test -L cex_boxes/cex-builder && echo 'symlink' || echo 'real'");
     Assert::isTrue(symCheck1.find("real") != -1, "cex_boxes/cex-builder is a real directory, not symlinked");
 
     // 2. Verify Builder Version Resolution in CxvmEngine
-    let cxvm: CxvmEngine* = new CxvmEngine();
+    CxvmEngine* cxvm = new CxvmEngine();
     Assert::equalsString("1.0.0", cxvm->resolveLibVersion("cex-builder"), "cxvm resolves cex-builder to version 1.0.0");
     Assert::equalsString("2.1.43", cxvm->resolveLibVersion("cxvm"), "cxvm resolves cxvm to version 2.1.43");
 
     // 3. Verify PackageCatalog from @cex-builder in cex_boxes
-    let packageCatalog: PackageCatalog* = new PackageCatalog("downloads");
+    PackageCatalog* packageCatalog = new PackageCatalog("downloads");
     Assert::isTrue((int)packageCatalog->platforms->length() >= 6, "PackageCatalog has 6 supported platforms");
     Assert::isTrue((int)packageCatalog->versions->length() >= 6, "PackageCatalog has at least 6 supported versions");
     Assert::isTrue((int)packageCatalog->artifacts->length() >= 36, "PackageCatalog initialized artifacts matrix");
 
     // 4. Verify Dispatching Builder via --app and CLI
-    let appBuilderRes: int = cxvm->appExecute("cex-builder", "doctor", "");
+    int appBuilderRes = cxvm->appExecute("cex-builder", "doctor", "");
     Assert::equalsInt(0, appBuilderRes, "cxvm appExecute cex-builder doctor returns 0 OK");
 
-    let cmdBuilderRes: int = cxvm->cvmExecute("builder", "doctor", "");
+    int cmdBuilderRes = cxvm->cvmExecute("builder", "doctor", "");
     Assert::equalsInt(0, cmdBuilderRes, "cxvm cvmExecute builder doctor returns 0 OK");
 
-    let cmdBuildBuilderRes: int = cxvm->cvmExecute("build", "builder", "doctor");
+    int cmdBuildBuilderRes = cxvm->cvmExecute("build", "builder", "doctor");
     Assert::equalsInt(0, cmdBuildBuilderRes, "cxvm cvmExecute build builder doctor returns 0 OK");
 
     suite->addResult("test_builder_cex_boxes", true, "", 1);

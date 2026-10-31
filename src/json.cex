@@ -15,13 +15,13 @@ class Json {
     }
 
     static public JsonValue* obj() {
-        let v: JsonValue* = new JsonValue();
+        JsonValue* v = new JsonValue();
         v->type = cex::json_lib::JsonType::Object;
         return v;
     }
 
     static public JsonValue* arr() {
-        let v: JsonValue* = new JsonValue();
+        JsonValue* v = new JsonValue();
         v->type = cex::json_lib::JsonType::Array;
         return v;
     }
@@ -111,19 +111,19 @@ class Json {
 
     static public string getString(JsonValue* v, string key, string defVal) {
         if (v == nullptr || !v->has(key)) return defVal;
-        let item: JsonValue* = (JsonValue*)v->get(key);
+        JsonValue* item = (JsonValue*)v->get(key);
         return item != nullptr ? item->asString(defVal) : defVal;
     }
 
     static public int getInt(JsonValue* v, string key, int defVal) {
         if (v == nullptr || !v->has(key)) return defVal;
-        let item: JsonValue* = (JsonValue*)v->get(key);
+        JsonValue* item = (JsonValue*)v->get(key);
         return item != nullptr ? item->asInt(defVal) : defVal;
     }
 
     static public bool getBool(JsonValue* v, string key, bool defVal) {
         if (v == nullptr || !v->has(key)) return defVal;
-        let item: JsonValue* = (JsonValue*)v->get(key);
+        JsonValue* item = (JsonValue*)v->get(key);
         return item != nullptr ? item->asBool(defVal) : defVal;
     }
 
@@ -144,19 +144,19 @@ class Json {
 
     public string getString(string key, string defVal = "") {
         if (this.inner == nullptr) return defVal;
-        let it: JsonValue* = (JsonValue*)this.inner->get(key);
+        JsonValue* it = (JsonValue*)this.inner->get(key);
         return it != nullptr ? it->asString(defVal) : defVal;
     }
 
     public int getInt(string key, int defVal = 0) {
         if (this.inner == nullptr) return defVal;
-        let it: JsonValue* = (JsonValue*)this.inner->get(key);
+        JsonValue* it = (JsonValue*)this.inner->get(key);
         return it != nullptr ? it->asInt(defVal) : defVal;
     }
 
     public bool getBool(string key, bool defVal = false) {
         if (this.inner == nullptr) return defVal;
-        let it: JsonValue* = (JsonValue*)this.inner->get(key);
+        JsonValue* it = (JsonValue*)this.inner->get(key);
         return it != nullptr ? it->asBool(defVal) : defVal;
     }
 

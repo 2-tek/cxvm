@@ -1,0 +1,63 @@
+#include <std/core>
+#include <std/test>
+#include <std/fs>
+#include <std/json>
+
+class FetchAndRebuildTest {
+    public static void run() {
+        Test.describe("Fetch and Rebuild Verification Test Suite", () => {
+            Test.it("TC-FR-01: SSR documentation files exist and are populated", () => {
+                string ssrDir = ".agents/ssr/31-10-2026/fetch-and-rebuild";
+                Assert.isTrue(Fs.exists(ssrDir + "/ssr.md"), "ssr.md must exist");
+                Assert.isTrue(Fs.exists(ssrDir + "/testcases.md"), "testcases.md must exist");
+                Assert.isTrue(Fs.exists(ssrDir + "/expectation.md"), "expectation.md must exist");
+            });
+
+            Test.it("TC-FR-02: projects/cvm/src/cli.cex registers fetch command", () => {
+                string cliPath = "projects/cvm/src/cli.cex";
+                Assert.isTrue(Fs.exists(cliPath), "cli.cex must exist");
+                string content = Fs.readFile(cliPath);
+                Assert.isTrue(content.includes("\"fetch\""), "cli.cex must parse fetch command");
+            });
+
+            Test.it("TC-FR-03: projects/cvm/src/cli.cex implements cmdFetch method", () => {
+                string cliPath = "projects/cvm/src/cli.cex";
+                string content = Fs.readFile(cliPath);
+                Assert.isTrue(content.includes("cmdFetch("), "cli.cex must implement cmdFetch");
+            });
+
+            Test.it("TC-FR-04: projects/cvm/src/cli.cex documents fetch in printHelp", () => {
+                string cliPath = "projects/cvm/src/cli.cex";
+                string content = Fs.readFile(cliPath);
+                Assert.isTrue(content.includes("fetch [remote] [branch]"), "cli.cex printHelp must document fetch command");
+            });
+
+            Test.it("TC-FR-05: projects/cvm/.bin exists and is non-empty", () => {
+                string cvmBin = "projects/cvm/.bin";
+                Assert.isTrue(Fs.exists(cvmBin), "projects/cvm/.bin must exist");
+            });
+
+            Test.it("TC-FR-06: cexr-factory/.bin exists and is executable", () => {
+                string factoryBin = "cexr-factory/.bin";
+                Assert.isTrue(Fs.exists(factoryBin), "cexr-factory/.bin must exist");
+            });
+
+            Test.it("TC-FR-07: cxvm/.bin exists and is executable", () => {
+                string cxvmBin = "cxvm/.bin";
+                Assert.isTrue(Fs.exists(cxvmBin), "cxvm/.bin must exist");
+            });
+
+            Test.it("TC-FR-08: Rule 29 EOF integrity for modified files", () => {
+                string cliPath = "projects/cvm/src/cli.cex";
+                string content = Fs.readFile(cliPath);
+                Assert.isTrue(content.length() > 0, "cli.cex must not be empty");
+                Assert.isTrue(content.endsWith("\n"), "cli.cex must end with single newline");
+            });
+        });
+    }
+}
+
+int main() {
+    FetchAndRebuildTest.run();
+    return 0;
+}

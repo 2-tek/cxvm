@@ -14,7 +14,7 @@ int main() {
     println("   2-TEK CXVM: MVC-Lighting XHTML Views & REST API Controller Test Suite       ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM MVC-Lighting XHTML Tests");
+    TestSuite* suite = new TestSuite("CXVM MVC-Lighting XHTML Tests");
 
     // 1. Verify Native .xhtml Files Exist
     println("[Test 1] TC-CXVM-01: Verifying native .xhtml template files in src/views/...");
@@ -33,37 +33,37 @@ int main() {
 
     // 3. Verify FactoryApp Serves .xhtml Views
     println("[Test 3] TC-CXVM-02 & TC-CXVM-03: Verifying .xhtml view responses...");
-    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
+    FactoryApp* app = new FactoryApp(CxvmConstants::defaultPort());
     app->start();
 
-    let resHome: HttpResponse* = app->simulateRequest("GET", "/", "", "text/html");
+    HttpResponse* resHome = app->simulateRequest("GET", "/", "", "text/html");
     Assert::equalsInt(200, resHome->statusCode, "GET / returns 200 OK");
     Assert::isTrue(resHome->body.find("<!DOCTYPE html") != -1 || resHome->body.find("<?xml") != -1, "Home view contains DOCTYPE");
     Assert::isTrue(resHome->body.find("2-TEK Cex Factory") != -1 || resHome->body.find("CXVM") != -1, "Home view contains portal heading");
 
-    let resDownloads: HttpResponse* = app->simulateRequest("GET", "/downloads", "", "text/html");
+    HttpResponse* resDownloads = app->simulateRequest("GET", "/downloads", "", "text/html");
     Assert::equalsInt(200, resDownloads->statusCode, "GET /downloads returns 200 OK");
     Assert::isTrue(resDownloads->body.find("Downloads") != -1, "Downloads view rendered");
 
-    let resDocs: HttpResponse* = app->simulateRequest("GET", "/cxvm", "", "text/html");
+    HttpResponse* resDocs = app->simulateRequest("GET", "/cxvm", "", "text/html");
     Assert::equalsInt(200, resDocs->statusCode, "GET /cxvm returns 200 OK");
     Assert::isTrue(resDocs->body.find("CXVM") != -1, "Docs view rendered");
 
-    let resSetup: HttpResponse* = app->simulateRequest("GET", "/setup", "", "text/html");
+    HttpResponse* resSetup = app->simulateRequest("GET", "/setup", "", "text/html");
     Assert::equalsInt(200, resSetup->statusCode, "GET /setup returns 200 OK");
     Assert::isTrue(resSetup->body.find("Setup") != -1, "Setup view rendered");
 
     // 4. Verify REST API Endpoints via FactoryController
     println("[Test 4] TC-CXVM-04 & TC-CXVM-06: Verifying REST API endpoints...");
-    let resStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
+    HttpResponse* resStatus = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
     Assert::equalsInt(200, resStatus->statusCode, "GET /api/v1/status returns 200 OK");
     Assert::isTrue(resStatus->body.find("ACTIVE") != -1, "Status API returns ACTIVE");
 
-    let resVersions: HttpResponse* = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
+    HttpResponse* resVersions = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
     Assert::equalsInt(200, resVersions->statusCode, "GET /api/v1/versions returns 200 OK");
     Assert::isTrue(resVersions->body.find("versions") != -1, "Versions API returns versions array");
 
-    let resPlatforms: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
+    HttpResponse* resPlatforms = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
     Assert::equalsInt(200, resPlatforms->statusCode, "GET /api/v1/platforms returns 200 OK");
     Assert::isTrue(resPlatforms->body.find("platforms") != -1, "Platforms API returns platforms array");
 

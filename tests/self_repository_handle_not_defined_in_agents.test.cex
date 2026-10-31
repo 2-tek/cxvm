@@ -1,0 +1,75 @@
+#include <std/core>
+#include <std/test>
+#include <std/fs>
+#include <std/json>
+
+class SelfRepositoryHandleTest {
+    private static string resolve(string relPath) {
+        if (Fs.exists(relPath)) return relPath;
+        if (Fs.exists("../" + relPath)) return "../" + relPath;
+        return relPath;
+    }
+
+    public static void run() {
+        Test.describe("Self-Repository Handle Not Defined in .agents Rule Verification Suite", () => {
+            Test.it("TC-SR-01: Canonical rule exists in .agents/rules/", () => {
+                string rulePath = SelfRepositoryHandleTest.resolve(".agents/rules/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
+                Assert.isTrue(Fs.exists(rulePath), "Canonical rule file must exist in .agents/rules/");
+                string content = Fs.readFile(rulePath);
+                Assert.isTrue(content.length() > 0, "Canonical rule must not be empty");
+            });
+
+            Test.it("TC-SR-02: Mirrored rule exists in documents/rules/.agents/", () => {
+                string mirrorPath = SelfRepositoryHandleTest.resolve("documents/rules/.agents/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
+                Assert.isTrue(Fs.exists(mirrorPath), "Mirrored rule file must exist in documents/rules/.agents/");
+                string mirrorContent = Fs.readFile(mirrorPath);
+                Assert.isTrue(mirrorContent.length() > 0, "Mirrored rule must not be empty");
+            });
+
+            Test.it("TC-SR-03: Lowercase mirror exists in both rule directories", () => {
+                string lower1 = SelfRepositoryHandleTest.resolve(".agents/rules/rule-self-repository-handle-not-defined-in-agents.md");
+                string lower2 = SelfRepositoryHandleTest.resolve("documents/rules/.agents/rule-self-repository-handle-not-defined-in-agents.md");
+                Assert.isTrue(Fs.exists(lower1), "Lowercase rule must exist in .agents/rules/");
+                Assert.isTrue(Fs.exists(lower2), "Lowercase rule must exist in documents/rules/.agents/");
+            });
+
+            Test.it("TC-SR-04: RULE_STANDARDS.md integrates Section 12 for self-repository handling", () => {
+                string stdPath = SelfRepositoryHandleTest.resolve(".agents/rules/RULE_STANDARDS.md");
+                string stdContent = Fs.readFile(stdPath);
+                Assert.isTrue(stdContent.includes("RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS"), "RULE_STANDARDS.md must reference the new rule");
+                Assert.isTrue(stdContent.includes("12."), "RULE_STANDARDS.md must contain Section 12");
+            });
+
+            Test.it("TC-SR-05: Rule mandates autonomous self-repository handling", () => {
+                string rulePath = SelfRepositoryHandleTest.resolve(".agents/rules/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
+                string content = Fs.readFile(rulePath);
+                Assert.isTrue(content.includes("AUTONOMOUS SELF-REPOSITORY HANDLING"), "Rule must mandate autonomous self-repository handling");
+                Assert.isTrue(content.includes("NOT DEFINED IN ROOT .AGENTS"), "Rule must address repositories not defined in root .agents");
+            });
+
+            Test.it("TC-SR-06: Rule mandates zero fatal crashes on unmapped submodules", () => {
+                string rulePath = SelfRepositoryHandleTest.resolve(".agents/rules/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
+                string content = Fs.readFile(rulePath);
+                Assert.isTrue(content.includes("ZERO FATAL HALTS"), "Rule must mandate zero fatal crashes on unmapped submodules");
+            });
+
+            Test.it("TC-SR-07: SSR documentation exists and is populated", () => {
+                string ssrDir = SelfRepositoryHandleTest.resolve(".agents/ssr/31-10-2026/self-repository-handle-not-defined-in-agents");
+                Assert.isTrue(Fs.exists(ssrDir + "/ssr.md"), "ssr.md must exist");
+                Assert.isTrue(Fs.exists(ssrDir + "/testcases.md"), "testcases.md must exist");
+                Assert.isTrue(Fs.exists(ssrDir + "/expectation.md"), "expectation.md must exist");
+            });
+
+            Test.it("TC-SR-08: Rule 29 single trailing newline EOF integrity", () => {
+                string rulePath = SelfRepositoryHandleTest.resolve(".agents/rules/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
+                string content = Fs.readFile(rulePath);
+                Assert.isTrue(content.endsWith("\n"), "Rule file must end with newline");
+            });
+        });
+    }
+}
+
+int main() {
+    SelfRepositoryHandleTest.run();
+    return 0;
+}

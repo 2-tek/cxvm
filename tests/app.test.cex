@@ -13,25 +13,25 @@ int main() {
     println("       2-TEK CXVM: Lighting MVC Application Kernel & Core Endpoints           ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM App & Core Endpoints Tests");
+    TestSuite* suite = new TestSuite("CXVM App & Core Endpoints Tests");
 
-    let app: FactoryApp* = new FactoryApp(CxvmConstants::defaultPort());
+    FactoryApp* app = new FactoryApp(CxvmConstants::defaultPort());
     app->start();
     Assert::isTrue(app->isRunning, "Factory app starts running");
 
-    let resHome: HttpResponse* = app->simulateRequest("GET", "/", "", "text/html");
+    HttpResponse* resHome = app->simulateRequest("GET", "/", "", "text/html");
     Assert::equalsInt(200, resHome->statusCode, "GET / returns 200 OK");
     Assert::isTrue(resHome->body.find("2-TEK Cex Factory") != -1, "Home view contains title");
 
-    let resPlatforms: HttpResponse* = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
+    HttpResponse* resPlatforms = app->simulateRequest("GET", "/api/v1/platforms", "", "application/json");
     Assert::equalsInt(200, resPlatforms->statusCode, "GET /api/v1/platforms returns 200 OK");
     Assert::isTrue(resPlatforms->body.find("platforms") != -1, "Platforms response includes platforms");
 
-    let resVersions: HttpResponse* = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
+    HttpResponse* resVersions = app->simulateRequest("GET", "/api/v1/versions", "", "application/json");
     Assert::equalsInt(200, resVersions->statusCode, "GET /api/v1/versions returns 200 OK");
     Assert::isTrue(resVersions->body.find("versions") != -1, "Versions response includes versions");
 
-    let resStatus: HttpResponse* = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
+    HttpResponse* resStatus = app->simulateRequest("GET", "/api/v1/status", "", "application/json");
     Assert::equalsInt(200, resStatus->statusCode, "GET /api/v1/status returns 200 OK");
     Assert::isTrue(resStatus->body.find("currentActiveVersion") != -1, "Status API includes currentActiveVersion");
 
