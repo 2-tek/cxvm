@@ -5,17 +5,17 @@ import fs from "fs";
 
 class ProjectSelfBuilder {
     public static string resolveCompiler() {
-        char* envCexp = getenv("CEXP_BIN");
+        let envCexp: char* = getenv("CEXP_BIN");
         if (envCexp != nullptr && string(envCexp).length() > 0 && fs.exists(string(envCexp))) {
             return string(envCexp);
         }
-        char* envCexp2 = getenv("CEXP");
+        let envCexp2: char* = getenv("CEXP");
         if (envCexp2 != nullptr && string(envCexp2).length() > 0 && fs.exists(string(envCexp2))) {
             return string(envCexp2);
         }
 
-        char* envHome = getenv("HOME");
-        string homeStr = (envHome != nullptr) ? string(envHome) : "";
+        let envHome: char* = getenv("HOME");
+        let homeStr: string = (envHome != nullptr) ? string(envHome) : "";
         if (homeStr.length() > 0 && fs.exists(homeStr + "/.cxvm/bin/cexp-v8-stable")) {
             return homeStr + "/.cxvm/bin/cexp-v8-stable";
         }
@@ -27,15 +27,15 @@ class ProjectSelfBuilder {
 
     public static string resolveEntrypoint() {
         if (fs.exists("cex-pack.json")) {
-            string content = fs.readFile("cex-pack.json");
-            int mPos = (int)content.find("\"main\"");
+            let content: string = fs.readFile("cex-pack.json");
+            let mPos: int = (int)content.find("\"main\"");
             if (mPos != -1) {
-                int col = (int)content.find(":", mPos);
+                let col: int = (int)content.find(":", mPos);
                 if (col != -1) {
-                    int q1 = (int)content.find("\"", col);
-                    int q2 = (int)content.find("\"", q1 + 1);
+                    let q1: int = (int)content.find("\"", col);
+                    let q2: int = (int)content.find("\"", q1 + 1);
                     if (q1 != -1 && q2 != -1) {
-                        string mainFile = content.substr(q1 + 1, q2 - q1 - 1);
+                        let mainFile: string = content.substr(q1 + 1, q2 - q1 - 1);
                         if (fs.exists(mainFile)) return mainFile;
                     }
                 }
@@ -52,17 +52,17 @@ class ProjectSelfBuilder {
     }
 
     public static int build() {
-        string entry = ProjectSelfBuilder::resolveEntrypoint();
+        let entry: string = ProjectSelfBuilder::resolveEntrypoint();
         if (entry.length() == 0) {
             println("[ERROR] No valid entrypoint found in project.");
             return 1;
         }
 
-        string compiler = ProjectSelfBuilder::resolveCompiler();
+        let compiler: string = ProjectSelfBuilder::resolveCompiler();
         println("==> [Self-Build] Building project entrypoint (" + entry + " -> .bin) via " + compiler + "...");
 
-        string cmd = "\"" + compiler + "\" build \"" + entry + "\" -o .bin";
-        int res = system(cmd.c_str());
+        let cmd: string = "\"" + compiler + "\" build \"" + entry + "\" -o .bin";
+        let res: int = system(cmd.c_str());
 
         if (res == 0 && fs.exists(".bin")) {
             println("[OK] Project compiled to .bin successfully");

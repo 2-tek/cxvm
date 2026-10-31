@@ -2,9 +2,9 @@
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
 import "@mvc-lighting.book";
-import "../json.cex";
+import "@/src/json.cex";
 
-class ArtifactModel : BaseModel {
+class ArtifactModel : public BaseModel {
     public filename: string;
     public version: string;
     public platform: string;
@@ -27,7 +27,7 @@ class ArtifactModel : BaseModel {
     }
 
     public override ModelValidationResult* validate() {
-        ModelValidationResult* res = new ModelValidationResult();
+        let res: ModelValidationResult* = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -41,7 +41,7 @@ class ArtifactModel : BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        JsonValue* doc = JsonDoc::obj();
+        let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "filename", this.filename);
         JsonDoc::setStr(doc, "version", this.version);
@@ -55,7 +55,7 @@ class ArtifactModel : BaseModel {
     }
 
     public override string toJson() {
-        JsonValue* obj = Json::obj();
+        let obj: JsonValue* = Json::obj();
         Json::setString(obj, "filename", this.filename);
         Json::setString(obj, "version", this.version);
         Json::setString(obj, "platform", this.platform);

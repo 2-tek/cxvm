@@ -1,13 +1,14 @@
 // 2-TEK Factory: Package Entrypoint & CLI Runner (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp-v8-stable)
 
-import "./types.cex";
-import "./models/platform_model.cex";
-import "./models/version_model.cex";
-import "./models/artifact_model.cex";
-import "./models/package_catalog.cex";
-import "./cxvm_engine.cex";
-import "./app.cex";
+import "@mvc-lighting.book";
+import "@/src/types.cex";
+import "@/src/models/platform_model.cex";
+import "@/src/models/version_model.cex";
+import "@/src/models/artifact_model.cex";
+import "@/src/models/package_catalog.cex";
+import "@/src/cxvm_engine.cex";
+import "@/src/app.cex";
 import "@cex-cli.book";
 import "@cex-std.book";
 
@@ -19,12 +20,12 @@ int classifyCliCommand(string cmd) {
 
 int main(int argc, char** argv) {
     if (argc > 1) {
-        string cmd = std::string(argv[1]);
-        int cmdCode = classifyCliCommand(cmd);
+        let cmd: string = std::string(argv[1]);
+        let cmdCode: int = classifyCliCommand(cmd);
         switch (cmdCode) {
             case 1: {
-                TerminalUI::renderHeader("CXVM v2.1.43", "Pure Cex Native Engine: cexr-factory + cexp-v8-stable");
-                CxvmEngine* cxvm = new CxvmEngine();
+                TerminalUI::renderHeader("CXVM v2.1.46", "Pure Cex Native Engine: cexr-factory + cexp-v8-stable");
+                let cxvm: CxvmEngine* = new CxvmEngine();
                 println(cxvm->cexrVersionOutput());
                 return 0;
             }
@@ -39,18 +40,18 @@ int main(int argc, char** argv) {
             default:
             break;
         }
-        string arg1 = (argc > 2) ? std::string(argv[2]) : "";
-        string arg2 = "";
-        for (int i = 3; i < argc; i++) {
+        let arg1: string = (argc > 2) ? std::string(argv[2]) : "";
+        let arg2: string = "";
+        for (let i: int = 3; i < argc; i++) {
             if (arg2.length() > 0) arg2 += " ";
             arg2 += std::string(argv[i]);
         }
-        CxvmEngine* cxvm = new CxvmEngine();
+        let cxvm: CxvmEngine* = new CxvmEngine();
         return cxvm->cvmExecute(cmd, arg1, arg2);
     }
 
     TerminalUI::renderHeader("2-TEK CXVM: Cex Version Manager", "Cross-Platform Runtime & Version Manager Engine (cexr-factory + cexp-v8-stable)");
-    CxvmEngine* cxvm = new CxvmEngine();
+    let cxvm: CxvmEngine* = new CxvmEngine();
     println(cxvm->doctor());
     return 0;
 }

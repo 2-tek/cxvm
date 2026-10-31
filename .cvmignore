@@ -11,3 +11,6 @@ brain/
 cex_boxes/
 **/cex_boxes/
 **/.cex_boxes/
+.coverage/
+coverage/
+

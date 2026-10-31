@@ -2,9 +2,9 @@
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
 import "@mvc-lighting.book";
-import "../json.cex";
+import "@/src/json.cex";
 
-class VersionModel : BaseModel {
+class VersionModel : public BaseModel {
     public version: string;
     public channel: string;
     public releaseDate: string;
@@ -23,7 +23,7 @@ class VersionModel : BaseModel {
     }
 
     public override ModelValidationResult* validate() {
-        ModelValidationResult* res = new ModelValidationResult();
+        let res: ModelValidationResult* = new ModelValidationResult();
         if (this.id.length() === 0) {
             res->addError("Model ID must not be empty");
         }
@@ -37,7 +37,7 @@ class VersionModel : BaseModel {
     }
 
     public virtual JsonValue* toJsonValue() {
-        JsonValue* doc = JsonDoc::obj();
+        let doc: JsonValue* = JsonDoc::obj();
         JsonDoc::setStr(doc, "id", this.id);
         JsonDoc::setStr(doc, "version", this.version);
         JsonDoc::setStr(doc, "channel", this.channel);
@@ -49,7 +49,7 @@ class VersionModel : BaseModel {
     }
 
     public override string toJson() {
-        JsonValue* obj = Json::obj();
+        let obj: JsonValue* = Json::obj();
         Json::setString(obj, "version", this.version);
         Json::setString(obj, "channel", this.channel);
         Json::setString(obj, "releaseDate", this.releaseDate);

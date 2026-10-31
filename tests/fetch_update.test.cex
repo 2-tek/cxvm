@@ -1,0 +1,61 @@
+// 2-TEK CXVM: Fetch & Update Command Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
+
+import "@cext.book";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+
+int main() {
+    println("===============================================================================");
+    println("       2-TEK CXVM: Fetch & Update Command Test Suite                           ");
+    println("===============================================================================");
+
+    let cxvm: CxvmEngine* = new CxvmEngine();
+
+    // 1. Direct cvmFetch method test
+    println("[Test 1] Testing cxvm->cvmFetch('origin', 'main')...");
+    let fetchRes: CxvmCommandResult* = cxvm->cvmFetch("origin", "main");
+    Assert::isTrue(fetchRes->success, "cxvm->cvmFetch succeeds");
+    Assert::equals("fetch", fetchRes->action, "Result action is fetch");
+    Assert::equals("main", fetchRes->targetVersion, "Target version is main");
+
+    // 2. Direct cvmUpdate method test (version mode)
+    println("[Test 2] Testing cxvm->cvmUpdate('8.0.0', '')...");
+    let updateRes: CxvmCommandResult* = cxvm->cvmUpdate("8.0.0", "");
+    Assert::isTrue(updateRes->success, "cxvm->cvmUpdate version mode succeeds");
+    Assert::equals("update", updateRes->action, "Result action is update");
+
+    // 3. CLI cvmExecute routing: cxvm fetch
+    println("[Test 3] Testing cxvm->cvmExecute('fetch', 'origin', 'main')...");
+    let execFetch: int = cxvm->cvmExecute("fetch", "origin", "main");
+    Assert::equalsInt(0, execFetch, "cxvm cvmExecute fetch returns exit code 0");
+
+    // 4. CLI cvmExecute routing: cxvm update
+    println("[Test 4] Testing cxvm->cvmExecute('update', '8.0.0', '')...");
+    let execUpdate: int = cxvm->cvmExecute("update", "8.0.0", "");
+    Assert::equalsInt(0, execUpdate, "cxvm cvmExecute update returns exit code 0");
+
+    // 5. CVM app dispatcher routing: cxvm --app cvm fetch
+    println("[Test 5] Testing cxvm->appExecute('cvm', 'fetch', '')...");
+    let appFetchRes: int = cxvm->appExecute("cvm", "fetch", "");
+    Assert::equalsInt(0, appFetchRes, "cxvm appExecute cvm fetch returns exit code 0");
+
+    // 6. CVM app dispatcher routing: cxvm --app cvm update
+    println("[Test 6] Testing cxvm->appExecute('cvm', 'update', '')...");
+    let appUpdateRes: int = cxvm->appExecute("cvm", "update", "");
+    Assert::equalsInt(0, appUpdateRes, "cxvm appExecute cvm update returns exit code 0");
+
+    // 7. Verify CVM CLI Runner direct calls
+    println("[Test 7] Testing cvmCliRunner direct fetch and update calls...");
+    let cliFetchRes: CvmExecutionResult* = cxvm->cvmCliRunner->fetch("origin", "main");
+    Assert::isTrue(cliFetchRes->success, "cvmCliRunner->fetch succeeds");
+    Assert::equalsInt(0, cliFetchRes->exitCode, "cvmCliRunner->fetch exitCode is 0");
+
+    let cliUpdateRes: CvmExecutionResult* = cxvm->cvmCliRunner->update("origin", "main");
+    Assert::isTrue(cliUpdateRes->success, "cvmCliRunner->update succeeds");
+    Assert::equalsInt(0, cliUpdateRes->exitCode, "cvmCliRunner->update exitCode is 0");
+
+    println("\n[OK] All Fetch & Update tests passed with 100% compliance.");
+    return 0;
+}

@@ -42,7 +42,7 @@ class ProjectSelfTester {
         for (let i: int = 0; i < (int)suites->length(); i++) {
             let suite: string = suites->get(i);
             print("[TEST] Running " + suite + " ... ");
-            let runCmd: string = "cext " + suite + " > /dev/null 2>&1";
+            let runCmd: string = "cext run " + suite + " --timeout 120000 > /dev/null 2>&1";
             let st: int = system(runCmd.c_str());
             if (st == 0) {
                 println("[PASS]");

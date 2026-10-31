@@ -67,6 +67,7 @@ class DistArtifact {
 class CxvmCommandResult {
     public action: string;
     public version: string;
+    public targetVersion: string;
     public success: bool;
     public message: string;
     public output: string;
@@ -74,6 +75,7 @@ class CxvmCommandResult {
     public constructor(string action, string ver, bool ok, string msg, string out) {
         this.action = action;
         this.version = ver;
+        this.targetVersion = ver;
         this.success = ok;
         this.message = msg;
         this.output = out;

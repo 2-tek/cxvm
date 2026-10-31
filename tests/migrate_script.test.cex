@@ -2,7 +2,7 @@
 // Validates "migrate" script configuration and native runner per RULE_CEX_SCRIPT_ONLY
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
 
-import "@cex-test.book";
+import "@cext.book";
 import fs from "fs";
 
 int main() {
@@ -14,15 +14,15 @@ int main() {
 
     // 1. Verify existence of cex-pack.json
     Assert::isTrue(fs.exists("cex-pack.json"), "cex-pack.json manifest must exist");
-    string content = fs.readFile("cex-pack.json");
+    let content: string = fs.readFile("cex-pack.json");
     Assert::isTrue(content.length() > 0, "cex-pack.json must not be empty");
 
     // 2. Parse scripts block
-    int scriptsPos = (int)content.find("\"scripts\"");
+    let scriptsPos: int = (int)content.find("\"scripts\"");
     Assert::isTrue(scriptsPos != -1, "cex-pack.json must declare scripts section");
 
-    int scriptsEnd = (int)content.find("}", scriptsPos);
-    string scriptsBlock = content.substr(scriptsPos, scriptsEnd - scriptsPos + 1);
+    let scriptsEnd: int = (int)content.find("}", scriptsPos);
+    let scriptsBlock: string = content.substr(scriptsPos, scriptsEnd - scriptsPos + 1);
 
     // 3. TC-MIG-01: Verify existence of "migrate" script
     Assert::isTrue(scriptsBlock.find("\"migrate\"") != -1, "scripts block must declare 'migrate' script");
@@ -42,14 +42,14 @@ int main() {
     // 8. TC-MIG-06: Native Cex runner file exists (RULE_CEX_SCRIPT_ONLY)
     Assert::isTrue(fs.exists("scripts/migrate.cex"), "scripts/migrate.cex native runner must exist");
     if (fs.exists("scripts/migrate.cex")) {
-        string runnerContent = fs.readFile("scripts/migrate.cex");
+        let runnerContent: string = fs.readFile("scripts/migrate.cex");
         Assert::isTrue(runnerContent.length() > 0, "scripts/migrate.cex must not be empty");
         Assert::isTrue(runnerContent.find("cex-pack downloads") != -1, "scripts/migrate.cex must invoke cex-pack downloads");
         Assert::isTrue(runnerContent.find("cexp-v8-stable") != -1, "scripts/migrate.cex must invoke cexp-v8-stable");
     }
 
-    int fails = Assert::getFailures();
-    int checks = Assert::getTotalChecks();
+    let fails: int = Assert::getFailures();
+    let checks: int = Assert::getTotalChecks();
     println("Checks verified: " + std::to_string(checks) + ", Failures: " + std::to_string(fails));
 
     if (fails > 0) {
