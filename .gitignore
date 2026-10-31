@@ -77,4 +77,5 @@ downloads/
 .cvm/
 brain/
 cxvm/
-
+src/views/*.component.cex
+src/views/*.html

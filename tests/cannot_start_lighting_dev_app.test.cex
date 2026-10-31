@@ -1,0 +1,61 @@
+// 2-TEK CXVM: Cannot Start Lighting Dev App Test Suite (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Typing)
+
+import "@cext/src/assert.cex";
+import "@cext/src/runner.cex";
+import fs from "fs";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+
+int main() {
+    println("===============================================================================");
+    println("     2-TEK CXVM: Cannot Start Lighting Dev App Verification Suite              ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("CXVM Lighting Dev App Suite");
+    CxvmEngine* cxvm = new CxvmEngine();
+
+    string curPwd = child_process.execSync("pwd | tr -d '\\n'");
+    string rootBin = curPwd + "/.bin";
+
+    // Test 1: resolveAppBinary("light") must NOT resolve to root VCS binary
+    string binLight = cxvm->resolveAppBinary("light");
+    println("  [Test 1] resolveAppBinary(light) => " + binLight);
+    Assert::isTrue(binLight.length() > 0, "resolveAppBinary(light) returns non-empty path");
+    Assert::isTrue(binLight != rootBin, "resolveAppBinary(light) must NOT resolve to root .bin (" + rootBin + ")");
+    Assert::isTrue(binLight.find("mvc-lighting") != std::string::npos || binLight.find("lighting") != std::string::npos, "resolveAppBinary(light) maps to mvc-lighting binary");
+
+    // Test 2: resolveAppBinary("lighting") must resolve to mvc-lighting
+    string binLighting = cxvm->resolveAppBinary("lighting");
+    println("  [Test 2] resolveAppBinary(lighting) => " + binLighting);
+    Assert::isTrue(binLighting.length() > 0, "resolveAppBinary(lighting) returns non-empty path");
+    Assert::isTrue(binLighting != rootBin, "resolveAppBinary(lighting) must NOT resolve to root .bin");
+    Assert::isTrue(binLighting.find("mvc-lighting") != std::string::npos || binLighting.find("lighting") != std::string::npos, "resolveAppBinary(lighting) maps to mvc-lighting binary");
+
+    // Test 3: Generic protection against returning root .bin for unknown apps
+    string binUnknown = cxvm->resolveAppBinary("non-existent-random-app-xyz");
+    println("  [Test 3] resolveAppBinary(non-existent-app) => " + binUnknown);
+    Assert::isTrue(binUnknown != rootBin, "resolveAppBinary for non-existent app must NOT return root .bin");
+    Assert::equalsString("", binUnknown, "resolveAppBinary for non-existent app returns empty string");
+
+    // Test 4: CLI Execution cxvm light dev --dry-run
+    println("  [Test 4] Executing cxvm light dev --dry-run...");
+    int rcLightDev = cxvm->cvmExecute("light", "dev", "--dry-run");
+    Assert::equalsInt(0, rcLightDev, "cxvm light dev --dry-run exits with code 0");
+
+    // Test 5: CLI Execution cxvm light dev app --dry-run
+    println("  [Test 5] Executing cxvm light dev app --dry-run...");
+    int rcLightDevApp = cxvm->appExecute("light", "dev", "app --dry-run");
+    Assert::equalsInt(0, rcLightDevApp, "cxvm light dev app --dry-run exits with code 0");
+
+    // Test 6: CLI Execution cxvm light dev tmp/school --dry-run
+    println("  [Test 6] Executing cxvm light dev tmp/school --dry-run...");
+    int rcLightDevSchool = cxvm->appExecute("light", "dev", "tmp/school --dry-run");
+    Assert::equalsInt(0, rcLightDevSchool, "cxvm light dev tmp/school --dry-run exits with code 0");
+
+    suite->addResult("test_cannot_start_lighting_dev_app", true, "", 6);
+    println("===============================================================================");
+    println("  [OK] All Cannot Start Lighting Dev App Tests Passed!                         ");
+    println("===============================================================================");
+    return 0;
+}

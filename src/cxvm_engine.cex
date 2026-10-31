@@ -433,6 +433,11 @@ class CxvmEngine {
             }
         }
 
+        string canonicalName = cleanName;
+        if (cleanName == "light" || cleanName == "lighting") {
+            canonicalName = "mvc-lighting";
+        }
+
         string rpb = this.resolveRootPathBuilder();
         string curPwd = child_process.execSync("pwd | tr -d '\\n'");
 
@@ -448,15 +453,22 @@ class CxvmEngine {
         Array<string>* candidates = new Array<string>();
         candidates->push(curPwd);
         candidates->push(curPwd + "/projects/" + cleanName);
+        if (canonicalName != cleanName) candidates->push(curPwd + "/projects/" + canonicalName);
         candidates->push(curPwd + "/../projects/" + cleanName);
+        if (canonicalName != cleanName) candidates->push(curPwd + "/../projects/" + canonicalName);
         candidates->push(curPwd + "/../../projects/" + cleanName);
+        if (canonicalName != cleanName) candidates->push(curPwd + "/../../projects/" + canonicalName);
         candidates->push(curPwd + "/compilers/" + cleanName);
+        if (canonicalName != cleanName) candidates->push(curPwd + "/compilers/" + canonicalName);
         candidates->push(curPwd + "/../compilers/" + cleanName);
         candidates->push(curPwd + "/cex_boxes/" + cleanName);
+        if (canonicalName != cleanName) candidates->push(curPwd + "/cex_boxes/" + canonicalName);
         candidates->push(curPwd + "/../cex_boxes/" + cleanName);
+        if (canonicalName != cleanName) candidates->push(curPwd + "/../cex_boxes/" + canonicalName);
         candidates->push(curPwd + "/models/" + cleanName);
         candidates->push(curPwd + "/../models/" + cleanName);
         candidates->push(curPwd + "/../" + cleanName);
+        if (canonicalName != cleanName) candidates->push(curPwd + "/../" + canonicalName);
 
         for (int c = 0; c < (int)candidates->length(); c++) {
             string candDir = candidates->get(c);
@@ -470,12 +482,17 @@ class CxvmEngine {
                         JsonValue* pNameVal = (JsonValue*)parsed->get("name");
                         if (pNameVal != nullptr) {
                             string pName = pNameVal->asString();
-                            if (pName == cleanName || pName == appName || pName.find("/" + cleanName) != std::string::npos) {
+                            if (pName == cleanName || pName == canonicalName || pName == appName ||
+                                pName.find("/" + cleanName) != std::string::npos ||
+                                pName.find("/" + canonicalName) != std::string::npos) {
                                 nameMatches = true;
                             }
                         }
                     }
-                    if (nameMatches || candDir.find("/" + cleanName) != std::string::npos || candDir == curPwd + "/projects/" + cleanName) {
+                    if (nameMatches || candDir.find("/" + cleanName) != std::string::npos ||
+                        candDir.find("/" + canonicalName) != std::string::npos ||
+                        candDir == curPwd + "/projects/" + cleanName ||
+                        candDir == curPwd + "/projects/" + canonicalName) {
                         projectDir = candDir;
                         manifestPath = candMf;
                         break;
@@ -522,6 +539,9 @@ class CxvmEngine {
                         if (fs.exists(resolvedBin + "/" + cleanName) && !fs.isDir(resolvedBin + "/" + cleanName)) {
                             return resolvedBin + "/" + cleanName;
                         }
+                        if (canonicalName != cleanName && fs.exists(resolvedBin + "/" + canonicalName) && !fs.isDir(resolvedBin + "/" + canonicalName)) {
+                            return resolvedBin + "/" + canonicalName;
+                        }
                     }
                 }
 
@@ -538,7 +558,8 @@ class CxvmEngine {
             Array<string>* entries = fs.readDir(rpb);
             for (int e = 0; e < (int)entries->length(); e++) {
                 string entryName = entries->get(e);
-                if (entryName.find(cleanName + "-") == 0 || entryName == cleanName) {
+                if (entryName.find(cleanName + "-") == 0 || entryName == cleanName ||
+                    entryName.find(canonicalName + "-") == 0 || entryName == canonicalName) {
                     string pkgFolder = rpb + "/" + entryName;
                     if (fs.isDir(pkgFolder)) {
                         Array<string>* verEntries = fs.readDir(pkgFolder);
@@ -547,6 +568,8 @@ class CxvmEngine {
                             if (verName == "." || verName == "..") continue;
                             string candBin1 = pkgFolder + "/" + verName + "/bin/" + cleanName;
                             if (fs.exists(candBin1) && !fs.isDir(candBin1)) return candBin1;
+                            string candBin1b = pkgFolder + "/" + verName + "/bin/" + canonicalName;
+                            if (fs.exists(candBin1b) && !fs.isDir(candBin1b)) return candBin1b;
                             string candBin2 = pkgFolder + "/" + verName + "/bin";
                             if (fs.exists(candBin2) && !fs.isDir(candBin2)) return candBin2;
                         }
@@ -564,27 +587,79 @@ class CxvmEngine {
         if (fs.exists(curPwd + "/projects/" + cleanName + "/.bin") && !fs.isDir(curPwd + "/projects/" + cleanName + "/.bin")) {
             return curPwd + "/projects/" + cleanName + "/.bin";
         }
+        if (canonicalName != cleanName && fs.exists(curPwd + "/projects/" + canonicalName + "/.bin") && !fs.isDir(curPwd + "/projects/" + canonicalName + "/.bin")) {
+            return curPwd + "/projects/" + canonicalName + "/.bin";
+        }
+        if (fs.exists(curPwd + "/cex_boxes/" + cleanName + "/.bin") && !fs.isDir(curPwd + "/cex_boxes/" + cleanName + "/.bin")) {
+            return curPwd + "/cex_boxes/" + cleanName + "/.bin";
+        }
+        if (canonicalName != cleanName && fs.exists(curPwd + "/cex_boxes/" + canonicalName + "/.bin") && !fs.isDir(curPwd + "/cex_boxes/" + canonicalName + "/.bin")) {
+            return curPwd + "/cex_boxes/" + canonicalName + "/.bin";
+        }
+
+        // Only return curPwd/.bin if curPwd actually matches cleanName or is a lighting app
         if (fs.exists(curPwd + "/.bin") && !fs.isDir(curPwd + "/.bin")) {
-            return curPwd + "/.bin";
+            if (fs.exists(curPwd + "/cex-pack.json")) {
+                string curMf = fs.readFile(curPwd + "/cex-pack.json");
+                JsonValue* curParsed = JsonDoc::parse(curMf);
+                if (curParsed != nullptr) {
+                    bool curMatches = false;
+                    if (curParsed->has("name")) {
+                        JsonValue* cNVal = (JsonValue*)curParsed->get("name");
+                        if (cNVal != nullptr) {
+                            string cN = cNVal->asString();
+                            if (cN == cleanName || cN == canonicalName || cN.find("/" + cleanName) != std::string::npos || cN.find("/" + canonicalName) != std::string::npos) {
+                                curMatches = true;
+                            }
+                        }
+                    }
+                    if (!curMatches && (cleanName == "light" || cleanName == "lighting")) {
+                        if (curParsed->has("dependencies")) {
+                            JsonValue* depsVal = (JsonValue*)curParsed->get("dependencies");
+                            if (depsVal != nullptr && (depsVal->has("mvc-lighting") || depsVal->has("lighting"))) {
+                                curMatches = true;
+                            }
+                        }
+                    }
+                    if (curMatches) {
+                        return curPwd + "/.bin";
+                    }
+                }
+            }
         }
 
         // 6. Toolchain bin directory: ~/.cxvm/bin/{name}
-        string toolchainBin = rpb + "/bin/" + cleanName;
-        if (fs.exists(toolchainBin) && !fs.isDir(toolchainBin)) {
-            return toolchainBin;
+        string toolchainBin1 = rpb + "/bin/" + cleanName;
+        if (fs.exists(toolchainBin1) && !fs.isDir(toolchainBin1)) return toolchainBin1;
+        if (canonicalName != cleanName) {
+            string toolchainBin2 = rpb + "/bin/" + canonicalName;
+            if (fs.exists(toolchainBin2) && !fs.isDir(toolchainBin2)) return toolchainBin2;
         }
 
         // 7. Check ~/.cex/bin/{name}
         char* envHome = getenv("HOME");
         if (envHome != nullptr) {
-            string cexBin = string(envHome) + "/.cex/bin/" + cleanName;
-            if (fs.exists(cexBin) && !fs.isDir(cexBin)) return cexBin;
+            string cexBin1 = string(envHome) + "/.cex/bin/" + cleanName;
+            if (fs.exists(cexBin1) && !fs.isDir(cexBin1)) return cexBin1;
+            if (canonicalName != cleanName) {
+                string cexBin2 = string(envHome) + "/.cex/bin/" + canonicalName;
+                if (fs.exists(cexBin2) && !fs.isDir(cexBin2)) return cexBin2;
+            }
         }
 
         // 8. System PATH via which
         string whichOut = child_process.execSync("which " + cleanName + " 2>/dev/null | tr -d '\\n'");
         if (whichOut.length() > 0 && fs.exists(whichOut)) {
-            return whichOut;
+            // Guard against recursive wrapper symlink
+            if (whichOut.find("/cxvm") == std::string::npos) {
+                return whichOut;
+            }
+        }
+        if (canonicalName != cleanName) {
+            string whichOut2 = child_process.execSync("which " + canonicalName + " 2>/dev/null | tr -d '\\n'");
+            if (whichOut2.length() > 0 && fs.exists(whichOut2)) {
+                return whichOut2;
+            }
         }
 
         return "";
@@ -595,7 +670,59 @@ class CxvmEngine {
         string name = appName.length() == 0 ? "cex-pack" : appName;
         println("==> [cxvm] Dispatching to " + name + " via --app (" + (subCmd.length() > 0 ? subCmd : "run") + ")...");
 
-        string binaryPath = this.resolveAppBinary(name);
+        // Target application directory resolution if extraArgs specifies an app path
+        string effectiveArgs = extraArgs;
+        string targetAppDir = "";
+        if (name == "light" || name == "lighting") {
+            string firstToken = extraArgs;
+            string remainingArgs = "";
+            int spaceIdx = (int)extraArgs.find(" ");
+            if (spaceIdx != -1) {
+                firstToken = extraArgs.substr(0, spaceIdx);
+                remainingArgs = extraArgs.substr(spaceIdx + 1);
+            }
+            if (firstToken == "app") {
+                if (remainingArgs.length() > 0) {
+                    string secondToken = remainingArgs;
+                    string restArgs = "";
+                    int sp2 = (int)remainingArgs.find(" ");
+                    if (sp2 != -1) {
+                        secondToken = remainingArgs.substr(0, sp2);
+                        restArgs = remainingArgs.substr(sp2 + 1);
+                    }
+                    if (fs.exists(secondToken) && fs.isDir(secondToken)) {
+                        targetAppDir = secondToken;
+                        effectiveArgs = restArgs;
+                    } else {
+                        effectiveArgs = remainingArgs;
+                    }
+                } else {
+                    effectiveArgs = "";
+                }
+            } else if (fs.exists(firstToken) && fs.isDir(firstToken) && firstToken != "." && firstToken != "..") {
+                targetAppDir = firstToken;
+                effectiveArgs = remainingArgs;
+            }
+        }
+
+        string binaryPath = "";
+        if (targetAppDir.length() > 0) {
+            if (fs.exists(targetAppDir + "/.bin") && !fs.isDir(targetAppDir + "/.bin")) {
+                binaryPath = targetAppDir + "/.bin";
+            } else if (fs.exists(targetAppDir + "/src/index.cex") || fs.exists(targetAppDir + "/index.cex")) {
+                println("[OK] [cxvm --app] Building target app binary in " + targetAppDir + "...");
+                string entry = fs.exists(targetAppDir + "/src/index.cex") ? (targetAppDir + "/src/index.cex") : (targetAppDir + "/index.cex");
+                system(("cexp-v8-stable build " + entry + " -o " + targetAppDir + "/.bin > /dev/null 2>&1").c_str());
+                if (fs.exists(targetAppDir + "/.bin")) {
+                    binaryPath = targetAppDir + "/.bin";
+                }
+            }
+        }
+
+        if (binaryPath.length() == 0) {
+            binaryPath = this.resolveAppBinary(name);
+        }
+
         if (binaryPath.length() == 0) {
             println("[ERROR] [cxvm --app] Cannot resolve built binary for app: " + name);
             println("  Searched in {rootPathBuilder} (" + this.resolveRootPathBuilder() + ") and project .bin");
@@ -609,8 +736,8 @@ class CxvmEngine {
         if (subCmd.length() > 0 && subCmd != "run") {
             cmdStr += " " + subCmd;
         }
-        if (extraArgs.length() > 0) {
-            cmdStr += " " + extraArgs;
+        if (effectiveArgs.length() > 0) {
+            cmdStr += " " + effectiveArgs;
         }
 
         int ret = system(cmdStr.c_str());

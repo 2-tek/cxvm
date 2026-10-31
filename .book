@@ -1,0 +1,2 @@
+// @./.book: Package facade for @.
+import "./.bundle.cex";
