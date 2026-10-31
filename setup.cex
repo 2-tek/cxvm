@@ -30,15 +30,15 @@ class SetupRunner {
         switch (vCode) {
             case 1: return "8.0.0";
             case 2: return "1.0.26";
-            case 3: return "1.0.5";
-            case 4: return "1.0.8";
-            case 5: return "1.0.14";
+            case 3: return "1.1.0";
+            case 4: return "1.0.9";
+            case 5: return "1.0.16";
             case 6: return "1.0.0";
             case 7: return "1.0.0";
             case 8: return "1.0.0";
             case 9: return "1.0.0";
             case 10: return "2.0.0";
-            case 11: return "2.1.43";
+            case 11: return "2.1.44";
             case 12: return "1.0.0";
             case 13: return "6.1.10";
             default: return defaultFallback;
@@ -58,6 +58,58 @@ class SetupRunner {
     public int buildModels(string subArg) {
         CxvmEngine* cxvm = new CxvmEngine();
         return cxvm->buildModels(subArg);
+    }
+
+    public getEnvSafe(key: string, defVal: string): string {
+        let val: char* = getenv(key.c_str());
+        if (val != nullptr && std::string(val).length() > 0) {
+            return std::string(val);
+        }
+        return defVal;
+    }
+
+    public resolveRootBuildPath(curPwd: string): string {
+        let envVal: string = this.getEnvSafe("ROOT_BUILD_PATH", "");
+        if (envVal.length() > 0) return envVal;
+        envVal = this.getEnvSafe("ROOT_PATH", "");
+        if (envVal.length() > 0) return envVal;
+        envVal = this.getEnvSafe("CEX_BUILD_PATH", "");
+        if (envVal.length() > 0) return envVal;
+        let cxvmDir: string = this.getEnvSafe("CXVM_DIR", "");
+        if (cxvmDir.length() > 0) return cxvmDir;
+        let home: string = this.getEnvSafe("HOME", "");
+        if (home.length() > 0) return home + "/.cxvm";
+        return curPwd;
+    }
+
+    public resolveBinary(toolName: string, curPwd: string, cxvmDir: string, rootBuildPath: string): string {
+        let upperTool: string = "";
+        for (let i: size_t = 0; i < toolName.length(); i++) {
+            let c: int = (int)toolName.at(i);
+            if (c >= 97 && c <= 122) {
+                upperTool += (char)(c - 32);
+            } else if (c == 45 || c == 95) {
+                upperTool += "_";
+            } else {
+                upperTool += (char)c;
+            }
+        }
+        let envBin: string = this.getEnvSafe(upperTool + "_BIN", "");
+        if (envBin.length() > 0 && fs.exists(envBin)) return envBin;
+        envBin = this.getEnvSafe(upperTool, "");
+        if (envBin.length() > 0 && fs.exists(envBin)) return envBin;
+
+        let ver: string = this.resolveVersion(toolName, "1.0.0");
+        let candSetup: string = rootBuildPath + "/" + toolName + "/" + ver + "/bin";
+        if (fs.exists(candSetup)) return candSetup;
+        let candSetupRuntime: string = rootBuildPath + "/" + toolName + "-runtime/" + ver + "/bin";
+        if (fs.exists(candSetupRuntime)) return candSetupRuntime;
+        let candSetupBean: string = rootBuildPath + "/" + toolName + "-bean/" + ver + "/bin";
+        if (fs.exists(candSetupBean)) return candSetupBean;
+
+        if (fs.exists(cxvmDir + "/bin/" + toolName)) return cxvmDir + "/bin/" + toolName;
+
+        return "";
     }
 
     public constructor() {
@@ -312,14 +364,17 @@ class SetupRunner {
         if (cexpBin == "cexp" && fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
             cexpBin = cxvmDir + "/bin/cexp-v8-stable";
         }
-        if (cexpBin == "cexp" && fs.exists(cxvmDir + "/bin/cexp")) {
+        if (cexpBin.length() == 0 && fs.exists(cxvmDir + "/bin/cexp")) {
             cexpBin = cxvmDir + "/bin/cexp";
         }
-        if (cexpBin == "cexp" && fs.exists(cexDir + "/bin/cexp")) {
+        if (cexpBin.length() == 0 && fs.exists(cexDir + "/bin/cexp")) {
             cexpBin = cexDir + "/bin/cexp";
         }
-        if (cexpBin == "cexp" && fs.exists(cexDir + "/bin/8.0.0/cexp")) {
+        if (cexpBin.length() == 0 && fs.exists(cexDir + "/bin/8.0.0/cexp")) {
             cexpBin = cexDir + "/bin/8.0.0/cexp";
+        }
+        if (cexpBin.length() == 0) {
+            cexpBin = "cexp";
         }
 
         string nativeDistBin = curPwd + "/.bin";
@@ -366,9 +421,11 @@ class SetupRunner {
         }
 
         if (realCxvmBin.length() > 0 && fs.exists(realCxvmBin)) {
-            child_process.execSync("if [ -L \"" + curPwd + "/.bin\" ]; then rm -f \"" + curPwd + "/.bin\"; fi");
-            child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + curPwd + "/.bin\" 2>/dev/null || true");
-            child_process.execSync("chmod +x \"" + curPwd + "/.bin\" 2>/dev/null || true");
+            if (curPwd + "/.bin" != realCxvmBin) {
+                child_process.execSync("if [ -L \"" + curPwd + "/.bin\" ]; then rm -f \"" + curPwd + "/.bin\"; fi");
+                child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + curPwd + "/.bin\" 2>/dev/null || true");
+                child_process.execSync("chmod +x \"" + curPwd + "/.bin\" 2>/dev/null || true");
+            }
             child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + cxvmDir + "/bin/cxvm\"");
             child_process.execSync("cp -f \"" + realCxvmBin + "\" \"" + cexDir + "/bin/cxvm\"");
             child_process.execSync("chmod +x \"" + cxvmDir + "/bin/cxvm\" \"" + cexDir + "/bin/cxvm\"");
