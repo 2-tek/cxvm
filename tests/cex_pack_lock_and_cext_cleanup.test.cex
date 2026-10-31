@@ -1,0 +1,73 @@
+// 2-TEK CXVM: cex-pack.lock.json & cext Repository Cleanup Test Suite (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Typing)
+
+import "@cex-test.book";
+import fs from "fs";
+
+int main() {
+    println("===============================================================================");
+    println("   2-TEK CXVM: cex-pack.lock.json & cext Cleanup Verification Test Suite       ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("cex-pack.lock & cext Cleanup Verification");
+
+    // Test 1: Verify cext repository directory in cex-lint does not exist
+    println("  [Test 1] Verifying filesystem: cex_boxes/cex-lint/cex_boxes/cext must NOT exist...");
+    bool existsCextInLint = fs.exists("cex_boxes/cex-lint/cex_boxes/cext");
+    Assert::isFalse(existsCextInLint, "cext repository in cex-lint must be deleted");
+    suite->addResult("test_cext_in_lint_deleted", !existsCextInLint, "", 1);
+
+    // Test 2: Verify cxvm/setup.cex does not copy cex-test to cext
+    println("  [Test 2] Verifying cxvm/setup.cex: must NOT contain cext copy logic...");
+    string setupContent = fs.readFile("cxvm/setup.cex");
+    bool hasCextCopy = (setupContent.find("/cex_boxes/cext\"") != std::string::npos &&
+                        setupContent.find("cp -r") != std::string::npos &&
+                        setupContent.find("/cex_boxes/cex-test\" \"") != std::string::npos);
+    Assert::isFalse(hasCextCopy, "cxvm/setup.cex must not contain copy to cext");
+    suite->addResult("test_setup_no_cext_copy", !hasCextCopy, "", 1);
+
+    // Test 3: Verify cex-test is the exclusive canonical test package
+    println("  [Test 3] Verifying canonical cex-test package exists...");
+    bool hasCexTest = fs.exists("cex_boxes/cex-test/src/index.cex") || fs.exists("cex_boxes/cex-test/cex-pack.json");
+    Assert::isTrue(hasCexTest, "cex_boxes/cex-test must exist and be canonical");
+    suite->addResult("test_canonical_cex_test_exists", hasCexTest, "", 1);
+
+    // Test 4: Verify root project has cex-pack.lock.json
+    println("  [Test 4] Verifying root project has cex-pack.lock.json...");
+    bool hasRootLock = fs.exists("cex-pack.lock.json");
+    Assert::isTrue(hasRootLock, "root project must have cex-pack.lock.json");
+    suite->addResult("test_root_cex_pack_lock_exists", hasRootLock, "", 1);
+
+    // Test 5: Verify cxvm project has cex-pack.lock.json
+    println("  [Test 5] Verifying cxvm has cex-pack.lock.json...");
+    bool hasCxvmLock = fs.exists("cxvm/cex-pack.lock.json");
+    Assert::isTrue(hasCxvmLock, "cxvm project must have cex-pack.lock.json");
+    suite->addResult("test_cxvm_cex_pack_lock_exists", hasCxvmLock, "", 1);
+
+    // Test 6: Verify projects/cvm has cex-pack.lock.json
+    println("  [Test 6] Verifying projects/cvm has cex-pack.lock.json...");
+    bool hasCvmLock = fs.exists("projects/cvm/cex-pack.lock.json");
+    Assert::isTrue(hasCvmLock, "projects/cvm must have cex-pack.lock.json");
+    suite->addResult("test_cvm_cex_pack_lock_exists", hasCvmLock, "", 1);
+
+    // Test 7: Verify projects/mvc-lighting has cex-pack.lock.json
+    println("  [Test 7] Verifying projects/mvc-lighting has cex-pack.lock.json...");
+    bool hasMvcLock = fs.exists("projects/mvc-lighting/cex-pack.lock.json");
+    Assert::isTrue(hasMvcLock, "projects/mvc-lighting must have cex-pack.lock.json");
+    suite->addResult("test_mvc_cex_pack_lock_exists", hasMvcLock, "", 1);
+
+    // Test 8: Verify cex_boxes/cex-pack has cex-pack.lock.json and valid schema
+    println("  [Test 8] Verifying cex_boxes/cex-pack has cex-pack.lock.json with valid structure...");
+    bool hasPackLock = fs.exists("cex_boxes/cex-pack/cex-pack.lock.json");
+    Assert::isTrue(hasPackLock, "cex_boxes/cex-pack must have cex-pack.lock.json");
+    if (hasPackLock) {
+        string packLockContent = fs.readFile("cex_boxes/cex-pack/cex-pack.lock.json");
+        Assert::isTrue(packLockContent.find("\"lockfileVersion\"") != std::string::npos, "lockfileVersion must be present");
+        Assert::isTrue(packLockContent.find("\"dependencies\"") != std::string::npos, "dependencies must be present");
+    }
+    suite->addResult("test_cex_pack_lock_valid", hasPackLock, "", 1);
+
+    TestReporter::printSummary(suite);
+    bool allPass = (Assert::getFailures() == 0) && (suite->failCount() == 0);
+    return allPass ? 0 : 1;
+}

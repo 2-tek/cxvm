@@ -1,7 +1,6 @@
 // 2-TEK Factory: Package Entrypoint & CLI Runner (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 82 (CXVM & Direct cexp-v8-stable)
 
-import "./lighting_mvc.cex";
 import "./types.cex";
 import "./models/platform_model.cex";
 import "./models/version_model.cex";
@@ -9,10 +8,8 @@ import "./models/artifact_model.cex";
 import "./models/package_catalog.cex";
 import "./cxvm_engine.cex";
 import "./app.cex";
-import "@cex-cli/src/terminal.cex";
-import "@cex-cli/src/cli.cex";
-import "@cex-std/src/filesystem.cex";
-import "@cex-std/src/chrono.cex";
+import "@cex-cli.book";
+import "@cex-std.book";
 
 int classifyCliCommand(string cmd) {
     if (cmd == "-v" || cmd == "--version" || cmd == "version") return 1;
@@ -34,7 +31,7 @@ int main(int argc, char** argv) {
             case 2: {
                 TerminalUI::renderHeader("2-TEK CXVM: Cex Version Manager", "Cross-platform runtime & compiler manager (cexr-factory, cexp-v8-stable)");
                 println("Usage: cxvm <command> [arguments] [options]");
-                println("Commands: install, uninstall, use, current, list, doctor, setup, resetup, dev, build, rebuild, test, lint, --app <name>, upgrade, init");
+                println("Commands: install, uninstall, use, current, list, doctor, setup, resetup, dev, build, rebuild, test, lint, --app <name>, upgrade, init, migrate");
                 println("  --app <name> [args]  Hook and run application binary built through {rootPathBuilder}");
                 println("  upgrade [options]    Auto pull and build libraries with last version in git | cvm");
                 return 0;

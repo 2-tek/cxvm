@@ -196,10 +196,6 @@ class SetupRunner {
                     candPaths->push(curPwd + "/cex_boxes/cex-test");
                     candPaths->push(home + "/Projects/cex/cex_boxes/cex-test");
                 }
-                if (lib == "cex-test") {
-                    candPaths->push(curPwd + "/cex_boxes/cext");
-                    candPaths->push(home + "/Projects/cex/cex_boxes/cext");
-                }
                 if (lib == "cex-builder" || lib == "builder") {
                     candPaths->push(curPwd + "/cex_boxes/cex-builder");
                     candPaths->push(curPwd + "/cex_boxes/builder");
@@ -281,12 +277,6 @@ class SetupRunner {
 
                 println("  [OK]    Configured cex_boxes/" + lib + " into cex_boxes/" + lib + "/bin");
             }
-        }
-        if (fs.exists(curPwd + "/cex_boxes/cex-test") && !fs.exists(curPwd + "/cex_boxes/cext")) {
-            child_process.execSync("cp -r \"" + curPwd + "/cex_boxes/cex-test\" \"" + curPwd + "/cex_boxes/cext\" 2>/dev/null || true");
-        }
-        if (fs.exists(curPwd + "/cex_boxes/cext") && !fs.exists(curPwd + "/cex_boxes/cex-test")) {
-            child_process.execSync("cp -r \"" + curPwd + "/cex_boxes/cext\" \"" + curPwd + "/cex_boxes/cex-test\" 2>/dev/null || true");
         }
         if (fs.exists(curPwd + "/cex_boxes/cex-builder") && !fs.exists(curPwd + "/cex_boxes/builder")) {
             child_process.execSync("cp -r \"" + curPwd + "/cex_boxes/cex-builder\" \"" + curPwd + "/cex_boxes/builder\" 2>/dev/null || true");

@@ -1,0 +1,51 @@
+// 2-TEK CXVM: Delete Project and Repository apps-hub Test Suite (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Typing)
+
+import "@cext.book";
+import fs from "fs";
+import child_process from "child_process";
+
+int main() {
+    println("===============================================================================");
+    println("     2-TEK CXVM: Delete apps-hub Project & Repository Verification Suite       ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("Delete apps-hub Verification Suite");
+
+    // Test 1: Verify projects/apps-hub directory does not exist
+    println("  [Test 1] Verifying filesystem: projects/apps-hub must NOT exist...");
+    bool existsDir = fs.exists("projects/apps-hub");
+    Assert::isFalse(existsDir, "projects/apps-hub directory must be deleted");
+    suite->addResult("test_directory_deleted", !existsDir, "", 1);
+
+    // Test 2: Verify .gitmodules does not reference projects/apps-hub
+    println("  [Test 2] Verifying .gitmodules: must NOT contain projects/apps-hub...");
+    string gitmodules = fs.readFile(".gitmodules");
+    bool hasSubmodule = (gitmodules.find("projects/apps-hub") != std::string::npos);
+    Assert::isFalse(hasSubmodule, ".gitmodules must not contain projects/apps-hub");
+    suite->addResult("test_gitmodules_cleaned", !hasSubmodule, "", 1);
+
+    // Test 3: Verify git index does not contain projects/apps-hub gitlink entry
+    println("  [Test 3] Verifying git stage index: must NOT track projects/apps-hub...");
+    string gitLs = child_process.execSync("git ls-files --stage projects/apps-hub | tr -d '\\n'");
+    Assert::equalsString("", gitLs, "git index must not contain projects/apps-hub");
+    suite->addResult("test_git_index_cleaned", gitLs == "", "", 1);
+
+    // Test 4: Verify root README.md has removed projects/apps-hub
+    println("  [Test 4] Verifying README.md: must NOT reference projects/apps-hub...");
+    string readme = fs.readFile("README.md");
+    bool hasReadmeRef = (readme.find("projects/apps-hub") != std::string::npos);
+    Assert::isFalse(hasReadmeRef, "README.md must not reference projects/apps-hub");
+    suite->addResult("test_readme_cleaned", !hasReadmeRef, "", 1);
+
+    // Test 5: Verify remote GitHub repository 2-tek/mvc-lighting-hub is deleted
+    println("  [Test 5] Verifying GitHub remote repository: 2-tek/mvc-lighting-hub must NOT exist...");
+    string ghCheck = child_process.execSync("gh repo view 2-tek/mvc-lighting-hub >/dev/null 2>&1 && echo 'EXISTS' || echo 'DELETED' | tr -d '\\n'");
+    bool isRepoDeleted = (ghCheck.find("DELETED") != std::string::npos);
+    Assert::isTrue(isRepoDeleted, "remote repo 2-tek/mvc-lighting-hub must be deleted");
+    suite->addResult("test_remote_repo_deleted", isRepoDeleted, "", 1);
+
+    TestReporter::printSummary(suite);
+    bool allPass = (Assert::getFailures() == 0) && (suite->failCount() == 0);
+    return allPass ? 0 : 1;
+}

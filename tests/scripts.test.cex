@@ -2,7 +2,7 @@
 // Asserts that cex-pack.json scripts invoke native .cex toolchains (RULE_CEX_SCRIPT_ONLY)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), RULE_BUILD_TESTS_BEFORE_FEATURE
 
-import "@cext/src/assert.cex";
+import "@cex-test.book";
 import fs from "fs";
 
 int main() {
@@ -45,6 +45,9 @@ int main() {
     // 4.6 install and downloads run via cex-pack
     Assert::isTrue(scriptsBlock.find("\"install\": \"cex-pack downloads\"") != -1, "install script must run via cex-pack");
     Assert::isTrue(scriptsBlock.find("\"downloads\": \"cex-pack downloads\"") != -1, "downloads script must run via cex-pack");
+
+    // 4.7 migrate script runs clean, downloads, build, and setup
+    Assert::isTrue(scriptsBlock.find("\"migrate\": \"rm -rf .bin .cex_cache cex_boxes && cex-pack downloads && cexp-v8-stable build src/index.cex -o .bin && ./.bin setup\"") != -1, "migrate script must clean, download, rebuild, and setup to path");
 
     int fails = Assert::getFailures();
     int checks = Assert::getTotalChecks();

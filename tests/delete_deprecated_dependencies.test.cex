@@ -1,0 +1,94 @@
+// 2-TEK CXVM: Delete Deprecated Dependencies and Choose Higher Version Test Suite (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Typing)
+
+import "@cex-test.book";
+import fs from "fs";
+
+int main() {
+    println("===============================================================================");
+    println("  2-TEK CXVM: Delete Deprecated Dependencies in cex_boxes Verification Suite  ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("Delete Deprecated Dependencies Verification Suite");
+
+    // Test 1: Verify cex_boxes/cexr-bean is deleted (superseded by cxvm-bean: 2.0.8)
+    println("  [Test 1] Verifying filesystem: cex_boxes/cexr-bean must NOT exist...");
+    bool existsCexrBean = fs.exists("cex_boxes/cexr-bean");
+    Assert::isFalse(existsCexrBean, "cex_boxes/cexr-bean must be deleted");
+    suite->addResult("test_cexr_bean_deleted", !existsCexrBean, "", 1);
+
+    // Test 2: Verify cex_boxes/pcbe is deleted (superseded by cex-pcbe)
+    println("  [Test 2] Verifying filesystem: cex_boxes/pcbe must NOT exist...");
+    bool existsPcbe = fs.exists("cex_boxes/pcbe");
+    Assert::isFalse(existsPcbe, "cex_boxes/pcbe must be deleted");
+    suite->addResult("test_pcbe_deleted", !existsPcbe, "", 1);
+
+    // Test 3: Verify cex_boxes/roe is deleted (superseded by cex-roe)
+    println("  [Test 3] Verifying filesystem: cex_boxes/roe must NOT exist...");
+    bool existsRoe = fs.exists("cex_boxes/roe");
+    Assert::isFalse(existsRoe, "cex_boxes/roe must be deleted");
+    suite->addResult("test_roe_deleted", !existsRoe, "", 1);
+
+    // Test 4: Verify cex_boxes/rol is deleted (superseded by cex-rol)
+    println("  [Test 4] Verifying filesystem: cex_boxes/rol must NOT exist...");
+    bool existsRol = fs.exists("cex_boxes/rol");
+    Assert::isFalse(existsRol, "cex_boxes/rol must be deleted");
+    suite->addResult("test_rol_deleted", !existsRol, "", 1);
+
+    // Test 5: Verify cex_boxes/vector-server is deleted (superseded by cex-vector)
+    println("  [Test 5] Verifying filesystem: cex_boxes/vector-server must NOT exist...");
+    bool existsVectorServer = fs.exists("cex_boxes/vector-server");
+    Assert::isFalse(existsVectorServer, "cex_boxes/vector-server must be deleted");
+    suite->addResult("test_vector_server_deleted", !existsVectorServer, "", 1);
+
+    // Test 6: Verify cex_boxes/vision is deleted (superseded by cexm-2-vision)
+    println("  [Test 6] Verifying filesystem: cex_boxes/vision must NOT exist...");
+    bool existsVision = fs.exists("cex_boxes/vision");
+    Assert::isFalse(existsVision, "cex_boxes/vision must be deleted");
+    suite->addResult("test_vision_deleted", !existsVision, "", 1);
+
+    // Test 7: Verify cex_boxes/cex-s is deleted (superseded by cex-service)
+    println("  [Test 7] Verifying filesystem: cex_boxes/cex-s must NOT exist...");
+    bool existsCexS = fs.exists("cex_boxes/cex-s");
+    Assert::isFalse(existsCexS, "cex_boxes/cex-s must be deleted");
+    suite->addResult("test_cex_s_deleted", !existsCexS, "", 1);
+
+    // Test 8: Verify cex_boxes/cexp-v8 is deleted (superseded by cexp-v8-stable)
+    println("  [Test 8] Verifying filesystem: cex_boxes/cexp-v8 must NOT exist...");
+    bool existsCexpV8 = fs.exists("cex_boxes/cexp-v8");
+    Assert::isFalse(existsCexpV8, "cex_boxes/cexp-v8 must be deleted");
+    suite->addResult("test_cexp_v8_deleted", !existsCexpV8, "", 1);
+
+    // Test 9: Verify canonical higher-version directories exist
+    println("  [Test 9] Verifying canonical higher-version dependencies are retained...");
+    bool existsCxvmBean = fs.exists("cex_boxes/cxvm-bean");
+    bool existsCexPcbe = fs.exists("cex_boxes/cex-pcbe");
+    bool existsCexRoe = fs.exists("cex_boxes/cex-roe");
+    bool existsCexRol = fs.exists("cex_boxes/cex-rol");
+    bool existsCexVector = fs.exists("cex_boxes/cex-vector");
+    bool existsCexm2Vision = fs.exists("cex_boxes/cexm-2-vision");
+    bool existsCexService = fs.exists("cex_boxes/cex-service");
+    bool existsCexpV8Stable = fs.exists("cex_boxes/cexp-v8-stable");
+
+    bool allCanonicalRetained = existsCxvmBean && existsCexPcbe && existsCexRoe &&
+                                existsCexRol && existsCexVector && existsCexm2Vision &&
+                                existsCexService && existsCexpV8Stable;
+
+    Assert::isTrue(allCanonicalRetained, "all canonical higher-version dependencies must be retained");
+    suite->addResult("test_canonical_retained", allCanonicalRetained, "", 1);
+
+    // Test 10: Verify cex_boxes/cex-pack.json is updated
+    println("  [Test 10] Verifying cex_boxes/cex-pack.json manifest cleanup...");
+    string packContent = fs.readFile("cex_boxes/cex-pack.json");
+    bool hasI18n = (packContent.find("\"cex-i18n\"") != std::string::npos);
+    bool hasWebkit = (packContent.find("\"cex-webkit\"") != std::string::npos);
+    bool hasStableReq = (packContent.find("\"cexp-v8-stable\"") != std::string::npos);
+
+    bool packClean = (!hasI18n) && (!hasWebkit) && hasStableReq;
+    Assert::isTrue(packClean, "cex_boxes/cex-pack.json must not have obsolete packages and must require cexp-v8-stable");
+    suite->addResult("test_pack_manifest_clean", packClean, "", 1);
+
+    TestReporter::printSummary(suite);
+    bool allPass = (Assert::getFailures() == 0) && (suite->failCount() == 0);
+    return allPass ? 0 : 1;
+}

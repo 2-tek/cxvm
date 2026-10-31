@@ -4,13 +4,10 @@
 import "./types.cex";
 import "./json.cex";
 import "./models/version_model.cex";
-import "@cex-cvm-cli/src/cli.cex";
-import "./lighting_mvc.cex";
+import "@cex-cvm-cli.book";
 import child_process from "child_process";
-import "@cex-cli/src/terminal.cex";
-import "@cex-cli/src/cli.cex";
-import "@cex-std/src/filesystem.cex";
-import "@cex-std/src/chrono.cex";
+import "@cex-cli.book";
+import "@cex-std.book";
 import fs from "fs";
 
 class CxvmEngine {
@@ -851,6 +848,37 @@ class CxvmEngine {
             println(res->output);
             return res->success ? 0 : 1;
         }
+        if (cmd == "migrate") {
+            println("==> [cxvm migrate] Cleaning old build artifacts, cache, and downloaded packages...");
+            string curPwd = child_process.execSync("pwd | tr -d '\\n'");
+            if (fs.exists(curPwd + "/.bin")) child_process.execSync("rm -rf \"" + curPwd + "/.bin\"");
+            if (fs.exists(curPwd + "/.cex_cache")) child_process.execSync("rm -rf \"" + curPwd + "/.cex_cache\"");
+            if (fs.exists(curPwd + "/cex_boxes")) child_process.execSync("rm -rf \"" + curPwd + "/cex_boxes\"");
+            if (fs.exists(curPwd + "/.cex_boxes")) child_process.execSync("rm -rf \"" + curPwd + "/.cex_boxes\"");
+            println("==> [cxvm migrate] Redownloading packages via cex-pack downloads...");
+            int dlRes = system("cex-pack downloads cex-pack.json cex_boxes");
+            if (dlRes != 0) {
+                dlRes = system("cex-pack downloads");
+            }
+            if (fs.exists(curPwd + "/../projects/mvc-lighting") && fs.exists(curPwd + "/cex_boxes")) {
+                child_process.execSync("mkdir -p \"" + curPwd + "/cex_boxes/mvc-lighting\" && cp -rn \"" + curPwd + "/../projects/mvc-lighting\"/* \"" + curPwd + "/cex_boxes/mvc-lighting/\" 2>/dev/null || true");
+            }
+            if (fs.exists(curPwd + "/cex_boxes") && !fs.exists(curPwd + "/.cex_boxes")) {
+                child_process.execSync("cp -r \"" + curPwd + "/cex_boxes\" \"" + curPwd + "/.cex_boxes\" 2>/dev/null || true");
+            } else if (fs.exists(curPwd + "/.cex_boxes") && !fs.exists(curPwd + "/cex_boxes")) {
+                child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes\" \"" + curPwd + "/cex_boxes\" 2>/dev/null || true");
+            }
+            println("==> [cxvm migrate] Rebuilding cxvm via cexp-v8-stable...");
+            int buildRes = this.executeProjectBuild("src/index.cex", curPwd + "/.bin");
+            if (buildRes != 0) {
+                println("[FAIL] Project rebuild failed");
+                return 1;
+            }
+            println("==> [cxvm migrate] Setting up newly compiled binary to PATH...");
+            CxvmCommandResult* setupRes = this.setup("8.0.0");
+            println(setupRes->output);
+            return setupRes->success ? 0 : 1;
+        }
 
         // Direct command fallback: Route to appExecute
         return this.appExecute(cmd, arg1, arg2);
@@ -892,6 +920,24 @@ class CxvmEngine {
         string home = child_process.execSync("printf \"%s\" \"$HOME\"");
         string rpb = this.resolveRootPathBuilder();
         child_process.execSync("mkdir -p \"" + rpb + "/bin\" 2>/dev/null || true");
+
+        if (home.length() > 0) {
+            string zshrc = home + "/.zshrc";
+            string bashrc = home + "/.bashrc";
+            string cfg = "\n# 2-TEK CXVM: Cex Version Manager\nexport CXVM_DIR=\"" + rpb + "\"\nexport PATH=\"$CXVM_DIR/bin:$PATH\"\n";
+            if (fs.exists(zshrc)) {
+                string zContent = fs.readFile(zshrc);
+                if (zContent.find("CXVM_DIR") == -1) {
+                    fs.writeFile(zshrc, zContent + cfg);
+                }
+            }
+            if (fs.exists(bashrc)) {
+                string bContent = fs.readFile(bashrc);
+                if (bContent.find("CXVM_DIR") == -1) {
+                    fs.writeFile(bashrc, bContent + cfg);
+                }
+            }
+        }
         return new CxvmCommandResult("setup path", rpb + "/bin", true, "PATH configured", "[OK] Path setup configured");
     }
 
@@ -908,6 +954,12 @@ class CxvmEngine {
         if (fs.exists(rpb + "/bin/" + this.currentCexpVersion + "/cexp-v8-stable")) {
             child_process.execSync("ln -sf \"" + rpb + "/bin/" + this.currentCexpVersion + "/cexp-v8-stable\" \"" + binDir + "/cexp-v8-stable\" 2>/dev/null || true");
             child_process.execSync("ln -sf \"" + binDir + "/cexp-v8-stable\" \"" + binDir + "/cexp\" 2>/dev/null || true");
+        }
+
+        string curPwd = child_process.execSync("pwd | tr -d '\\n'");
+        if (fs.exists(curPwd + "/.bin")) {
+            child_process.execSync("ln -sf \"" + curPwd + "/.bin\" \"" + binDir + "/cxvm\" 2>/dev/null || true");
+            child_process.execSync("chmod +x \"" + binDir + "/cxvm\" 2>/dev/null || true");
         }
 
         this.setupPath();
@@ -932,7 +984,8 @@ class CxvmEngine {
     }
 
     public string resolveLibVersion(string libName) {
-        if (libName == "cxvm") return "2.1.43";
+        if (libName == "cxvm") return "2.1.44";
+        if (libName == "mvc-lighting" || libName == "lighting") return "6.1.12";
         if (libName == "cext" || libName == "cex-test") return CxvmConstants::cextVersion();
         if (libName.find("cexr") == 0) return this.currentCexrVersion;
         if (libName.find("cexp") == 0) return this.currentCexpVersion;

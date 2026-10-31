@@ -2,11 +2,8 @@
 // Powered by cext (@cext/src/runner.cex)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
 
-import "@cext/src/assert.cex";
-import "@cext/src/runner.cex";
-import "@mvc-lighting/src/framework/compiler/xhtml_compiler.cex";
-import "@mvc-lighting/src/framework/viewbinding/xhtml_context.cex";
-import "@mvc-lighting/src/framework/types.cex";
+import "@cext.book";
+import "@mvc-lighting.book";
 
 bool fileExists(string path) {
     return std::filesystem::exists(path);

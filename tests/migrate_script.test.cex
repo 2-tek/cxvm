@@ -1,0 +1,61 @@
+// 2-TEK CXVM: Migrate Script Test Suite (tests/migrate_script.test.cex)
+// Validates "migrate" script configuration and native runner per RULE_CEX_SCRIPT_ONLY
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols)
+
+import "@cex-test.book";
+import fs from "fs";
+
+int main() {
+    println("===============================================================================");
+    println("       2-TEK CXVM: Migrate Script Test Suite                                  ");
+    println("===============================================================================");
+
+    Assert::reset();
+
+    // 1. Verify existence of cex-pack.json
+    Assert::isTrue(fs.exists("cex-pack.json"), "cex-pack.json manifest must exist");
+    string content = fs.readFile("cex-pack.json");
+    Assert::isTrue(content.length() > 0, "cex-pack.json must not be empty");
+
+    // 2. Parse scripts block
+    int scriptsPos = (int)content.find("\"scripts\"");
+    Assert::isTrue(scriptsPos != -1, "cex-pack.json must declare scripts section");
+
+    int scriptsEnd = (int)content.find("}", scriptsPos);
+    string scriptsBlock = content.substr(scriptsPos, scriptsEnd - scriptsPos + 1);
+
+    // 3. TC-MIG-01: Verify existence of "migrate" script
+    Assert::isTrue(scriptsBlock.find("\"migrate\"") != -1, "scripts block must declare 'migrate' script");
+
+    // 4. TC-MIG-02: Clean old files and binary builded
+    Assert::isTrue(scriptsBlock.find("rm -rf .bin .cex_cache cex_boxes") != -1, "'migrate' script must clean .bin, .cex_cache, and cex_boxes");
+
+    // 5. TC-MIG-03: Redownloads new from downloads
+    Assert::isTrue(scriptsBlock.find("cex-pack downloads") != -1, "'migrate' script must redownload packages via cex-pack downloads");
+
+    // 6. TC-MIG-04: Rebuild to .bin
+    Assert::isTrue(scriptsBlock.find("cexp-v8-stable build src/index.cex -o .bin") != -1, "'migrate' script must rebuild via cexp-v8-stable to .bin");
+
+    // 7. TC-MIG-05: Setup to PATH
+    Assert::isTrue(scriptsBlock.find("./.bin setup") != -1, "'migrate' script must execute setup to PATH via ./.bin setup");
+
+    // 8. TC-MIG-06: Native Cex runner file exists (RULE_CEX_SCRIPT_ONLY)
+    Assert::isTrue(fs.exists("scripts/migrate.cex"), "scripts/migrate.cex native runner must exist");
+    if (fs.exists("scripts/migrate.cex")) {
+        string runnerContent = fs.readFile("scripts/migrate.cex");
+        Assert::isTrue(runnerContent.length() > 0, "scripts/migrate.cex must not be empty");
+        Assert::isTrue(runnerContent.find("cex-pack downloads") != -1, "scripts/migrate.cex must invoke cex-pack downloads");
+        Assert::isTrue(runnerContent.find("cexp-v8-stable") != -1, "scripts/migrate.cex must invoke cexp-v8-stable");
+    }
+
+    int fails = Assert::getFailures();
+    int checks = Assert::getTotalChecks();
+    println("Checks verified: " + std::to_string(checks) + ", Failures: " + std::to_string(fails));
+
+    if (fails > 0) {
+        println("[FAIL] migrate_script.test.cex: " + std::to_string(fails) + " assertion(s) failed!");
+        return 1;
+    }
+    println("[OK] All migrate script checks strictly verified!");
+    return 0;
+}

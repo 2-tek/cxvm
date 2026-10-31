@@ -1,0 +1,61 @@
+{
+    "name": "@2tek/cxvm",
+    "version": "2.1.44",
+    "lockfileVersion": 1,
+    "encryption": {
+        "algorithm": "aes-256-cbc",
+        "scope": "project"
+    },
+    "dependencies": {
+        "cex-test": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/cex-test.git",
+            "ref": "cex_boxes"
+        },
+        "mvc-lighting": {
+            "version": "6.1.12",
+            "url": "https://github.com/2-tek/mvc-lighting.git",
+            "ref": "cex_boxes"
+        },
+        "cex-std": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/cex-std.git",
+            "ref": "cex_boxes"
+        },
+        "cex-log": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/cex-log.git",
+            "ref": "cex_boxes"
+        },
+        "cex-lint": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/cex-lint.git",
+            "ref": "cex_boxes"
+        },
+        "cex-pack": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/cex-pack.git",
+            "ref": "cex_boxes"
+        },
+        "cex-cli": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/cex-cli.git",
+            "ref": "cex_boxes"
+        },
+        "cex-cvm-cli": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/cex-cvm-cli.git",
+            "ref": "cex_boxes"
+        },
+        "cex-builder": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/cex-builder.git",
+            "ref": "cex_boxes"
+        },
+        "builder": {
+            "version": "2.0.0",
+            "url": "https://github.com/2-tek/builder.git",
+            "ref": "cex_boxes"
+        }
+    }
+}

@@ -1,0 +1,66 @@
+// 2-TEK CXVM: Delete Project and Submodule cex-android-webkit Test Suite (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Typing)
+
+import "@cex-test.book";
+import fs from "fs";
+import child_process from "child_process";
+
+int main() {
+    println("===============================================================================");
+    println("  2-TEK CXVM: Delete cex-android-webkit Project & Submodule Verification Suite ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("Delete cex-android-webkit Verification Suite");
+
+    // Test 1: Verify cex_boxes/cex-android-webkit directory does not exist
+    println("  [Test 1] Verifying filesystem: cex_boxes/cex-android-webkit must NOT exist...");
+    bool existsDir = fs.exists("cex_boxes/cex-android-webkit");
+    Assert::isFalse(existsDir, "cex_boxes/cex-android-webkit directory must be deleted");
+    suite->addResult("test_directory_deleted", !existsDir, "", 1);
+
+    // Test 2: Verify .gitmodules does not reference cex-android-webkit
+    println("  [Test 2] Verifying .gitmodules: must NOT contain cex-android-webkit...");
+    string gitmodules = fs.readFile(".gitmodules");
+    bool hasSubmodule = (gitmodules.find("cex_boxes/cex-android-webkit") != std::string::npos);
+    Assert::isFalse(hasSubmodule, ".gitmodules must not contain cex_boxes/cex-android-webkit");
+    suite->addResult("test_gitmodules_cleaned", !hasSubmodule, "", 1);
+
+    // Test 3: Verify git index does not contain cex_boxes/cex-android-webkit gitlink entry
+    println("  [Test 3] Verifying git stage index: must NOT track cex_boxes/cex-android-webkit...");
+    string gitLs = child_process.execSync("git ls-files --stage cex_boxes/cex-android-webkit | tr -d '\\n'");
+    Assert::equalsString("", gitLs, "git index must not contain cex_boxes/cex-android-webkit");
+    suite->addResult("test_git_index_cleaned", gitLs == "", "", 1);
+
+    // Test 4: Verify .git/modules/cex_boxes/cex-android-webkit does not exist
+    println("  [Test 4] Verifying git modules cache: must NOT contain cex-android-webkit...");
+    bool existsGitModule = fs.exists(".git/modules/cex_boxes/cex-android-webkit");
+    Assert::isFalse(existsGitModule, ".git/modules/cex_boxes/cex-android-webkit must be removed");
+    suite->addResult("test_git_module_cleaned", !existsGitModule, "", 1);
+
+    // Test 5: Verify git config does not contain submodule.cex_boxes/cex-android-webkit
+    println("  [Test 5] Verifying git config: must NOT contain submodule config for cex-android-webkit...");
+    string gitConfig = child_process.execSync("git config --get-regexp \"^submodule\\..*cex-android-webkit\" || true");
+    while (gitConfig.length() > 0 && (gitConfig[gitConfig.length() - 1] == "\n"[0] || gitConfig[gitConfig.length() - 1] == "\r"[0])) {
+        gitConfig.pop_back();
+    }
+    Assert::equalsString("", gitConfig, "git config must not retain submodule config for cex-android-webkit");
+    suite->addResult("test_git_config_cleaned", gitConfig == "", "", 1);
+
+    // Test 6: Verify remote GitHub repository 2-tek/cex-android-webkit is deleted
+    println("  [Test 6] Verifying GitHub remote repository: 2-tek/cex-android-webkit must NOT exist...");
+    string ghCheck = child_process.execSync("gh repo view 2-tek/cex-android-webkit >/dev/null 2>&1 && echo 'EXISTS' || echo 'DELETED'");
+    bool isRepoDeleted = (ghCheck.find("DELETED") != std::string::npos);
+    Assert::isTrue(isRepoDeleted, "remote repo 2-tek/cex-android-webkit must be deleted");
+    suite->addResult("test_remote_repo_deleted", isRepoDeleted, "", 1);
+
+    // Test 7: Verify cex_boxes/cex-pack.json does not contain cex-android-webkit
+    println("  [Test 7] Verifying cex_boxes/cex-pack.json: must NOT list cex-android-webkit...");
+    string packContent = fs.readFile("cex_boxes/cex-pack.json");
+    bool hasInPack = (packContent.find("cex-android-webkit") != std::string::npos);
+    Assert::isFalse(hasInPack, "cex_boxes/cex-pack.json must not list cex-android-webkit");
+    suite->addResult("test_cex_pack_cleaned", !hasInPack, "", 1);
+
+    TestReporter::printSummary(suite);
+    bool allPass = (Assert::getFailures() == 0) && (suite->failCount() == 0);
+    return allPass ? 0 : 1;
+}

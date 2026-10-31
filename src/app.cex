@@ -1,7 +1,7 @@
 // 2-TEK Factory: Application Kernel & Lighting MVC Dispatcher (C-ext)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths)
 
-import "./lighting_mvc.cex";
+import "@mvc-lighting.book";
 import "./types.cex";
 import "./models/platform_model.cex";
 import "./models/version_model.cex";
@@ -10,10 +10,8 @@ import "./models/package_catalog.cex";
 import "./views/page_renderer.cex";
 import "./cxvm_engine.cex";
 import "./controllers/factory_controller.cex";
-import "@cex-cli/src/terminal.cex";
-import "@cex-cli/src/cli.cex";
-import "@cex-std/src/filesystem.cex";
-import "@cex-std/src/chrono.cex";
+import "@cex-cli.book";
+import "@cex-std.book";
 
 class FactoryApp {
     public appName: string = "2-TEK cxvm Engine";

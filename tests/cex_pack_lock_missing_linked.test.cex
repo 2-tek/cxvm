@@ -1,0 +1,103 @@
+// 2-TEK CXVM: Root cex-pack.lock.json Missing Linked Verification Test Suite
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Typing)
+
+import "@cex-test.book";
+import fs from "fs";
+
+int countOccurrences(string haystack, string needle) {
+    int count = 0;
+    int pos = 0;
+    int len = (int)haystack.length();
+    int nLen = (int)needle.length();
+    if (nLen == 0) return 0;
+    while (pos < len) {
+        int idx = haystack.find(needle, pos);
+        if (idx == -1) break;
+        count++;
+        pos = idx + nLen;
+    }
+    return count;
+}
+
+int main() {
+    println("===============================================================================");
+    println("   2-TEK CXVM: Root cex-pack.lock.json Missing Linked Test Suite               ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("Root cex-pack.lock.json Missing Linked Verification");
+
+    // Test 1: Verify root cex-pack.lock.json exists
+    println("  [Test 1] Verifying root cex-pack.lock.json exists...");
+    bool hasRootLock = fs.exists("cex-pack.lock.json");
+    Assert::isTrue(hasRootLock, "root cex-pack.lock.json must exist");
+    suite->addResult("test_root_lock_exists", hasRootLock, "", 1);
+
+    string rootLockContent = "";
+    if (hasRootLock) {
+        rootLockContent = fs.readFile("cex-pack.lock.json");
+    }
+
+    // Test 2: Verify dependencies block is non-empty (at least 75 packages linked)
+    println("  [Test 2] Verifying dependencies block is non-empty (at least 75 packages linked)...");
+    int urlCount = countOccurrences(rootLockContent, "\"url\": \"https://github.com/2-tek/");
+    bool hasManyDeps = (urlCount >= 75);
+    Assert::isTrue(hasManyDeps, "root cex-pack.lock.json must contain at least 75 linked dependencies");
+    suite->addResult("test_dependencies_non_empty", hasManyDeps, "", 1);
+
+    // Test 3: Verify fundamental canonical packages are linked
+    println("  [Test 3] Verifying canonical packages are present in lockfile...");
+    bool hasCexLog = (rootLockContent.find("\"cex-log\":") != std::string::npos);
+    bool hasCexStd = (rootLockContent.find("\"cex-std\":") != std::string::npos);
+    bool hasCexTest = (rootLockContent.find("\"cex-test\":") != std::string::npos);
+    bool hasCexEnv = (rootLockContent.find("\"cex-env\":") != std::string::npos);
+    bool hasCexDom = (rootLockContent.find("\"cex-dom\":") != std::string::npos);
+    bool hasCexView = (rootLockContent.find("\"cex-view\":") != std::string::npos);
+    bool hasCexPack = (rootLockContent.find("\"cex-pack\":") != std::string::npos);
+    bool hasCexLint = (rootLockContent.find("\"cex-lint\":") != std::string::npos);
+    bool allCanonical = (hasCexLog && hasCexStd && hasCexTest && hasCexEnv && hasCexDom && hasCexView && hasCexPack && hasCexLint);
+    Assert::isTrue(allCanonical, "all canonical packages must be locked");
+    suite->addResult("test_canonical_packages_present", allCanonical, "", 1);
+
+    // Test 4: Verify versions are present
+    println("  [Test 4] Verifying version definitions in dependencies...");
+    int versionCount = countOccurrences(rootLockContent, "\"version\":");
+    bool hasVersions = (versionCount >= 75);
+    Assert::isTrue(hasVersions, "each dependency must have a version defined");
+    suite->addResult("test_versions_defined", hasVersions, "", 1);
+
+    // Test 5: Verify valid GitHub URLs
+    println("  [Test 5] Verifying repository URLs point to 2-tek git remotes...");
+    bool validUrls = (rootLockContent.find("\"url\": \"https://github.com/2-tek/cex-std.git\"") != std::string::npos &&
+                      rootLockContent.find("\"url\": \"https://github.com/2-tek/cex-log.git\"") != std::string::npos);
+    Assert::isTrue(validUrls, "dependencies must have valid 2-tek repository URLs");
+    suite->addResult("test_valid_repository_urls", validUrls, "", 1);
+
+    // Test 6: Verify ref points to cex_boxes
+    println("  [Test 6] Verifying ref attribute indicates cex_boxes resolution...");
+    int refCount = countOccurrences(rootLockContent, "\"ref\": \"cex_boxes\"");
+    bool hasBoxRefs = (refCount >= 75);
+    Assert::isTrue(hasBoxRefs, "dependencies must declare ref as cex_boxes");
+    suite->addResult("test_ref_points_to_cex_boxes", hasBoxRefs, "", 1);
+
+    // Test 7: Verify encryption block is present
+    println("  [Test 7] Verifying encryption metadata block is present...");
+    bool hasEncryption = (rootLockContent.find("\"encryption\":") != std::string::npos &&
+                          rootLockContent.find("\"aes-256-cbc\"") != std::string::npos);
+    Assert::isTrue(hasEncryption, "lockfile must have encryption block");
+    suite->addResult("test_encryption_block_present", hasEncryption, "", 1);
+
+    // Test 8: Verify cex_boxes/cex-pack.lock.json is synchronized
+    println("  [Test 8] Verifying cex_boxes/cex-pack.lock.json is synchronized...");
+    bool hasBoxesLock = fs.exists("cex_boxes/cex-pack.lock.json");
+    Assert::isTrue(hasBoxesLock, "cex_boxes/cex-pack.lock.json must exist");
+    if (hasBoxesLock) {
+        string boxesLockContent = fs.readFile("cex_boxes/cex-pack.lock.json");
+        int boxesUrlCount = countOccurrences(boxesLockContent, "\"url\": \"https://github.com/2-tek/");
+        Assert::isTrue(boxesUrlCount >= 75, "cex_boxes/cex-pack.lock.json must have at least 75 linked dependencies");
+    }
+    suite->addResult("test_boxes_lock_sync", hasBoxesLock, "", 1);
+
+    TestReporter::printSummary(suite);
+    bool allPass = (Assert::getFailures() == 0) && (suite->failCount() == 0);
+    return allPass ? 0 : 1;
+}

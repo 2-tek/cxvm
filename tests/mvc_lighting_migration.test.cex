@@ -2,8 +2,7 @@
 // Powered by cext (@cext/src/runner.cex)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types)
 
-import "@cext/src/assert.cex";
-import "@cext/src/runner.cex";
+import "@cext.book";
 import fs from "fs";
 import child_process from "child_process";
 import "@/src/types.cex";
@@ -20,7 +19,7 @@ int main() {
     println("[Test 1] TC-MIG-01: Verifying dependencies in cex-pack.json...");
     Assert::isTrue(fs.exists("cex-pack.json"), "cex-pack.json must exist");
     string packContent = fs.readFile("cex-pack.json");
-    Assert::isTrue(packContent.find("\"mvc-lighting\": \"6.1.10\"") != -1, "cex-pack.json must declare mvc-lighting 6.1.10");
+    Assert::isTrue(packContent.find("\"mvc-lighting\": \"6.1.12\"") != -1, "cex-pack.json must declare mvc-lighting 6.1.12");
     Assert::isTrue(packContent.find("\"cex-service\"") == -1, "cex-pack.json must not declare deprecated cex-service");
 
     // 2. Verify CxvmEngine Version Resolution
@@ -28,8 +27,8 @@ int main() {
     CxvmEngine* cxvm = new CxvmEngine();
     string verMvcLighting = cxvm->resolveLibVersion("mvc-lighting");
     string verLighting = cxvm->resolveLibVersion("lighting");
-    Assert::equalsString("6.1.10", verMvcLighting, "resolveLibVersion(mvc-lighting) resolves to 6.1.10");
-    Assert::equalsString("6.1.10", verLighting, "resolveLibVersion(lighting) resolves to 6.1.10");
+    Assert::equalsString("6.1.12", verMvcLighting, "resolveLibVersion(mvc-lighting) resolves to 6.1.12");
+    Assert::equalsString("6.1.12", verLighting, "resolveLibVersion(lighting) resolves to 6.1.12");
 
     // 3. Verify Box Store Integrity (RULE_NO_SYMLINK_BETWEEN_BOXES)
     println("[Test 3] TC-MIG-03: Verifying box store integrity...");
@@ -40,7 +39,7 @@ int main() {
         Assert::isTrue(symCheck.find("real") != -1, "cex_boxes/mvc-lighting must be real directory, not symlinked");
         Assert::isTrue(fs.exists("cex_boxes/mvc-lighting/cex-pack.json"), "cex_boxes/mvc-lighting/cex-pack.json exists");
         string boxPackRaw = fs.readFile("cex_boxes/mvc-lighting/cex-pack.json");
-        Assert::isTrue(boxPackRaw.find("\"version\": \"6.1.10\"") != -1, "cex_boxes/mvc-lighting manifest is v6.1.10");
+        Assert::isTrue(boxPackRaw.find("\"version\": \"6.1.12\"") != -1, "cex_boxes/mvc-lighting manifest is v6.1.12");
     }
     Assert::isTrue(!fs.exists("cex_boxes/cex-service"), "deprecated cex_boxes/cex-service must be removed");
 

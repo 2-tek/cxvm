@@ -1,0 +1,107 @@
+// 2-TEK CXVM: Manifest Migration & Toolchain Rebuild Runner (scripts/migrate.cex)
+// Cleans old build artifacts/caches, redownloads dependencies, rebuilds cxvm, and configures PATH
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_CEX_SCRIPT_ONLY
+
+import fs from "fs";
+import child_process from "child_process";
+
+class MigrateRunner {
+    public static clean(): int {
+        println("==> [1/4] [Migrate] Cleaning old build artifacts, cache, and downloaded packages...");
+        string curPwd = child_process.execSync("pwd | tr -d '\\n'");
+
+        if (fs.exists(curPwd + "/.bin")) {
+            child_process.execSync("rm -rf \"" + curPwd + "/.bin\"");
+        }
+        if (fs.exists(curPwd + "/.cex_cache")) {
+            child_process.execSync("rm -rf \"" + curPwd + "/.cex_cache\"");
+        }
+        if (fs.exists(curPwd + "/cex_boxes")) {
+            child_process.execSync("rm -rf \"" + curPwd + "/cex_boxes\"");
+        }
+        if (fs.exists(curPwd + "/.cex_boxes")) {
+            child_process.execSync("rm -rf \"" + curPwd + "/.cex_boxes\"");
+        }
+        println("[OK] Cleaned old .bin, .cex_cache, and cex_boxes");
+        return 0;
+    }
+
+    public static redownload(): int {
+        println("==> [2/4] [Migrate] Redownloading dependencies via cex-pack downloads...");
+        int res = system("cex-pack downloads cex-pack.json cex_boxes");
+        if (res != 0) {
+            res = system("cex-pack downloads");
+        }
+        if (res != 0) {
+            println("[FAIL] Dependency download failed via cex-pack downloads (exit code: " + std::to_string(res) + ")");
+            return 1;
+        }
+        string curPwd = child_process.execSync("pwd | tr -d '\\n'");
+        if (fs.exists(curPwd + "/../projects/mvc-lighting") && fs.exists(curPwd + "/cex_boxes")) {
+            child_process.execSync("mkdir -p \"" + curPwd + "/cex_boxes/mvc-lighting\" && cp -rn \"" + curPwd + "/../projects/mvc-lighting\"/* \"" + curPwd + "/cex_boxes/mvc-lighting/\" 2>/dev/null || true");
+        }
+        if (fs.exists(curPwd + "/cex_boxes") && !fs.exists(curPwd + "/.cex_boxes")) {
+            child_process.execSync("cp -r \"" + curPwd + "/cex_boxes\" \"" + curPwd + "/.cex_boxes\" 2>/dev/null || true");
+        } else if (fs.exists(curPwd + "/.cex_boxes") && !fs.exists(curPwd + "/cex_boxes")) {
+            child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes\" \"" + curPwd + "/cex_boxes\" 2>/dev/null || true");
+        }
+        println("[OK] Dependencies successfully downloaded into cex_boxes");
+        return 0;
+    }
+
+    public static rebuild(): int {
+        println("==> [3/4] [Migrate] Rebuilding cxvm via cexp-v8-stable to .bin...");
+        int res = system("cexp-v8-stable build src/index.cex -o .bin");
+        if (res != 0) {
+            println("[FAIL] Build failed via cexp-v8-stable (exit code: " + std::to_string(res) + ")");
+            return 1;
+        }
+        println("[OK] Built .bin machine binary successfully");
+        return 0;
+    }
+
+    public static setupToPath(): int {
+        println("==> [4/4] [Migrate] Setting up newly compiled binary to PATH...");
+        string curPwd = child_process.execSync("pwd | tr -d '\\n'");
+        string binPath = curPwd + "/.bin";
+        if (!fs.exists(binPath)) {
+            println("[FAIL] Binary not found at " + binPath);
+            return 1;
+        }
+        child_process.execSync("chmod +x \"" + binPath + "\" 2>/dev/null || true");
+        int res = system("\"./.bin\" setup");
+        if (res != 0) {
+            println("[FAIL] Setup to PATH failed (exit code: " + std::to_string(res) + ")");
+            return 1;
+        }
+        println("[OK] Binary and toolchain registered to PATH successfully");
+        return 0;
+    }
+
+    public static run(): int {
+        println("================================================================================");
+        println("    2-TEK CXVM: Executing Migration & Rebuild Pipeline                         ");
+        println("================================================================================");
+
+        int cRes = MigrateRunner::clean();
+        if (cRes != 0) return cRes;
+
+        int dRes = MigrateRunner::redownload();
+        if (dRes != 0) return dRes;
+
+        int bRes = MigrateRunner::rebuild();
+        if (bRes != 0) return bRes;
+
+        int sRes = MigrateRunner::setupToPath();
+        if (sRes != 0) return sRes;
+
+        println("================================================================================");
+        println("    2-TEK CXVM: Migration Complete [OK]                                        ");
+        println("================================================================================");
+        return 0;
+    }
+}
+
+int main(int argc, char** argv) {
+    return MigrateRunner::run();
+}

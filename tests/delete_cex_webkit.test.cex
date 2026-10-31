@@ -1,0 +1,52 @@
+// 2-TEK CXVM: Delete Project and Submodule cex-webkit Test Suite (C-ext)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Typing)
+
+import "@cext.book";
+import fs from "fs";
+import child_process from "child_process";
+
+int main() {
+    println("===============================================================================");
+    println("     2-TEK CXVM: Delete cex-webkit Project & Submodule Verification Suite      ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("Delete cex-webkit Verification Suite");
+
+    // Test 1: Verify cex_boxes/cex-webkit directory does not exist
+    println("  [Test 1] Verifying filesystem: cex_boxes/cex-webkit must NOT exist...");
+    bool existsDir = fs.exists("cex_boxes/cex-webkit");
+    Assert::isFalse(existsDir, "cex_boxes/cex-webkit directory must be deleted");
+    suite->addResult("test_directory_deleted", !existsDir, "", 1);
+
+    // Test 2: Verify .gitmodules does not reference cex-webkit
+    println("  [Test 2] Verifying .gitmodules: must NOT contain cex-webkit...");
+    string gitmodules = fs.readFile(".gitmodules");
+    bool hasSubmodule = (gitmodules.find("cex_boxes/cex-webkit") != std::string::npos);
+    Assert::isFalse(hasSubmodule, ".gitmodules must not contain cex_boxes/cex-webkit");
+    suite->addResult("test_gitmodules_cleaned", !hasSubmodule, "", 1);
+
+    // Test 3: Verify git index does not contain cex_boxes/cex-webkit gitlink entry
+    println("  [Test 3] Verifying git stage index: must NOT track cex_boxes/cex-webkit...");
+    string gitLs = child_process.execSync("git ls-files --stage cex_boxes/cex-webkit | tr -d '\\n'");
+    Assert::equalsString("", gitLs, "git index must not contain cex_boxes/cex-webkit");
+    suite->addResult("test_git_index_cleaned", gitLs == "", "", 1);
+
+    // Test 4: Verify .git/modules/cex_boxes/cex-webkit does not exist
+    println("  [Test 4] Verifying git modules cache: must NOT contain cex-webkit...");
+    bool existsGitModule = fs.exists(".git/modules/cex_boxes/cex-webkit");
+    Assert::isFalse(existsGitModule, ".git/modules/cex_boxes/cex-webkit must be removed");
+    suite->addResult("test_git_module_cleaned", !existsGitModule, "", 1);
+
+    // Test 5: Verify git config does not contain submodule.cex_boxes/cex-webkit
+    println("  [Test 5] Verifying git config: must NOT contain submodule config for cex-webkit...");
+    string gitConfig = child_process.execSync("git config --get-regexp \"^submodule\\..*cex-webkit\" || true");
+    while (gitConfig.length() > 0 && (gitConfig[gitConfig.length() - 1] == "\n"[0] || gitConfig[gitConfig.length() - 1] == "\r"[0])) {
+        gitConfig.pop_back();
+    }
+    Assert::equalsString("", gitConfig, "git config must not retain submodule config for cex-webkit");
+    suite->addResult("test_git_config_cleaned", gitConfig == "", "", 1);
+
+    TestReporter::printSummary(suite);
+    bool allPass = (Assert::getFailures() == 0) && (suite->failCount() == 0);
+    return allPass ? 0 : 1;
+}

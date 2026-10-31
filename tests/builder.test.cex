@@ -2,8 +2,7 @@
 // Powered by cext (@cext/src/runner.cex)
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), RULE_NO_SYMLINK_BETWEEN_BOXES
 
-import "@cext/src/assert.cex";
-import "@cext/src/runner.cex";
+import "@cext.book";
 import fs from "fs";
 import child_process from "child_process";
 import "@/src/types.cex";

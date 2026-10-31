@@ -1,0 +1,68 @@
+// 2-TEK CXVM: Migrate Last MVC Version & Router Test Suite
+// Powered by cext (@cext/src/runner.cex)
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types)
+
+import "@cext.book";
+import fs from "fs";
+import child_process from "child_process";
+import "@/src/types.cex";
+import "@/src/cxvm_engine.cex";
+import "@mvc-lighting.book";
+
+int main() {
+    println("===============================================================================");
+    println("   2-TEK CXVM: Migrate Last MVC Version & Router Test Suite                   ");
+    println("===============================================================================");
+
+    TestSuite* suite = new TestSuite("Migrate Last MVC Version & Router Tests");
+
+    // 1. Verify Manifest Dependencies in cex-pack.json
+    println("[Test 1] TC-MIG-01: Verifying dependencies in cex-pack.json...");
+    Assert::isTrue(fs.exists("cex-pack.json"), "cex-pack.json must exist");
+    string packContent = fs.readFile("cex-pack.json");
+    Assert::isTrue(packContent.find("\"mvc-lighting\": \"6.1.12\"") != -1, "cex-pack.json must declare mvc-lighting 6.1.12");
+
+    // 2. Verify CxvmEngine Version Resolution
+    println("[Test 2] TC-MIG-02: Verifying cxvm resolveLibVersion for mvc-lighting...");
+    CxvmEngine* cxvm = new CxvmEngine();
+    string verMvcLighting = cxvm->resolveLibVersion("mvc-lighting");
+    Assert::equalsString("6.1.12", verMvcLighting, "resolveLibVersion(mvc-lighting) resolves to 6.1.12");
+
+    // 3. Verify Box Store Integrity (RULE_NO_SYMLINK_BETWEEN_BOXES)
+    println("[Test 3] TC-MIG-03: Verifying box store integrity...");
+    bool hasLightingBox = fs.exists("cex_boxes/mvc-lighting");
+    Assert::isTrue(hasLightingBox, "cex_boxes/mvc-lighting must exist");
+    if (hasLightingBox) {
+        string symCheck = child_process.execSync("test -L cex_boxes/mvc-lighting && echo 'symlink' || echo 'real'");
+        Assert::isTrue(symCheck.find("real") != -1, "cex_boxes/mvc-lighting must be real directory, not symlinked");
+        Assert::isTrue(fs.exists("cex_boxes/mvc-lighting/cex-pack.json"), "cex_boxes/mvc-lighting/cex-pack.json exists");
+        string boxPackRaw = fs.readFile("cex_boxes/mvc-lighting/cex-pack.json");
+        Assert::isTrue(boxPackRaw.find("\"version\": \"6.1.12\"") != -1, "cex_boxes/mvc-lighting manifest is v6.1.12");
+    }
+
+    // 4. Verify Deprecated lighting_mvc.cex is Deleted
+    println("[Test 4] TC-MIG-04: Verifying src/lighting_mvc.cex is permanently deleted...");
+    Assert::isTrue(!fs.exists("src/lighting_mvc.cex"), "src/lighting_mvc.cex must be deleted");
+
+    // 5. Verify Zero Imports of lighting_mvc across src/
+    println("[Test 5] TC-MIG-05: Verifying zero lighting_mvc imports in src/...");
+    string grepLightingMvc = child_process.execSync("grep -rnE 'lighting_mvc' src/ 2>/dev/null || true");
+    Assert::equalsString("", grepLightingMvc, "zero lighting_mvc occurrences in src/");
+
+    // 6. Verify Router class imported from mvc-lighting works
+    println("[Test 6] TC-MIG-06: Verifying class Router imported from mvc-lighting...");
+    Router* router = new Router();
+    router->get("/api/v1/test", "test.handler");
+    HttpRequest* testReq = new HttpRequest("GET", "/api/v1/test", "", "application/json");
+    RouteEntry* matched = router->findRoute(testReq);
+    Assert::isTrue(matched != nullptr, "Router correctly matches registered route");
+    if (matched != nullptr) {
+        Assert::equalsString("test.handler", matched->handlerId, "Matched route has correct handlerId");
+    }
+
+    suite->addResult("test_migrate_last_mvc_version", true, "", 1);
+
+    println("\n");
+    TestReporter::printSummary(suite);
+    return suite->failCount() > 0 ? 1 : 0;
+}

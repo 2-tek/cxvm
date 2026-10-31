@@ -2,8 +2,7 @@
 // Standard Specification: .agents/ssr/31-10-2026/elevate-all-lint-to-error-rebuild-projects/ssr.md
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types)
 
-import "@cext/src/assert.cex";
-import "@cext/src/runner.cex";
+import "@cext.book";
 import fs from "fs";
 
 int main() {
@@ -57,10 +56,9 @@ int main() {
     Assert::isTrue(fs.exists("projects/word/test.cex"), "projects/word/test.cex exists");
     suite->addResult("test_test_runners_exist", true, "", 1);
 
-    // 6. TC-ER-06: Verifying all 22 project binaries (.bin) exist
-    println("[Test 6] TC-ER-06: Verifying standalone binaries (.bin) exist across all 22 projects...");
+    // 6. TC-ER-06: Verifying all 21 project binaries (.bin) exist
+    println("[Test 6] TC-ER-06: Verifying standalone binaries (.bin) exist across all 21 projects...");
     Assert::isTrue(fs.exists("projects/2-tek/.bin"), "2-tek/.bin exists");
-    Assert::isTrue(fs.exists("projects/apps-hub/.bin"), "apps-hub/.bin exists");
     Assert::isTrue(fs.exists("projects/cexm-javis/.bin"), "cexm-javis/.bin exists");
     Assert::isTrue(fs.exists("projects/code-storm/.bin"), "code-storm/.bin exists");
     Assert::isTrue(fs.exists("projects/cvm/.bin"), "cvm/.bin exists");
@@ -81,7 +79,7 @@ int main() {
     Assert::isTrue(fs.exists("projects/thunder/.bin"), "thunder/.bin exists");
     Assert::isTrue(fs.exists("projects/thunder-lite/.bin"), "thunder-lite/.bin exists");
     Assert::isTrue(fs.exists("projects/word/.bin"), "word/.bin exists");
-    suite->addResult("test_all_22_project_binaries_exist", true, "", 22);
+    suite->addResult("test_all_21_project_binaries_exist", true, "", 21);
 
     println("===============================================================================");
     println("   ALL 6 LINT ELEVATION & REBUILD CHECKS PASSED (100% CLEAN)                   ");

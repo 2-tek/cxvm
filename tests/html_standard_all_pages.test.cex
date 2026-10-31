@@ -2,8 +2,7 @@
 // Standard Specification: .agents/ssr/31-10-2026/html-standard-all-pages/ssr.md
 // Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule 44 (Explicit Types)
 
-import "@cext/src/assert.cex";
-import "@cext/src/runner.cex";
+import "@cext.book";
 import fs from "fs";
 
 int main() {
