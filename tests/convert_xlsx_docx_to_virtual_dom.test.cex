@@ -1,0 +1,109 @@
+// Test Suite: Convert .xlsx and .docx to Virtual DOM
+// Rule Conformance: Rule 69 (Target), Rule 29 (EOF), Rule 72 (Dynamic Paths), Rule (No Symbols), RULE_NO_HARD_EDIT_TO_CODE, RULE_CEX_SCRIPT_ONLY
+
+import "@cex-virtual-dom.book";
+import "@cex-xlsx.book";
+import "@cex-docx.book";
+
+void assertTrue(bool cond, string msg) {
+    if (cond) {
+        std::cout << "  [PASS] " << msg << "\n";
+    } else {
+        std::cerr << "  [FAIL] " << msg << "\n";
+        exit(1);
+    }
+}
+
+int main() {
+    std::cout << "== Running Convert XLSX & DOCX to Virtual DOM Test Suite ==\n";
+
+    // ==========================================
+    // 1. XLSX to Virtual DOM Tests
+    // ==========================================
+    std::cout << "[Test 1] Testing XLSX Parser with SharedStrings and Values...\n";
+
+    string sharedStringsXml = "<sst count=\"2\" uniqueCount=\"2\"><si><t>Revenue</t></si><si><t>Q1 2026</t></si></sst>";
+
+    string sheetXml = "<worksheet><sheetData><row r=\"1\"><c r=\"A1\" t=\"s\"><v>0</v></c><c r=\"B1\" t=\"s\"><v>1</v></c></row><row r=\"2\"><c r=\"A2\"><v>50000</v></c><c r=\"B2\"><v>75000</v></c></row></sheetData></worksheet>";
+
+    string workbookXml = "<workbook><sheets><sheet name=\"Financials\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>";
+
+    XlsxWorkbook* wb = XlsxParser::parseXml(sheetXml, sharedStringsXml, workbookXml);
+    assertTrue(wb != nullptr, "XlsxParser returned non-null workbook");
+    assertTrue(wb->sheetCount() >= 1, "Workbook has at least 1 sheet");
+    XlsxSheet* sheet = wb->getSheet(0);
+    assertTrue(sheet != nullptr, "Sheet 0 is accessible");
+    assertTrue(sheet->name == "Financials", "Sheet name matches workbook XML");
+    assertTrue(sheet->rowCount() >= 2, "Sheet contains at least 2 rows");
+
+    XlsxCell* cellA1 = sheet->getCell("A1");
+    assertTrue(cellA1 != nullptr, "Cell A1 exists");
+    assertTrue(cellA1->value == "Revenue", "Cell A1 resolved from sharedStrings ('Revenue')");
+
+    XlsxCell* cellB1 = sheet->getCell("B1");
+    assertTrue(cellB1 != nullptr, "Cell B1 exists");
+    assertTrue(cellB1->value == "Q1 2026", "Cell B1 resolved from sharedStrings ('Q1 2026')");
+
+    XlsxCell* cellA2 = sheet->getCell("A2");
+    assertTrue(cellA2 != nullptr, "Cell A2 exists");
+    assertTrue(cellA2->value == "50000", "Cell A2 value is '50000'");
+    std::cout << "[Test 1] OK: XLSX Parser successfully parsed cells and shared strings.\n";
+
+    std::cout << "[Test 2] Testing XLSX to Virtual DOM Transformation...\n";
+    VNode* vdomXlsx = XlsxToVirtualDom::toVirtualDom(wb);
+    assertTrue(vdomXlsx != nullptr, "XlsxToVirtualDom returned non-null VNode");
+    assertTrue(vdomXlsx->tag == "div", "Root VNode is a div");
+    assertTrue(vdomXlsx->hasClass("cex-xlsx-workbook"), "Root has class 'cex-xlsx-workbook'");
+    assertTrue(vdomXlsx->children->length() > 0, "Root has child elements (tabs and sheet table)");
+
+    // Convert directly via convertXml helper
+    VNode* directVdomXlsx = XlsxToVirtualDom::convertXml(sheetXml, sharedStringsXml, workbookXml);
+    assertTrue(directVdomXlsx != nullptr, "XlsxToVirtualDom::convertXml returned non-null VNode");
+    string htmlXlsx = directVdomXlsx->toHtml();
+    assertTrue(htmlXlsx.find("Revenue") != string::npos, "HTML contains cell text 'Revenue'");
+    assertTrue(htmlXlsx.find("50000") != string::npos, "HTML contains cell value '50000'");
+    assertTrue(htmlXlsx.find("Financials") != string::npos, "HTML contains sheet name 'Financials'");
+    std::cout << "[Test 2] OK: XLSX successfully converted to Virtual DOM.\n";
+
+    // ==========================================
+    // 2. DOCX to Virtual DOM Tests
+    // ==========================================
+    std::cout << "[Test 3] Testing DOCX Parser with Headings, Paragraphs, and Runs...\n";
+
+    string docxXml = "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body><w:p><w:pPr><w:pStyle w:val=\"Heading1\"/></w:pPr><w:r><w:t>Project Architecture</w:t></w:r></w:p><w:p><w:pPr><w:jc w:val=\"center\"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val=\"0055FF\"/></w:rPr><w:t>Executive Summary</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t> (Draft)</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Metric</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Target</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t>Latency</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>&lt; 10ms</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body></w:document>";
+
+    DocxDocument* doc = DocxParser::parseXml(docxXml);
+    assertTrue(doc != nullptr, "DocxParser returned non-null DocxDocument");
+    assertTrue(doc->paragraphs->length() >= 2, "Document contains at least 2 top-level paragraphs");
+    assertTrue(doc->tables->length() >= 1, "Document contains at least 1 table");
+
+    DocxParagraph* p0 = doc->paragraphs->get(0);
+    assertTrue(p0->style == "Heading1", "First paragraph has style 'Heading1'");
+    assertTrue(p0->getText() == "Project Architecture", "First paragraph text matches");
+
+    DocxParagraph* p1 = doc->paragraphs->get(1);
+    assertTrue(p1->align == "center", "Second paragraph has center alignment");
+    assertTrue(p1->runs->length() >= 2, "Second paragraph has at least 2 runs");
+    assertTrue(p1->runs->get(0)->bold == true, "First run has bold flag enabled");
+    assertTrue(p1->runs->get(0)->color == "0055FF", "First run has color '0055FF'");
+    assertTrue(p1->runs->get(1)->italic == true, "Second run has italic flag enabled");
+    std::cout << "[Test 3] OK: DOCX Parser successfully extracted document hierarchy.\n";
+
+    std::cout << "[Test 4] Testing DOCX to Virtual DOM Transformation...\n";
+    VNode* vdomDocx = DocxToVirtualDom::toVirtualDom(doc);
+    assertTrue(vdomDocx != nullptr, "DocxToVirtualDom returned non-null VNode");
+    assertTrue(vdomDocx->tag == "div", "Root VNode is a div");
+    assertTrue(vdomDocx->hasClass("cex-docx-document"), "Root has class 'cex-docx-document'");
+
+    string htmlDocx = vdomDocx->toHtml();
+    assertTrue(htmlDocx.find("<h1") != string::npos, "HTML contains <h1> tag for Heading1");
+    assertTrue(htmlDocx.find("Project Architecture") != string::npos, "Heading contains text");
+    assertTrue(htmlDocx.find("Executive Summary") != string::npos, "HTML contains run text");
+    assertTrue(htmlDocx.find("font-weight: bold") != string::npos, "HTML contains bold inline style");
+    assertTrue(htmlDocx.find("<table") != string::npos, "HTML contains <table> element");
+    assertTrue(htmlDocx.find("Latency") != string::npos, "Table contains cell text 'Latency'");
+    std::cout << "[Test 4] OK: DOCX successfully converted to Virtual DOM.\n";
+
+    std::cout << "== Convert XLSX & DOCX to Virtual DOM Test Suite PASSED (4/4) ==\n";
+    return 0;
+}
