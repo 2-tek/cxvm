@@ -10,13 +10,13 @@ int main() {
     println("   2-TEK CXVM: HTML5 & W3C Standard Compliance Test Suite                      ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("HTML5 Standards Tests");
+    TestSuite* suite = new TestSuite("HTML5 Standards Tests");
 
     // 1. TC-HTML-01: Verifying layout templates contain <!DOCTYPE html> and <html lang="en">
     println("[Test 1] TC-HTML-01: Verifying DOCTYPE and HTML lang in layout templates...");
-    let layoutPath: string = "cxvm/src/views/layout.xhtml";
+    string layoutPath = "cxvm/src/views/layout.xhtml";
     if (fs.exists(layoutPath)) {
-        let content: string = fs.readFile(layoutPath);
+        string content = fs.readFile(layoutPath);
         Assert::isTrue(content.find("<!DOCTYPE html") != -1, "layout.xhtml contains <!DOCTYPE html>");
         Assert::isTrue(content.find("<html") != -1, "layout.xhtml contains <html");
         Assert::isTrue(content.find("lang=\"en\"") != -1, "layout.xhtml contains lang=\"en\"");
@@ -27,9 +27,9 @@ int main() {
 
     // 2. TC-HTML-02: Verifying standard head metadata
     println("[Test 2] TC-HTML-02: Verifying standard head metadata...");
-    let ssrDocPath: string = fs.exists(".agents/ssr/31-10-2026/html-standard-all-pages/ssr.md") ? ".agents/ssr/31-10-2026/html-standard-all-pages/ssr.md" : "../.agents/ssr/31-10-2026/html-standard-all-pages/ssr.md";
+    string ssrDocPath = fs.exists(".agents/ssr/31-10-2026/html-standard-all-pages/ssr.md") ? ".agents/ssr/31-10-2026/html-standard-all-pages/ssr.md" : "../.agents/ssr/31-10-2026/html-standard-all-pages/ssr.md";
     Assert::isTrue(fs.exists(ssrDocPath), "HTML Standard SSR document exists");
-    let ssrContent: string = fs.readFile(ssrDocPath);
+    string ssrContent = fs.readFile(ssrDocPath);
     Assert::isTrue(ssrContent.find("<meta charset=\"UTF-8\">") != -1, "Specifies UTF-8 charset");
     Assert::isTrue(ssrContent.find("viewport") != -1, "Specifies viewport meta");
     suite->addResult("test_head_metadata", true, "", 1);

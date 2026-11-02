@@ -10,14 +10,14 @@ int main() {
     println("   2-TEK CXVM: Elevate All Lint Rules to Error & Rebuild Verification Tests    ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("Elevate Lint to Error Tests");
-    let rootDir: string = fs.exists("projects") ? "." : "..";
+    TestSuite* suite = new TestSuite("Elevate Lint to Error Tests");
+    string rootDir = fs.exists("projects") ? "." : "..";
 
     // 1. TC-ER-01: Verifying maxWarnings: 0 in manifests
     println("[Test 1] TC-ER-01: Verifying maxWarnings: 0 across key project manifests...");
-    let mvcPack: string = rootDir + "/projects/mvc-lighting/cex-pack.json";
+    string mvcPack = rootDir + "/projects/mvc-lighting/cex-pack.json";
     if (fs.exists(mvcPack)) {
-        let content: string = fs.readFile(mvcPack);
+        string content = fs.readFile(mvcPack);
         Assert::isTrue(content.find("\"maxWarnings\": -1") == -1, "mvc-lighting does not have maxWarnings: -1");
         Assert::isTrue(content.find("\"maxWarnings\": 0") != -1, "mvc-lighting configures maxWarnings: 0");
     }
@@ -25,9 +25,9 @@ int main() {
 
     // 2. TC-ER-02: Verifying LintLevel severity elevation in types.cex
     println("[Test 2] TC-ER-02: Verifying LintLevel severity mapping in cex-lint types...");
-    let typesPath: string = rootDir + "/cex_boxes/cex-lint/src/types.cex";
+    string typesPath = rootDir + "/cex_boxes/cex-lint/src/types.cex";
     if (fs.exists(typesPath)) {
-        let content: string = fs.readFile(typesPath);
+        string content = fs.readFile(typesPath);
         Assert::isTrue(content.find("int warn()") != -1, "types.cex defines warn()");
         Assert::isTrue(content.find("return 2;") != -1, "types.cex maps severity to 2 (error)");
     }
@@ -35,9 +35,9 @@ int main() {
 
     // 3. TC-ER-03: Verifying zero "warn" declarations in rules
     println("[Test 3] TC-ER-03: Verifying manifest rules configure error or off...");
-    let thunderPack: string = rootDir + "/projects/thunder/cex-pack.json";
+    string thunderPack = rootDir + "/projects/thunder/cex-pack.json";
     if (fs.exists(thunderPack)) {
-        let content: string = fs.readFile(thunderPack);
+        string content = fs.readFile(thunderPack);
         Assert::isTrue(content.find("\"maxWarnings\": -1") == -1, "thunder does not have maxWarnings: -1");
     }
     suite->addResult("test_zero_warn_declarations", true, "", 1);

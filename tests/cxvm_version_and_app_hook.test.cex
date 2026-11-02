@@ -12,63 +12,63 @@ int main() {
     println("  2-TEK CXVM: Core Version Control & App Hook via rootPathBuilder Test Suite   ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("CXVM Version Control and App Hook Tests");
+    TestSuite* suite = new TestSuite("CXVM Version Control and App Hook Tests");
 
-    let cxvm: CxvmEngine* = new CxvmEngine();
+    CxvmEngine* cxvm = new CxvmEngine();
 
     // 1. Core Version Control - Current Active Versions
-    let curAll: string = cxvm->current();
+    string curAll = cxvm->current();
     Assert::isTrue(curAll.find("cexr-factory") != -1, "current() reports cexr-factory version");
     Assert::isTrue(curAll.find("cexp-v8-stable") != -1, "current() reports cexp-v8-stable version");
 
-    let curRuntime: string = cxvm->current("cexr-factory");
+    string curRuntime = cxvm->current("cexr-factory");
     Assert::isTrue(curRuntime.length() > 0, "current('cexr-factory') returns non-empty version string");
 
-    let curCompiler: string = cxvm->current("cexp-v8-stable");
+    string curCompiler = cxvm->current("cexp-v8-stable");
     Assert::isTrue(curCompiler.length() > 0, "current('cexp-v8-stable') returns non-empty version string");
 
     // 2. Listing Installed Versions for Core Components
-    let listOut: string = cxvm->list();
+    string listOut = cxvm->list();
     Assert::isTrue(listOut.find("cexr-factory") != -1, "list() lists cexr-factory");
     Assert::isTrue(listOut.find("cexp-v8-stable") != -1, "list() lists cexp-v8-stable");
     Assert::isTrue(listOut.find("->") != -1, "list() indicates active version with arrow");
 
     // 3. Version Switching (use)
-    let useRuntimeRes: CxvmCommandResult* = cxvm->use("cexr-factory", "2.0.0");
+    CxvmCommandResult* useRuntimeRes = cxvm->use("cexr-factory", "2.0.0");
     Assert::isTrue(useRuntimeRes->success, "use('cexr-factory', '2.0.0') succeeds");
     Assert::equalsString("2.0.0", cxvm->current("cexr-factory"), "Active cexr-factory version updated to 2.0.0");
 
-    let useCompilerRes: CxvmCommandResult* = cxvm->use("cexp-v8-stable", "8.0.0");
+    CxvmCommandResult* useCompilerRes = cxvm->use("cexp-v8-stable", "8.0.0");
     Assert::isTrue(useCompilerRes->success, "use('cexp-v8-stable', '8.0.0') succeeds");
     Assert::equalsString("8.0.0", cxvm->current("cexp-v8-stable"), "Active cexp-v8-stable version updated to 8.0.0");
 
     // 4. Version Installation & Registration
-    let instRes: CxvmCommandResult* = cxvm->install("cexr-factory", "2.2.0");
+    CxvmCommandResult* instRes = cxvm->install("cexr-factory", "2.2.0");
     Assert::isTrue(instRes->success, "install('cexr-factory', '2.2.0') succeeds");
     Assert::isTrue(cxvm->isComponentVersionInstalled("cexr-factory", "2.2.0"), "Version 2.2.0 is now recorded as installed");
 
     // 5. Toolchain Doctor
-    let docReport: string = cxvm->doctor();
+    string docReport = cxvm->doctor();
     Assert::isTrue(docReport.find("cexr-factory") != -1, "doctor() checks cexr-factory");
     Assert::isTrue(docReport.find("cexp-v8-stable") != -1, "doctor() checks cexp-v8-stable");
 
     // 6. Dynamic Binary Resolution Through rootPathBuilder
-    let rootPathBuilder: string = cxvm->resolveRootPathBuilder();
+    string rootPathBuilder = cxvm->resolveRootPathBuilder();
     Assert::isTrue(rootPathBuilder.length() > 0, "resolveRootPathBuilder returns non-empty path");
 
     // 7. App Binary Resolution for Existing Apps
-    let binPath: string = cxvm->resolveAppBinary("cvm");
+    string binPath = cxvm->resolveAppBinary("cvm");
     Assert::isTrue(binPath.length() > 0, "resolveAppBinary('cvm') successfully resolves binary path");
 
     // 8. CLI Routing for --app Hook
-    let appHookCode: int = cxvm->cvmExecute("--app", "cvm", "status");
+    int appHookCode = cxvm->cvmExecute("--app", "cvm", "status");
     Assert::equalsInt(0, appHookCode, "cxvm --app cvm status executes with exit code 0");
 
     // 9. Standard Dev & Build Routing
-    let devHookCode: int = cxvm->cvmExecute("dev", "src/index.cex", "");
+    int devHookCode = cxvm->cvmExecute("dev", "src/index.cex", "");
     Assert::equalsInt(0, devHookCode, "cxvm dev delegates cleanly");
 
-    let buildHookCode: int = cxvm->cvmExecute("build", "src/index.cex", "");
+    int buildHookCode = cxvm->cvmExecute("build", "src/index.cex", "");
     Assert::equalsInt(0, buildHookCode, "cxvm build delegates cleanly");
 
     suite->addResult("test_cxvm_core_version_and_app_hook", true, "", 1);

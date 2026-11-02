@@ -6,22 +6,22 @@ import "@cext.book";
 import fs from "fs";
 
 int main() {
-    let suite: TestSuite* = new TestSuite("Commit and Push Verification Tests");
+    TestSuite* suite = new TestSuite("Commit and Push Verification Tests");
 
     // TC-VCS-01: root cex-pack.json exists and has version
-    let rootPackPath: string = fs.exists("cex-pack.json") ? "cex-pack.json" : "../cex-pack.json";
+    string rootPackPath = fs.exists("cex-pack.json") ? "cex-pack.json" : "../cex-pack.json";
     Assert::isTrue(fs.exists(rootPackPath), "root cex-pack.json must exist");
-    let content: string = fs.readFile(rootPackPath);
+    string content = fs.readFile(rootPackPath);
     Assert::isTrue(content.find("\"version\"") != -1, "root cex-pack.json must contain version definition");
     suite->addResult("TC-VCS-01", true, "", 1);
 
     // TC-VCS-02: cexr-factory exists and configuration valid
-    let cexrFactoryExists: bool = fs.exists("../cexr-factory") || fs.exists("../runtimes/cexr-factory") || fs.exists("cex-pack.json");
+    bool cexrFactoryExists = fs.exists("../cexr-factory") || fs.exists("../runtimes/cexr-factory") || fs.exists("cex-pack.json");
     Assert::isTrue(cexrFactoryExists, "workspace configuration valid");
     suite->addResult("TC-VCS-02", true, "", 1);
 
     // TC-VCS-03: SSR documents for commit and push exist
-    let ssrDir: string = "../.agents/ssr/30-10-2026/commit-changed-then-push-code";
+    string ssrDir = "../.agents/ssr/30-10-2026/commit-changed-then-push-code";
     if (!fs.exists(ssrDir)) {
         ssrDir = ".agents/ssr/30-10-2026/commit-changed-then-push-code";
     }

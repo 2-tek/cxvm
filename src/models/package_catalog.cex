@@ -50,18 +50,18 @@ class PackageCatalog {
     public void refreshArtifacts() {
         this.artifacts = new Array<ArtifactModel*>();
 
-        let vCount: int = (int)this.versions->length();
-        let pCount: int = (int)this.platforms->length();
+        int vCount = (int)this.versions->length();
+        int pCount = (int)this.platforms->length();
 
-        for (let v: int = 0; v < vCount; v++) {
-            let ver: VersionModel* = this.versions->get(v);
-            for (let p: int = 0; p < pCount; p++) {
-                let plat: PlatformModel* = this.platforms->get(p);
-                let fname: string = "cex-v" + ver->version + "-" + plat->id + "." + plat->archiveFormat;
-                let url: string = "/downloads/" + fname;
-                let filePath: string = this.downloadsDir + "/" + fname;
-                let size: int = 2850;
-                let hash: string = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+        for (int v = 0; v < vCount; v++) {
+            VersionModel* ver = this.versions->get(v);
+            for (int p = 0; p < pCount; p++) {
+                PlatformModel* plat = this.platforms->get(p);
+                string fname = "cex-v" + ver->version + "-" + plat->id + "." + plat->archiveFormat;
+                string url = "/downloads/" + fname;
+                string filePath = this.downloadsDir + "/" + fname;
+                int size = 2850;
+                string hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
                 if (StdFilesystem::exists(filePath)) {
                     size = 2850;
@@ -83,13 +83,13 @@ class PackageCatalog {
     }
 
     public JsonValue* getManifestDoc() {
-        let manifestPath: string = this.downloadsDir + "/manifest.json";
+        string manifestPath = this.downloadsDir + "/manifest.json";
         if (StdFilesystem::exists(manifestPath)) {
-            let str: string = StdFilesystem::read_text(manifestPath);
+            string str = StdFilesystem::read_text(manifestPath);
             return JsonDocHelper::parse(str);
         }
 
-        let doc: JsonValue* = JsonDocHelper::obj();
+        JsonValue* doc = JsonDocHelper::obj();
         JsonDocHelper::setStr(doc, "status", "active");
         JsonDocHelper::setNum(doc, "totalVersions", (int)this.versions->length());
         JsonDocHelper::setNum(doc, "totalPlatforms", (int)this.platforms->length());
@@ -98,9 +98,9 @@ class PackageCatalog {
     }
 
     public string getManifestJson() {
-        let manifestPath: string = this.downloadsDir + "/manifest.json";
+        string manifestPath = this.downloadsDir + "/manifest.json";
         if (StdFilesystem::exists(manifestPath)) {
-            let str: string = StdFilesystem::read_text(manifestPath);
+            string str = StdFilesystem::read_text(manifestPath);
             return str;
         }
 
@@ -108,9 +108,9 @@ class PackageCatalog {
     }
 
     public ArtifactModel* getArtifactByFilename(string fname) {
-        let count: int = (int)this.artifacts->length();
-        for (let i: int = 0; i < count; i++) {
-            let art: ArtifactModel* = this.artifacts->get(i);
+        int count = (int)this.artifacts->length();
+        for (int i = 0; i < count; i++) {
+            ArtifactModel* art = this.artifacts->get(i);
             if (art->filename == fname) {
                 return art;
             }

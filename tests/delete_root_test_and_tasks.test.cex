@@ -46,20 +46,20 @@ int main(int argc, char** argv) {
 
     // Test 3: TC-03: Verifying .agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md
     cout << "[Test 3] TC-03: Verifying .agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md..." << endl;
-    let rule1: string = readFile(".agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md");
+    string rule1 = readFile(".agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md");
     assertCondition(!rule1.empty(), ".agents/rules/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md exists and is non-empty");
     assertCondition(rule1.find("IN-PROJECT TESTS AND TASKS ONLY") != string::npos, "Rule contains in-project tests & tasks mandate");
     assertCondition(rule1.find("PROHIBITION OF ROOT TEST AND TASKS") != string::npos || rule1.find("PROHIBITION OF ROOT") != string::npos, "Rule strictly prohibits root test and tasks");
 
     // Test 4: TC-04: Verifying documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md
     cout << "[Test 4] TC-04: Verifying documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md..." << endl;
-    let ruleDoc: string = readFile("documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md");
+    string ruleDoc = readFile("documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md");
     assertCondition(!ruleDoc.empty(), "documents/rules/.agents/RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY.md exists");
     assertCondition(ruleDoc.find("IN-PROJECT TESTS AND TASKS ONLY") != string::npos, "Mirror rule contains mandate");
 
     // Test 5: TC-05: Verifying RULE_STANDARDS.md integration
     cout << "[Test 5] TC-05: Verifying RULE_STANDARDS.md references in-project tests & tasks..." << endl;
-    let stdRule: string = readFile(".agents/rules/RULE_STANDARDS.md");
+    string stdRule = readFile(".agents/rules/RULE_STANDARDS.md");
     assertCondition(!stdRule.empty(), ".agents/rules/RULE_STANDARDS.md exists");
     assertCondition(stdRule.find("RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY") != string::npos, "RULE_STANDARDS.md references RULE_IN_PROJECT_TESTS_AND_TASKS_ONLY");
 
@@ -74,8 +74,8 @@ int main(int argc, char** argv) {
         "documents/rules/.agents/RULE_STANDARDS.md"
     };
 
-    for (let i: size_t = 0; i < ruleFiles.size(); i++) {
-        let rContent: string = readFile(ruleFiles[i]);
+    for (size_t i = 0; i < ruleFiles.size(); i++) {
+        string rContent = readFile(ruleFiles[i]);
         assertCondition(!rContent.empty(), ruleFiles[i] + " is not empty");
         assertCondition(rContent.substr(rContent.size() - 1, 1) == "\n", ruleFiles[i] + " ends with newline");
         if (rContent.size() >= 2) {

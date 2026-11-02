@@ -9,18 +9,18 @@ int main() {
     println("       2-TEK CXVM: Fetch and Rebuild Verification Test Suite                   ");
     println("===============================================================================");
 
-    let suite: TestSuite* = new TestSuite("Fetch and Rebuild Verification Test Suite");
+    TestSuite* suite = new TestSuite("Fetch and Rebuild Verification Test Suite");
 
     // TC-FR-01: SSR documentation files exist and are populated
-    let ssrDir: string = fs.exists(".agents/ssr/31-10-2026/fetch-and-rebuild") ? ".agents/ssr/31-10-2026/fetch-and-rebuild" : "../.agents/ssr/31-10-2026/fetch-and-rebuild";
+    string ssrDir = fs.exists(".agents/ssr/31-10-2026/fetch-and-rebuild") ? ".agents/ssr/31-10-2026/fetch-and-rebuild" : "../.agents/ssr/31-10-2026/fetch-and-rebuild";
     Assert::isTrue(fs.exists(ssrDir + "/ssr.md"), "ssr.md must exist");
     Assert::isTrue(fs.exists(ssrDir + "/testcases.md"), "testcases.md must exist");
     Assert::isTrue(fs.exists(ssrDir + "/expectation.md"), "expectation.md must exist");
 
     // TC-FR-02: projects/cvm/src/cli.cex registers fetch command
-    let cliPath: string = fs.exists("projects/cvm/src/cli.cex") ? "projects/cvm/src/cli.cex" : "../projects/cvm/src/cli.cex";
+    string cliPath = fs.exists("projects/cvm/src/cli.cex") ? "projects/cvm/src/cli.cex" : "../projects/cvm/src/cli.cex";
     Assert::isTrue(fs.exists(cliPath), "cli.cex must exist");
-    let content: string = fs.readFile(cliPath);
+    string content = fs.readFile(cliPath);
     Assert::isTrue(content.find("\"fetch\"") != -1, "cli.cex must parse fetch command");
 
     // TC-FR-03: projects/cvm/src/cli.cex implements cmdFetch method
@@ -30,15 +30,15 @@ int main() {
     Assert::isTrue(content.find("fetch [remote] [branch]") != -1, "cli.cex printHelp must document fetch command");
 
     // TC-FR-05: projects/cvm/.bin exists and is non-empty
-    let cvmBin: string = fs.exists("projects/cvm/.bin") ? "projects/cvm/.bin" : "../projects/cvm/.bin";
+    string cvmBin = fs.exists("projects/cvm/.bin") ? "projects/cvm/.bin" : "../projects/cvm/.bin";
     Assert::isTrue(fs.exists(cvmBin), "projects/cvm/.bin must exist");
 
     // TC-FR-06: cexr-factory/.bin exists and is executable
-    let factoryBin: string = fs.exists("runtimes/cexr-factory/.bin") ? "runtimes/cexr-factory/.bin" : (fs.exists("../runtimes/cexr-factory/.bin") ? "../runtimes/cexr-factory/.bin" : (fs.exists("cexr-factory/.bin") ? "cexr-factory/.bin" : "../cexr-factory/.bin"));
+    string factoryBin = fs.exists("runtimes/cexr-factory/.bin") ? "runtimes/cexr-factory/.bin" : (fs.exists("../runtimes/cexr-factory/.bin") ? "../runtimes/cexr-factory/.bin" : (fs.exists("cexr-factory/.bin") ? "cexr-factory/.bin" : "../cexr-factory/.bin"));
     Assert::isTrue(fs.exists(factoryBin), "cexr-factory/.bin must exist");
 
     // TC-FR-07: cxvm/.bin exists and is executable
-    let cxvmBin: string = fs.exists("cxvm/.bin") ? "cxvm/.bin" : (fs.exists(".bin") ? ".bin" : "../cxvm/.bin");
+    string cxvmBin = fs.exists("cxvm/.bin") ? "cxvm/.bin" : (fs.exists(".bin") ? ".bin" : "../cxvm/.bin");
     Assert::isTrue(fs.exists(cxvmBin), "cxvm/.bin must exist");
 
     // TC-FR-08: Rule 29 EOF integrity for modified files

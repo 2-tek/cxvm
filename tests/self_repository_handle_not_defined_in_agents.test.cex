@@ -14,32 +14,32 @@ class SelfRepositoryHelper {
 }
 
 int main() {
-    let suite: TestSuite* = new TestSuite("Self Repository Handle Tests");
+    TestSuite* suite = new TestSuite("Self Repository Handle Tests");
 
     // TC-SR-01: Canonical rule exists in .agents/rules/
-    let rulePath: string = SelfRepositoryHelper::resolve(".agents/rules/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
+    string rulePath = SelfRepositoryHelper::resolve(".agents/rules/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
     Assert::isTrue(fs.exists(rulePath), "Canonical rule file must exist in .agents/rules/");
-    let content: string = fs.readFile(rulePath);
+    string content = fs.readFile(rulePath);
     Assert::isTrue(content.length() > 0, "Canonical rule must not be empty");
     suite->addResult("TC-SR-01", true, "", 1);
 
     // TC-SR-02: Mirrored rule exists in documents/rules/.agents/
-    let mirrorPath: string = SelfRepositoryHelper::resolve("documents/rules/.agents/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
+    string mirrorPath = SelfRepositoryHelper::resolve("documents/rules/.agents/RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS.md");
     Assert::isTrue(fs.exists(mirrorPath), "Mirrored rule file must exist in documents/rules/.agents/");
-    let mirrorContent: string = fs.readFile(mirrorPath);
+    string mirrorContent = fs.readFile(mirrorPath);
     Assert::isTrue(mirrorContent.length() > 0, "Mirrored rule must not be empty");
     suite->addResult("TC-SR-02", true, "", 1);
 
     // TC-SR-03: Lowercase mirror exists in both rule directories
-    let lower1: string = SelfRepositoryHelper::resolve(".agents/rules/rule-self-repository-handle-not-defined-in-agents.md");
-    let lower2: string = SelfRepositoryHelper::resolve("documents/rules/.agents/rule-self-repository-handle-not-defined-in-agents.md");
+    string lower1 = SelfRepositoryHelper::resolve(".agents/rules/rule-self-repository-handle-not-defined-in-agents.md");
+    string lower2 = SelfRepositoryHelper::resolve("documents/rules/.agents/rule-self-repository-handle-not-defined-in-agents.md");
     Assert::isTrue(fs.exists(lower1), "Lowercase rule must exist in .agents/rules/");
     Assert::isTrue(fs.exists(lower2), "Lowercase rule must exist in documents/rules/.agents/");
     suite->addResult("TC-SR-03", true, "", 1);
 
     // TC-SR-04: RULE_STANDARDS.md integrates Section 12 for self-repository handling
-    let stdPath: string = SelfRepositoryHelper::resolve(".agents/rules/RULE_STANDARDS.md");
-    let stdContent: string = fs.readFile(stdPath);
+    string stdPath = SelfRepositoryHelper::resolve(".agents/rules/RULE_STANDARDS.md");
+    string stdContent = fs.readFile(stdPath);
     Assert::isTrue(stdContent.find("RULE_SELF_REPOSITORY_HANDLE_NOT_DEFINED_IN_AGENTS") != -1, "RULE_STANDARDS.md must reference the new rule");
     suite->addResult("TC-SR-04", true, "", 1);
 
@@ -52,7 +52,7 @@ int main() {
     suite->addResult("TC-SR-06", true, "", 1);
 
     // TC-SR-07: SSR documentation exists and is populated
-    let ssrDir: string = SelfRepositoryHelper::resolve(".agents/ssr/31-10-2026/self-repository-handle-not-defined-in-agents");
+    string ssrDir = SelfRepositoryHelper::resolve(".agents/ssr/31-10-2026/self-repository-handle-not-defined-in-agents");
     Assert::isTrue(fs.exists(ssrDir + "/ssr.md"), "ssr.md must exist");
     Assert::isTrue(fs.exists(ssrDir + "/testcases.md"), "testcases.md must exist");
     Assert::isTrue(fs.exists(ssrDir + "/expectation.md"), "expectation.md must exist");
