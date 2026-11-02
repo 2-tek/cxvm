@@ -3,5 +3,4 @@
 
 #pragma once
 
-import "@mvc-lighting/src/framework/template_engine.cex";
-import "@mvc-lighting/src/framework/page_renderer.cex";
+import "@mvc-lighting.book";

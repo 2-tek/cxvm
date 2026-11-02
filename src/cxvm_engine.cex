@@ -1159,16 +1159,13 @@ class CxvmEngine {
                 return this.appExecute("cex-builder", arg2, "");
             }
             string vType = this.defaultBuildEdition;
-            string targetIdx = CxvmConstants::entrypoint();
+            string targetIdx = (arg1.length() > 0 && arg1 != "bean" && arg1 != "delivery" && arg1 != "drawer" && arg1 != "factory" && arg1.find("cexr-") != 0) ? arg1 : "";
             if (arg1 == "bean" || arg1 == "delivery" || arg1 == "drawer" || arg1 == "factory" || arg1.find("cexr-") == 0) {
                 vType = (arg1.find("cexr-") == 0) ? arg1.substr(5) : arg1;
                 if (arg2.length() > 0) targetIdx = arg2;
                 println("==> [cxvm " + cmd + "] Hook -> cexr-factory --app cexr-" + vType + " " + cmd + " " + targetIdx);
                 return this.executeProjectBuild(targetIdx, "");
-            } else if (arg1.length() > 0) {
-                targetIdx = arg1;
             }
-            println("==> [cxvm build] Compiling via cexr-factory: " + targetIdx + " -> .bin");
             return this.executeProjectBuild(targetIdx, arg2);
         }
         if (cmd == "test") {
@@ -1261,7 +1258,27 @@ class CxvmEngine {
     public int executeProjectBuild(string targetArg, string outArg) {
         string curPwd = child_process.execSync("pwd | tr -d '\\n'");
         string rpb = this.resolveRootPathBuilder();
-        string srcPath = targetArg.length() > 0 ? targetArg : "src/index.cex";
+        string srcPath = targetArg;
+        if (srcPath.length() == 0) {
+            if (fs.exists("cex-pack.json")) {
+                string packContent = fs.readFile("cex-pack.json");
+                int mPos = (int)packContent.find("\"main\"");
+                if (mPos != -1) {
+                    int col = (int)packContent.find(":", mPos);
+                    if (col != -1) {
+                        int q1 = (int)packContent.find("\"", col);
+                        int q2 = (int)packContent.find("\"", q1 + 1);
+                        if (q1 != -1 && q2 != -1 && q2 > q1 + 1) {
+                            string mainFile = packContent.substr(q1 + 1, q2 - q1 - 1);
+                            if (fs.exists(mainFile)) srcPath = mainFile;
+                        }
+                    }
+                }
+            }
+            if (srcPath.length() == 0 && fs.exists("src/index.cex")) srcPath = "src/index.cex";
+            if (srcPath.length() == 0 && fs.exists("index.cex")) srcPath = "index.cex";
+            if (srcPath.length() == 0 && fs.exists("cxvm/src/index.cex")) srcPath = "cxvm/src/index.cex";
+        }
         if (!fs.exists(srcPath) && fs.exists(curPwd + "/" + srcPath)) {
             srcPath = curPwd + "/" + srcPath;
         }
