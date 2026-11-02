@@ -747,7 +747,7 @@ class CxvmEngine {
             } else if (fs.exists(targetAppDir + "/src/index.cex") || fs.exists(targetAppDir + "/index.cex")) {
                 println("[OK] [cxvm --app] Building target app binary in " + targetAppDir + "...");
                 let entry: string = fs.exists(targetAppDir + "/src/index.cex") ? (targetAppDir + "/src/index.cex") : (targetAppDir + "/index.cex");
-                system(("cexp-v8-stable build " + entry + " -o " + targetAppDir + "/.bin > /dev/null 2>&1").c_str());
+                system(("cexr-factory build " + entry + " -o " + targetAppDir + "/.bin > /dev/null 2>&1").c_str());
                 if (fs.exists(targetAppDir + "/.bin")) {
                     binaryPath = targetAppDir + "/.bin";
                 }
@@ -761,7 +761,7 @@ class CxvmEngine {
         if (binaryPath.length() == 0) {
             println("[ERROR] [cxvm --app] Cannot resolve built binary for app: " + name);
             println("  Searched in {rootPathBuilder} (" + this.resolveRootPathBuilder() + ") and project .bin");
-            println("  Please build the app first: cexp-v8-stable build src/index.cex -o .bin");
+            println("  Please build the app first: cexr-factory build src/index.cex -o .bin");
             return 1;
         }
 
@@ -1162,12 +1162,12 @@ class CxvmEngine {
             if (arg1 == "bean" || arg1 == "delivery" || arg1 == "drawer" || arg1 == "factory" || arg1.find("cexr-") == 0) {
                 vType = (arg1.find("cexr-") == 0) ? arg1.substr(5) : arg1;
                 if (arg2.length() > 0) targetIdx = arg2;
-                println("==> [cxvm " + cmd + "] Hook -> cexp --app cexr-" + vType + " " + cmd + " " + targetIdx);
+                println("==> [cxvm " + cmd + "] Hook -> cexr-factory --app cexr-" + vType + " " + cmd + " " + targetIdx);
                 return this.executeProjectBuild(targetIdx, "");
             } else if (arg1.length() > 0) {
                 targetIdx = arg1;
             }
-            println("==> [cxvm build] Compiling via cexp-v8-stable: " + targetIdx + " -> .bin");
+            println("==> [cxvm build] Compiling via cexr-factory: " + targetIdx + " -> .bin");
             return this.executeProjectBuild(targetIdx, arg2);
         }
         if (cmd == "test") {
@@ -1241,7 +1241,7 @@ class CxvmEngine {
             } else if (fs.exists(curPwd + "/.cex_boxes") && !fs.exists(curPwd + "/cex_boxes")) {
                 child_process.execSync("cp -r \"" + curPwd + "/.cex_boxes\" \"" + curPwd + "/cex_boxes\" 2>/dev/null || true");
             }
-            println("==> [cxvm migrate] Rebuilding cxvm via cexp-v8-stable...");
+            println("==> [cxvm migrate] Rebuilding cxvm via cexr-factory...");
             let buildRes: int = this.executeProjectBuild("src/index.cex", curPwd + "/.bin");
             if (buildRes != 0) {
                 println("[FAIL] Project rebuild failed");
@@ -1270,9 +1270,9 @@ class CxvmEngine {
         }
 
         let binPath: string = outArg.length() > 0 ? outArg : (curPwd + "/.bin");
-        println("==> [cxvm build] Compiling project entrypoint (" + srcPath + " -> " + binPath + ") via cexp-v8-stable...");
+        println("==> [cxvm build] Compiling project entrypoint (" + srcPath + " -> " + binPath + ") via cexr-factory...");
 
-        let cmd: string = "cexp-v8-stable build \"" + srcPath + "\" -o \"" + binPath + "\"";
+        let cmd: string = "cexr-factory build \"" + srcPath + "\" -o \"" + binPath + "\"";
         let res: int = system(cmd.c_str());
         if (res != 0) {
             println("[FAIL] Project compilation failed");
@@ -1647,7 +1647,7 @@ class CxvmEngine {
         if (javisBinFound.length() == 0 && javisSrc.length() > 0) {
             try {
                 child_process.execSync("mkdir -p \"" + rootBuildPath + "/javis-runtime/1.1.70\"");
-                child_process.execSync("cexp-v8-stable build \"" + javisSrc + "\" -o \"" + javisCanonical + "\" 2>/dev/null || true");
+                child_process.execSync("cexr-factory build \"" + javisSrc + "\" -o \"" + javisCanonical + "\" 2>/dev/null || true");
                 child_process.execSync("chmod +x \"" + javisCanonical + "\" 2>/dev/null || true");
                 javisBinFound = javisCanonical;
             } catch (const Error& error) { throw new Error(1, "Caught unhandled error: " + string(error.what())); }

@@ -341,56 +341,25 @@ class SetupRunner {
             srcIndex = "cxvm/src/index.cex";
         }
 
-        let cexpBin: string = "cexp";
-        if (fs.exists(curPwd + "/compilers/v8-stable/.bin")) {
-            cexpBin = curPwd + "/compilers/v8-stable/.bin";
+        let compilerBin: string = "cexr-factory";
+        if (fs.exists(curPwd + "/cexr-factory/.bin")) {
+            compilerBin = curPwd + "/cexr-factory/.bin";
         }
-        if (cexpBin == "cexp" && fs.exists(curPwd + "/compilers/v8-stable/bin/v8-stable")) {
-            cexpBin = curPwd + "/compilers/v8-stable/bin/v8-stable";
+        if (compilerBin == "cexr-factory" && fs.exists(cxvmDir + "/bin/cexr-factory")) {
+            compilerBin = cxvmDir + "/bin/cexr-factory";
         }
-        if (cexpBin == "cexp" && fs.exists(cxvmDir + "/bin/8.0.0/cexp-v8-stable")) {
-            cexpBin = cxvmDir + "/bin/8.0.0/cexp-v8-stable";
-        }
-        if (cexpBin == "cexp" && fs.exists(cxvmDir + "/bin/cexp-v8-stable")) {
-            cexpBin = cxvmDir + "/bin/cexp-v8-stable";
-        }
-        if (cexpBin.length() == 0 && fs.exists(cxvmDir + "/bin/cexp")) {
-            cexpBin = cxvmDir + "/bin/cexp";
-        }
-        if (cexpBin.length() == 0 && fs.exists(cexDir + "/bin/cexp")) {
-            cexpBin = cexDir + "/bin/cexp";
-        }
-        if (cexpBin.length() == 0 && fs.exists(cexDir + "/bin/8.0.0/cexp")) {
-            cexpBin = cexDir + "/bin/8.0.0/cexp";
-        }
-        if (cexpBin.length() == 0) {
-            cexpBin = "cexp";
+        if (compilerBin == "cexr-factory" && fs.exists(cexDir + "/bin/cexr-factory")) {
+            compilerBin = cexDir + "/bin/cexr-factory";
         }
 
         let nativeDistBin: string = curPwd + "/.bin";
 
-        // Cross-platform check: If on Darwin and cexpBin is an ELF binary, remediate to prevent exec format error
-        try {
-            let unameOut: string = child_process.execSync("uname -s 2>/dev/null | tr -d '\\n'");
-            if (unameOut == "Darwin" && fs.exists(cexpBin)) {
-                let fileOut: string = child_process.execSync("file \"" + cexpBin + "\" 2>/dev/null");
-                if (fileOut.find("ELF") != std::string::npos) {
-                    println("  [WARN] Linux ELF binary detected on macOS Darwin for cexp: " + cexpBin);
-                    println("  [INFO] Invoking Javis autonomous cross-platform repair...");
-                    let fixWrapper: string = "#!/usr/bin/env bash\n# Native Darwin fallback wrapper\nif [ \"$1\" = \"compile\" ] || [ \"$1\" = \"build\" ]; then\n  SRC=\"$2\"; shift 2; OUT=\"bin/app\"\n  while [ $# -gt 0 ]; do\n    if [ \"$1\" = \"-o\" ]; then OUT=\"$2\"; shift 2; else shift; fi\n  done\n  mkdir -p \"$(dirname \"$OUT\")\"\n  if command -v clang++ >/dev/null 2>&1; then exec clang++ -std=c++20 -O3 -w \"$SRC\" -o \"$OUT\"; elif command -v g++ >/dev/null 2>&1; then exec g++ -std=c++20 -O3 -w \"$SRC\" -o \"$OUT\"; fi\nfi\nexit 0\n";
-                    fs.writeFile(cexDir + "/bin/8.0.0/cexp", fixWrapper);
-                    child_process.execSync("chmod +x \"" + cexDir + "/bin/8.0.0/cexp\" 2>/dev/null || true");
-                    cexpBin = cexDir + "/bin/8.0.0/cexp";
-                }
-            }
-        } catch (const Error& error) { throw new Error("OPERATION_FAILED", "Caught unhandled error: " + to_string(error)); }
-
         if (srcIndex.length() > 0 && fs.exists(srcIndex)) {
             println("\n==> [setup.cex] Rebuilding latest native cxvm binary from source: " + srcIndex);
             try {
-                child_process.execSync("CEX_LINT=0 \"" + cexpBin + "\" compile \"" + srcIndex + "\" -o \"" + nativeDistBin + "\" 2>/dev/null || true");
+                child_process.execSync("CEX_LINT=0 \"" + compilerBin + "\" build \"" + srcIndex + "\" -o \"" + nativeDistBin + "\" 2>/dev/null || true");
                 child_process.execSync("chmod +x \"" + nativeDistBin + "\" 2>/dev/null || true");
-                println("  [OK] Recompiled native machine binary via Cex v8: " + nativeDistBin);
+                println("  [OK] Recompiled native machine binary via cexr-factory: " + nativeDistBin);
             } catch (const Error& error) {
                 println("  [WARN] Native compilation fallback: using existing binary if present");
             }

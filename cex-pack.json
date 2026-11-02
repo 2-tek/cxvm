@@ -29,8 +29,8 @@
         "downloads": "cex-pack downloads",
         "dev": "cexr-factory src/index.cex",
         "start": "cexr-bean src/index.cex",
-        "build": "cexp-v8-stable build src/index.cex -o .bin",
-        "migrate": "rm -rf .bin .cex_cache cex_boxes && cex-pack downloads && cexp-v8-stable build src/index.cex -o .bin && ./.bin setup",
+        "build": "cexr-factory build src/index.cex -o .bin",
+        "migrate": "rm -rf .bin .cex_cache cex_boxes && cex-pack downloads && cexr-factory build src/index.cex -o .bin && ./.bin setup",
         "lint": "cex-lint fix .",
         "test": "cext tests/install.test.cex"
     },

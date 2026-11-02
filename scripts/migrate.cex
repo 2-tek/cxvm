@@ -50,10 +50,10 @@ class MigrateRunner {
     }
 
     public static rebuild(): int {
-        println("==> [3/4] [Migrate] Rebuilding cxvm via cexp-v8-stable to .bin...");
-        let res: int = system("cexp-v8-stable build src/index.cex -o .bin");
+        println("==> [3/4] [Migrate] Rebuilding cxvm via cexr-factory to .bin...");
+        let res: int = system("cexr-factory build src/index.cex -o .bin");
         if (res != 0) {
-            println("[FAIL] Build failed via cexp-v8-stable (exit code: " + std::to_string(res) + ")");
+            println("[FAIL] Build failed via cexr-factory (exit code: " + std::to_string(res) + ")");
             return 1;
         }
         println("[OK] Built .bin machine binary successfully");
