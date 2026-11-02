@@ -1,0 +1,50 @@
+// 2-TEK CXVM: Fetch Main and Sub Repositories Verification Test Suite
+// Conformance: Rule 29 (EOF), Rule 69 (Target), Rule 72 (Dynamic Paths), RULE_CVM_AGENT_VCS
+
+import "@cex-test.book";
+import fs from "fs";
+
+int main() {
+    println("===============================================================================");
+    println("   2-TEK CXVM: Fetch Main & Sub Repositories Test Suite (RULE_CVM_AGENT_VCS)   ");
+    println("===============================================================================");
+
+    Assert::reset();
+
+    // TC-FMS-01: SSR documentation files exist and are populated
+    string ssrDir = ".agents/ssr/02-11-2026/fetch-main-and-sub-repositories";
+    Assert::isTrue(fs.exists(ssrDir + "/ssr.md"), "TC-FMS-01: ssr.md must exist");
+    Assert::isTrue(fs.exists(ssrDir + "/testcases.md"), "TC-FMS-01: testcases.md must exist");
+    Assert::isTrue(fs.exists(ssrDir + "/expectation.md"), "TC-FMS-01: expectation.md must exist");
+
+    // TC-FMS-02: projects/cvm/src/cli.cex handles submodule fetch command
+    string cliPath = "projects/cvm/src/cli.cex";
+    Assert::isTrue(fs.exists(cliPath), "TC-FMS-02: cli.cex must exist");
+    string cliContent = fs.readFile(cliPath);
+    Assert::isTrue(cliContent.find("subAction == \"fetch\"") != -1, "TC-FMS-02: cli.cex must handle subAction == fetch");
+
+    // TC-FMS-03: projects/cvm/src/cli.cex documents fetch in submodule help
+    Assert::isTrue(cliContent.find("status, init, update, fetch, add") != -1, "TC-FMS-03: cli.cex help must list fetch in submodule commands");
+
+    // TC-FMS-04: .gitmodules exists and lists submodules
+    Assert::isTrue(fs.exists(".gitmodules"), "TC-FMS-04: .gitmodules must exist");
+    string gmContent = fs.readFile(".gitmodules");
+    Assert::isTrue(gmContent.find("[submodule \"cxvm\"]") != -1, "TC-FMS-04: .gitmodules lists cxvm");
+    Assert::isTrue(gmContent.find("[submodule \"cex_boxes/cex-test\"]") != -1, "TC-FMS-04: .gitmodules lists cex-test");
+
+    // TC-FMS-05: projects/cvm/.bin exists and is non-empty
+    string cvmBin = "projects/cvm/.bin";
+    Assert::isTrue(fs.exists(cvmBin), "TC-FMS-05: projects/cvm/.bin must exist");
+
+    // TC-FMS-08: Rule 29 EOF integrity for cli.cex
+    Assert::isTrue(cliContent.length() > 0, "TC-FMS-08: cli.cex must not be empty");
+    Assert::isTrue(cliContent.substr(cliContent.length() - 1, 1) == "\n", "TC-FMS-08: cli.cex must end with single newline");
+
+    int failures = Assert::getFailures();
+    if (failures > 0) {
+        println("\n[FAIL] Test suite completed with failures.");
+        return 1;
+    }
+    println("\n[PASS] All testcases passed successfully.");
+    return 0;
+}

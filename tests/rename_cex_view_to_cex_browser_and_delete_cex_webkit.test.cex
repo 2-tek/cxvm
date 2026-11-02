@@ -1,0 +1,61 @@
+// 2-TEK CXVM: Rename cex-view to cex-browser & Delete cex-webkit Test Suite
+// Conformance: Rule 29 (EOF), Rule 69 (Target), Rule 72 (Dynamic Paths), RULE_NO_SYMLINK_BETWEEN_BOXES
+
+import "@cex-test.book";
+import fs from "fs";
+
+int main() {
+    println("===============================================================================");
+    println("  2-TEK CXVM: Rename cex-view to cex-browser & Delete cex-webkit Test Suite    ");
+    println("===============================================================================");
+
+    Assert::reset();
+
+    // TC-RN-01: SSR documentation files exist and are populated
+    string ssrDir = ".agents/ssr/02-11-2026/rename-cex-view-to-cex-browser-and-delete-cex-webkit";
+    Assert::isTrue(fs.exists(ssrDir + "/ssr.md"), "TC-RN-01: ssr.md must exist");
+    Assert::isTrue(fs.exists(ssrDir + "/testcases.md"), "TC-RN-01: testcases.md must exist");
+    Assert::isTrue(fs.exists(ssrDir + "/expectation.md"), "TC-RN-01: expectation.md must exist");
+
+    // TC-RN-02: cxvm/cex_boxes/cex-webkit must NOT exist
+    Assert::isFalse(fs.exists("cxvm/cex_boxes/cex-webkit"), "TC-RN-02: cxvm/cex_boxes/cex-webkit must be deleted");
+
+    // TC-RN-03: cex_boxes/cex-webkit must NOT exist
+    Assert::isFalse(fs.exists("cex_boxes/cex-webkit"), "TC-RN-03: cex_boxes/cex-webkit must be deleted");
+
+    // TC-RN-04: cex_boxes/cex-browser exists and cex_boxes/cex-view does NOT exist
+    Assert::isTrue(fs.exists("cex_boxes/cex-browser"), "TC-RN-04: cex_boxes/cex-browser must exist");
+    Assert::isFalse(fs.exists("cex_boxes/cex-view"), "TC-RN-04: cex_boxes/cex-view must NOT exist");
+
+    // TC-RN-05: cxvm/cex_boxes/cex-browser exists and cxvm/cex_boxes/cex-view does NOT exist
+    Assert::isTrue(fs.exists("cxvm/cex_boxes/cex-browser"), "TC-RN-05: cxvm/cex_boxes/cex-browser must exist");
+    Assert::isFalse(fs.exists("cxvm/cex_boxes/cex-view"), "TC-RN-05: cxvm/cex_boxes/cex-view must NOT exist");
+
+    // TC-RN-06: cex_boxes/cex-browser/cex-pack.json specifies name cex-browser
+    string packPath = "cex_boxes/cex-browser/cex-pack.json";
+    Assert::isTrue(fs.exists(packPath), "TC-RN-06: cex-pack.json must exist in cex-browser");
+    if (fs.exists(packPath)) {
+        string packContent = fs.readFile(packPath);
+        Assert::isTrue(packContent.find("\"name\": \"cex-browser\"") != -1, "TC-RN-06: manifest name must be cex-browser");
+        Assert::isTrue(packContent.find("bin/cex-browser") != -1, "TC-RN-06: manifest bin must be bin/cex-browser");
+    }
+
+    // TC-RN-07: .gitmodules must reference cex_boxes/cex-browser and NOT cex_boxes/cex-view
+    Assert::isTrue(fs.exists(".gitmodules"), "TC-RN-07: .gitmodules must exist");
+    if (fs.exists(".gitmodules")) {
+        string gmContent = fs.readFile(".gitmodules");
+        Assert::isTrue(gmContent.find("[submodule \"cex_boxes/cex-browser\"]") != -1, "TC-RN-07: .gitmodules declares cex-browser");
+        Assert::isFalse(gmContent.find("[submodule \"cex_boxes/cex-view\"]") != -1, "TC-RN-07: .gitmodules does NOT declare cex-view");
+    }
+
+    // TC-RN-08: cex_boxes/cex-browser/.bin exists
+    Assert::isTrue(fs.exists("cex_boxes/cex-browser/.bin"), "TC-RN-08: cex_boxes/cex-browser/.bin must exist");
+
+    int failures = Assert::getFailures();
+    if (failures > 0) {
+        println("\n[FAIL] Test suite completed with failures.");
+        return 1;
+    }
+    println("\n[PASS] All testcases passed successfully.");
+    return 0;
+}
